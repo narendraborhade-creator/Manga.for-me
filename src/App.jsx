@@ -67,6 +67,7 @@ export default function App() {
   const [activeTab, setActiveTab] = useState('manga'); // 'manga' | 'anime' | 'library' | 'history'
   const [searchQuery, setSearchQuery] = useState('');
   const [selectedGenre, setSelectedGenre] = useState('All');
+  const [selectedSource, setSelectedSource] = useState('All'); // 'All' | 'WeebCentral' | 'Webtoon' | 'MangaPill'
 
   // Local Storage States
   const [bookmarks, setBookmarks] = useState({});
@@ -442,7 +443,7 @@ export default function App() {
             ) : (
               /* Search Results for Manga */
               <div className="space-y-6">
-                <div className="flex items-center justify-between border-b border-white/5 pb-4">
+                <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 border-b border-white/5 pb-4">
                   <div>
                     <h2 className="text-xl font-bold text-white">
                       Search Manga Results
@@ -451,21 +452,47 @@ export default function App() {
                       {searchQuery ? `Showing results for "${searchQuery}"` : `Filtered by ${selectedGenre}`}
                     </p>
                   </div>
-                  <button
-                    onClick={() => {
-                      setSearchQuery('');
-                      setSelectedGenre('All');
-                    }}
-                    className="text-xs text-rose-400 hover:text-rose-300 font-semibold"
-                  >
-                    Clear Filter
-                  </button>
+
+                  <div className="flex items-center gap-2 flex-wrap">
+                    {/* Source Filter Pills */}
+                    <div className="flex items-center gap-1.5 p-1 rounded-xl bg-slate-900/90 border border-white/5">
+                      {[
+                        { id: 'All', label: 'All Sources' },
+                        { id: 'WeebCentral', label: 'WeebCentral' },
+                        { id: 'Webtoon', label: 'Webtoons' },
+                        { id: 'MangaPill', label: 'MangaPill' },
+                      ].map((s) => (
+                        <button
+                          key={s.id}
+                          onClick={() => setSelectedSource(s.id)}
+                          className={`px-2.5 py-1 rounded-lg text-xs font-bold transition-all ${
+                            selectedSource === s.id
+                              ? 'bg-rose-600 text-white shadow-sm'
+                              : 'text-slate-400 hover:text-white hover:bg-white/5'
+                          }`}
+                        >
+                          {s.label}
+                        </button>
+                      ))}
+                    </div>
+
+                    <button
+                      onClick={() => {
+                        setSearchQuery('');
+                        setSelectedGenre('All');
+                        setSelectedSource('All');
+                      }}
+                      className="text-xs text-rose-400 hover:text-rose-300 font-semibold px-2 py-1"
+                    >
+                      Clear Filter
+                    </button>
+                  </div>
                 </div>
 
                 {searchingManga ? (
                   <div className="py-24 flex flex-col items-center justify-center gap-2">
                     <Loader2 className="w-8 h-8 text-rose-500 animate-spin" />
-                    <p className="text-xs text-slate-400">Searching MangaDex repository...</p>
+                    <p className="text-xs text-slate-400">Searching Keiyoushi & Multi-Source Library...</p>
                   </div>
                 ) : searchMangaList.length === 0 ? (
                   <div className="py-24 text-center text-slate-400 text-sm">
@@ -473,15 +500,21 @@ export default function App() {
                   </div>
                 ) : (
                   <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-6 gap-4 sm:gap-5">
-                    {searchMangaList.map((manga) => (
-                      <MangaCard
-                        key={manga.id}
-                        manga={manga}
-                        onSelect={(id, cover) => handleOpenMangaDetails(id, cover)}
-                        isBookmarked={isBookmarked(manga.id)}
-                        onToggleBookmark={handleToggleBookmark}
-                      />
-                    ))}
+                    {searchMangaList
+                      .filter((manga) => {
+                        if (selectedSource === 'All') return true;
+                        const src = manga.sourceName || (manga.id?.startsWith('wc:') ? 'WeebCentral' : manga.id?.startsWith('webtoon:') ? 'Webtoon' : 'MangaPill');
+                        return src.toLowerCase().includes(selectedSource.toLowerCase());
+                      })
+                      .map((manga) => (
+                        <MangaCard
+                          key={manga.id}
+                          manga={manga}
+                          onSelect={(id, cover) => handleOpenMangaDetails(id, cover)}
+                          isBookmarked={isBookmarked(manga.id)}
+                          onToggleBookmark={handleToggleBookmark}
+                        />
+                      ))}
                   </div>
                 )}
               </div>
@@ -500,7 +533,7 @@ export default function App() {
                   <HeroCarousel
                     items={trendingAnime.slice(0, 4)}
                     onSelectAnime={(anime) => setSelectedAnime(anime)}
-                    onSelectManga={(id) => setSelectedMangaId(id)}
+                    onSelectManga={(id, cover) => handleOpenMangaDetails(id, cover)}
                   />
                 )}
 

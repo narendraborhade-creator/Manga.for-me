@@ -111,5 +111,7 @@ function formatMangaItem(item) {
     author: item.author || 'Manga Artist',
     tags: item.tags || ['Manga', 'Action'],
     year: item.year || null,
+    sourceName: item.sourceName || (item.id.startsWith('wc:') ? 'WeebCentral' : item.id.startsWith('webtoon:') ? 'Webtoon' : 'MangaPill'),
+    provider: item.provider || (item.id.startsWith('wc:') ? 'weebcentral' : item.id.startsWith('webtoon:') ? 'webtoon' : 'mangapill'),
   };
 }

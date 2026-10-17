@@ -40,7 +40,7 @@ export default function MangaCard({
 
         {/* Top Badges */}
         <div className="absolute top-2.5 left-2.5 right-2.5 flex items-center justify-between z-10 pointer-events-none">
-          <div className="flex items-center gap-1">
+          <div className="flex items-center gap-1 flex-wrap">
             <span className={`px-2 py-0.5 rounded-md text-[10px] font-extrabold uppercase tracking-wider backdrop-blur-md ${
               manga.status?.toLowerCase() === 'completed'
                 ? 'bg-emerald-500/80 text-white'
@@ -48,6 +48,11 @@ export default function MangaCard({
             }`}>
               {manga.status || 'Ongoing'}
             </span>
+            {(manga.sourceName || (manga.id?.startsWith('wc:') ? 'WeebCentral' : manga.id?.startsWith('webtoon:') ? 'Webtoon' : 'MangaPill')) && (
+              <span className="px-1.5 py-0.5 rounded-md text-[9px] font-bold tracking-wider backdrop-blur-md bg-sky-600/80 text-white shadow-sm">
+                {manga.sourceName || (manga.id?.startsWith('wc:') ? 'WeebCentral' : manga.id?.startsWith('webtoon:') ? 'Webtoon' : 'MangaPill')}
+              </span>
+            )}
           </div>
 
           {/* Bookmark Button */}

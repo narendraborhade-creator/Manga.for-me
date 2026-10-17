@@ -48,6 +48,9 @@ export default function MangaDetailModal({
 
     // 1. Fetch Details
     fetchMangaDetails(mangaId).then((data) => {
+      if (data && initialCoverUrl) {
+        data.coverUrl = initialCoverUrl;
+      }
       setManga(data);
       setLoading(false);
     });
@@ -166,6 +169,12 @@ export default function MangaDetailModal({
                     <span className="px-2 py-0.5 rounded-md text-[11px] text-slate-400 bg-white/5 border border-white/5">
                       {chapters.length} Chapters
                     </span>
+
+                    {(manga.sourceName || (manga.id.startsWith('wc:') ? 'WeebCentral' : manga.id.startsWith('webtoon:') ? 'Webtoon' : 'MangaPill')) && (
+                      <span className="px-2 py-0.5 rounded-md text-[11px] font-bold text-sky-400 bg-sky-500/10 border border-sky-500/30">
+                        {manga.sourceName || (manga.id.startsWith('wc:') ? 'WeebCentral' : manga.id.startsWith('webtoon:') ? 'Webtoon' : 'MangaPill')}
+                      </span>
+                    )}
                   </div>
 
                   <h2 className="text-xl sm:text-2xl md:text-3xl font-extrabold text-white tracking-tight mb-1">

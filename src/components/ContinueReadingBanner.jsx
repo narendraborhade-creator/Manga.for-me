@@ -36,7 +36,7 @@ export default function ContinueReadingBanner({
         {/* Left: Thumbnail & Info */}
         <div className="flex items-center gap-4 min-w-0">
           <div className="relative w-14 h-20 sm:w-16 sm:h-24 flex-shrink-0 rounded-xl overflow-hidden shadow-lg border border-white/10 group cursor-pointer"
-            onClick={() => onOpenMangaDetails(lastRead.mangaId)}
+            onClick={() => onOpenMangaDetails(lastRead.mangaId, lastRead.coverUrl)}
           >
             <img
               src={lastRead.coverUrl}
@@ -96,7 +96,7 @@ export default function ContinueReadingBanner({
         {/* Right: Actions */}
         <div className="flex items-center gap-2.5 w-full sm:w-auto justify-end">
           <button
-            onClick={() => onOpenMangaDetails(lastRead.mangaId)}
+            onClick={() => onOpenMangaDetails(lastRead.mangaId, lastRead.coverUrl)}
             className="px-3.5 py-2 rounded-xl text-xs font-semibold text-slate-300 hover:text-white bg-white/5 hover:bg-white/10 border border-white/5 transition-all flex items-center gap-1.5"
           >
             <BookOpen className="w-3.5 h-3.5" />

@@ -4,6 +4,11 @@ import {
   getWebtoonChapterPages, 
   WEBTOON_CATALOG 
 } from './webtoonProvider.js';
+import {
+  searchWeebCentral,
+  getWeebCentralDetails,
+  getWeebCentralChapterPages
+} from './weebcentralProvider.js';
 
 // Server-side provider for complete manga chapters and pages
 const USER_AGENT = 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36';
@@ -222,15 +227,19 @@ export async function getPopularManga() {
 export async function searchManga(query = '') {
   if (!query || !query.trim()) return getPopularManga();
 
-  const cacheKey = `search_v4_${query.trim().toLowerCase()}`;
+  const cacheKey = `search_v5_${query.trim().toLowerCase()}`;
   const cached = getCached(cacheKey);
   if (cached) return cached;
 
   try {
-    // Run Webtoon provider and MangaPill provider in parallel
-    const [webtoonMatches, mangapillMatches] = await Promise.all([
+    // Run Webtoon provider, WeebCentral (Keiyoushi), and MangaPill in parallel
+    const [webtoonMatches, weebCentralMatches, mangapillMatches] = await Promise.all([
       searchWebtoons(query).catch((e) => {
         console.error('searchWebtoons error:', e);
+        return [];
+      }),
+      searchWeebCentral(query).catch((e) => {
+        console.error('searchWeebCentral error:', e);
         return [];
       }),
       fetchMangaPillSearch(query).catch((e) => {
@@ -242,17 +251,26 @@ export async function searchManga(query = '') {
     const seen = new Set();
     const combined = [];
 
-    // Prioritize direct webtoon matches (e.g. Fortune Telling Princess)
+    // 1. Prioritize direct webtoon matches (e.g. Fortune Telling Princess)
     webtoonMatches.forEach((item) => {
       if (!seen.has(item.id)) {
-        combined.push(item);
+        combined.push({ ...item, sourceName: item.sourceName || 'Webtoon' });
         seen.add(item.id);
       }
     });
 
+    // 2. WeebCentral matches (thousands of titles from Keiyoushi source)
+    weebCentralMatches.forEach((item) => {
+      if (!seen.has(item.id)) {
+        combined.push({ ...item, sourceName: 'WeebCentral' });
+        seen.add(item.id);
+      }
+    });
+
+    // 3. MangaPill matches
     mangapillMatches.forEach((item) => {
       if (!seen.has(item.id)) {
-        combined.push(item);
+        combined.push({ ...item, sourceName: 'MangaPill' });
         seen.add(item.id);
       }
     });
@@ -316,6 +334,9 @@ async function fetchMangaPillSearch(query = '') {
 export async function getMangaDetails(mangaId) {
   if (mangaId.startsWith('webtoon:')) {
     return getWebtoonDetails(mangaId);
+  }
+  if (mangaId.startsWith('wc:')) {
+    return getWeebCentralDetails(mangaId.replace('wc:', ''));
   }
 
   const cacheKey = `details_v3_${mangaId}`;
@@ -405,6 +426,9 @@ export async function getChapterPages(chapterId) {
   if (chapterId.startsWith('webtoon:')) {
     return getWebtoonChapterPages(chapterId);
   }
+  if (chapterId.startsWith('wc_ch:')) {
+    return getWeebCentralChapterPages(chapterId.replace('wc_ch:', ''));
+  }
 
   const cacheKey = `chapter_v2_${chapterId}`;
   const cached = getCached(cacheKey);
@@ -453,7 +477,25 @@ export async function proxyImage(imageUrl, res) {
     let referer = `${BASE_URL}/`;
     try {
       const parsed = new URL(imageUrl);
-      referer = parsed.origin + '/';
+      const host = parsed.hostname.toLowerCase();
+      if (
+        host.includes('weebcentral') || 
+        host.includes('planeptune') || 
+        host.includes('compsci88') || 
+        host.includes('lastation')
+      ) {
+        referer = 'https://weebcentral.com/';
+      } else if (host.includes('afortunetellingprincess')) {
+        referer = 'https://afortunetellingprincess.com/';
+      } else if (host.includes('readsololeveling')) {
+        referer = 'https://readsololeveling.org/';
+      } else if (host.includes('omniscientreadersviewpoint')) {
+        referer = 'https://omniscientreadersviewpoint.com/';
+      } else if (host.includes('mangapill') || host.includes('readdetectiveconan')) {
+        referer = 'https://mangapill.com/';
+      } else {
+        referer = parsed.origin + '/';
+      }
     } catch {}
 
     const response = await fetch(imageUrl, {
