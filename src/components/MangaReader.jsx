@@ -15,7 +15,7 @@ import {
   Loader2,
   AlertCircle
 } from 'lucide-react';
-import { fetchChapterPages, fetchMangaChapters } from '../services/mangadexApi';
+import { fetchChapterPages, fetchMangaChapters } from '../services/mangaApi';
 import { 
   recordReadingProgress, 
   getReaderSettings, 

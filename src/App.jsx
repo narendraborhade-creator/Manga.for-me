@@ -13,10 +13,8 @@ import BackupModal from './components/BackupModal';
 
 import { 
   fetchPopularManga, 
-  fetchLatestManga, 
-  fetchTopRatedManga, 
   searchManga 
-} from './services/mangadexApi';
+} from './services/mangaApi';
 
 import { 
   fetchTrendingAnime, 
@@ -121,16 +119,12 @@ export default function App() {
     let isMounted = true;
     setLoadingManga(true);
 
-    Promise.all([
-      fetchPopularManga(12),
-      fetchLatestManga(12),
-      fetchTopRatedManga(12),
-    ])
-      .then(([pop, latest, top]) => {
+    fetchPopularManga()
+      .then((pop) => {
         if (!isMounted) return;
-        setPopularManga(pop);
-        setLatestManga(latest);
-        setTopRatedManga(top);
+        setPopularManga(pop.slice(0, 12));
+        setLatestManga(pop.slice(12, 24).length > 0 ? pop.slice(12, 24) : pop.slice(0, 12));
+        setTopRatedManga(pop.slice(24, 36).length > 0 ? pop.slice(24, 36) : pop.slice(0, 12));
         setLoadingManga(false);
       })
       .catch((err) => {
@@ -181,7 +175,8 @@ export default function App() {
     const timer = setTimeout(() => {
       if (activeTab === 'manga' || searchQuery) {
         setSearchingManga(true);
-        searchManga(searchQuery, 24).then((res) => {
+        const query = searchQuery.trim() || (selectedGenre !== 'All' ? selectedGenre : '');
+        searchManga(query).then((res) => {
           setSearchMangaList(res);
           setSearchingManga(false);
         });

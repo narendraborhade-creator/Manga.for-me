@@ -14,7 +14,7 @@ import {
   Sparkles,
   Loader2
 } from 'lucide-react';
-import { fetchMangaDetails, fetchMangaChapters } from '../services/mangadexApi';
+import { fetchMangaDetails, fetchMangaChapters } from '../services/mangaApi';
 import { getReadChaptersForManga } from '../services/storage';
 
 export default function MangaDetailModal({
