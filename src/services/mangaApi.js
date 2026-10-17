@@ -76,21 +76,29 @@ export const FALLBACK_MANGA_CATALOG = [
     ]
   },
   {
-    id: 'webtoon:the-step-mothers-began-her-second-life',
-    title: "The Step Mother's Began Her Second Life",
+    id: 'webtoon:stepmother-second-life',
+    aliases: [
+      'webtoon:the-step-mothers-began-her-second-life',
+      'wc:01j76xy74zfsrkyp568q0e43q1-the-step-mother-began-her-second-life'
+    ],
+    title: 'The Despised Stepmother Begins Her Second Life',
     englishTitle: "The Step Mother's Began Her Second Life",
-    coverUrl: 'https://kingofshojo.com/wp-content/uploads/2024/02/The-Step-Mothers-Began-Her-Second-Life.webp',
+    coverUrl: 'https://cdn.kingofshojo.com/king-bucket/images/jppppp.webp',
     status: 'Ongoing',
-    score: '9.0',
+    score: '9.3',
     year: '2024',
-    author: 'Shojo Webtoon',
+    author: 'Gwon Gyeoul',
     description: 'After dying from betrayal, she regresses back to the start of her second marriage with her stepchildren. This time, she will protect them and take control of her destiny!',
     tags: ['Romance', 'Drama', 'Fantasy', 'Regression'],
     sourceName: 'Webtoon',
-    chapters: [
-      { id: 'webtoon:the-step-mothers-began-her-second-life:60', chapter: '60', title: 'Chapter 60' },
-      { id: 'webtoon:the-step-mothers-began-her-second-life:1', chapter: '1', title: 'Chapter 1' }
-    ]
+    chapters: Array.from({ length: 35 }, (_, idx) => {
+      const num = 35 - idx;
+      return {
+        id: `webtoon:stepmother:${num}`,
+        chapter: String(num),
+        title: `Chapter ${num}`,
+      };
+    })
   },
   {
     id: '723/chainsaw-man',
@@ -226,6 +234,16 @@ export async function searchManga(query = '') {
 }
 
 /**
+ * Helper to check if an image needs proxying (skips Unsplash, MangaDex, Data URIs)
+ */
+function needsImageProxy(url) {
+  if (!url) return false;
+  if (url.startsWith('/api/image-proxy') || url.startsWith('data:')) return false;
+  if (url.includes('unsplash.com') || url.includes('mangadex.org')) return false;
+  return true;
+}
+
+/**
  * Fetch Manga Details & Full Chapter List
  */
 export async function fetchMangaDetails(mangaId, refresh = false) {
@@ -235,16 +253,28 @@ export async function fetchMangaDetails(mangaId, refresh = false) {
     const res = await fetch(url);
     if (!res.ok) throw new Error(`HTTP ${res.status}`);
     const data = await res.json();
-    if (data && data.coverUrl && !data.coverUrl.startsWith('/api/image-proxy')) {
+    if (data && data.coverUrl && needsImageProxy(data.coverUrl)) {
       data.coverUrl = `/api/image-proxy?url=${encodeURIComponent(data.coverUrl)}`;
     }
     return data;
   } catch (err) {
     console.warn('fetchMangaDetails API warning, checking fallback:', err);
-    const fallbackItem = FALLBACK_MANGA_CATALOG.find((m) => m.id === mangaId);
+    // 1. Try finding by ID or aliases
+    let fallbackItem = FALLBACK_MANGA_CATALOG.find(
+      (m) => m.id === mangaId || m.aliases?.includes(mangaId)
+    );
+    // 2. Try finding by title/slug tokens
+    if (!fallbackItem) {
+      const q = mangaId.toLowerCase().replace(/^wc:|^webtoon:/, '').replace(/[-_:]/g, ' ');
+      fallbackItem = FALLBACK_MANGA_CATALOG.find((m) => {
+        const titleQ = m.title.toLowerCase().replace(/[-_:]/g, ' ');
+        return q.includes(titleQ) || titleQ.includes(q);
+      });
+    }
     if (fallbackItem) {
       return {
         ...fallbackItem,
+        id: mangaId,
         coverUrl: fallbackItem.coverUrl,
         chapters: fallbackItem.chapters || []
       };
@@ -296,9 +326,9 @@ export async function fetchChapterPages(chapterId) {
  */
 function formatMangaItem(item) {
   if (!item) return null;
-  // Proxy cover image through our referer bypass proxy
+  // Proxy cover image only if hotlinking bypass is required
   const proxiedCover = item.coverUrl
-    ? (item.coverUrl.startsWith('/api/image-proxy') ? item.coverUrl : `/api/image-proxy?url=${encodeURIComponent(item.coverUrl)}`)
+    ? (needsImageProxy(item.coverUrl) ? `/api/image-proxy?url=${encodeURIComponent(item.coverUrl)}` : item.coverUrl)
     : 'https://images.unsplash.com/photo-1578632767115-351597cf2477?w=500&auto=format&fit=crop&q=80';
 
   return {

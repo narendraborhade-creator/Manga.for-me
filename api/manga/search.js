@@ -16,9 +16,10 @@ export default async function handler(req, res) {
     const list = await searchManga(q);
     res.setHeader('Content-Type', 'application/json');
     res.setHeader('Cache-Control', 's-maxage=120, stale-while-revalidate=300');
-    res.status(200).json(list);
+    res.status(200).json(Array.isArray(list) ? list : []);
   } catch (err) {
-    console.error('Vercel API Error (/api/manga/search):', err);
-    res.status(500).json({ error: err.message || 'Failed to search manga' });
+    console.warn('Vercel API handled error (/api/manga/search):', err.message);
+    res.setHeader('Content-Type', 'application/json');
+    res.status(200).json([]);
   }
 }

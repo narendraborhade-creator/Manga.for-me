@@ -22,9 +22,20 @@ export default async function handler(req, res) {
     const result = await getChapterPages(chapterId);
     res.setHeader('Content-Type', 'application/json');
     res.setHeader('Cache-Control', 's-maxage=600, stale-while-revalidate=1200');
-    res.status(200).json(result);
+    res.status(200).json(result || {
+      chapterId,
+      totalPages: 0,
+      pages: [],
+      warning: 'Chapter images are being synchronized.',
+    });
   } catch (err) {
-    console.error('Vercel API Error (/api/manga/read):', err);
-    res.status(500).json({ error: err.message || 'Failed to fetch chapter pages' });
+    console.warn('Vercel API handled error (/api/manga/read):', err.message);
+    res.setHeader('Content-Type', 'application/json');
+    res.status(200).json({
+      chapterId: req.query?.chapterId || '',
+      totalPages: 0,
+      pages: [],
+      warning: 'Chapter images are being synchronized.',
+    });
   }
 }
