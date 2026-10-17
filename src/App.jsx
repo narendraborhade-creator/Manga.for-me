@@ -32,7 +32,9 @@ import {
   getLastRead, 
   getHistory,
   getUpdates,
-  getUpdateSettings
+  getUpdateSettings,
+  importData,
+  decodeDataFromUrl
 } from './services/storage';
 import { checkAllLibraryUpdates } from './services/updateService';
 
@@ -129,6 +131,30 @@ export default function App() {
 
   useEffect(() => {
     refreshStorageData();
+
+    // Check for 1-click sync data in URL hash (e.g. migrating from localhost to Vercel)
+    if (window.location.hash && window.location.hash.startsWith('#sync_data=')) {
+      try {
+        const encoded = window.location.hash.replace('#sync_data=', '');
+        const jsonStr = decodeDataFromUrl(encoded);
+        if (jsonStr) {
+          const success = importData(jsonStr);
+          if (success) {
+            refreshStorageData();
+            window.history.replaceState(null, '', window.location.pathname);
+            setActiveToast({
+              chapterId: 'sync-complete',
+              chapterNumber: 'Sync Success',
+              mangaTitle: 'Localhost Data Restored!',
+              mangaEnglishTitle: 'Your library bookmarks and reading history were successfully imported to this app.',
+              coverUrl: 'https://images.unsplash.com/photo-1578632767115-351597cf2477?w=200&auto=format&fit=crop&q=80',
+            });
+          }
+        }
+      } catch (err) {
+        console.error('Failed to parse sync data from URL hash:', err);
+      }
+    }
   }, []);
 
   // Background Periodic Chapter Updates Engine

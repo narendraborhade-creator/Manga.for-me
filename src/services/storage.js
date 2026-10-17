@@ -203,6 +203,35 @@ export const importData = (jsonString) => {
   }
 };
 
+// Encode JSON data safely into base64 for 1-click URL transfer
+export const encodeDataForUrl = (jsonString) => {
+  try {
+    return btoa(
+      encodeURIComponent(jsonString).replace(/%([0-9A-F]{2})/g, (_, p1) =>
+        String.fromCharCode(parseInt(p1, 16))
+      )
+    );
+  } catch (e) {
+    console.error('encodeDataForUrl error:', e);
+    return null;
+  }
+};
+
+// Decode base64 URL payload into JSON string
+export const decodeDataFromUrl = (b64String) => {
+  try {
+    return decodeURIComponent(
+      atob(b64String)
+        .split('')
+        .map((c) => '%' + ('00' + c.charCodeAt(0).toString(16)).slice(-2))
+        .join('')
+    );
+  } catch (e) {
+    console.error('decodeDataFromUrl error:', e);
+    return null;
+  }
+};
+
 // ----------------- CHAPTER UPDATES & NOTIFICATIONS -----------------
 export const getUpdates = () => safeGet(KEYS.UPDATES, []);
 
