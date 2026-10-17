@@ -833,6 +833,7 @@ export default function App() {
             <img
               src={activeToast.coverUrl}
               alt={activeToast.mangaTitle}
+              referrerPolicy="no-referrer"
               className="w-full h-full object-cover"
               onError={(e) => {
                 e.target.src = 'https://images.unsplash.com/photo-1578632767115-351597cf2477?w=100&auto=format&fit=crop&q=80';

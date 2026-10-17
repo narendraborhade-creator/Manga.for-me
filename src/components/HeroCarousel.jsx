@@ -57,6 +57,7 @@ export default function HeroCarousel({
         <img
           src={current.coverUrl}
           alt={current.title}
+          referrerPolicy="no-referrer"
           className="w-full h-full object-cover object-center filter brightness-[0.55] group-hover:scale-104 transition-transform duration-1000 ease-out"
           onError={(e) => {
             if (current.rawCoverUrl && e.target.src !== current.rawCoverUrl) {

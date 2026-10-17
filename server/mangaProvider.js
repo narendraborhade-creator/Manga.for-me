@@ -608,6 +608,8 @@ export async function proxyImage(imageUrl, res) {
         referer = 'https://omniscientreadersviewpoint.com/';
       } else if (host.includes('kingofshojo')) {
         referer = 'https://kingofshojo.com/';
+      } else if (host.includes('mangadex') || host.includes('uploads.mangadex.org')) {
+        referer = 'https://mangadex.org/';
       } else if (host.includes('mangapill') || host.includes('readdetectiveconan')) {
         referer = 'https://mangapill.com/';
       } else {

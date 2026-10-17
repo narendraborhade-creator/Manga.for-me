@@ -605,6 +605,7 @@ export default function MangaReader({
                       src={p.url}
                       alt={`Page ${p.pageNumber}`}
                       loading={idx < 4 ? 'eager' : 'lazy'}
+                      referrerPolicy="no-referrer"
                       className="w-full h-auto object-contain select-none"
                     />
                     <div className="absolute bottom-2 right-2 px-2 py-0.5 rounded bg-black/60 text-[10px] text-slate-400 backdrop-blur-sm pointer-events-none">
@@ -678,6 +679,7 @@ export default function MangaReader({
                   <img
                     src={pages[currentPage - 1]?.url}
                     alt={`Page ${currentPage}`}
+                    referrerPolicy="no-referrer"
                     className="max-h-[85vh] w-auto object-contain mx-auto"
                   />
 

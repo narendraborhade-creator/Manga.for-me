@@ -29,6 +29,7 @@ export default function MangaCard({
           src={manga.coverUrl}
           alt={manga.title}
           loading="lazy"
+          referrerPolicy="no-referrer"
           className="w-full h-full object-cover object-center group-hover:scale-108 transition-transform duration-700 ease-out"
           onError={(e) => {
             if (manga.rawCoverUrl && e.target.src !== manga.rawCoverUrl) {

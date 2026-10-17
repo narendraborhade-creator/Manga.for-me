@@ -172,6 +172,7 @@ export default function MangaDetailModal({
                   <img
                     src={initialCoverUrl || manga.coverUrl}
                     alt={manga.title}
+                    referrerPolicy="no-referrer"
                     className="w-full h-full object-cover"
                     onError={(e) => {
                       if (initialCoverUrl && e.target.src !== initialCoverUrl) {

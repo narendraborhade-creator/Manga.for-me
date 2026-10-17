@@ -33,6 +33,7 @@ export default function AnimeDetailModal({ anime, onClose }) {
               <img
                 src={anime.bannerUrl || anime.coverUrl}
                 alt={anime.title}
+                referrerPolicy="no-referrer"
                 className="w-full h-full object-cover"
               />
               <div className="absolute inset-0 bg-gradient-to-t from-[#0c1017] via-transparent to-black/40" />
