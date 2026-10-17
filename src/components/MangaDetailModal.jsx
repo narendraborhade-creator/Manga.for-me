@@ -131,15 +131,15 @@ export default function MangaDetailModal({
   if (!mangaId) return null;
 
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center p-3 sm:p-4 md:p-6 bg-black/80 backdrop-blur-md overflow-y-auto animate-fadeIn">
+    <div className="fixed inset-0 z-50 flex items-center justify-center p-0 sm:p-4 md:p-6 bg-black/80 backdrop-blur-md overflow-y-auto animate-fadeIn">
       <div 
-        className="relative w-full max-w-4xl bg-[#0c1017] border border-white/10 rounded-3xl shadow-2xl overflow-hidden my-auto max-h-[92vh] flex flex-col"
+        className="relative w-full max-w-4xl bg-[#0c1017] border-0 sm:border border-white/10 rounded-none sm:rounded-3xl shadow-2xl overflow-hidden my-auto max-h-full sm:max-h-[92vh] h-full sm:h-auto flex flex-col"
         onClick={(e) => e.stopPropagation()}
       >
         {/* Close Button */}
         <button
           onClick={onClose}
-          className="absolute top-4 right-4 z-20 p-2 rounded-full bg-black/60 hover:bg-black/90 text-slate-300 hover:text-white border border-white/10 backdrop-blur-md transition-all"
+          className="absolute top-3.5 right-3.5 sm:top-4 sm:right-4 z-20 p-2 rounded-full bg-black/60 hover:bg-black/90 text-slate-300 hover:text-white border border-white/10 backdrop-blur-md transition-all"
         >
           <X className="w-5 h-5" />
         </button>
@@ -159,16 +159,16 @@ export default function MangaDetailModal({
         ) : (
           <>
             {/* Header with Backdrop Banner */}
-            <div className="relative p-6 sm:p-8 bg-gradient-to-b from-slate-900/90 to-[#0c1017] border-b border-white/5">
+            <div className="relative p-5 sm:p-8 bg-gradient-to-b from-slate-900/90 to-[#0c1017] border-b border-white/5 pt-[calc(1.2rem+env(safe-area-inset-top))] sm:pt-8">
               {/* Blurred background cover image */}
               <div 
                 className="absolute inset-0 bg-cover bg-center opacity-20 blur-2xl pointer-events-none"
                 style={{ backgroundImage: `url(${initialCoverUrl || manga.coverUrl})` }}
               />
 
-              <div className="relative z-10 flex flex-col sm:flex-row gap-6 items-start">
+              <div className="relative z-10 flex flex-col sm:flex-row gap-5 sm:gap-6 items-center sm:items-start text-center sm:text-left">
                 {/* Cover Art */}
-                <div className="w-32 sm:w-44 flex-shrink-0 rounded-2xl overflow-hidden shadow-2xl border border-white/10 aspect-[3/4.2] bg-slate-950 mx-auto sm:mx-0">
+                <div className="w-28 sm:w-44 flex-shrink-0 rounded-2xl overflow-hidden shadow-2xl border border-white/10 aspect-[3/4.2] bg-slate-950 mx-auto sm:mx-0">
                   <img
                     src={initialCoverUrl || manga.coverUrl}
                     alt={manga.title}
@@ -183,7 +183,7 @@ export default function MangaDetailModal({
 
                 {/* Details */}
                 <div className="flex-1 min-w-0">
-                  <div className="flex flex-wrap items-center gap-2 mb-2">
+                  <div className="flex flex-wrap items-center justify-center sm:justify-start gap-1.5 sm:gap-2 mb-2">
                     <span className={`px-2.5 py-0.5 rounded-md text-[11px] font-bold uppercase tracking-wider ${
                       manga.status === 'completed'
                         ? 'bg-emerald-500/20 text-emerald-400 border border-emerald-500/30'
@@ -214,22 +214,22 @@ export default function MangaDetailModal({
                   </h2>
 
                   {manga.englishTitle && manga.englishTitle.toLowerCase() !== manga.title.toLowerCase() && (
-                    <div className="flex items-center gap-2 mb-2">
+                    <div className="flex items-center justify-center sm:justify-start gap-2 mb-2">
                       <span className="px-1.5 py-0.5 rounded text-[10px] font-mono uppercase bg-white/10 text-zinc-300 border border-white/5 font-semibold">
                         Original Title
                       </span>
-                      <span className="text-xs sm:text-sm text-zinc-300 font-medium">
+                      <span className="text-xs sm:text-sm text-zinc-300 font-medium truncate max-w-xs">
                         {manga.title}
                       </span>
                     </div>
                   )}
 
-                  <p className="text-xs sm:text-sm text-slate-400 mb-3 flex items-center gap-2">
+                  <p className="text-xs sm:text-sm text-slate-400 mb-3 flex items-center justify-center sm:justify-start gap-2">
                     <span className="text-slate-300 font-medium">By {manga.author}</span>
                   </p>
 
                   {/* Tags */}
-                  <div className="flex flex-wrap gap-1.5 mb-4">
+                  <div className="flex flex-wrap justify-center sm:justify-start gap-1.5 mb-4">
                     {(manga.tags || []).map((t, i) => (
                       <span key={i} className="text-[11px] text-slate-300 bg-white/5 border border-white/5 px-2 py-0.5 rounded-md">
                         {t}
@@ -238,7 +238,7 @@ export default function MangaDetailModal({
                   </div>
 
                   {/* Action Buttons: Read Now, Read Latest & Bookmark status selector */}
-                  <div className="flex flex-wrap items-center gap-3">
+                  <div className="flex flex-col sm:flex-row items-stretch sm:items-center gap-2.5 sm:gap-3 w-full sm:w-auto">
                     {targetStartChapter && (
                       <button
                         onClick={() => {
@@ -252,7 +252,7 @@ export default function MangaDetailModal({
                             manga.englishTitle || null
                           );
                         }}
-                        className="px-5 sm:px-6 py-2.5 rounded-xl text-xs sm:text-sm font-bold text-white bg-gradient-to-r from-rose-600 to-rose-500 hover:from-rose-500 hover:to-rose-400 shadow-lg shadow-rose-600/30 transition-all flex items-center gap-2"
+                        className="w-full sm:w-auto px-5 sm:px-6 py-2.5 rounded-xl text-xs sm:text-sm font-bold text-white bg-gradient-to-r from-rose-600 to-rose-500 hover:from-rose-500 hover:to-rose-400 shadow-lg shadow-rose-600/30 transition-all flex items-center justify-center gap-2"
                       >
                         <Play className="w-4 h-4 fill-white" />
                         <span>
@@ -274,7 +274,7 @@ export default function MangaDetailModal({
                             manga.englishTitle || null
                           );
                         }}
-                        className="px-5 sm:px-6 py-2.5 rounded-xl text-xs sm:text-sm font-bold text-white bg-gradient-to-r from-amber-500 to-orange-500 hover:from-amber-400 hover:to-orange-400 shadow-lg shadow-amber-500/30 transition-all flex items-center gap-2 border border-amber-400/30"
+                        className="w-full sm:w-auto px-5 sm:px-6 py-2.5 rounded-xl text-xs sm:text-sm font-bold text-white bg-gradient-to-r from-amber-500 to-orange-500 hover:from-amber-400 hover:to-orange-400 shadow-lg shadow-amber-500/30 transition-all flex items-center justify-center gap-2 border border-amber-400/30"
                       >
                         <Sparkles className="w-4 h-4 fill-white text-white" />
                         <span>Read Latest (Ch. {latestChapter.chapter})</span>
@@ -282,7 +282,7 @@ export default function MangaDetailModal({
                     )}
 
                     {/* Bookmark Status Selector */}
-                    <div className="relative inline-flex items-center">
+                    <div className="relative inline-flex items-center w-full sm:w-auto">
                       <select
                         value={isBookmarked ? (bookmarkStatus || 'reading') : 'none'}
                         onChange={(e) => {
@@ -293,7 +293,7 @@ export default function MangaDetailModal({
                             onSetBookmark(manga.id, manga, val);
                           }
                         }}
-                        className="appearance-none bg-slate-900 border border-white/10 text-slate-200 text-xs sm:text-sm font-semibold pl-8 pr-8 py-2.5 rounded-xl hover:border-rose-500/40 focus:outline-none focus:border-rose-500 cursor-pointer transition-all"
+                        className="w-full sm:w-auto appearance-none bg-slate-900 border border-white/10 text-slate-200 text-xs sm:text-sm font-semibold pl-8 pr-8 py-2.5 rounded-xl hover:border-rose-500/40 focus:outline-none focus:border-rose-500 cursor-pointer transition-all"
                       >
                         <option value="none">Not in Library</option>
                         <option value="reading">📖 Reading</option>
@@ -311,13 +311,13 @@ export default function MangaDetailModal({
               </div>
 
               {/* Synopsis */}
-              <div className="mt-6 pt-4 border-t border-white/5 text-xs sm:text-sm text-slate-300 leading-relaxed max-h-32 overflow-y-auto pr-2">
+              <div className="mt-5 sm:mt-6 pt-3 sm:pt-4 border-t border-white/5 text-xs sm:text-sm text-slate-300 leading-relaxed max-h-32 overflow-y-auto pr-2">
                 <p className="whitespace-pre-line">{manga.description}</p>
               </div>
             </div>
 
             {/* Chapters Feed Section */}
-            <div className="flex-1 p-6 flex flex-col min-h-0 bg-[#080a0f]">
+            <div className="flex-1 p-4 sm:p-6 flex flex-col min-h-0 bg-[#080a0f] pb-[calc(1.2rem+env(safe-area-inset-bottom))] sm:pb-6">
               <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3 mb-4">
                 <div className="flex items-center gap-2 flex-wrap">
                   <h3 className="text-base font-bold text-white flex items-center gap-2">

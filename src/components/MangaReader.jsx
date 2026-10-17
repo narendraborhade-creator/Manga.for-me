@@ -75,6 +75,14 @@ export default function MangaReader({
     }, 4500);
   };
 
+  // Tap on reader area to toggle controls on mobile
+  const handleReaderTap = (e) => {
+    if (e.target.closest('button, input, select, a, .glass-panel, [role="dialog"], .glass-nav')) {
+      return;
+    }
+    setControlsVisible((prev) => !prev);
+  };
+
   // Load Chapter Pages & Chapters List
   useEffect(() => {
     let isMounted = true;
@@ -251,6 +259,7 @@ export default function MangaReader({
     <div 
       ref={containerRef}
       onMouseMove={handleMouseMove}
+      onClick={handleReaderTap}
       className={`fixed inset-0 z-50 ${themeBg} text-slate-100 overflow-y-auto selection:bg-rose-500 selection:text-white transition-colors duration-300`}
     >
       {/* Top Floating Control Bar */}
@@ -259,64 +268,65 @@ export default function MangaReader({
           controlsVisible ? 'translate-y-0 opacity-100' : '-translate-y-full opacity-0 pointer-events-none'
         }`}
       >
-        <div className="glass-nav border-b border-white/10 px-4 py-3 max-w-7xl mx-auto flex items-center justify-between gap-3 shadow-2xl">
+        <div className="glass-nav border-b border-white/10 px-3 sm:px-4 py-2.5 sm:py-3 pt-[calc(0.6rem+env(safe-area-inset-top))] max-w-7xl mx-auto flex items-center justify-between gap-2 sm:gap-3 shadow-2xl">
           
           {/* Left: Back & Manga Title */}
-          <div className="flex items-center gap-3 min-w-0">
+          <div className="flex items-center gap-2 sm:gap-3 min-w-0">
             <button
               onClick={onClose}
-              className="p-2 rounded-xl bg-slate-900/90 border border-white/10 text-slate-300 hover:text-white hover:bg-rose-600 transition-all"
+              className="p-1.5 sm:p-2 rounded-xl bg-slate-900/90 border border-white/10 text-slate-300 hover:text-white hover:bg-rose-600 transition-all flex-shrink-0"
               title="Close Reader"
             >
               <X className="w-5 h-5" />
             </button>
 
             <div className="min-w-0">
-              <h2 className="text-sm font-bold text-white truncate max-w-[180px] sm:max-w-md" title={mangaEnglishTitle || mangaTitle}>
+              <h2 className="text-xs sm:text-sm font-bold text-white truncate max-w-[110px] xs:max-w-[170px] sm:max-w-md" title={mangaEnglishTitle || mangaTitle}>
                 {mangaEnglishTitle || mangaTitle}
               </h2>
               {mangaEnglishTitle && mangaEnglishTitle.toLowerCase() !== mangaTitle.toLowerCase() && (
-                <div className="text-[10px] text-zinc-400 truncate max-w-[160px] sm:max-w-sm" title={mangaTitle}>
+                <div className="text-[10px] text-zinc-400 truncate max-w-[110px] xs:max-w-[150px] sm:max-w-sm hidden xs:block" title={mangaTitle}>
                   {mangaTitle}
                 </div>
               )}
-              <div className="flex items-center gap-2 text-xs text-rose-400 font-semibold">
-                <span>Chapter {chapterNumber}</span>
+              <div className="flex items-center gap-1.5 sm:gap-2 text-[11px] sm:text-xs text-rose-400 font-semibold">
+                <span>Ch. {chapterNumber}</span>
                 {pages.length > 0 && (
                   <span className="text-slate-400 font-normal">
-                    • Page {currentPage} of {pages.length}
+                    • {currentPage}/{pages.length}
                   </span>
                 )}
               </div>
             </div>
           </div>
 
-          {/* Center: Chapter Quick Selector */}
-          <div className="hidden md:flex items-center gap-2">
+          {/* Center: Chapter Quick Selector (Mobile & Desktop Responsive) */}
+          <div className="flex items-center gap-1 sm:gap-2">
             <button
               disabled={!prevChapter}
               onClick={() => prevChapter && onChangeChapter(prevChapter.id, prevChapter.chapter)}
-              className="p-1.5 px-2.5 rounded-xl bg-slate-900 border border-white/10 text-slate-300 hover:text-white disabled:opacity-30 disabled:cursor-not-allowed transition-all text-xs font-semibold flex items-center gap-1"
+              className="p-1.5 px-2 sm:px-2.5 rounded-xl bg-slate-900 border border-white/10 text-slate-300 hover:text-white disabled:opacity-30 disabled:cursor-not-allowed transition-all text-xs font-semibold flex items-center gap-1"
               title="Previous Chapter"
             >
-              <ChevronLeft className="w-4 h-4" />
-              <span>Prev</span>
+              <ChevronLeft className="w-3.5 h-3.5 sm:w-4 sm:h-4" />
+              <span className="hidden sm:inline">Prev</span>
             </button>
 
             <div className="relative">
               <button
                 onClick={() => setShowChapterMenu(!showChapterMenu)}
-                className="px-3.5 py-1.5 rounded-xl bg-slate-900 border border-white/10 text-xs font-bold text-slate-200 hover:text-white flex items-center gap-2 hover:border-rose-500/40"
+                className="px-2.5 sm:px-3.5 py-1.5 rounded-xl bg-slate-900 border border-white/10 text-xs font-bold text-slate-200 hover:text-white flex items-center gap-1.5 sm:gap-2 hover:border-rose-500/40"
               >
                 <Layers className="w-3.5 h-3.5 text-rose-400" />
-                <span>Chapter {chapterNumber}</span>
+                <span className="max-w-[80px] sm:max-w-none truncate">Ch. {chapterNumber}</span>
               </button>
 
               {/* Chapter Dropdown List */}
               {showChapterMenu && (
-                <div className="absolute top-full left-1/2 -translate-x-1/2 mt-2 w-72 max-h-80 overflow-y-auto bg-slate-900 border border-white/10 rounded-2xl shadow-2xl p-2 z-50">
-                  <div className="text-[11px] font-bold uppercase tracking-wider text-slate-400 px-3 py-1.5 border-b border-white/5">
-                    Jump to Chapter
+                <div className="fixed sm:absolute inset-x-3 sm:inset-x-auto top-16 sm:top-full sm:left-1/2 sm:-translate-x-1/2 mt-2 w-auto sm:w-72 max-h-[65vh] overflow-y-auto bg-slate-900 border border-white/10 rounded-2xl shadow-2xl p-2 z-50">
+                  <div className="text-[11px] font-bold uppercase tracking-wider text-slate-400 px-3 py-1.5 border-b border-white/5 flex items-center justify-between">
+                    <span>Jump to Chapter</span>
+                    <button onClick={() => setShowChapterMenu(false)} className="text-slate-400 hover:text-white sm:hidden text-xs">✕</button>
                   </div>
                   {allChapters.map((ch) => (
                     <button
@@ -325,7 +335,7 @@ export default function MangaReader({
                         onChangeChapter(ch.id, ch.chapter);
                         setShowChapterMenu(false);
                       }}
-                      className={`w-full text-left px-3 py-2 rounded-xl text-xs flex items-center justify-between transition-all ${
+                      className={`w-full text-left px-3 py-2.5 rounded-xl text-xs flex items-center justify-between transition-all min-h-[40px] ${
                         ch.id === chapterId
                           ? 'bg-rose-600 text-white font-bold'
                           : 'text-slate-300 hover:bg-white/5'
@@ -346,16 +356,16 @@ export default function MangaReader({
             <button
               disabled={!nextChapter}
               onClick={() => nextChapter && onChangeChapter(nextChapter.id, nextChapter.chapter)}
-              className="p-1.5 px-2.5 rounded-xl bg-slate-900 border border-white/10 text-slate-300 hover:text-white disabled:opacity-30 disabled:cursor-not-allowed transition-all text-xs font-semibold flex items-center gap-1"
+              className="p-1.5 px-2 sm:px-2.5 rounded-xl bg-slate-900 border border-white/10 text-slate-300 hover:text-white disabled:opacity-30 disabled:cursor-not-allowed transition-all text-xs font-semibold flex items-center gap-1"
               title="Next Chapter"
             >
-              <span>Next</span>
-              <ChevronRight className="w-4 h-4" />
+              <span className="hidden sm:inline">Next</span>
+              <ChevronRight className="w-3.5 h-3.5 sm:w-4 sm:h-4" />
             </button>
           </div>
 
           {/* Right: Auto-Scroll, Settings & Fullscreen */}
-          <div className="flex items-center gap-2">
+          <div className="flex items-center gap-1.5 sm:gap-2">
             {/* Auto-scroll toggle (Webtoon mode) */}
             {settings.readingMode === 'webtoon' && (
               <button
@@ -365,7 +375,7 @@ export default function MangaReader({
                   }
                   setIsAutoScrolling(!isAutoScrolling);
                 }}
-                className={`p-2 rounded-xl border text-xs font-semibold flex items-center gap-1.5 transition-all ${
+                className={`p-1.5 sm:p-2 rounded-xl border text-xs font-semibold flex items-center gap-1.5 transition-all ${
                   isAutoScrolling 
                     ? 'bg-emerald-500/20 text-emerald-400 border-emerald-500/40' 
                     : 'bg-slate-900 border-white/10 text-slate-300 hover:text-white'
@@ -373,7 +383,7 @@ export default function MangaReader({
                 title="Toggle Auto-Scroll"
               >
                 {isAutoScrolling ? <Pause className="w-4 h-4" /> : <Play className="w-4 h-4" />}
-                <span className="hidden sm:inline">Auto-Scroll</span>
+                <span className="hidden md:inline">Auto-Scroll</span>
               </button>
             )}
 
@@ -381,7 +391,7 @@ export default function MangaReader({
             <div className="relative">
               <button
                 onClick={() => setShowSettingsMenu(!showSettingsMenu)}
-                className={`p-2 rounded-xl border transition-all ${
+                className={`p-1.5 sm:p-2 rounded-xl border transition-all ${
                   showSettingsMenu
                     ? 'bg-rose-600 border-rose-500 text-white'
                     : 'bg-slate-900 border-white/10 text-slate-300 hover:text-white'
@@ -393,10 +403,13 @@ export default function MangaReader({
 
               {/* Classy Settings Dropdown */}
               {showSettingsMenu && (
-                <div className="absolute right-0 top-full mt-2 w-80 bg-slate-900 border border-white/10 rounded-2xl shadow-2xl p-4 z-50 space-y-4">
-                  <h4 className="text-xs font-bold uppercase tracking-wider text-slate-400 border-b border-white/5 pb-2">
-                    Reader Settings
-                  </h4>
+                <div className="fixed sm:absolute inset-x-3 sm:inset-x-auto right-auto sm:right-0 top-16 sm:top-full mt-2 w-auto sm:w-80 bg-slate-900 border border-white/10 rounded-2xl shadow-2xl p-4 z-50 space-y-4 max-h-[75vh] overflow-y-auto">
+                  <div className="flex items-center justify-between border-b border-white/5 pb-2">
+                    <h4 className="text-xs font-bold uppercase tracking-wider text-slate-400">
+                      Reader Settings
+                    </h4>
+                    <button onClick={() => setShowSettingsMenu(false)} className="text-slate-400 hover:text-white sm:hidden text-xs">✕</button>
+                  </div>
 
                   {/* Reading Theme */}
                   <div>
@@ -712,22 +725,22 @@ export default function MangaReader({
 
       {/* Floating Bottom Bar (Controls & Progress Indicator) */}
       <div 
-        className={`fixed bottom-4 left-1/2 -translate-x-1/2 z-50 transition-all duration-300 ${
+        className={`fixed bottom-3 sm:bottom-4 left-1/2 -translate-x-1/2 z-50 w-[calc(100vw-24px)] sm:w-auto transition-all duration-300 ${
           controlsVisible ? 'translate-y-0 opacity-100' : 'translate-y-16 opacity-0 pointer-events-none'
         }`}
       >
-        <div className="glass-panel border border-white/10 rounded-2xl px-5 py-2.5 shadow-2xl flex items-center gap-4 text-xs font-semibold">
+        <div className="glass-panel border border-white/10 rounded-2xl px-3.5 sm:px-5 py-2 sm:py-2.5 pb-[calc(0.5rem+env(safe-area-inset-bottom))] shadow-2xl flex items-center justify-between sm:justify-center gap-2 sm:gap-4 text-xs font-semibold">
           {prevChapter && (
             <button
               onClick={() => onChangeChapter(prevChapter.id, prevChapter.chapter)}
-              className="text-slate-300 hover:text-white flex items-center gap-1 transition-colors"
+              className="text-slate-300 hover:text-white flex items-center gap-1 transition-colors p-1"
             >
               <ChevronLeft className="w-4 h-4" />
               <span className="hidden sm:inline">Prev Chapter</span>
             </button>
           )}
 
-          <div className="px-3 py-1 rounded-lg bg-white/5 border border-white/5 text-slate-200">
+          <div className="px-2.5 sm:px-3 py-1 rounded-lg bg-white/5 border border-white/5 text-slate-200 text-[11px] sm:text-xs">
             Page {currentPage} / {pages.length}
           </div>
 
@@ -737,7 +750,7 @@ export default function MangaReader({
                 onChangeChapter(nextChapter.id, nextChapter.chapter);
                 scrollToTop();
               }}
-              className="text-rose-400 hover:text-rose-300 flex items-center gap-1 transition-colors"
+              className="text-rose-400 hover:text-rose-300 flex items-center gap-1 transition-colors p-1"
             >
               <span className="hidden sm:inline">Next Chapter</span>
               <ChevronRight className="w-4 h-4" />

@@ -319,7 +319,7 @@ export default function App() {
       />
 
       {/* Main Container */}
-      <main className="flex-1 max-w-7xl w-full mx-auto px-4 sm:px-6 lg:px-8 py-6 sm:py-8 space-y-8">
+      <main className="flex-1 max-w-7xl w-full mx-auto px-4 sm:px-6 lg:px-8 pt-4 pb-28 sm:py-8 space-y-6 sm:space-y-8">
         
         {/* Continue Reading Banner (Always tracks last read manga!) */}
         {lastRead && !dismissContinueBanner && activeTab !== 'history' && (
@@ -802,7 +802,7 @@ export default function App() {
 
       {/* Floating Real-Time Update Alert Toast */}
       {activeToast && (
-        <div className="fixed bottom-6 right-6 z-50 max-w-sm w-[90vw] sm:w-auto bg-[#0c1017]/95 border border-amber-500/40 rounded-2xl shadow-2xl p-4 flex items-center gap-3 backdrop-blur-xl animate-fadeIn text-white">
+        <div className="fixed bottom-20 sm:bottom-6 right-3 sm:right-6 left-3 sm:left-auto z-50 max-w-sm sm:w-auto bg-[#0c1017]/95 border border-amber-500/40 rounded-2xl shadow-2xl p-4 flex items-center gap-3 backdrop-blur-xl animate-fadeIn text-white">
           <div className="w-12 h-16 rounded-xl overflow-hidden bg-slate-950 flex-shrink-0 border border-white/10 shadow-md">
             <img
               src={activeToast.coverUrl}
@@ -854,7 +854,7 @@ export default function App() {
       )}
 
       {/* Footer */}
-      <footer className="border-t border-white/5 py-8 mt-16 text-center text-xs text-slate-500 bg-[#06080c]">
+      <footer className="border-t border-white/5 py-8 mt-12 mb-16 md:mb-0 text-center text-xs text-slate-500 bg-[#06080c]">
         <div className="max-w-7xl mx-auto px-4 flex flex-col sm:flex-row items-center justify-between gap-4">
           <div className="flex items-center gap-2 font-['Outfit'] font-bold text-slate-400">
             <span>KuroNeko • 黒猫</span>

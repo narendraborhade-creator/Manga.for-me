@@ -5,15 +5,15 @@ export default function AnimeDetailModal({ anime, onClose }) {
   if (!anime) return null;
 
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center p-3 sm:p-4 md:p-6 bg-black/85 backdrop-blur-md overflow-y-auto animate-fadeIn">
+    <div className="fixed inset-0 z-50 flex items-center justify-center p-0 sm:p-4 md:p-6 bg-black/85 backdrop-blur-md overflow-y-auto animate-fadeIn">
       <div 
-        className="relative w-full max-w-3xl bg-[#0c1017] border border-white/10 rounded-3xl shadow-2xl overflow-hidden my-auto max-h-[92vh] flex flex-col"
+        className="relative w-full max-w-3xl bg-[#0c1017] border-0 sm:border border-white/10 rounded-none sm:rounded-3xl shadow-2xl overflow-hidden my-auto max-h-full sm:max-h-[92vh] h-full sm:h-auto flex flex-col"
         onClick={(e) => e.stopPropagation()}
       >
         {/* Close Button */}
         <button
           onClick={onClose}
-          className="absolute top-4 right-4 z-20 p-2 rounded-full bg-black/70 hover:bg-black/90 text-slate-300 hover:text-white border border-white/10 backdrop-blur-md transition-all"
+          className="absolute top-3.5 right-3.5 sm:top-4 sm:right-4 z-20 p-2 rounded-full bg-black/70 hover:bg-black/90 text-slate-300 hover:text-white border border-white/10 backdrop-blur-md transition-all"
         >
           <X className="w-5 h-5" />
         </button>
@@ -44,7 +44,7 @@ export default function AnimeDetailModal({ anime, onClose }) {
         </div>
 
         {/* Anime Information Content */}
-        <div className="p-6 sm:p-8 overflow-y-auto space-y-5 bg-[#0c1017]">
+        <div className="p-5 sm:p-8 pb-[calc(1.5rem+env(safe-area-inset-bottom))] overflow-y-auto space-y-5 bg-[#0c1017]">
           
           {/* Header Title & Badges */}
           <div>

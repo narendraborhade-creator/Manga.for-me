@@ -213,7 +213,7 @@ export default function Navbar({
 
         {/* Mobile Nav Drawer */}
         {mobileMenuOpen && (
-          <div className="md:hidden py-3 border-t border-white/5 flex flex-col gap-1">
+          <div className="md:hidden py-3 border-t border-white/5 flex flex-col gap-1 animate-fadeIn">
             {navItems.map((item) => {
               const Icon = item.icon;
               const isActive = activeTab === item.id;
@@ -242,10 +242,63 @@ export default function Navbar({
                 </button>
               );
             })}
+
+            {lastRead && (
+              <button
+                onClick={() => {
+                  onOpenReader(lastRead.mangaId, lastRead.chapterId, lastRead.chapterNumber, lastRead.mangaTitle, lastRead.coverUrl);
+                  setMobileMenuOpen(false);
+                }}
+                className="flex items-center gap-3 px-4 py-2.5 rounded-xl text-sm font-semibold text-emerald-400 bg-emerald-500/10 border border-emerald-500/20 mt-1"
+              >
+                <Play className="w-4 h-4 fill-emerald-400" />
+                <span className="truncate">Resume: {lastRead.mangaTitle} Ch. {lastRead.chapterNumber}</span>
+              </button>
+            )}
           </div>
         )}
 
       </div>
+
+      {/* Mobile Native Bottom Navigation Bar (Thumb-friendly & Safe-area aware) */}
+      <nav 
+        aria-label="Mobile Navigation"
+        className="md:hidden fixed bottom-0 left-0 right-0 z-40 bg-[#0c1017]/95 backdrop-blur-2xl border-t border-white/10 px-2 py-1.5 pb-[calc(0.5rem+env(safe-area-inset-bottom))] flex items-center justify-around shadow-[0_-10px_25px_-5px_rgba(0,0,0,0.6)]"
+      >
+        {navItems.map((item) => {
+          const Icon = item.icon;
+          const isActive = activeTab === item.id;
+          return (
+            <button
+              key={item.id}
+              onClick={() => {
+                setActiveTab(item.id);
+                window.scrollTo({ top: 0, behavior: 'smooth' });
+              }}
+              className={`relative flex flex-col items-center justify-center py-1 px-3 rounded-xl min-w-[64px] transition-all duration-200 ${
+                isActive
+                  ? 'text-rose-400 font-bold scale-105'
+                  : 'text-slate-400 hover:text-slate-200 font-medium'
+              }`}
+            >
+              <div className="relative">
+                <Icon className={`w-5 h-5 transition-transform ${isActive ? 'stroke-[2.5]' : 'stroke-2'}`} />
+                {item.badge && (
+                  <span className="absolute -top-1.5 -right-2 px-1.5 py-0.2 rounded-full text-[9px] font-black bg-rose-600 text-white shadow-sm ring-2 ring-[#0c1017]">
+                    {item.badge}
+                  </span>
+                )}
+              </div>
+              <span className={`text-[10px] tracking-tight mt-0.5 ${isActive ? 'text-white' : 'text-slate-400'}`}>
+                {item.id === 'manga' ? 'Manga' : item.id === 'anime' ? 'Anime' : item.id === 'library' ? 'Library' : 'History'}
+              </span>
+              {isActive && (
+                <span className="absolute bottom-0 w-4 h-0.5 rounded-full bg-rose-500 shadow-sm shadow-rose-500/80" />
+              )}
+            </button>
+          );
+        })}
+      </nav>
     </header>
   );
 }
