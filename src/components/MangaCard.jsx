@@ -31,7 +31,11 @@ export default function MangaCard({
           loading="lazy"
           className="w-full h-full object-cover object-center group-hover:scale-108 transition-transform duration-700 ease-out"
           onError={(e) => {
-            e.target.src = 'https://images.unsplash.com/photo-1578632767115-351597cf2477?w=500&auto=format&fit=crop&q=80';
+            if (manga.rawCoverUrl && e.target.src !== manga.rawCoverUrl) {
+              e.target.src = manga.rawCoverUrl;
+            } else {
+              e.target.src = 'https://images.unsplash.com/photo-1578632767115-351597cf2477?w=500&auto=format&fit=crop&q=80';
+            }
           }}
         />
 

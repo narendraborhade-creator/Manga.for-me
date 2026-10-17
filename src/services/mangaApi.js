@@ -1,7 +1,183 @@
 /**
  * Frontend Manga API Client
- * Connects to the integrated complete manga provider
+ * Connects to the integrated complete manga provider with automatic fallback protection
  */
+
+export const FALLBACK_MANGA_CATALOG = [
+  {
+    id: '2/one-piece',
+    title: 'One Piece',
+    englishTitle: 'One Piece',
+    coverUrl: 'https://cdn.readdetectiveconan.com/file/mangapill/i/2.webp?h=01971742-5d7f-7f32-8d2b-d038279f8a73',
+    status: 'Ongoing',
+    score: '9.3',
+    year: '1997',
+    author: 'Eiichiro Oda',
+    description: 'Gol D. Roger was known as the "Pirate King", the strongest and most infamous being to have sailed the Grand Line. Monkey D. Luffy sets sail in search of the legendary One Piece treasure!',
+    tags: ['Action', 'Adventure', 'Fantasy', 'Shounen'],
+    sourceName: 'MangaPill',
+    chapters: [
+      { id: '2-11100000/one-piece-chapter-1110', chapter: '1110', title: 'Falling Stars' },
+      { id: '2-11090000/one-piece-chapter-1109', chapter: '1109', title: 'Interception' },
+      { id: '2-11080000/one-piece-chapter-1108', chapter: '1108', title: 'World, Please Respond' },
+      { id: '2-10000000/one-piece-chapter-1', chapter: '1', title: 'Romance Dawn' }
+    ]
+  },
+  {
+    id: '1/berserk',
+    title: 'Berserk',
+    englishTitle: 'Berserk',
+    coverUrl: 'https://cdn.readdetectiveconan.com/file/mangapill/i/1.jpeg',
+    status: 'Ongoing',
+    score: '9.5',
+    year: '1989',
+    author: 'Kentaro Miura',
+    description: 'Guts, known as the Black Swordsman, seeks sanctuary from demonic forces that pursue him and vengeance against the man who branded him an unholy sacrifice.',
+    tags: ['Action', 'Dark Fantasy', 'Horror', 'Seinen'],
+    sourceName: 'MangaPill',
+    chapters: [
+      { id: '1-10375000/berserk-chapter-375', chapter: '375', title: 'The Crescent Moon' },
+      { id: '1-10001000/berserk-chapter-1', chapter: '1', title: 'The Black Swordsman' }
+    ]
+  },
+  {
+    id: 'webtoon:solo-leveling',
+    title: 'Solo Leveling',
+    englishTitle: 'Solo Leveling (Only I Level Up)',
+    coverUrl: 'https://cdn.readdetectiveconan.com/file/mangapill/i/solo-leveling.jpeg',
+    status: 'Completed',
+    score: '9.4',
+    year: '2018',
+    author: 'Chugong & DUBU (REDICE)',
+    description: '10 years ago, after "the Gate" that connected the real world with the monster world opened, ordinary hunter Sung Jin-woo receives a quest log that only he can see!',
+    tags: ['Action', 'Fantasy', 'Supernatural', 'Manhwa'],
+    sourceName: 'Webtoon',
+    chapters: [
+      { id: 'webtoon:solo-leveling:200', chapter: '200', title: 'Epilogue 21' },
+      { id: 'webtoon:solo-leveling:1', chapter: '1', title: 'Prologue' }
+    ]
+  },
+  {
+    id: 'webtoon:a-fortune-telling-princess',
+    title: 'A Fortune-Telling Princess',
+    englishTitle: 'A Fortune-Telling Princess',
+    coverUrl: 'https://afortunetellingprincess.com/wp-content/uploads/2023/11/A-Fortune-Telling-Princess-193x278.webp',
+    status: 'Ongoing',
+    score: '9.2',
+    year: '2023',
+    author: 'Webtoon / Tappytoon',
+    description: 'I was a prophetess who was revered as a living god in my past life. But after dying a tragic death, I was reincarnated as the neglected fifth princess of the imperial family.',
+    tags: ['Romance', 'Fantasy', 'Shoujo', 'Reincarnation'],
+    sourceName: 'Webtoon',
+    chapters: [
+      { id: 'webtoon:a-fortune-telling-princess:110', chapter: '110', title: 'Chapter 110' },
+      { id: 'webtoon:a-fortune-telling-princess:109', chapter: '109', title: 'Chapter 109' },
+      { id: 'webtoon:a-fortune-telling-princess:1', chapter: '1', title: 'Chapter 1' }
+    ]
+  },
+  {
+    id: 'webtoon:the-step-mothers-began-her-second-life',
+    title: "The Step Mother's Began Her Second Life",
+    englishTitle: "The Step Mother's Began Her Second Life",
+    coverUrl: 'https://kingofshojo.com/wp-content/uploads/2024/02/The-Step-Mothers-Began-Her-Second-Life.webp',
+    status: 'Ongoing',
+    score: '9.0',
+    year: '2024',
+    author: 'Shojo Webtoon',
+    description: 'After dying from betrayal, she regresses back to the start of her second marriage with her stepchildren. This time, she will protect them and take control of her destiny!',
+    tags: ['Romance', 'Drama', 'Fantasy', 'Regression'],
+    sourceName: 'Webtoon',
+    chapters: [
+      { id: 'webtoon:the-step-mothers-began-her-second-life:60', chapter: '60', title: 'Chapter 60' },
+      { id: 'webtoon:the-step-mothers-began-her-second-life:1', chapter: '1', title: 'Chapter 1' }
+    ]
+  },
+  {
+    id: '723/chainsaw-man',
+    title: 'Chainsaw Man',
+    englishTitle: 'Chainsaw Man',
+    coverUrl: 'https://cdn.readdetectiveconan.com/file/mangapill/i/723.jpeg',
+    status: 'Ongoing',
+    score: '8.9',
+    year: '2018',
+    author: 'Tatsuki Fujimoto',
+    description: 'Denji is a young man living in poverty with his chainsaw demon Pochita, until an unholy union transforms him into Chainsaw Man!',
+    tags: ['Action', 'Supernatural', 'Gore', 'Shounen'],
+    sourceName: 'MangaPill',
+    chapters: [
+      { id: '723-10156000/chainsaw-man-chapter-156', chapter: '156', title: 'Whir' },
+      { id: '723-10001000/chainsaw-man-chapter-1', chapter: '1', title: 'Dog & Chainsaw' }
+    ]
+  },
+  {
+    id: '2085/jujutsu-kaisen',
+    title: 'Jujutsu Kaisen',
+    englishTitle: 'Jujutsu Kaisen',
+    coverUrl: 'https://cdn.readdetectiveconan.com/file/mangapill/i/2085.jpeg',
+    status: 'Completed',
+    score: '8.8',
+    year: '2018',
+    author: 'Gege Akutami',
+    description: 'Yuji Itadori swallows a cursed talisman—the finger of Ryomen Sukuna—and becomes caught in the deadly world of Jujutsu Sorcerers.',
+    tags: ['Action', 'Supernatural', 'Dark Fantasy'],
+    sourceName: 'MangaPill',
+    chapters: [
+      { id: '2085-10271000/jujutsu-kaisen-chapter-271', chapter: '271', title: 'From Now On' },
+      { id: '2085-10001000/jujutsu-kaisen-chapter-1', chapter: '1', title: 'Ryomen Sukuna' }
+    ]
+  },
+  {
+    id: '7486/boruto-two-blue-vortex',
+    title: 'Boruto: Two Blue Vortex',
+    englishTitle: 'Boruto: Two Blue Vortex',
+    coverUrl: 'https://cdn.readdetectiveconan.com/file/mangapill/i/7486.jpeg',
+    status: 'Ongoing',
+    score: '8.7',
+    year: '2023',
+    author: 'Masashi Kishimoto',
+    description: 'Three years have passed since the fateful memory distortion. Boruto Uzumaki returns as a rogue warrior facing Omnipotence.',
+    tags: ['Action', 'Ninja', 'Shounen'],
+    sourceName: 'MangaPill',
+    chapters: [
+      { id: '7486-10008000/boruto-two-blue-vortex-chapter-8', chapter: '8', title: 'It Matters' },
+      { id: '7486-10001000/boruto-two-blue-vortex-chapter-1', chapter: '1', title: 'Boruto' }
+    ]
+  },
+  {
+    id: '7529/kagurabachi',
+    title: 'Kagurabachi',
+    englishTitle: 'Kagurabachi',
+    coverUrl: 'https://cdn.readdetectiveconan.com/file/mangapill/i/7529.jpeg',
+    status: 'Ongoing',
+    score: '8.9',
+    year: '2023',
+    author: 'Takeru Hokazono',
+    description: 'Chihiro spends his days training under his swordsmith father until tragedy strikes. Armed with an enchanted katana, his quest for vengeance begins.',
+    tags: ['Action', 'Supernatural', 'Swordplay'],
+    sourceName: 'MangaPill',
+    chapters: [
+      { id: '7529-10025000/kagurabachi-chapter-25', chapter: '25', title: 'Transaction' },
+      { id: '7529-10001000/kagurabachi-chapter-1', chapter: '1', title: 'Mission' }
+    ]
+  },
+  {
+    id: 'webtoon:omniscient-readers-viewpoint',
+    title: "Omniscient Reader's Viewpoint",
+    englishTitle: "Omniscient Reader's Viewpoint",
+    coverUrl: 'https://omniscientreadersviewpoint.com/wp-content/uploads/2023/11/Omniscient-Readers-Viewpoint-193x278.webp',
+    status: 'Ongoing',
+    score: '9.5',
+    year: '2020',
+    author: 'sing N song & Sleepy-C',
+    description: 'Dokja was an average office worker whose sole interest was reading his favorite web novel. But when the novel suddenly becomes reality, he is the only person who knows how the world will end.',
+    tags: ['Action', 'Fantasy', 'Apocalypse', 'Manhwa'],
+    sourceName: 'Webtoon',
+    chapters: [
+      { id: 'webtoon:omniscient-readers-viewpoint:200', chapter: '200', title: 'Chapter 200' },
+      { id: 'webtoon:omniscient-readers-viewpoint:1', chapter: '1', title: 'Chapter 1' }
+    ]
+  }
+];
 
 /**
  * Fetch Popular / Trending Manga
@@ -11,10 +187,13 @@ export async function fetchPopularManga() {
     const res = await fetch('/api/manga/popular');
     if (!res.ok) throw new Error(`HTTP ${res.status}`);
     const data = await res.json();
-    return (data || []).map(formatMangaItem);
+    if (Array.isArray(data) && data.length > 0) {
+      return data.map(formatMangaItem);
+    }
+    return FALLBACK_MANGA_CATALOG.map(formatMangaItem);
   } catch (err) {
-    console.error('fetchPopularManga failed:', err);
-    return [];
+    console.warn('fetchPopularManga network warning, using fallback catalog:', err);
+    return FALLBACK_MANGA_CATALOG.map(formatMangaItem);
   }
 }
 
@@ -22,16 +201,28 @@ export async function fetchPopularManga() {
  * Search Manga with query
  */
 export async function searchManga(query = '') {
+  if (!query || !query.trim()) return fetchPopularManga();
+
   try {
     const url = `/api/manga/search?q=${encodeURIComponent(query.trim())}`;
     const res = await fetch(url);
     if (!res.ok) throw new Error(`HTTP ${res.status}`);
     const data = await res.json();
-    return (data || []).map(formatMangaItem);
+    if (Array.isArray(data) && data.length > 0) {
+      return data.map(formatMangaItem);
+    }
   } catch (err) {
-    console.error('searchManga failed:', err);
-    return [];
+    console.warn('searchManga API warning, matching fallback:', err);
   }
+
+  // Client-side fallback filter
+  const q = query.toLowerCase().trim();
+  const matched = FALLBACK_MANGA_CATALOG.filter(
+    (m) =>
+      m.title.toLowerCase().includes(q) ||
+      (m.englishTitle && m.englishTitle.toLowerCase().includes(q))
+  );
+  return matched.map(formatMangaItem);
 }
 
 /**
@@ -49,7 +240,15 @@ export async function fetchMangaDetails(mangaId, refresh = false) {
     }
     return data;
   } catch (err) {
-    console.error('fetchMangaDetails failed:', err);
+    console.warn('fetchMangaDetails API warning, checking fallback:', err);
+    const fallbackItem = FALLBACK_MANGA_CATALOG.find((m) => m.id === mangaId);
+    if (fallbackItem) {
+      return {
+        ...fallbackItem,
+        coverUrl: fallbackItem.coverUrl,
+        chapters: fallbackItem.chapters || []
+      };
+    }
     return null;
   }
 }
@@ -112,7 +311,7 @@ function formatMangaItem(item) {
     author: item.author || 'Manga Artist',
     tags: item.tags || ['Manga', 'Action'],
     year: item.year || null,
-    sourceName: item.sourceName || (item.id.startsWith('wc:') ? 'WeebCentral' : item.id.startsWith('webtoon:') ? 'Webtoon' : 'MangaPill'),
-    provider: item.provider || (item.id.startsWith('wc:') ? 'weebcentral' : item.id.startsWith('webtoon:') ? 'webtoon' : 'mangapill'),
+    sourceName: item.sourceName || (item.id?.startsWith('wc:') ? 'WeebCentral' : item.id?.startsWith('webtoon:') ? 'Webtoon' : 'MangaPill'),
+    provider: item.provider || (item.id?.startsWith('wc:') ? 'weebcentral' : item.id?.startsWith('webtoon:') ? 'webtoon' : 'mangapill'),
   };
 }

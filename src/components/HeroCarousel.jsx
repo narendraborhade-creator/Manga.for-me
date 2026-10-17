@@ -59,7 +59,11 @@ export default function HeroCarousel({
           alt={current.title}
           className="w-full h-full object-cover object-center filter brightness-[0.55] group-hover:scale-104 transition-transform duration-1000 ease-out"
           onError={(e) => {
-            e.target.src = 'https://images.unsplash.com/photo-1578632767115-351597cf2477?w=1200&auto=format&fit=crop&q=80';
+            if (current.rawCoverUrl && e.target.src !== current.rawCoverUrl) {
+              e.target.src = current.rawCoverUrl;
+            } else {
+              e.target.src = 'https://images.unsplash.com/photo-1578632767115-351597cf2477?w=1200&auto=format&fit=crop&q=80';
+            }
           }}
         />
         {/* Layered Vignettes */}
