@@ -169,8 +169,19 @@ export default function MangaDetailModal({
                   </div>
 
                   <h2 className="text-xl sm:text-2xl md:text-3xl font-extrabold text-white tracking-tight mb-1">
-                    {manga.title}
+                    {manga.englishTitle || manga.title}
                   </h2>
+
+                  {manga.englishTitle && manga.englishTitle.toLowerCase() !== manga.title.toLowerCase() && (
+                    <div className="flex items-center gap-2 mb-2">
+                      <span className="px-1.5 py-0.5 rounded text-[10px] font-mono uppercase bg-white/10 text-zinc-300 border border-white/5 font-semibold">
+                        Original Title
+                      </span>
+                      <span className="text-xs sm:text-sm text-zinc-300 font-medium">
+                        {manga.title}
+                      </span>
+                    </div>
+                  )}
 
                   <p className="text-xs sm:text-sm text-slate-400 mb-3 flex items-center gap-2">
                     <span className="text-slate-300 font-medium">By {manga.author}</span>
@@ -196,7 +207,8 @@ export default function MangaDetailModal({
                             targetStartChapter.id,
                             targetStartChapter.chapter,
                             manga.title,
-                            manga.coverUrl
+                            initialCoverUrl || manga.coverUrl,
+                            manga.englishTitle || null
                           );
                         }}
                         className="px-6 py-2.5 rounded-xl text-sm font-bold text-white bg-gradient-to-r from-rose-600 to-rose-500 hover:from-rose-500 hover:to-rose-400 shadow-lg shadow-rose-600/30 transition-all flex items-center gap-2"
@@ -307,7 +319,8 @@ export default function MangaDetailModal({
                             chap.id,
                             chap.chapter,
                             manga.title,
-                            manga.coverUrl
+                            initialCoverUrl || manga.coverUrl,
+                            manga.englishTitle || null
                           );
                         }}
                         className={`flex items-center justify-between p-3 rounded-xl border transition-all cursor-pointer group ${

@@ -90,6 +90,7 @@ export default function App() {
     chapterId: null,
     chapterNumber: null,
     mangaTitle: '',
+    mangaEnglishTitle: null,
     coverUrl: '',
   });
   const [isBackupOpen, setIsBackupOpen] = useState(false);
@@ -223,13 +224,14 @@ export default function App() {
   };
 
   // Open Reader
-  const handleOpenReader = (mangaId, chapterId, chapterNumber, mangaTitle, coverUrl) => {
+  const handleOpenReader = (mangaId, chapterId, chapterNumber, mangaTitle, coverUrl, mangaEnglishTitle = null) => {
     setReaderState({
       active: true,
       mangaId,
       chapterId,
       chapterNumber,
       mangaTitle,
+      mangaEnglishTitle,
       coverUrl,
     });
   };
@@ -706,6 +708,7 @@ export default function App() {
           chapterId={readerState.chapterId}
           chapterNumber={readerState.chapterNumber}
           mangaTitle={readerState.mangaTitle}
+          mangaEnglishTitle={readerState.mangaEnglishTitle}
           coverUrl={readerState.coverUrl}
           onClose={handleCloseReader}
           onChangeChapter={handleChangeChapter}

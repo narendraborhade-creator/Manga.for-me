@@ -111,9 +111,18 @@ export default function HistoryView({
                     )}
                   </div>
 
-                  <h3 className="font-bold text-sm sm:text-base text-white group-hover:text-rose-400 truncate transition-colors">
-                    {item.mangaTitle}
+                  <h3 
+                    className="font-bold text-sm sm:text-base text-white group-hover:text-rose-400 truncate transition-colors"
+                    title={item.mangaEnglishTitle || item.mangaTitle}
+                  >
+                    {item.mangaEnglishTitle || item.mangaTitle}
                   </h3>
+                  {item.mangaEnglishTitle && item.mangaEnglishTitle.toLowerCase() !== item.mangaTitle.toLowerCase() && (
+                    <p className="text-[11px] text-zinc-400 truncate flex items-center gap-1 font-medium mt-0.5" title={item.mangaTitle}>
+                      <span className="text-zinc-500 font-mono text-[9px] uppercase px-1 py-0.2 bg-white/5 rounded border border-white/5">JP</span>
+                      <span className="truncate">{item.mangaTitle}</span>
+                    </p>
+                  )}
 
                   <p className="text-xs text-rose-400 font-semibold mt-0.5">
                     Last Read: Chapter {item.chapterNumber}

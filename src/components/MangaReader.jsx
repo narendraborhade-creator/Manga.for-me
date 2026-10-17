@@ -30,6 +30,7 @@ export default function MangaReader({
   chapterId,
   chapterNumber,
   mangaTitle,
+  mangaEnglishTitle = null,
   coverUrl,
   onClose,
   onChangeChapter
@@ -90,6 +91,7 @@ export default function MangaReader({
         recordReadingProgress({
           mangaId,
           mangaTitle,
+          mangaEnglishTitle,
           coverUrl,
           chapterId,
           chapterNumber,
@@ -189,6 +191,7 @@ export default function MangaReader({
             recordReadingProgress({
               mangaId,
               mangaTitle,
+              mangaEnglishTitle,
               coverUrl,
               chapterId,
               chapterNumber,
@@ -200,7 +203,7 @@ export default function MangaReader({
         }
       }
     }
-  }, [settings.readingMode, pages.length, currentPage, chapterId, chapterNumber, mangaId, mangaTitle, coverUrl]);
+  }, [settings.readingMode, pages.length, currentPage, chapterId, chapterNumber, mangaId, mangaTitle, mangaEnglishTitle, coverUrl]);
 
   useEffect(() => {
     window.addEventListener('scroll', handleScroll, { passive: true });
@@ -269,9 +272,14 @@ export default function MangaReader({
             </button>
 
             <div className="min-w-0">
-              <h2 className="text-sm font-bold text-white truncate max-w-[180px] sm:max-w-md">
-                {mangaTitle}
+              <h2 className="text-sm font-bold text-white truncate max-w-[180px] sm:max-w-md" title={mangaEnglishTitle || mangaTitle}>
+                {mangaEnglishTitle || mangaTitle}
               </h2>
+              {mangaEnglishTitle && mangaEnglishTitle.toLowerCase() !== mangaTitle.toLowerCase() && (
+                <div className="text-[10px] text-zinc-400 truncate max-w-[160px] sm:max-w-sm" title={mangaTitle}>
+                  {mangaTitle}
+                </div>
+              )}
               <div className="flex items-center gap-2 text-xs text-rose-400 font-semibold">
                 <span>Chapter {chapterNumber}</span>
                 {pages.length > 0 && (

@@ -98,12 +98,13 @@ function formatMangaItem(item) {
   if (!item) return null;
   // Proxy cover image through our referer bypass proxy
   const proxiedCover = item.coverUrl
-    ? `/api/image-proxy?url=${encodeURIComponent(item.coverUrl)}`
+    ? (item.coverUrl.startsWith('/api/image-proxy') ? item.coverUrl : `/api/image-proxy?url=${encodeURIComponent(item.coverUrl)}`)
     : 'https://images.unsplash.com/photo-1578632767115-351597cf2477?w=500&auto=format&fit=crop&q=80';
 
   return {
     id: item.id,
     title: item.title,
+    englishTitle: item.englishTitle || null,
     coverUrl: proxiedCover,
     rawCoverUrl: item.coverUrl,
     status: item.status || 'Ongoing',

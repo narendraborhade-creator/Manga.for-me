@@ -127,7 +127,7 @@ export const FEATURED_MANGA = [
  * Fetch Popular / Trending Manga with 100% accurate card-by-card matching
  */
 export async function getPopularManga() {
-  const cached = getCached('popular_manga_v2');
+  const cached = getCached('popular_manga_v3');
   if (cached) return cached;
 
   try {
@@ -135,9 +135,8 @@ export async function getPopularManga() {
     if (!res.ok) throw new Error(`HTTP ${res.status}`);
     const html = await res.text();
 
-    // In MangaPill homepage, each card strictly follows:
-    // <img (data-)?src="{cover}" alt="..."[\s\S]*?<a href="/manga/{id}" ...> ... <div class="line-clamp-2 ...">{title}</div>
-    const homeCardRegex = /<img\s+(?:data-)?src="([^"]+)"\s+alt="([^"]+)"[\s\S]*?<a\s+href="\/manga\/([0-9]+\/[^"]+)"[^>]*>[\s\S]*?<div class="line-clamp-2[^"]*">([^<]+)<\/div>/gi;
+    // In MangaPill homepage, each card contains cover image and a link to manga with 1 or 2 divs (original title and optional english title)
+    const homeCardRegex = /<img\s+(?:data-)?src="([^"]+)"\s+alt="([^"]+)"[\s\S]*?<a\s+href="\/manga\/([0-9]+\/[^"]+)"[^>]*>([\s\S]*?)<\/a>/gi;
 
     let m;
     const list = [];
@@ -146,14 +145,22 @@ export async function getPopularManga() {
     while ((m = homeCardRegex.exec(html)) !== null) {
       const coverUrl = m[1];
       const id = m[3];
-      const title = cleanTitle(m[4]);
+      const innerA = m[4];
 
       if (seen.has(id)) continue;
       seen.add(id);
 
+      const divs = [...innerA.matchAll(/<div[^>]*>([\s\S]*?)<\/div>/gi)].map((d) => d[1].replace(/<[^>]+>/g, '').trim());
+      const rawTitle = divs[0] || '';
+      const rawEnglish = divs.length > 1 ? divs[1] : null;
+
+      const title = cleanTitle(rawTitle);
+      const englishTitle = rawEnglish ? cleanTitle(rawEnglish) : null;
+
       list.push({
         id,
         title,
+        englishTitle,
         coverUrl,
         status: 'Ongoing',
         author: 'Manga Artist',
@@ -166,12 +173,15 @@ export async function getPopularManga() {
     const merged = [...list];
     FEATURED_MANGA.forEach((feat) => {
       if (!seen.has(feat.id)) {
-        merged.push(feat);
+        merged.push({
+          ...feat,
+          englishTitle: feat.englishTitle || null,
+        });
         seen.add(feat.id);
       }
     });
 
-    setCache('popular_manga_v2', merged);
+    setCache('popular_manga_v3', merged);
     return merged;
   } catch (error) {
     console.error('getPopularManga error:', error);
@@ -185,7 +195,7 @@ export async function getPopularManga() {
 export async function searchManga(query = '') {
   if (!query || !query.trim()) return getPopularManga();
 
-  const cacheKey = `search_v2_${query.trim().toLowerCase()}`;
+  const cacheKey = `search_v3_${query.trim().toLowerCase()}`;
   const cached = getCached(cacheKey);
   if (cached) return cached;
 
@@ -195,9 +205,10 @@ export async function searchManga(query = '') {
     if (!res.ok) throw new Error(`HTTP ${res.status}`);
     const html = await res.text();
 
-    // In MangaPill search results, each card image link has class "relative block"
-    // <a href="/manga/{id}" class="relative block" ...> ... <img (data-)?src="{cover}" alt="{title}"
-    const searchCardRegex = /<a\s+href="\/manga\/([0-9]+\/[^"]+)"\s+class="relative block"[^>]*>[\s\S]*?<img\s+(?:data-)?src="([^"]+)"[^>]*alt="([^"]+)"/gi;
+    // In MangaPill search results, each card has:
+    // 1) <a href="/manga/([0-9]+\/[^"]+)" class="relative block"[^>]*> ... <img (data-)?src="([^"]+)"
+    // 2) Inside the same card container: <a href="/manga/\1" class="mb-2">([\s\S]*?)</a>
+    const searchCardRegex = /<a\s+href="\/manga\/([0-9]+\/[^"]+)"\s+class="relative block"[^>]*>[\s\S]*?<img\s+(?:data-)?src="([^"]+)"[\s\S]*?<a\s+href="\/manga\/\1"\s+class="mb-2">([\s\S]*?)<\/a>/gi;
 
     let m;
     const list = [];
@@ -206,16 +217,22 @@ export async function searchManga(query = '') {
     while ((m = searchCardRegex.exec(html)) !== null) {
       const id = m[1];
       const coverUrl = m[2];
-      const rawTitle = m[3];
+      const innerTitleBlock = m[3];
 
       if (seen.has(id)) continue;
       seen.add(id);
 
+      const divs = [...innerTitleBlock.matchAll(/<div[^>]*>([\s\S]*?)<\/div>/gi)].map((d) => d[1].replace(/<[^>]+>/g, '').trim());
+      const rawTitle = divs[0] || '';
+      const rawEnglish = divs.length > 1 ? divs[1] : null;
+
       const title = cleanTitle(rawTitle);
+      const englishTitle = rawEnglish ? cleanTitle(rawEnglish) : null;
 
       list.push({
         id,
         title,
+        englishTitle,
         coverUrl,
         status: 'Ongoing',
         author: 'Manga Artist',
@@ -236,7 +253,7 @@ export async function searchManga(query = '') {
  * Get Manga Details & Complete Chapters List
  */
 export async function getMangaDetails(mangaId) {
-  const cacheKey = `details_v2_${mangaId}`;
+  const cacheKey = `details_v3_${mangaId}`;
   const cached = getCached(cacheKey);
   if (cached) return cached;
 
@@ -250,6 +267,10 @@ export async function getMangaDetails(mangaId) {
     const titleMatch = html.match(/<h1[^>]*class="[^"]*font-bold[^"]*"[^>]*>([\s\S]*?)<\/h1>/i);
     let title = titleMatch ? titleMatch[1].trim() : mangaId.split('/')[1] || 'Manga';
     title = cleanTitle(title);
+
+    // Extract English Title if provided
+    const subMatch = html.match(/<h1[^>]*>[\s\S]*?<\/h1>\s*(?:<!--[\s\S]*?-->\s*)*<div class="text-sm text-secondary">([\s\S]*?)<\/div>/i);
+    const englishTitle = subMatch ? cleanTitle(subMatch[1].trim()) : null;
 
     // Extract Cover with proxy to prevent 403 Forbidden
     const coverMatch = html.match(/<img[^>]+data-src="([^"]+)"/i) || html.match(/<img[^>]+src="([^"]+)"/i);
@@ -293,6 +314,7 @@ export async function getMangaDetails(mangaId) {
     const result = {
       id: mangaId,
       title,
+      englishTitle,
       coverUrl,
       description,
       status,

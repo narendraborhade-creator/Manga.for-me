@@ -42,6 +42,7 @@ export const setBookmark = (mangaId, mangaData, status = 'reading') => {
   bookmarks[mangaId] = {
     id: mangaId,
     title: mangaData.title,
+    englishTitle: mangaData.englishTitle || null,
     coverUrl: mangaData.coverUrl,
     latestChapter: mangaData.latestChapter || 'Unknown',
     status, // 'reading', 'plan_to_read', 'completed', 'on_hold', 'favorite'
@@ -77,6 +78,7 @@ export const getLastRead = () => safeGet(KEYS.LAST_READ, null);
 export const recordReadingProgress = ({
   mangaId,
   mangaTitle,
+  mangaEnglishTitle = null,
   coverUrl,
   chapterId,
   chapterNumber,
@@ -89,6 +91,7 @@ export const recordReadingProgress = ({
   const lastReadObj = {
     mangaId,
     mangaTitle,
+    mangaEnglishTitle: mangaEnglishTitle || null,
     coverUrl,
     chapterId,
     chapterNumber,

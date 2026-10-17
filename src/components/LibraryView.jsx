@@ -46,7 +46,10 @@ export default function LibraryView({
 
   const filteredList = bookmarkList.filter((item) => {
     const matchesStatus = filterStatus === 'all' || item.status === filterStatus;
-    const matchesSearch = !searchQuery || item.title?.toLowerCase().includes(searchQuery.toLowerCase());
+    const q = searchQuery.toLowerCase();
+    const matchesSearch = !searchQuery || 
+      item.title?.toLowerCase().includes(q) || 
+      item.englishTitle?.toLowerCase().includes(q);
     return matchesStatus && matchesSearch;
   });
 
@@ -207,9 +210,18 @@ export default function LibraryView({
                 {/* Info */}
                 <div className="p-3 flex flex-col flex-1 justify-between">
                   <div>
-                    <h3 className="font-bold text-xs sm:text-sm text-slate-100 group-hover:text-rose-400 line-clamp-1 transition-colors">
-                      {item.title}
+                    <h3 
+                      className="font-bold text-xs sm:text-sm text-slate-100 group-hover:text-rose-400 line-clamp-1 transition-colors"
+                      title={item.englishTitle || item.title}
+                    >
+                      {item.englishTitle || item.title}
                     </h3>
+                    {item.englishTitle && item.englishTitle.toLowerCase() !== item.title.toLowerCase() && (
+                      <p className="text-[10px] text-zinc-400 mt-0.5 truncate flex items-center gap-1 font-medium" title={item.title}>
+                        <span className="text-zinc-500 font-mono text-[8px] uppercase px-1 py-0.2 bg-white/5 rounded border border-white/5">JP</span>
+                        <span className="truncate">{item.title}</span>
+                      </p>
+                    )}
                   </div>
 
                   <div className="mt-2 pt-2 border-t border-white/5 flex items-center justify-between">

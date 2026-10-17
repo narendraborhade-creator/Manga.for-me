@@ -74,8 +74,15 @@ export default function HeroCarousel({
 
         {/* Title */}
         <h1 className="text-3xl sm:text-5xl md:text-6xl font-black text-white tracking-tight mb-2 sm:mb-3 line-clamp-2 drop-shadow-lg font-['Outfit']">
-          {current.title}
+          {current.englishTitle || current.title}
         </h1>
+
+        {current.englishTitle && current.englishTitle.toLowerCase() !== current.title.toLowerCase() && (
+          <p className="text-xs sm:text-sm text-zinc-300 mb-2 font-medium flex items-center gap-1.5 drop-shadow">
+            <span className="px-1.5 py-0.5 rounded text-[10px] font-mono uppercase bg-white/15 text-zinc-200 border border-white/10">JP</span>
+            <span>{current.title}</span>
+          </p>
+        )}
 
         {/* Genres */}
         <div className="flex flex-wrap items-center gap-2 mb-3.5">
@@ -98,7 +105,7 @@ export default function HeroCarousel({
         <div className="flex flex-wrap items-center gap-3">
           {isManga ? (
             <button
-              onClick={() => onSelectManga(current.id)}
+              onClick={() => onSelectManga(current.id, current.coverUrl)}
               className="px-7 py-3 rounded-2xl text-sm font-extrabold text-white bg-gradient-to-r from-rose-600 via-rose-500 to-amber-500 hover:from-rose-500 hover:to-amber-400 shadow-xl shadow-rose-600/35 hover:shadow-rose-600/50 hover:scale-102 transition-all flex items-center gap-2 group"
             >
               <BookOpen className="w-4 h-4 group-hover:scale-110 transition-transform" />
@@ -131,7 +138,7 @@ export default function HeroCarousel({
 
           {/* View Details */}
           <button
-            onClick={() => (isManga ? onSelectManga(current.id) : onSelectAnime(current))}
+            onClick={() => (isManga ? onSelectManga(current.id, current.coverUrl) : onSelectAnime(current))}
             className="px-5 py-3 rounded-2xl text-sm font-semibold text-slate-300 hover:text-white bg-white/10 hover:bg-white/15 backdrop-blur-md border border-white/10 transition-all flex items-center gap-2"
           >
             <Info className="w-4 h-4" />

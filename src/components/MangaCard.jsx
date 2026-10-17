@@ -91,12 +91,22 @@ export default function MangaCard({
       {/* Manga Information */}
       <div className="p-3.5 flex flex-col flex-1 justify-between bg-gradient-to-b from-transparent to-[#0b0e14]/40">
         <div>
-          <h3 className="font-bold text-sm text-slate-100 group-hover:text-rose-400 line-clamp-1 transition-colors tracking-tight">
-            {manga.title}
+          <h3 
+            className="font-bold text-sm text-slate-100 group-hover:text-rose-400 line-clamp-1 transition-colors tracking-tight"
+            title={manga.englishTitle || manga.title}
+          >
+            {manga.englishTitle || manga.title}
           </h3>
-          <p className="text-xs text-slate-400 mt-0.5 truncate flex items-center gap-1">
-            <span>{manga.author || 'Manga'}</span>
-          </p>
+          {manga.englishTitle && manga.englishTitle.toLowerCase() !== manga.title.toLowerCase() ? (
+            <p className="text-[11px] text-zinc-400 mt-0.5 truncate flex items-center gap-1.5 font-medium" title={manga.title}>
+              <span className="text-zinc-500 font-mono text-[9px] uppercase px-1 py-0.5 bg-white/5 rounded border border-white/5">JP</span>
+              <span className="truncate">{manga.title}</span>
+            </p>
+          ) : (
+            <p className="text-xs text-slate-400 mt-0.5 truncate flex items-center gap-1">
+              <span>{manga.author || 'Manga'}</span>
+            </p>
+          )}
         </div>
 
         <div className="mt-2.5 pt-2 border-t border-white/5 flex items-center justify-between text-[11px] text-slate-400">
