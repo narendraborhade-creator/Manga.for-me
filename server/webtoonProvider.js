@@ -25,10 +25,47 @@ function setCache(key, data) {
   cache.set(key, { data, time: Date.now() });
 }
 
+function decodeHtml(str) {
+  if (!str) return '';
+  return str
+    .replace(/&quot;/g, '"')
+    .replace(/&#039;/g, "'")
+    .replace(/&amp;/g, '&')
+    .replace(/&lt;/g, '<')
+    .replace(/&gt;/g, '>');
+}
+
 /**
  * Curated Manhwa & Webtoon Catalog
  */
 export const WEBTOON_CATALOG = [
+  {
+    id: 'webtoon:stepmother-second-life',
+    title: 'The Despised Stepmother Begins Her Second Life',
+    englishTitle: "The Step Mother's Began Her Second Life",
+    altTitles: [
+      "The Step Mother's Began Her Second Life",
+      'The Stepmother Began Her Second Life',
+      'The Stepmother Begins Her Second Life',
+      'The Step Mother Began Her Second Life',
+      'The Hated Stepmother Begins Her Second Life',
+      'The Despised Stepmother Begins Her Second Life',
+      'The Stepmother Has Left',
+      'Stepmother Second Life',
+      'Step Mother Second Life',
+      '새엄마가 떠났다',
+      'Saeeommaga Tteonassda',
+    ],
+    coverUrl: 'https://cdn.kingofshojo.com/king-bucket/images/jppppp.webp',
+    status: 'Ongoing',
+    score: '9.3',
+    year: '2024',
+    author: 'Gwon Gyeoul',
+    artist: 'Shojo Studio',
+    tags: ['Manhwa', 'Webtoon', 'Fantasy', 'Romance', 'Drama', 'Reincarnation'],
+    description: 'Fulfilling the final dying wish of her one and only true friend, she entered a contract marriage to look after and protect the two children left behind. Enduring seven long years of social judgment, loneliness, and the deep resentment of her stepsons, she strictly honors the agreement. The moment they come of age, she walks away to start fresh. But just as she begins her second life, figures from her past start tracking her down!',
+    source: 'kingofshojo.com',
+  },
   {
     id: 'webtoon:fortune-telling-princess',
     title: 'A Fortune-Telling Princess',
@@ -88,9 +125,13 @@ export const WEBTOON_CATALOG = [
 export async function searchWebtoons(query = '') {
   if (!query || !query.trim()) return [];
 
-  const q = query.trim().toLowerCase();
-  const tokens = q.split(/\s+/).filter(Boolean);
+  const rawQ = query.trim().toLowerCase();
+  const cleanQ = rawQ.replace(/['’"”`]/g, '').replace(/[-_:]/g, ' ');
+  const tokens = cleanQ.split(/\s+/).filter(Boolean);
+  const stopWords = new Set(['the', 'a', 'an', 'her', 'his', 'of', 'in', 'to', 'for', 's']);
+  const meaningfulTokens = tokens.filter((t) => !stopWords.has(t));
 
+  // 1. Check curated catalog
   const matched = WEBTOON_CATALOG.filter((item) => {
     const textCorpus = [
       item.title,
@@ -103,14 +144,28 @@ export async function searchWebtoons(query = '') {
       .join(' ')
       .toLowerCase();
 
-    // Check full string inclusion
-    if (textCorpus.includes(q)) return true;
+    const cleanCorpus = textCorpus.replace(/['’"”`]/g, '').replace(/[-_:]/g, ' ');
+    const collapsedCorpus = cleanCorpus.replace(/\s+/g, '');
+    const collapsedQ = cleanQ.replace(/\s+/g, '');
 
-    // Check all tokens
-    return tokens.every((tok) => textCorpus.includes(tok));
+    // Direct inclusion
+    if (textCorpus.includes(rawQ) || cleanCorpus.includes(cleanQ)) return true;
+
+    // Collapsed match (handles "step mother" vs "stepmother")
+    if (collapsedCorpus.includes(collapsedQ) || collapsedQ.includes(collapsedCorpus)) return true;
+
+    // All tokens present
+    if (tokens.length > 0 && tokens.every((tok) => cleanCorpus.includes(tok))) return true;
+
+    // Meaningful tokens match (ignoring stop words)
+    if (meaningfulTokens.length >= 2 && meaningfulTokens.every((tok) => cleanCorpus.includes(tok) || collapsedCorpus.includes(tok))) {
+      return true;
+    }
+
+    return false;
   });
 
-  return matched.map((item) => ({
+  const results = matched.map((item) => ({
     id: item.id,
     title: item.title,
     englishTitle: item.englishTitle || null,
@@ -122,13 +177,61 @@ export async function searchWebtoons(query = '') {
     tags: item.tags,
     description: item.description,
     provider: 'webtoon',
+    sourceName: 'Webtoon',
   }));
+
+  // 2. Query King of Shojo dynamically for expanded manhwa/webtoon titles
+  try {
+    const ksQuery = meaningfulTokens.length > 0 ? meaningfulTokens.slice(0, 3).join(' ') : rawQ;
+    const ksUrl = `https://kingofshojo.com/?s=${encodeURIComponent(ksQuery)}&post_type=wp-manga`;
+    const res = await fetch(ksUrl, { headers: HEADERS });
+    if (res.ok) {
+      const html = await res.text();
+      const bsxMatches = [...html.matchAll(/<div class="bsx">[\s\S]*?<a\s+href="https:\/\/kingofshojo\.com\/manga\/([^"/]+)\/"\s+title="([^"]*)"[\s\S]*?<img\s+(?:data-)?src="([^"]+)"/gi)];
+      
+      const seenSlugs = new Set();
+      // Don't duplicate items already matched in curated catalog
+      if (results.some((r) => r.id === 'webtoon:stepmother-second-life')) {
+        seenSlugs.add('the-despised-stepmother-begins-her-second-life');
+      }
+
+      for (const m of bsxMatches) {
+        const slug = m[1];
+        if (seenSlugs.has(slug)) continue;
+        seenSlugs.add(slug);
+
+        const title = decodeHtml(m[2].trim());
+        const rawCover = m[3];
+        const coverUrl = rawCover ? `/api/image-proxy?url=${encodeURIComponent(rawCover)}` : '';
+
+        results.push({
+          id: `webtoon:ks:${slug}`,
+          slug,
+          title,
+          englishTitle: null,
+          coverUrl,
+          status: 'Ongoing',
+          author: 'Shojo Creator',
+          tags: ['Manhwa', 'Webtoon', 'Romance'],
+          provider: 'webtoon',
+          sourceName: 'Webtoon',
+        });
+      }
+    }
+  } catch (err) {
+    // Dynamic lookup failed, return curated catalog results
+  }
+
+  return results;
 }
 
 /**
  * Fetch Details & Chapters for Webtoon
  */
 export async function getWebtoonDetails(id) {
+  if (id === 'webtoon:stepmother-second-life') {
+    return getStepmotherSecondLifeDetails();
+  }
   if (id === 'webtoon:fortune-telling-princess') {
     return getFortuneTellingPrincessDetails();
   }
@@ -139,6 +242,12 @@ export async function getWebtoonDetails(id) {
     return getOmniscientReaderDetails();
   }
 
+  // Handle generic King of Shojo webtoon
+  if (id.startsWith('webtoon:ks:')) {
+    const slug = id.replace('webtoon:ks:', '');
+    return getKingOfShojoDetails(slug);
+  }
+
   // Fallback to catalog entry
   const entry = WEBTOON_CATALOG.find((w) => w.id === id);
   if (entry) {
@@ -146,9 +255,140 @@ export async function getWebtoonDetails(id) {
       ...entry,
       chapters: [],
       totalChapters: 0,
+      sourceName: 'Webtoon',
     };
   }
   return null;
+}
+
+/**
+ * Scraper for The Despised Stepmother Begins Her Second Life
+ */
+async function getStepmotherSecondLifeDetails() {
+  const cacheKey = 'details_stepmother_all';
+  const cached = getCached(cacheKey);
+  if (cached) return cached;
+
+  const entry = WEBTOON_CATALOG.find((w) => w.id === 'webtoon:stepmother-second-life');
+
+  try {
+    const res = await fetch('https://kingofshojo.com/manga/the-despised-stepmother-begins-her-second-life/', { headers: HEADERS });
+    if (!res.ok) throw new Error(`HTTP ${res.status}`);
+    const html = await res.text();
+
+    const chapRegex = /<a[^>]+href="(https:\/\/kingofshojo\.com\/the-despised-stepmother-begins-her-second-life-chapter-([0-9.]+)\/)"[^>]*>/gi;
+    let m;
+    const chaptersMap = new Map();
+    while ((m = chapRegex.exec(html)) !== null) {
+      const chapUrl = m[1];
+      const num = m[2];
+      if (!chaptersMap.has(num)) {
+        chaptersMap.set(num, {
+          id: `webtoon:stepmother:${num}`,
+          chapter: num,
+          title: `Chapter ${num}`,
+          sourceUrl: chapUrl,
+        });
+      }
+    }
+
+    const chapters = Array.from(chaptersMap.values()).sort(
+      (a, b) => parseFloat(b.chapter) - parseFloat(a.chapter)
+    );
+
+    const result = {
+      ...entry,
+      chapters,
+      totalChapters: chapters.length,
+      sourceName: 'Webtoon',
+    };
+
+    setCache(cacheKey, result);
+    return result;
+  } catch (err) {
+    console.error('getStepmotherSecondLifeDetails error:', err);
+    // Fallback chapters up to 35
+    const fallbackChapters = [];
+    for (let i = 35; i >= 1; i--) {
+      fallbackChapters.push({
+        id: `webtoon:stepmother:${i}`,
+        chapter: String(i),
+        title: `Chapter ${i}`,
+        sourceUrl: `https://kingofshojo.com/the-despised-stepmother-begins-her-second-life-chapter-${i}/`,
+      });
+    }
+    return {
+      ...entry,
+      chapters: fallbackChapters,
+      totalChapters: fallbackChapters.length,
+      sourceName: 'Webtoon',
+    };
+  }
+}
+
+/**
+ * Generic Details scraper for King of Shojo
+ */
+async function getKingOfShojoDetails(slug) {
+  const cacheKey = `details_ks_${slug}`;
+  const cached = getCached(cacheKey);
+  if (cached) return cached;
+
+  try {
+    const url = `https://kingofshojo.com/manga/${slug}/`;
+    const res = await fetch(url, { headers: HEADERS });
+    if (!res.ok) throw new Error(`HTTP ${res.status}`);
+    const html = await res.text();
+
+    const titleMatch = html.match(/<h1[^>]*class="entry-title"[^>]*>([\s\S]*?)<\/h1>/i) || html.match(/<title>([^<]+)<\/title>/i);
+    const title = titleMatch ? decodeHtml(titleMatch[1].replace(/<[^>]+>/g, '').replace(/\s*–\s*King.*|\|\s*King.*/i, '').trim()) : slug;
+
+    const descMatch = html.match(/<div class="entry-content entry-content-single"[^>]*>([\s\S]*?)<\/div>/i) || html.match(/<meta property="og:description" content="([^"]*)"/i);
+    const description = descMatch ? decodeHtml(descMatch[1].replace(/<[^>]+>/g, '').trim()) : 'Read this romantic fantasy manhwa.';
+
+    const imgMatch = html.match(/<div class="thumb"[^>]*>[\s\S]*?<img[^>]+(?:src|data-src)="([^"]+)"/i);
+    const coverUrl = imgMatch ? `/api/image-proxy?url=${encodeURIComponent(imgMatch[1])}` : '';
+
+    const chRegex = new RegExp(`href="(https:\\/\\/kingofshojo\\.com\\/${slug}-chapter-([0-9.]+)\\/)"`, 'gi');
+    let m;
+    const chaptersMap = new Map();
+    while ((m = chRegex.exec(html)) !== null) {
+      const chUrl = m[1];
+      const chNum = m[2];
+      if (!chaptersMap.has(chNum)) {
+        chaptersMap.set(chNum, {
+          id: `webtoon:ks:${slug}:${chNum}`,
+          chapter: chNum,
+          title: `Chapter ${chNum}`,
+          sourceUrl: chUrl,
+        });
+      }
+    }
+
+    const chapters = Array.from(chaptersMap.values()).sort(
+      (a, b) => parseFloat(b.chapter) - parseFloat(a.chapter)
+    );
+
+    const result = {
+      id: `webtoon:ks:${slug}`,
+      title,
+      englishTitle: null,
+      coverUrl,
+      status: 'Ongoing',
+      description,
+      tags: ['Manhwa', 'Webtoon', 'Romance'],
+      chapters,
+      totalChapters: chapters.length,
+      provider: 'webtoon',
+      sourceName: 'Webtoon',
+    };
+
+    setCache(cacheKey, result);
+    return result;
+  } catch (err) {
+    console.error('getKingOfShojoDetails error:', err);
+    throw err;
+  }
 }
 
 /**
@@ -189,6 +429,7 @@ async function getFortuneTellingPrincessDetails() {
       ...entry,
       chapters,
       totalChapters: chapters.length,
+      sourceName: 'Webtoon',
     };
 
     setCache(cacheKey, result);
@@ -210,6 +451,7 @@ async function getFortuneTellingPrincessDetails() {
       ...entry,
       chapters: fallbackChapters,
       totalChapters: fallbackChapters.length,
+      sourceName: 'Webtoon',
     };
   }
 }
@@ -232,6 +474,7 @@ async function getSoloLevelingDetails() {
     ...entry,
     chapters,
     totalChapters: chapters.length,
+    sourceName: 'Webtoon',
   };
 }
 
@@ -253,6 +496,7 @@ async function getOmniscientReaderDetails() {
     ...entry,
     chapters,
     totalChapters: chapters.length,
+    sourceName: 'Webtoon',
   };
 }
 
@@ -264,6 +508,73 @@ export async function getWebtoonChapterPages(chapterId) {
   const cached = getCached(cacheKey);
   if (cached) return cached;
 
+  // Handle Stepmother Second Life
+  if (chapterId.startsWith('webtoon:stepmother:')) {
+    const num = chapterId.replace('webtoon:stepmother:', '');
+    const url = `https://kingofshojo.com/the-despised-stepmother-begins-her-second-life-chapter-${num}/`;
+    try {
+      const res = await fetch(url, { headers: HEADERS });
+      if (!res.ok) throw new Error(`HTTP ${res.status}`);
+      const html = await res.text();
+
+      const allImgs = [...html.matchAll(/<img[^>]+(?:src|data-src)="([^"]+)"/gi)].map(m => m[1]);
+      const pages = allImgs
+        .filter(u => u.includes('king-bucket') && !u.includes('images/jppppp'))
+        .map((imgUrl, idx) => ({
+          pageNumber: idx + 1,
+          url: `/api/image-proxy?url=${encodeURIComponent(imgUrl)}`,
+          originalUrl: imgUrl,
+        }));
+
+      const result = {
+        chapterId,
+        totalPages: pages.length,
+        pages,
+      };
+
+      setCache(cacheKey, result);
+      return result;
+    } catch (err) {
+      console.error('getWebtoonChapterPages error for stepmother:', err);
+      throw err;
+    }
+  }
+
+  // Handle generic King of Shojo chapter
+  if (chapterId.startsWith('webtoon:ks:')) {
+    const parts = chapterId.replace('webtoon:ks:', '').split(':');
+    const slug = parts[0];
+    const num = parts[1];
+    const url = `https://kingofshojo.com/${slug}-chapter-${num}/`;
+    try {
+      const res = await fetch(url, { headers: HEADERS });
+      if (!res.ok) throw new Error(`HTTP ${res.status}`);
+      const html = await res.text();
+
+      const allImgs = [...html.matchAll(/<img[^>]+(?:src|data-src)="([^"]+)"/gi)].map(m => m[1]);
+      const pages = allImgs
+        .filter(u => u.includes('king-bucket') || u.includes('/chapter/'))
+        .map((imgUrl, idx) => ({
+          pageNumber: idx + 1,
+          url: `/api/image-proxy?url=${encodeURIComponent(imgUrl)}`,
+          originalUrl: imgUrl,
+        }));
+
+      const result = {
+        chapterId,
+        totalPages: pages.length,
+        pages,
+      };
+
+      setCache(cacheKey, result);
+      return result;
+    } catch (err) {
+      console.error('getWebtoonChapterPages error for ks:', err);
+      throw err;
+    }
+  }
+
+  // Handle A Fortune-Telling Princess
   if (chapterId.startsWith('webtoon:ftp:')) {
     const chapterNum = chapterId.replace('webtoon:ftp:', '');
     const url = `https://afortunetellingprincess.com/a-fortune-telling-princess-manhwa-chapter-${chapterNum}/`;

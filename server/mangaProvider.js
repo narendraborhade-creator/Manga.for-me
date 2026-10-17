@@ -325,6 +325,17 @@ async function fetchMangaPillSearch(query = '') {
     });
   }
 
+  // Filter out noisy MangaPill matches that only matched stop words like "The"
+  const stopWords = new Set(['the', 'a', 'an', 'her', 'his', 'of', 'in', 'to', 'for', 's']);
+  const queryTokens = query.toLowerCase().replace(/['’"”`]/g, '').split(/\s+/).filter((t) => !stopWords.has(t) && t.length > 1);
+
+  if (queryTokens.length > 0) {
+    return list.filter((item) => {
+      const t = (item.title + ' ' + (item.englishTitle || '')).toLowerCase().replace(/['’"”`]/g, '');
+      return queryTokens.some((tok) => t.includes(tok));
+    });
+  }
+
   return list;
 }
 
@@ -491,6 +502,8 @@ export async function proxyImage(imageUrl, res) {
         referer = 'https://readsololeveling.org/';
       } else if (host.includes('omniscientreadersviewpoint')) {
         referer = 'https://omniscientreadersviewpoint.com/';
+      } else if (host.includes('kingofshojo')) {
+        referer = 'https://kingofshojo.com/';
       } else if (host.includes('mangapill') || host.includes('readdetectiveconan')) {
         referer = 'https://mangapill.com/';
       } else {
