@@ -228,12 +228,12 @@ export async function searchWebtoons(query = '') {
 /**
  * Fetch Details & Chapters for Webtoon
  */
-export async function getWebtoonDetails(id) {
+export async function getWebtoonDetails(id, bypassCache = false) {
   if (id === 'webtoon:stepmother-second-life') {
-    return getStepmotherSecondLifeDetails();
+    return getStepmotherSecondLifeDetails(bypassCache);
   }
   if (id === 'webtoon:fortune-telling-princess') {
-    return getFortuneTellingPrincessDetails();
+    return getFortuneTellingPrincessDetails(bypassCache);
   }
   if (id === 'webtoon:solo-leveling') {
     return getSoloLevelingDetails();
@@ -245,7 +245,7 @@ export async function getWebtoonDetails(id) {
   // Handle generic King of Shojo webtoon
   if (id.startsWith('webtoon:ks:')) {
     const slug = id.replace('webtoon:ks:', '');
-    return getKingOfShojoDetails(slug);
+    return getKingOfShojoDetails(slug, bypassCache);
   }
 
   // Fallback to catalog entry
@@ -264,10 +264,12 @@ export async function getWebtoonDetails(id) {
 /**
  * Scraper for The Despised Stepmother Begins Her Second Life
  */
-async function getStepmotherSecondLifeDetails() {
+async function getStepmotherSecondLifeDetails(bypassCache = false) {
   const cacheKey = 'details_stepmother_all';
-  const cached = getCached(cacheKey);
-  if (cached) return cached;
+  if (!bypassCache) {
+    const cached = getCached(cacheKey);
+    if (cached) return cached;
+  }
 
   const entry = WEBTOON_CATALOG.find((w) => w.id === 'webtoon:stepmother-second-life');
 
@@ -276,19 +278,43 @@ async function getStepmotherSecondLifeDetails() {
     if (!res.ok) throw new Error(`HTTP ${res.status}`);
     const html = await res.text();
 
-    const chapRegex = /<a[^>]+href="(https:\/\/kingofshojo\.com\/the-despised-stepmother-begins-her-second-life-chapter-([0-9.]+)\/)"[^>]*>/gi;
-    let m;
     const chaptersMap = new Map();
-    while ((m = chapRegex.exec(html)) !== null) {
-      const chapUrl = m[1];
-      const num = m[2];
+
+    // 1. Primary: Match list items with data-num and chapterdate
+    const liMatches = [...html.matchAll(/<li[^>]*data-num="([^"]+)"[\s\S]*?<a[^>]+href="([^"]+)"[\s\S]*?<span class="chapternum">([^<]*)<\/span>[\s\S]*?<span class="chapterdate">([^<]*)<\/span>/gi)];
+    for (const m of liMatches) {
+      const num = m[1];
+      if (num.includes('{{')) continue;
+      const url = m[2];
+      const chapName = m[3].trim();
+      const date = m[4].trim();
+
       if (!chaptersMap.has(num)) {
         chaptersMap.set(num, {
           id: `webtoon:stepmother:${num}`,
           chapter: num,
-          title: `Chapter ${num}`,
-          sourceUrl: chapUrl,
+          title: chapName || `Chapter ${num}`,
+          sourceUrl: url,
+          publishedAt: date,
         });
+      }
+    }
+
+    // 2. Fallback regex on chapter links if li extraction was empty
+    if (chaptersMap.size === 0) {
+      const chapRegex = /<a[^>]+href="(https:\/\/kingofshojo\.com\/the-despised-stepmother-begins-her-second-life-chapter-([0-9.]+)\/)"[^>]*>/gi;
+      let m;
+      while ((m = chapRegex.exec(html)) !== null) {
+        const chapUrl = m[1];
+        const num = m[2];
+        if (!chaptersMap.has(num)) {
+          chaptersMap.set(num, {
+            id: `webtoon:stepmother:${num}`,
+            chapter: num,
+            title: `Chapter ${num}`,
+            sourceUrl: chapUrl,
+          });
+        }
       }
     }
 
@@ -329,10 +355,12 @@ async function getStepmotherSecondLifeDetails() {
 /**
  * Generic Details scraper for King of Shojo
  */
-async function getKingOfShojoDetails(slug) {
+async function getKingOfShojoDetails(slug, bypassCache = false) {
   const cacheKey = `details_ks_${slug}`;
-  const cached = getCached(cacheKey);
-  if (cached) return cached;
+  if (!bypassCache) {
+    const cached = getCached(cacheKey);
+    if (cached) return cached;
+  }
 
   try {
     const url = `https://kingofshojo.com/manga/${slug}/`;
@@ -349,19 +377,43 @@ async function getKingOfShojoDetails(slug) {
     const imgMatch = html.match(/<div class="thumb"[^>]*>[\s\S]*?<img[^>]+(?:src|data-src)="([^"]+)"/i);
     const coverUrl = imgMatch ? `/api/image-proxy?url=${encodeURIComponent(imgMatch[1])}` : '';
 
-    const chRegex = new RegExp(`href="(https:\\/\\/kingofshojo\\.com\\/${slug}-chapter-([0-9.]+)\\/)"`, 'gi');
-    let m;
     const chaptersMap = new Map();
-    while ((m = chRegex.exec(html)) !== null) {
-      const chUrl = m[1];
-      const chNum = m[2];
-      if (!chaptersMap.has(chNum)) {
-        chaptersMap.set(chNum, {
-          id: `webtoon:ks:${slug}:${chNum}`,
-          chapter: chNum,
-          title: `Chapter ${chNum}`,
+
+    // 1. Try structured li tags with dates
+    const liMatches = [...html.matchAll(/<li[^>]*data-num="([^"]+)"[\s\S]*?<a[^>]+href="([^"]+)"[\s\S]*?<span class="chapternum">([^<]*)<\/span>[\s\S]*?<span class="chapterdate">([^<]*)<\/span>/gi)];
+    for (const m of liMatches) {
+      const num = m[1];
+      if (num.includes('{{')) continue;
+      const chUrl = m[2];
+      const chName = m[3].trim();
+      const date = m[4].trim();
+
+      if (!chaptersMap.has(num)) {
+        chaptersMap.set(num, {
+          id: `webtoon:ks:${slug}:${num}`,
+          chapter: num,
+          title: chName || `Chapter ${num}`,
           sourceUrl: chUrl,
+          publishedAt: date,
         });
+      }
+    }
+
+    // 2. Fallback regex
+    if (chaptersMap.size === 0) {
+      const chRegex = new RegExp(`href="(https:\\/\\/kingofshojo\\.com\\/${slug}-chapter-([0-9.]+)\\/)"`, 'gi');
+      let m;
+      while ((m = chRegex.exec(html)) !== null) {
+        const chUrl = m[1];
+        const chNum = m[2];
+        if (!chaptersMap.has(chNum)) {
+          chaptersMap.set(chNum, {
+            id: `webtoon:ks:${slug}:${chNum}`,
+            chapter: chNum,
+            title: `Chapter ${chNum}`,
+            sourceUrl: chUrl,
+          });
+        }
       }
     }
 

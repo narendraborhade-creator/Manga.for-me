@@ -108,10 +108,12 @@ export async function searchWeebCentral(query = '') {
 /**
  * Get WeebCentral Series Details & Full Chapter List
  */
-export async function getWeebCentralDetails(seriesId, initialCover = '') {
+export async function getWeebCentralDetails(seriesId, initialCover = '', bypassCache = false) {
   const cacheKey = `wc_details_${seriesId}`;
-  const cached = getCached(cacheKey);
-  if (cached) return cached;
+  if (!bypassCache) {
+    const cached = getCached(cacheKey);
+    if (cached) return cached;
+  }
 
   try {
     const seriesUrl = `https://weebcentral.com/series/${seriesId}`;
@@ -171,19 +173,50 @@ export async function getWeebCentralDetails(seriesId, initialCover = '') {
       if (seenChaps.has(rawChapId)) continue;
       seenChaps.add(rawChapId);
 
-      const rawContent = match[3].replace(/<[^>]+>/g, ' ').replace(/\s+/g, ' ').trim();
-      // Extract Chapter number
-      const numMatch = rawContent.match(/Chapter\s+([0-9.]+)/i);
-      const chapterNum = numMatch ? numMatch[1] : '';
-      const chapTitle = chapterNum ? `Chapter ${chapterNum}` : rawContent.slice(0, 30);
+      const innerHtml = match[3];
+
+      // Extract datetime if available
+      const timeMatch = innerHtml.match(/datetime="([^"]+)"/i);
+      const publishedAt = timeMatch ? timeMatch[1] : null;
+
+      // Clean text by stripping out dates and SVGs
+      const cleanText = innerHtml
+        .replace(/<time[\s\S]*?<\/time>/gi, '')
+        .replace(/<svg[\s\S]*?<\/svg>/gi, '')
+        .replace(/<[^>]+>/g, ' ')
+        .replace(/Last Read/gi, '')
+        .replace(/\s+/g, ' ')
+        .trim();
+
+      // Extract Chapter or Episode number (supports Episode 172, Chapter 1196, Ch. 45, etc.)
+      const numMatch = cleanText.match(/(?:Chapter|Episode|Ch\.?|Ep\.?)\s*([0-9.]+)/i)
+        || cleanText.match(/([0-9.]+)/);
+
+      let chapterNum = '';
+      if (numMatch) {
+        chapterNum = numMatch[1];
+      } else if (/prologue/i.test(cleanText)) {
+        chapterNum = '0';
+      }
+
+      const chapTitle = cleanText || (chapterNum ? `Chapter ${chapterNum}` : 'Chapter');
 
       chapters.push({
         id: `wc_ch:${rawChapId}`,
         chapter: chapterNum || String(chapters.length + 1),
         title: chapTitle,
+        publishedAt,
         sourceUrl: `https://weebcentral.com/chapters/${rawChapId}`,
       });
     }
+
+    // Ensure chapters are sorted descending (latest chapter first)
+    chapters.sort((a, b) => {
+      const numA = parseFloat(a.chapter);
+      const numB = parseFloat(b.chapter);
+      if (!isNaN(numA) && !isNaN(numB)) return numB - numA;
+      return 0;
+    });
 
     const result = {
       id: `wc:${seriesId}`,

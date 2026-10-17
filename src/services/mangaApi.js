@@ -37,9 +37,10 @@ export async function searchManga(query = '') {
 /**
  * Fetch Manga Details & Full Chapter List
  */
-export async function fetchMangaDetails(mangaId) {
+export async function fetchMangaDetails(mangaId, refresh = false) {
   try {
-    const url = `/api/manga/details?id=${encodeURIComponent(mangaId)}`;
+    const refreshQuery = refresh ? '&refresh=true' : '';
+    const url = `/api/manga/details?id=${encodeURIComponent(mangaId)}${refreshQuery}`;
     const res = await fetch(url);
     if (!res.ok) throw new Error(`HTTP ${res.status}`);
     const data = await res.json();
@@ -56,9 +57,9 @@ export async function fetchMangaDetails(mangaId) {
 /**
  * Fetch Chapters for a Manga
  */
-export async function fetchMangaChapters(mangaId, order = 'desc') {
+export async function fetchMangaChapters(mangaId, order = 'desc', refresh = false) {
   try {
-    const details = await fetchMangaDetails(mangaId);
+    const details = await fetchMangaDetails(mangaId, refresh);
     if (!details || !details.chapters) return [];
 
     const chapters = [...details.chapters];

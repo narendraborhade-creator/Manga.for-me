@@ -12,9 +12,10 @@ import {
   Users, 
   Layers,
   Sparkles,
-  Loader2
+  Loader2,
+  RefreshCw
 } from 'lucide-react';
-import { fetchMangaDetails, fetchMangaChapters } from '../services/mangaApi';
+import { fetchMangaDetails } from '../services/mangaApi';
 import { getReadChaptersForManga } from '../services/storage';
 
 export default function MangaDetailModal({
@@ -32,34 +33,54 @@ export default function MangaDetailModal({
   const [chapters, setChapters] = useState([]);
   const [loading, setLoading] = useState(true);
   const [loadingChapters, setLoadingChapters] = useState(true);
+  const [isRefreshing, setIsRefreshing] = useState(false);
   const [chapterSort, setChapterSort] = useState('desc'); // 'asc' | 'desc'
   const [chapterSearch, setChapterSearch] = useState('');
   const [readChapterIds, setReadChapterIds] = useState([]);
 
   // Fetch manga details and chapters
-  useEffect(() => {
+  const loadMangaData = (forceRefresh = false) => {
     if (!mangaId) return;
-    setLoading(true);
-    setLoadingChapters(true);
+    if (forceRefresh) {
+      setIsRefreshing(true);
+    } else {
+      setLoading(true);
+      setLoadingChapters(true);
+    }
 
     // Load read chapters from history
     const readList = getReadChaptersForManga(mangaId);
     setReadChapterIds(readList);
 
-    // 1. Fetch Details
-    fetchMangaDetails(mangaId).then((data) => {
-      if (data && initialCoverUrl) {
-        data.coverUrl = initialCoverUrl;
-      }
-      setManga(data);
-      setLoading(false);
-    });
+    fetchMangaDetails(mangaId, forceRefresh)
+      .then((data) => {
+        if (data) {
+          if (initialCoverUrl) {
+            data.coverUrl = initialCoverUrl;
+          }
+          setManga(data);
+          if (data.chapters && Array.isArray(data.chapters)) {
+            const sorted = [...data.chapters].sort((a, b) => {
+              const numA = parseFloat(a.chapter) || 0;
+              const numB = parseFloat(b.chapter) || 0;
+              return chapterSort === 'asc' ? numA - numB : numB - numA;
+            });
+            setChapters(sorted);
+          }
+        }
+      })
+      .catch((err) => {
+        console.error('loadMangaData error:', err);
+      })
+      .finally(() => {
+        setLoading(false);
+        setLoadingChapters(false);
+        setIsRefreshing(false);
+      });
+  };
 
-    // 2. Fetch Chapters
-    fetchMangaChapters(mangaId, chapterSort, 500).then((chapList) => {
-      setChapters(chapList);
-      setLoadingChapters(false);
-    });
+  useEffect(() => {
+    loadMangaData(false);
   }, [mangaId]);
 
   // Handle sort change
@@ -85,16 +106,27 @@ export default function MangaDetailModal({
     );
   });
 
-  // Find first chapter or resume chapter
-  const firstChapter = chapters.length > 0 
-    ? [...chapters].sort((a, b) => (parseFloat(a.chapter) || 0) - (parseFloat(b.chapter) || 0))[0] 
-    : null;
-    
+  // Calculate first and latest chapters numerically
+  const sortedByNumAsc = [...chapters].sort(
+    (a, b) => (parseFloat(a.chapter) || 0) - (parseFloat(b.chapter) || 0)
+  );
+  const firstChapter = sortedByNumAsc.length > 0 ? sortedByNumAsc[0] : null;
+  const latestChapter = sortedByNumAsc.length > 0 ? sortedByNumAsc[sortedByNumAsc.length - 1] : null;
+
   const resumeChapterObj = lastReadChapter
     ? chapters.find((c) => String(c.chapter) === String(lastReadChapter))
     : null;
 
   const targetStartChapter = resumeChapterObj || firstChapter;
+
+  const formatDate = (val) => {
+    if (!val) return null;
+    const d = new Date(val);
+    if (!isNaN(d.getTime())) {
+      return d.toLocaleDateString(undefined, { year: 'numeric', month: 'short', day: 'numeric' });
+    }
+    return String(val);
+  };
 
   if (!mangaId) return null;
 
@@ -205,7 +237,7 @@ export default function MangaDetailModal({
                     ))}
                   </div>
 
-                  {/* Action Buttons: Read Now & Bookmark status selector */}
+                  {/* Action Buttons: Read Now, Read Latest & Bookmark status selector */}
                   <div className="flex flex-wrap items-center gap-3">
                     {targetStartChapter && (
                       <button
@@ -220,12 +252,32 @@ export default function MangaDetailModal({
                             manga.englishTitle || null
                           );
                         }}
-                        className="px-6 py-2.5 rounded-xl text-sm font-bold text-white bg-gradient-to-r from-rose-600 to-rose-500 hover:from-rose-500 hover:to-rose-400 shadow-lg shadow-rose-600/30 transition-all flex items-center gap-2"
+                        className="px-5 sm:px-6 py-2.5 rounded-xl text-xs sm:text-sm font-bold text-white bg-gradient-to-r from-rose-600 to-rose-500 hover:from-rose-500 hover:to-rose-400 shadow-lg shadow-rose-600/30 transition-all flex items-center gap-2"
                       >
                         <Play className="w-4 h-4 fill-white" />
                         <span>
                           {resumeChapterObj ? `Resume Ch. ${resumeChapterObj.chapter}` : `Start Ch. ${targetStartChapter.chapter}`}
                         </span>
+                      </button>
+                    )}
+
+                    {latestChapter && (!targetStartChapter || String(latestChapter.id) !== String(targetStartChapter.id)) && (
+                      <button
+                        onClick={() => {
+                          onClose();
+                          onOpenReader(
+                            manga.id,
+                            latestChapter.id,
+                            latestChapter.chapter,
+                            manga.title,
+                            initialCoverUrl || manga.coverUrl,
+                            manga.englishTitle || null
+                          );
+                        }}
+                        className="px-5 sm:px-6 py-2.5 rounded-xl text-xs sm:text-sm font-bold text-white bg-gradient-to-r from-amber-500 to-orange-500 hover:from-amber-400 hover:to-orange-400 shadow-lg shadow-amber-500/30 transition-all flex items-center gap-2 border border-amber-400/30"
+                      >
+                        <Sparkles className="w-4 h-4 fill-white text-white" />
+                        <span>Read Latest (Ch. {latestChapter.chapter})</span>
                       </button>
                     )}
 
@@ -267,7 +319,7 @@ export default function MangaDetailModal({
             {/* Chapters Feed Section */}
             <div className="flex-1 p-6 flex flex-col min-h-0 bg-[#080a0f]">
               <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3 mb-4">
-                <div className="flex items-center gap-2">
+                <div className="flex items-center gap-2 flex-wrap">
                   <h3 className="text-base font-bold text-white flex items-center gap-2">
                     <Layers className="w-4 h-4 text-rose-500" />
                     <span>Chapters</span>
@@ -275,6 +327,23 @@ export default function MangaDetailModal({
                       ({filteredChapters.length} available)
                     </span>
                   </h3>
+
+                  {latestChapter && (
+                    <span className="inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded-full text-[10px] font-bold bg-amber-500/10 text-amber-400 border border-amber-500/30">
+                      <span className="w-1.5 h-1.5 rounded-full bg-amber-400 animate-pulse"></span>
+                      Latest: Ch. {latestChapter.chapter}
+                    </span>
+                  )}
+
+                  <button
+                    onClick={() => loadMangaData(true)}
+                    disabled={isRefreshing}
+                    className="p-1.5 px-2.5 rounded-lg bg-white/5 hover:bg-white/10 text-slate-400 hover:text-white border border-white/5 text-xs flex items-center gap-1.5 transition-all disabled:opacity-50 ml-1"
+                    title="Check for newest chapters directly from source"
+                  >
+                    <RefreshCw className={`w-3.5 h-3.5 ${isRefreshing ? 'animate-spin text-rose-400' : ''}`} />
+                    <span className="text-[11px] font-semibold">{isRefreshing ? 'Updating...' : 'Check Updates'}</span>
+                  </button>
                 </div>
 
                 <div className="flex items-center gap-2 w-full sm:w-auto">
@@ -317,6 +386,7 @@ export default function MangaDetailModal({
                   filteredChapters.map((chap) => {
                     const isRead = readChapterIds.includes(chap.id);
                     const isCurrentLastRead = String(chap.chapter) === String(lastReadChapter);
+                    const isLatest = latestChapter && String(chap.chapter) === String(latestChapter.chapter);
 
                     return (
                       <div
@@ -335,6 +405,8 @@ export default function MangaDetailModal({
                         className={`flex items-center justify-between p-3 rounded-xl border transition-all cursor-pointer group ${
                           isCurrentLastRead
                             ? 'bg-rose-500/10 border-rose-500/40 text-white'
+                            : isLatest
+                            ? 'bg-amber-500/10 border-amber-500/40 hover:border-amber-500/60 text-slate-200 hover:bg-amber-500/15'
                             : isRead
                             ? 'bg-slate-900/40 border-white/5 text-slate-400 hover:bg-slate-900 hover:text-slate-200'
                             : 'bg-slate-900/80 border-white/5 hover:border-white/20 text-slate-200 hover:bg-slate-850'
@@ -344,6 +416,8 @@ export default function MangaDetailModal({
                           <div className={`w-7 h-7 rounded-lg flex items-center justify-center flex-shrink-0 text-xs font-bold ${
                             isCurrentLastRead
                               ? 'bg-rose-500 text-white'
+                              : isLatest
+                              ? 'bg-amber-500 text-slate-950 font-black'
                               : isRead
                               ? 'bg-emerald-500/20 text-emerald-400 border border-emerald-500/30'
                               : 'bg-white/5 text-slate-400 group-hover:text-white'
@@ -352,20 +426,30 @@ export default function MangaDetailModal({
                           </div>
 
                           <div className="min-w-0">
-                            <div className="flex items-center gap-2">
-                              <span className="font-semibold text-sm group-hover:text-rose-400 transition-colors">
+                            <div className="flex items-center gap-2 flex-wrap">
+                              <span className={`font-semibold text-sm transition-colors ${
+                                isLatest ? 'text-amber-300 group-hover:text-amber-200 font-bold' : 'group-hover:text-rose-400'
+                              }`}>
                                 Chapter {chap.chapter}
                               </span>
-                              {chap.title && (
+
+                              {isLatest && (
+                                <span className="px-1.5 py-0.5 rounded text-[9px] font-black uppercase tracking-wider bg-amber-500/20 text-amber-300 border border-amber-500/40 animate-pulse">
+                                  LATEST
+                                </span>
+                              )}
+
+                              {chap.title && !chap.title.toLowerCase().startsWith(`chapter ${chap.chapter}`.toLowerCase()) && (
                                 <span className="text-xs text-slate-400 truncate max-w-[200px] sm:max-w-[320px]">
                                   • {chap.title}
                                 </span>
                               )}
                             </div>
+
                             <div className="text-[11px] text-slate-500 flex items-center gap-2 mt-0.5">
-                              <span>{chap.group}</span>
+                              {chap.group && <span>{chap.group}</span>}
                               {chap.publishedAt && (
-                                <span>• {new Date(chap.publishedAt).toLocaleDateString()}</span>
+                                <span>• {formatDate(chap.publishedAt)}</span>
                               )}
                             </div>
                           </div>

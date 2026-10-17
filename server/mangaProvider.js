@@ -342,17 +342,19 @@ async function fetchMangaPillSearch(query = '') {
 /**
  * Get Manga Details & Complete Chapters List
  */
-export async function getMangaDetails(mangaId) {
+export async function getMangaDetails(mangaId, bypassCache = false) {
   if (mangaId.startsWith('webtoon:')) {
-    return getWebtoonDetails(mangaId);
+    return getWebtoonDetails(mangaId, bypassCache);
   }
   if (mangaId.startsWith('wc:')) {
-    return getWeebCentralDetails(mangaId.replace('wc:', ''));
+    return getWeebCentralDetails(mangaId.replace('wc:', ''), '', bypassCache);
   }
 
   const cacheKey = `details_v3_${mangaId}`;
-  const cached = getCached(cacheKey);
-  if (cached) return cached;
+  if (!bypassCache) {
+    const cached = getCached(cacheKey);
+    if (cached) return cached;
+  }
 
   try {
     const url = `${BASE_URL}/manga/${mangaId}`;
@@ -398,15 +400,29 @@ export async function getMangaDetails(mangaId) {
     while ((chM = chapRegex.exec(html)) !== null) {
       const chapterId = chM[1];
       const titleAttr = chM[2].trim() || chM[3].trim();
-      const numMatch = titleAttr.match(/Chapter\s+([0-9.]+)/i);
+      const numMatch = titleAttr.match(/(?:Chapter|Episode|Ch\.?|Ep\.?)\s*([0-9.]+)/i)
+        || titleAttr.match(/([0-9.]+)/);
       const chapterNum = numMatch ? numMatch[1] : titleAttr.replace(/Chapter/i, '').trim();
+
+      // Check for time tag inside inner content
+      const timeMatch = chM[3].match(/datetime="([^"]+)"/i);
+      const publishedAt = timeMatch ? timeMatch[1] : null;
 
       chapters.push({
         id: chapterId,
         chapter: chapterNum || 'Special',
         title: titleAttr,
+        publishedAt,
       });
     }
+
+    // Ensure chapters are sorted descending (latest chapter first)
+    chapters.sort((a, b) => {
+      const numA = parseFloat(a.chapter);
+      const numB = parseFloat(b.chapter);
+      if (!isNaN(numA) && !isNaN(numB)) return numB - numA;
+      return 0;
+    });
 
     const result = {
       id: mangaId,

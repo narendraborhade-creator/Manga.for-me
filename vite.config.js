@@ -32,7 +32,8 @@ function mangaApiPlugin() {
 
       if (pathname === '/api/manga/details') {
         const id = urlObj.searchParams.get('id');
-        const details = await getMangaDetails(id);
+        const refresh = urlObj.searchParams.get('refresh') === 'true';
+        const details = await getMangaDetails(id, refresh);
         res.setHeader('Content-Type', 'application/json');
         res.end(JSON.stringify(details));
         return;
