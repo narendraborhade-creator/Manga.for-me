@@ -1,3 +1,10 @@
+import { 
+  searchWebtoons, 
+  getWebtoonDetails, 
+  getWebtoonChapterPages, 
+  WEBTOON_CATALOG 
+} from './webtoonProvider.js';
+
 // Server-side provider for complete manga chapters and pages
 const USER_AGENT = 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36';
 
@@ -169,8 +176,28 @@ export async function getPopularManga() {
       });
     }
 
-    // Combine with featured masterpieces if list is short
+    // Combine with webtoon & manhwa catalog (A Fortune-Telling Princess, Solo Leveling, etc.)
     const merged = [...list];
+    WEBTOON_CATALOG.forEach((wt) => {
+      if (!seen.has(wt.id)) {
+        merged.push({
+          id: wt.id,
+          title: wt.title,
+          englishTitle: wt.englishTitle || null,
+          coverUrl: wt.coverUrl,
+          status: wt.status,
+          author: wt.author,
+          score: wt.score,
+          year: wt.year,
+          tags: wt.tags,
+          description: wt.description,
+          provider: 'webtoon',
+        });
+        seen.add(wt.id);
+      }
+    });
+
+    // Combine with featured masterpieces
     FEATURED_MANGA.forEach((feat) => {
       if (!seen.has(feat.id)) {
         merged.push({
@@ -181,7 +208,7 @@ export async function getPopularManga() {
       }
     });
 
-    setCache('popular_manga_v3', merged);
+    setCache('popular_manga_v4', merged);
     return merged;
   } catch (error) {
     console.error('getPopularManga error:', error);
@@ -190,59 +217,48 @@ export async function getPopularManga() {
 }
 
 /**
- * Search Manga by Title with 100% accurate card-by-card matching
+ * Search Manga & Webtoons across multiple sources
  */
 export async function searchManga(query = '') {
   if (!query || !query.trim()) return getPopularManga();
 
-  const cacheKey = `search_v3_${query.trim().toLowerCase()}`;
+  const cacheKey = `search_v4_${query.trim().toLowerCase()}`;
   const cached = getCached(cacheKey);
   if (cached) return cached;
 
   try {
-    const url = `${BASE_URL}/search?q=${encodeURIComponent(query.trim())}`;
-    const res = await fetch(url, { headers: HEADERS });
-    if (!res.ok) throw new Error(`HTTP ${res.status}`);
-    const html = await res.text();
+    // Run Webtoon provider and MangaPill provider in parallel
+    const [webtoonMatches, mangapillMatches] = await Promise.all([
+      searchWebtoons(query).catch((e) => {
+        console.error('searchWebtoons error:', e);
+        return [];
+      }),
+      fetchMangaPillSearch(query).catch((e) => {
+        console.error('fetchMangaPillSearch error:', e);
+        return [];
+      }),
+    ]);
 
-    // In MangaPill search results, each card has:
-    // 1) <a href="/manga/([0-9]+\/[^"]+)" class="relative block"[^>]*> ... <img (data-)?src="([^"]+)"
-    // 2) Inside the same card container: <a href="/manga/\1" class="mb-2">([\s\S]*?)</a>
-    const searchCardRegex = /<a\s+href="\/manga\/([0-9]+\/[^"]+)"\s+class="relative block"[^>]*>[\s\S]*?<img\s+(?:data-)?src="([^"]+)"[\s\S]*?<a\s+href="\/manga\/\1"\s+class="mb-2">([\s\S]*?)<\/a>/gi;
-
-    let m;
-    const list = [];
     const seen = new Set();
+    const combined = [];
 
-    while ((m = searchCardRegex.exec(html)) !== null) {
-      const id = m[1];
-      const coverUrl = m[2];
-      const innerTitleBlock = m[3];
+    // Prioritize direct webtoon matches (e.g. Fortune Telling Princess)
+    webtoonMatches.forEach((item) => {
+      if (!seen.has(item.id)) {
+        combined.push(item);
+        seen.add(item.id);
+      }
+    });
 
-      if (seen.has(id)) continue;
-      seen.add(id);
+    mangapillMatches.forEach((item) => {
+      if (!seen.has(item.id)) {
+        combined.push(item);
+        seen.add(item.id);
+      }
+    });
 
-      const divs = [...innerTitleBlock.matchAll(/<div[^>]*>([\s\S]*?)<\/div>/gi)].map((d) => d[1].replace(/<[^>]+>/g, '').trim());
-      const rawTitle = divs[0] || '';
-      const rawEnglish = divs.length > 1 ? divs[1] : null;
-
-      const title = cleanTitle(rawTitle);
-      const englishTitle = rawEnglish ? cleanTitle(rawEnglish) : null;
-
-      list.push({
-        id,
-        title,
-        englishTitle,
-        coverUrl,
-        status: 'Ongoing',
-        author: 'Manga Artist',
-        tags: ['Manga'],
-        provider: 'mangapill',
-      });
-    }
-
-    setCache(cacheKey, list);
-    return list;
+    setCache(cacheKey, combined);
+    return combined;
   } catch (error) {
     console.error('searchManga error:', error);
     return [];
@@ -250,9 +266,58 @@ export async function searchManga(query = '') {
 }
 
 /**
+ * Fetch Search Results from MangaPill
+ */
+async function fetchMangaPillSearch(query = '') {
+  const url = `${BASE_URL}/search?q=${encodeURIComponent(query.trim())}`;
+  const res = await fetch(url, { headers: HEADERS });
+  if (!res.ok) throw new Error(`HTTP ${res.status}`);
+  const html = await res.text();
+
+  const searchCardRegex = /<a\s+href="\/manga\/([0-9]+\/[^"]+)"\s+class="relative block"[^>]*>[\s\S]*?<img\s+(?:data-)?src="([^"]+)"[\s\S]*?<a\s+href="\/manga\/\1"\s+class="mb-2">([\s\S]*?)<\/a>/gi;
+
+  let m;
+  const list = [];
+  const seen = new Set();
+
+  while ((m = searchCardRegex.exec(html)) !== null) {
+    const id = m[1];
+    const coverUrl = m[2];
+    const innerTitleBlock = m[3];
+
+    if (seen.has(id)) continue;
+    seen.add(id);
+
+    const divs = [...innerTitleBlock.matchAll(/<div[^>]*>([\s\S]*?)<\/div>/gi)].map((d) => d[1].replace(/<[^>]+>/g, '').trim());
+    const rawTitle = divs[0] || '';
+    const rawEnglish = divs.length > 1 ? divs[1] : null;
+
+    const title = cleanTitle(rawTitle);
+    const englishTitle = rawEnglish ? cleanTitle(rawEnglish) : null;
+
+    list.push({
+      id,
+      title,
+      englishTitle,
+      coverUrl,
+      status: 'Ongoing',
+      author: 'Manga Artist',
+      tags: ['Manga'],
+      provider: 'mangapill',
+    });
+  }
+
+  return list;
+}
+
+/**
  * Get Manga Details & Complete Chapters List
  */
 export async function getMangaDetails(mangaId) {
+  if (mangaId.startsWith('webtoon:')) {
+    return getWebtoonDetails(mangaId);
+  }
+
   const cacheKey = `details_v3_${mangaId}`;
   const cached = getCached(cacheKey);
   if (cached) return cached;
@@ -337,6 +402,10 @@ export async function getMangaDetails(mangaId) {
  * Get Complete Real Pages for a Chapter
  */
 export async function getChapterPages(chapterId) {
+  if (chapterId.startsWith('webtoon:')) {
+    return getWebtoonChapterPages(chapterId);
+  }
+
   const cacheKey = `chapter_v2_${chapterId}`;
   const cached = getCached(cacheKey);
   if (cached) return cached;
@@ -381,10 +450,16 @@ export async function getChapterPages(chapterId) {
  */
 export async function proxyImage(imageUrl, res) {
   try {
+    let referer = `${BASE_URL}/`;
+    try {
+      const parsed = new URL(imageUrl);
+      referer = parsed.origin + '/';
+    } catch {}
+
     const response = await fetch(imageUrl, {
       headers: {
         'User-Agent': USER_AGENT,
-        'Referer': `${BASE_URL}/`,
+        'Referer': referer,
       },
     });
 
