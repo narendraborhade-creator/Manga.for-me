@@ -10,9 +10,12 @@ import {
   TrendingUp,
   Download,
   Upload,
-  Layers
+  Layers,
+  Sparkles,
+  Bell,
+  RefreshCw
 } from 'lucide-react';
-import { getHistory } from '../services/storage';
+import { getHistory, getUpdates } from '../services/storage';
 
 export default function LibraryView({
   bookmarks = {},
@@ -27,6 +30,14 @@ export default function LibraryView({
 
   const bookmarkList = Object.values(bookmarks);
   const history = getHistory();
+  const updates = getUpdates();
+
+  const updatesByManga = new Map();
+  updates.forEach((u) => {
+    if (!u.read) {
+      updatesByManga.set(u.mangaId, u);
+    }
+  });
 
   // Calculate statistics
   const totalReadChapters = history.reduce((acc, cur) => acc + (cur.readChapters?.length || 1), 0);
@@ -34,9 +45,11 @@ export default function LibraryView({
   const completedCount = bookmarkList.filter((b) => b.status === 'completed').length;
   const planCount = bookmarkList.filter((b) => b.status === 'plan_to_read').length;
   const favCount = bookmarkList.filter((b) => b.status === 'favorite').length;
+  const hasUpdatesCount = bookmarkList.filter((b) => updatesByManga.has(b.id)).length;
 
   const statusTabs = [
     { id: 'all', label: 'All Titles', count: bookmarkList.length },
+    ...(hasUpdatesCount > 0 ? [{ id: 'updates', label: '⚡ New Releases', count: hasUpdatesCount }] : []),
     { id: 'reading', label: 'Reading', count: readingCount },
     { id: 'plan_to_read', label: 'Plan to Read', count: planCount },
     { id: 'completed', label: 'Completed', count: completedCount },
@@ -45,7 +58,11 @@ export default function LibraryView({
   ];
 
   const filteredList = bookmarkList.filter((item) => {
-    const matchesStatus = filterStatus === 'all' || item.status === filterStatus;
+    const matchesStatus = filterStatus === 'all'
+      ? true
+      : filterStatus === 'updates'
+      ? updatesByManga.has(item.id)
+      : item.status === filterStatus;
     const q = searchQuery.toLowerCase();
     const matchesSearch = !searchQuery || 
       item.title?.toLowerCase().includes(q) || 
@@ -157,6 +174,7 @@ export default function LibraryView({
           {filteredList.map((item) => {
             const histEntry = history.find((h) => h.mangaId === item.id);
             const lastCh = histEntry?.chapterNumber;
+            const updateObj = updatesByManga.get(item.id);
 
             return (
               <div
@@ -177,8 +195,13 @@ export default function LibraryView({
                   />
                   <div className="absolute inset-0 bg-gradient-to-t from-slate-950 via-transparent to-black/30" />
 
-                  {/* Status Badge */}
-                  <div className="absolute top-2 left-2 z-10">
+                  {/* Status & Update Badges */}
+                  <div className="absolute top-2 left-2 z-10 flex flex-col gap-1 items-start">
+                    {updateObj && (
+                      <span className="px-2 py-0.5 rounded-md text-[9px] font-black uppercase tracking-wider bg-amber-500 text-slate-950 shadow-md shadow-amber-500/40 animate-pulse">
+                        NEW CH. {updateObj.chapterNumber}
+                      </span>
+                    )}
                     <span className="px-2 py-0.5 rounded-md text-[10px] font-bold uppercase tracking-wider bg-black/70 backdrop-blur-md text-rose-400 border border-rose-500/30">
                       {item.status.replace('_', ' ')}
                     </span>

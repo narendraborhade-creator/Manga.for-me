@@ -30,8 +30,11 @@ import {
   isBookmarked,
   getBookmarkStatus,
   getLastRead, 
-  getHistory 
+  getHistory,
+  getUpdates,
+  getUpdateSettings
 } from './services/storage';
+import { checkAllLibraryUpdates } from './services/updateService';
 
 import { 
   BookOpen, 
@@ -44,7 +47,9 @@ import {
   Layers, 
   Compass, 
   Loader2,
-  Filter
+  Filter,
+  Play,
+  Bell
 } from 'lucide-react';
 
 const GENRES = [
@@ -73,6 +78,8 @@ export default function App() {
   const [bookmarks, setBookmarks] = useState({});
   const [history, setHistory] = useState([]);
   const [lastRead, setLastRead] = useState(null);
+  const [updates, setUpdates] = useState([]);
+  const [activeToast, setActiveToast] = useState(null);
   const [dismissContinueBanner, setDismissContinueBanner] = useState(false);
 
   // Modals & Reader
@@ -117,10 +124,46 @@ export default function App() {
     setBookmarks(getBookmarks());
     setHistory(getHistory());
     setLastRead(getLastRead());
+    setUpdates(getUpdates());
   };
 
   useEffect(() => {
     refreshStorageData();
+  }, []);
+
+  // Background Periodic Chapter Updates Engine
+  useEffect(() => {
+    let isMounted = true;
+    const settings = getUpdateSettings();
+    const intervalMs = Math.max((settings.intervalMinutes || 15), 5) * 60 * 1000;
+
+    // Grace period initial check after 3.5s
+    const initialTimer = setTimeout(() => {
+      checkAllLibraryUpdates((newDrop) => {
+        if (!isMounted) return;
+        setActiveToast(newDrop);
+        refreshStorageData();
+      }).then(() => {
+        if (isMounted) refreshStorageData();
+      });
+    }, 3500);
+
+    // Regular interval checking
+    const intervalId = setInterval(() => {
+      checkAllLibraryUpdates((newDrop) => {
+        if (!isMounted) return;
+        setActiveToast(newDrop);
+        refreshStorageData();
+      }).then(() => {
+        if (isMounted) refreshStorageData();
+      });
+    }, intervalMs);
+
+    return () => {
+      isMounted = false;
+      clearTimeout(initialTimer);
+      clearInterval(intervalId);
+    };
   }, []);
 
   // Fetch Initial Manga Catalog
@@ -271,6 +314,8 @@ export default function App() {
         lastRead={lastRead}
         onOpenReader={handleOpenReader}
         onOpenBackup={() => setIsBackupOpen(true)}
+        unreadUpdatesCount={updates.filter((u) => !u.read).length}
+        onSelectManga={handleOpenMangaDetails}
       />
 
       {/* Main Container */}
@@ -754,6 +799,59 @@ export default function App() {
         onClose={() => setIsBackupOpen(false)}
         onRefreshData={refreshStorageData}
       />
+
+      {/* Floating Real-Time Update Alert Toast */}
+      {activeToast && (
+        <div className="fixed bottom-6 right-6 z-50 max-w-sm w-[90vw] sm:w-auto bg-[#0c1017]/95 border border-amber-500/40 rounded-2xl shadow-2xl p-4 flex items-center gap-3 backdrop-blur-xl animate-fadeIn text-white">
+          <div className="w-12 h-16 rounded-xl overflow-hidden bg-slate-950 flex-shrink-0 border border-white/10 shadow-md">
+            <img
+              src={activeToast.coverUrl}
+              alt={activeToast.mangaTitle}
+              className="w-full h-full object-cover"
+              onError={(e) => {
+                e.target.src = 'https://images.unsplash.com/photo-1578632767115-351597cf2477?w=100&auto=format&fit=crop&q=80';
+              }}
+            />
+          </div>
+          <div className="flex-1 min-w-0">
+            <span className="text-[10px] font-black uppercase tracking-wider text-amber-400 flex items-center gap-1">
+              <Sparkles className="w-3 h-3 fill-amber-400 text-amber-400 animate-pulse" />
+              New Chapter Released
+            </span>
+            <h4 className="font-bold text-xs text-white truncate mt-0.5" title={activeToast.mangaEnglishTitle || activeToast.mangaTitle}>
+              {activeToast.mangaEnglishTitle || activeToast.mangaTitle}
+            </h4>
+            <p className="text-[11px] text-slate-300 font-medium">
+              Chapter {activeToast.chapterNumber} is ready to read!
+            </p>
+          </div>
+          <div className="flex flex-col gap-1.5 flex-shrink-0">
+            <button
+              onClick={() => {
+                handleOpenReader(
+                  activeToast.mangaId,
+                  activeToast.chapterId,
+                  activeToast.chapterNumber,
+                  activeToast.mangaTitle,
+                  activeToast.coverUrl,
+                  activeToast.mangaEnglishTitle
+                );
+                setActiveToast(null);
+              }}
+              className="px-3 py-1.5 rounded-xl bg-gradient-to-r from-rose-600 to-rose-500 hover:from-rose-500 hover:to-rose-400 text-white font-bold text-xs shadow-md shadow-rose-600/30 flex items-center gap-1 transition-all"
+            >
+              <Play className="w-3 h-3 fill-white" />
+              <span>Read</span>
+            </button>
+            <button
+              onClick={() => setActiveToast(null)}
+              className="text-[10px] text-slate-400 hover:text-slate-200 text-center py-0.5"
+            >
+              Dismiss
+            </button>
+          </div>
+        </div>
+      )}
 
       {/* Footer */}
       <footer className="border-t border-white/5 py-8 mt-16 text-center text-xs text-slate-500 bg-[#06080c]">

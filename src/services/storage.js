@@ -4,6 +4,8 @@ const KEYS = {
   HISTORY: 'kuroneko_history_v1',
   LAST_READ: 'kuroneko_last_read_v1',
   READER_SETTINGS: 'kuroneko_reader_settings_v1',
+  UPDATES: 'kuroneko_chapter_updates_v1',
+  UPDATE_SETTINGS: 'kuroneko_update_settings_v1',
 };
 
 // Default reader settings
@@ -193,9 +195,70 @@ export const importData = (jsonString) => {
     if (data.history) safeSet(KEYS.HISTORY, data.history);
     if (data.lastRead) safeSet(KEYS.LAST_READ, data.lastRead);
     if (data.readerSettings) safeSet(KEYS.READER_SETTINGS, data.readerSettings);
+    if (data.updates) safeSet(KEYS.UPDATES, data.updates);
     return true;
   } catch (e) {
     console.error('Failed to import data:', e);
     return false;
   }
+};
+
+// ----------------- CHAPTER UPDATES & NOTIFICATIONS -----------------
+export const getUpdates = () => safeGet(KEYS.UPDATES, []);
+
+export const saveUpdates = (updates) => {
+  safeSet(KEYS.UPDATES, updates);
+};
+
+export const addUpdateNotification = (notif) => {
+  const updates = getUpdates();
+  // Don't duplicate exact same manga and chapter notification
+  const exists = updates.some(
+    (u) => u.mangaId === notif.mangaId && String(u.chapterNumber) === String(notif.chapterNumber)
+  );
+  if (!exists) {
+    const newEntry = {
+      id: `${notif.mangaId}_ch_${notif.chapterNumber}_${Date.now()}`,
+      ...notif,
+      detectedAt: new Date().toISOString(),
+      read: false,
+    };
+    updates.unshift(newEntry);
+    // Keep max 50 recent update notifications
+    if (updates.length > 50) updates.length = 50;
+    saveUpdates(updates);
+    return newEntry;
+  }
+  return null;
+};
+
+export const markUpdateAsRead = (updateId) => {
+  const updates = getUpdates();
+  const updated = updates.map((u) => (u.id === updateId ? { ...u, read: true } : u));
+  saveUpdates(updated);
+  return updated;
+};
+
+export const markAllUpdatesAsRead = () => {
+  const updates = getUpdates();
+  const updated = updates.map((u) => ({ ...u, read: true }));
+  saveUpdates(updated);
+  return updated;
+};
+
+export const clearUpdates = () => {
+  safeSet(KEYS.UPDATES, []);
+};
+
+export const getUpdateSettings = () => {
+  return safeGet(KEYS.UPDATE_SETTINGS, {
+    autoCheck: true,
+    intervalMinutes: 15,
+    browserNotifications: false,
+    lastCheckedAt: null,
+  });
+};
+
+export const saveUpdateSettings = (settings) => {
+  safeSet(KEYS.UPDATE_SETTINGS, settings);
 };

@@ -10,8 +10,10 @@ import {
   Upload, 
   Sparkles,
   Menu,
-  X
+  X,
+  Bell
 } from 'lucide-react';
+import NotificationsDropdown from './NotificationsDropdown';
 
 export default function Navbar({
   activeTab,
@@ -21,9 +23,12 @@ export default function Navbar({
   bookmarksCount,
   lastRead,
   onOpenReader,
-  onOpenBackup
+  onOpenBackup,
+  unreadUpdatesCount = 0,
+  onSelectManga
 }) {
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
+  const [notificationsOpen, setNotificationsOpen] = useState(false);
 
   const navItems = [
     { id: 'manga', label: 'Manga Hub', icon: BookOpen },
@@ -129,6 +134,39 @@ export default function Navbar({
                 </span>
               </button>
             )}
+
+            {/* Updates / Notifications Bell */}
+            <div className="relative">
+              <button
+                onClick={() => setNotificationsOpen(!notificationsOpen)}
+                title="Latest Chapter Releases & Updates"
+                className={`relative p-2 sm:px-3 sm:py-2 rounded-xl border text-xs font-medium flex items-center gap-1.5 transition-all ${
+                  unreadUpdatesCount > 0
+                    ? 'bg-amber-500/10 border-amber-500/30 text-amber-300 hover:bg-amber-500/20'
+                    : 'bg-slate-900/80 hover:bg-white/5 border-white/10 text-slate-400 hover:text-slate-200'
+                }`}
+              >
+                <div className="relative">
+                  <Bell className={`w-3.5 h-3.5 ${unreadUpdatesCount > 0 ? 'fill-amber-400 text-amber-400 animate-bounce' : ''}`} />
+                  {unreadUpdatesCount > 0 && (
+                    <span className="absolute -top-1.5 -right-1.5 w-2 h-2 rounded-full bg-rose-500 animate-ping"></span>
+                  )}
+                </div>
+                <span className="hidden sm:inline">Updates</span>
+                {unreadUpdatesCount > 0 && (
+                  <span className="px-1.5 py-0.2 rounded-full text-[10px] font-black bg-rose-600 text-white shadow-sm">
+                    {unreadUpdatesCount}
+                  </span>
+                )}
+              </button>
+
+              <NotificationsDropdown
+                isOpen={notificationsOpen}
+                onClose={() => setNotificationsOpen(false)}
+                onOpenReader={onOpenReader}
+                onSelectManga={onSelectManga}
+              />
+            </div>
 
             {/* Backup / Restore Button */}
             <button
