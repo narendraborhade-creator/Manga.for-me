@@ -65,12 +65,12 @@ function cleanTitle(raw) {
   return decodeHtml(t);
 }
 
-// Curated Top Masterpieces for Spotlight
+// Curated Top Masterpieces for Spotlight with verified high-res artwork
 export const FEATURED_MANGA = [
   {
     id: '2/one-piece',
     title: 'One Piece',
-    coverUrl: 'https://cdn.readdetectiveconan.com/file/mangapill/i/2.webp?h=01971742-5d7f-7f32-8d2b-d038279f8a73',
+    coverUrl: 'https://uploads.mangadex.org/covers/a1c7c817-4e59-43b7-9365-09675a149a6f/2f4aca53-64c7-46ac-ae85-3bc9b3169890.png.512.jpg',
     status: 'Ongoing',
     score: '9.3',
     year: '1997',
@@ -81,7 +81,7 @@ export const FEATURED_MANGA = [
   {
     id: '1/berserk',
     title: 'Berserk',
-    coverUrl: 'https://cdn.readdetectiveconan.com/file/mangapill/i/1.jpeg',
+    coverUrl: 'https://uploads.mangadex.org/covers/dc332d04-d3b0-413c-a767-70f5e451b031/21c2aa50-53d2-4924-881b-826b9a1bca3b.jpg.512.jpg',
     status: 'Ongoing',
     score: '9.5',
     year: '1989',
@@ -92,7 +92,7 @@ export const FEATURED_MANGA = [
   {
     id: '723/chainsaw-man',
     title: 'Chainsaw Man',
-    coverUrl: 'https://cdn.readdetectiveconan.com/file/mangapill/i/723.jpeg',
+    coverUrl: 'https://uploads.mangadex.org/covers/e896c48c-3150-437d-ba57-d8567eb399ae/fa06e4e4-ef2a-477b-bfb6-a2a88793620b.jpg.512.jpg',
     status: 'Ongoing',
     score: '8.9',
     year: '2018',
@@ -103,7 +103,7 @@ export const FEATURED_MANGA = [
   {
     id: '2085/jujutsu-kaisen',
     title: 'Jujutsu Kaisen',
-    coverUrl: 'https://cdn.readdetectiveconan.com/file/mangapill/i/2085.jpeg',
+    coverUrl: 'https://uploads.mangadex.org/covers/c52b2ce3-7f95-469c-96b0-479524fb7a1a/6d9134b2-21ea-4d02-ac2b-7c0d1c6a2aaa.jpg.512.jpg',
     status: 'Completed',
     score: '8.8',
     year: '2018',
@@ -114,7 +114,7 @@ export const FEATURED_MANGA = [
   {
     id: '7486/boruto-two-blue-vortex',
     title: 'Boruto: Two Blue Vortex',
-    coverUrl: 'https://cdn.readdetectiveconan.com/file/mangapill/i/7486.jpeg',
+    coverUrl: 'https://uploads.mangadex.org/covers/0b094aab-0cfb-4837-a49b-7267bdb86bec/baf472db-4658-46fb-8130-d4abdd43f171.jpg.512.jpg',
     status: 'Ongoing',
     score: '8.7',
     year: '2023',
@@ -125,7 +125,7 @@ export const FEATURED_MANGA = [
   {
     id: '7529/kagurabachi',
     title: 'Kagurabachi',
-    coverUrl: 'https://cdn.readdetectiveconan.com/file/mangapill/i/7529.jpeg',
+    coverUrl: 'https://uploads.mangadex.org/covers/d65c0332-3764-4c89-84bd-b1a4e7278ad7/3edb80b9-dae6-4483-984d-2e7f8b02b702.jpg.512.jpg',
     status: 'Ongoing',
     score: '8.9',
     year: '2023',
