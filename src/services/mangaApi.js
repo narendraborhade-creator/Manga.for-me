@@ -43,6 +43,9 @@ export async function fetchMangaDetails(mangaId) {
     const res = await fetch(url);
     if (!res.ok) throw new Error(`HTTP ${res.status}`);
     const data = await res.json();
+    if (data && data.coverUrl && !data.coverUrl.startsWith('/api/image-proxy')) {
+      data.coverUrl = `/api/image-proxy?url=${encodeURIComponent(data.coverUrl)}`;
+    }
     return data;
   } catch (err) {
     console.error('fetchMangaDetails failed:', err);

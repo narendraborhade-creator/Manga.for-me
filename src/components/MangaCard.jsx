@@ -20,7 +20,7 @@ export default function MangaCard({
 
   return (
     <div
-      onClick={() => onSelect(manga.id)}
+      onClick={() => onSelect(manga.id, manga.coverUrl)}
       className="group relative flex flex-col bg-[#0b0e14]/80 hover:bg-[#111622] rounded-2xl overflow-hidden border border-white/5 hover:border-rose-500/40 transition-all duration-300 hover:shadow-2xl hover:shadow-rose-950/30 hover:-translate-y-1 cursor-pointer select-none"
     >
       {/* Cover Image Container */}

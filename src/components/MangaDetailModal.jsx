@@ -19,6 +19,7 @@ import { getReadChaptersForManga } from '../services/storage';
 
 export default function MangaDetailModal({
   mangaId,
+  initialCoverUrl = null,
   onClose,
   onOpenReader,
   isBookmarked,
@@ -126,19 +127,21 @@ export default function MangaDetailModal({
             <div className="relative p-6 sm:p-8 bg-gradient-to-b from-slate-900/90 to-[#0c1017] border-b border-white/5">
               {/* Blurred background cover image */}
               <div 
-                className="absolute inset-0 bg-cover bg-center opacity-15 blur-2xl pointer-events-none"
-                style={{ backgroundImage: `url(${manga.coverUrl})` }}
+                className="absolute inset-0 bg-cover bg-center opacity-20 blur-2xl pointer-events-none"
+                style={{ backgroundImage: `url(${initialCoverUrl || manga.coverUrl})` }}
               />
 
               <div className="relative z-10 flex flex-col sm:flex-row gap-6 items-start">
                 {/* Cover Art */}
                 <div className="w-32 sm:w-44 flex-shrink-0 rounded-2xl overflow-hidden shadow-2xl border border-white/10 aspect-[3/4.2] bg-slate-950 mx-auto sm:mx-0">
                   <img
-                    src={manga.coverUrl}
+                    src={initialCoverUrl || manga.coverUrl}
                     alt={manga.title}
                     className="w-full h-full object-cover"
                     onError={(e) => {
-                      e.target.src = 'https://images.unsplash.com/photo-1578632767115-351597cf2477?w=500&auto=format&fit=crop&q=80';
+                      if (initialCoverUrl && e.target.src !== initialCoverUrl) {
+                        e.target.src = initialCoverUrl;
+                      }
                     }}
                   />
                 </div>

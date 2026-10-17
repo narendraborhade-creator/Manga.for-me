@@ -251,13 +251,14 @@ export async function getMangaDetails(mangaId) {
     let title = titleMatch ? titleMatch[1].trim() : mangaId.split('/')[1] || 'Manga';
     title = cleanTitle(title);
 
-    // Extract Cover
+    // Extract Cover with proxy to prevent 403 Forbidden
     const coverMatch = html.match(/<img[^>]+data-src="([^"]+)"/i) || html.match(/<img[^>]+src="([^"]+)"/i);
-    const coverUrl = coverMatch ? coverMatch[1] : '';
+    const rawCover = coverMatch ? coverMatch[1] : '';
+    const coverUrl = rawCover ? `/api/image-proxy?url=${encodeURIComponent(rawCover)}` : '';
 
-    // Extract Synopsis
-    const synMatch = html.match(/<p\s+class="[^"]*text-secondary[^"]*"[^>]*>([\s\S]*?)<\/p>/i);
-    const description = synMatch ? decodeHtml(synMatch[1].trim()) : 'No synopsis available.';
+    // Extract Synopsis (matches text-sm or text--secondary)
+    const synMatch = html.match(/<p\s+class="[^"]*text-sm[^"]*"[^>]*>([\s\S]*?)<\/p>/i) || html.match(/<p\s+class="[^"]*text--secondary[^"]*"[^>]*>([\s\S]*?)<\/p>/i);
+    const description = synMatch ? decodeHtml(synMatch[1].replace(/<br\s*\/?>/gi, '\n').replace(/<[^>]+>/g, '').trim()) : 'No synopsis available.';
 
     // Extract Status & Type
     const statusMatch = html.match(/Status[\s\S]*?<div[^>]*>([^<]+)<\/div>/i);

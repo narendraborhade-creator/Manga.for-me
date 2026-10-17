@@ -76,7 +76,14 @@ export default function App() {
 
   // Modals & Reader
   const [selectedMangaId, setSelectedMangaId] = useState(null);
+  const [selectedMangaCover, setSelectedMangaCover] = useState('');
   const [selectedAnime, setSelectedAnime] = useState(null);
+
+  const handleOpenMangaDetails = (id, coverUrl = '') => {
+    setSelectedMangaId(id);
+    setSelectedMangaCover(coverUrl);
+  };
+
   const [readerState, setReaderState] = useState({
     active: false,
     mangaId: null,
@@ -271,7 +278,7 @@ export default function App() {
           <ContinueReadingBanner
             lastRead={lastRead}
             onOpenReader={handleOpenReader}
-            onOpenMangaDetails={(mangaId) => setSelectedMangaId(mangaId)}
+            onOpenMangaDetails={(mangaId) => handleOpenMangaDetails(mangaId, lastRead?.coverUrl)}
             onDismiss={() => setDismissContinueBanner(true)}
           />
         )}
@@ -286,7 +293,7 @@ export default function App() {
                 {spotlightItems.length > 0 && (
                   <HeroCarousel
                     items={spotlightItems}
-                    onSelectManga={(id) => setSelectedMangaId(id)}
+                    onSelectManga={(id, cover) => handleOpenMangaDetails(id, cover)}
                     onSelectAnime={(anime) => setSelectedAnime(anime)}
                     isBookmarkedFn={(id) => isBookmarked(id)}
                     onToggleBookmark={handleToggleBookmark}
@@ -346,7 +353,7 @@ export default function App() {
                           <MangaCard
                             key={manga.id}
                             manga={manga}
-                            onSelect={(id) => setSelectedMangaId(id)}
+                            onSelect={(id, cover) => handleOpenMangaDetails(id, cover)}
                             isBookmarked={isBookmarked(manga.id)}
                             onToggleBookmark={handleToggleBookmark}
                             readChaptersCount={hist?.readChapters?.length || 0}
@@ -383,7 +390,7 @@ export default function App() {
                         <MangaCard
                           key={manga.id}
                           manga={manga}
-                          onSelect={(id) => setSelectedMangaId(id)}
+                          onSelect={(id, cover) => handleOpenMangaDetails(id, cover)}
                           isBookmarked={isBookmarked(manga.id)}
                           onToggleBookmark={handleToggleBookmark}
                           readChaptersCount={hist?.readChapters?.length || 0}
@@ -419,7 +426,7 @@ export default function App() {
                         <MangaCard
                           key={manga.id}
                           manga={manga}
-                          onSelect={(id) => setSelectedMangaId(id)}
+                          onSelect={(id, cover) => handleOpenMangaDetails(id, cover)}
                           isBookmarked={isBookmarked(manga.id)}
                           onToggleBookmark={handleToggleBookmark}
                           readChaptersCount={hist?.readChapters?.length || 0}
@@ -468,7 +475,7 @@ export default function App() {
                       <MangaCard
                         key={manga.id}
                         manga={manga}
-                        onSelect={(id) => setSelectedMangaId(id)}
+                        onSelect={(id, cover) => handleOpenMangaDetails(id, cover)}
                         isBookmarked={isBookmarked(manga.id)}
                         onToggleBookmark={handleToggleBookmark}
                       />
@@ -639,7 +646,7 @@ export default function App() {
         {activeTab === 'library' && (
           <LibraryView
             bookmarks={bookmarks}
-            onSelectManga={(id) => setSelectedMangaId(id)}
+            onSelectManga={(id, cover) => handleOpenMangaDetails(id, cover || bookmarks[id]?.coverUrl)}
             onOpenReader={handleOpenReader}
             onRemoveBookmark={handleRemoveBookmark}
             onUpdateStatus={handleSetBookmark}
@@ -652,7 +659,10 @@ export default function App() {
           <HistoryView
             history={history}
             onOpenReader={handleOpenReader}
-            onOpenMangaDetails={(id) => setSelectedMangaId(id)}
+            onOpenMangaDetails={(id) => {
+              const item = history.find((h) => h.mangaId === id);
+              handleOpenMangaDetails(id, item?.coverUrl);
+            }}
             onRefreshHistory={refreshStorageData}
           />
         )}
@@ -665,7 +675,11 @@ export default function App() {
       {selectedMangaId && (
         <MangaDetailModal
           mangaId={selectedMangaId}
-          onClose={() => setSelectedMangaId(null)}
+          initialCoverUrl={selectedMangaCover}
+          onClose={() => {
+            setSelectedMangaId(null);
+            setSelectedMangaCover('');
+          }}
           onOpenReader={handleOpenReader}
           isBookmarked={isBookmarked(selectedMangaId)}
           bookmarkStatus={getBookmarkStatus(selectedMangaId)}

@@ -82,7 +82,7 @@ export default function HistoryView({
           {history.map((item) => (
             <div
               key={item.mangaId}
-              onClick={() => onOpenMangaDetails(item.mangaId)}
+              onClick={() => onOpenMangaDetails(item.mangaId, item.coverUrl)}
               className="group flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4 p-4 rounded-2xl bg-slate-900/60 hover:bg-slate-900 border border-white/5 hover:border-rose-500/30 transition-all shadow-md cursor-pointer"
             >
               {/* Left: Thumbnail & Info */}

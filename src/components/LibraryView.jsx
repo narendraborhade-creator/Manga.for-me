@@ -159,7 +159,7 @@ export default function LibraryView({
               <div
                 key={item.id}
                 className="group relative flex flex-col bg-slate-900/60 hover:bg-slate-900/90 rounded-2xl overflow-hidden border border-white/5 hover:border-rose-500/30 transition-all duration-300 shadow-lg cursor-pointer"
-                onClick={() => onSelectManga(item.id)}
+                onClick={() => onSelectManga(item.id, item.coverUrl)}
               >
                 {/* Poster */}
                 <div className="relative aspect-[3/4.2] w-full overflow-hidden bg-slate-950">
