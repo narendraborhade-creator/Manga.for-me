@@ -40,16 +40,20 @@ export default function MangaReader({
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
 
-  // Reader Settings & Themes
-  const [settings, setSettings] = useState(() => ({
-    theme: 'oled', // 'oled' | 'obsidian' | 'sepia'
-    readingMode: 'webtoon', // 'webtoon' | 'single' | 'double'
-    fitMode: 'width', // 'width' | 'wide' | 'full'
-    pageGap: 10,
-    readingDirection: 'ltr', // 'ltr' | 'rtl'
-    autoScrollSpeed: 0, // 0 = off, 1 = slow, 2 = normal, 3 = fast
-    ...getReaderSettings(),
-  }));
+  const [settings, setSettings] = useState(() => {
+    const saved = getReaderSettings();
+    const effectiveGap = (saved.pageGap === 8 || saved.pageGap === 10) ? 0 : (saved.pageGap ?? 0);
+    return {
+      theme: 'oled', // 'oled' | 'obsidian' | 'sepia'
+      readingMode: 'webtoon', // 'webtoon' | 'single' | 'double'
+      fitMode: 'width', // 'width' | 'wide' | 'full'
+      pageGap: 0,
+      readingDirection: 'ltr', // 'ltr' | 'rtl'
+      autoScrollSpeed: 0, // 0 = off, 1 = slow, 2 = normal, 3 = fast
+      ...saved,
+      pageGap: effectiveGap,
+    };
+  });
 
   const [showSettingsMenu, setShowSettingsMenu] = useState(false);
   const [showChapterMenu, setShowChapterMenu] = useState(false);
@@ -500,6 +504,38 @@ export default function MangaReader({
                     </div>
                   )}
 
+                  {/* Webtoon Page Spacing */}
+                  {settings.readingMode === 'webtoon' && (
+                    <div>
+                      <label className="text-xs text-slate-300 block mb-1.5 font-medium flex items-center justify-between">
+                        <span>Page Spacing</span>
+                        <span className="text-rose-400 font-bold">
+                          {(settings.pageGap ?? 0) === 0 ? 'Seamless (0px)' : `${settings.pageGap}px`}
+                        </span>
+                      </label>
+                      <div className="grid grid-cols-3 gap-1.5">
+                        {[
+                          { val: 0, label: 'Seamless' },
+                          { val: 6, label: 'Compact' },
+                          { val: 14, label: 'Spaced' },
+                        ].map((sp) => (
+                          <button
+                            key={sp.val}
+                            type="button"
+                            onClick={() => updateSetting('pageGap', sp.val)}
+                            className={`py-1.5 rounded-lg text-xs font-semibold border transition-all ${
+                              (settings.pageGap ?? 0) === sp.val
+                                ? 'bg-rose-600 border-rose-500 text-white'
+                                : 'bg-slate-800 border-white/5 text-slate-400 hover:text-white'
+                            }`}
+                          >
+                            {sp.label}
+                          </button>
+                        ))}
+                      </div>
+                    </div>
+                  )}
+
                   {/* Container Width */}
                   <div>
                     <label className="text-xs text-slate-300 block mb-1.5 font-medium">
@@ -593,24 +629,34 @@ export default function MangaReader({
                     ? 'max-w-full'
                     : 'max-w-3xl'
                 }`}
-                style={{ gap: `${settings.pageGap || 10}px` }}
+                style={{ gap: `${settings.pageGap ?? 0}px` }}
               >
                 {pages.map((p, idx) => (
                   <div
                     key={p.pageNumber}
                     ref={(el) => (pageRefs.current[idx] = el)}
-                    className="relative w-full flex justify-center bg-black/40 overflow-hidden shadow-2xl"
+                    className="relative w-full flex justify-center p-0 m-0 border-0 shadow-none leading-none select-none text-[0px]"
+                    style={
+                      (settings.pageGap ?? 0) === 0 && idx > 0
+                        ? { marginTop: '-1px' }
+                        : {}
+                    }
                   >
                     <img
                       src={p.url}
                       alt={`Page ${p.pageNumber}`}
-                      loading={idx < 4 ? 'eager' : 'lazy'}
+                      loading={idx < 5 ? 'eager' : 'lazy'}
                       referrerPolicy="no-referrer"
-                      className="w-full h-auto object-contain select-none"
+                      className="block w-full h-auto select-none pointer-events-none p-0 m-0 border-0 outline-none align-bottom"
+                      style={{
+                        display: 'block',
+                        verticalAlign: 'bottom',
+                        width: '100%',
+                        height: 'auto',
+                        border: 'none',
+                        outline: 'none',
+                      }}
                     />
-                    <div className="absolute bottom-2 right-2 px-2 py-0.5 rounded bg-black/60 text-[10px] text-slate-400 backdrop-blur-sm pointer-events-none">
-                      {p.pageNumber}
-                    </div>
                   </div>
                 ))}
 

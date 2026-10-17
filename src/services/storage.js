@@ -13,7 +13,7 @@ export const DEFAULT_SETTINGS = {
   readingMode: 'webtoon', // 'webtoon' (vertical strip) | 'single' | 'double'
   dataSaver: false,
   fitMode: 'width', // 'width' | 'height' | 'original'
-  pageGap: 8, // pixels between pages in webtoon mode
+  pageGap: 0, // 0 = continuous seamless strip with 0px gap
   readingDirection: 'ltr', // 'ltr' | 'rtl' (for single/double)
 };
 
@@ -165,6 +165,10 @@ export const removeFromHistory = (mangaId) => {
 // ----------------- READER SETTINGS -----------------
 export const getReaderSettings = () => {
   const saved = safeGet(KEYS.READER_SETTINGS, {});
+  // Migrate legacy default gap (8 or 10) to 0 for continuous seamless reading
+  if (saved.pageGap === 8 || saved.pageGap === 10) {
+    saved.pageGap = 0;
+  }
   return { ...DEFAULT_SETTINGS, ...saved };
 };
 
