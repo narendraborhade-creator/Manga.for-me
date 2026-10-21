@@ -52,8 +52,12 @@ export default function Navbar({
             className="flex items-center gap-3 cursor-pointer group select-none"
             onClick={() => setActiveTab('manga')}
           >
-            <div className="relative flex items-center justify-center w-10 h-10 sm:w-11 sm:h-11 rounded-xl bg-gradient-to-tr from-rose-600 via-rose-500 to-amber-500 shadow-lg shadow-rose-500/25 group-hover:shadow-rose-500/40 transition-all duration-300">
-              <Sparkles className="w-5 h-5 text-white animate-pulse" />
+            <div className="relative flex items-center justify-center w-10 h-10 sm:w-11 sm:h-11 rounded-2xl overflow-hidden border border-rose-500/40 shadow-lg shadow-rose-600/30 ring-2 ring-rose-500/20 group-hover:ring-rose-500/50 group-hover:scale-105 transition-all duration-300 bg-slate-900">
+              <img 
+                src="/logo.jpg" 
+                alt="Logo" 
+                className="w-full h-full object-cover object-center group-hover:scale-110 transition-transform duration-500" 
+              />
             </div>
             <div>
               <div className="flex items-center gap-2">

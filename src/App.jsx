@@ -883,7 +883,8 @@ export default function App() {
       {/* Footer */}
       <footer className="border-t border-white/5 py-8 mt-12 mb-16 md:mb-0 text-center text-xs text-slate-500 bg-[#06080c]">
         <div className="max-w-7xl mx-auto px-4 flex flex-col sm:flex-row items-center justify-between gap-4">
-          <div className="flex items-center gap-2 font-['Outfit'] font-bold text-slate-400">
+          <div className="flex items-center gap-2.5 font-['Outfit'] font-bold text-slate-400">
+            <img src="/logo.jpg" alt="KuroNeko Logo" className="w-6 h-6 rounded-lg object-cover border border-white/10 shadow-sm" />
             <span>KuroNeko • 黒猫</span>
             <span className="text-slate-600">|</span>
             <span className="font-normal text-slate-500">Manga & Anime Universe</span>
