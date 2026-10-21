@@ -35,6 +35,19 @@ function decodeHtml(str) {
     .replace(/&gt;/g, '>');
 }
 
+async function fetchWithTimeout(url, options = {}, timeoutMs = 8000) {
+  const controller = new AbortController();
+  const id = setTimeout(() => controller.abort(), timeoutMs);
+  try {
+    const res = await fetch(url, { ...options, signal: controller.signal });
+    clearTimeout(id);
+    return res;
+  } catch (err) {
+    clearTimeout(id);
+    throw err;
+  }
+}
+
 /**
  * Curated Manhwa & Webtoon Catalog
  */
@@ -535,21 +548,55 @@ async function getSoloLevelingDetails() {
  */
 async function getOmniscientReaderDetails() {
   const entry = WEBTOON_CATALOG.find((w) => w.id === 'webtoon:omniscient-reader');
-  const chapters = [];
-  for (let i = 250; i >= 1; i--) {
-    chapters.push({
-      id: `webtoon:orv:${i}`,
-      chapter: String(i),
-      title: `Chapter ${i}`,
-      sourceUrl: `https://omniscientreadersviewpoint.com/chapter/omniscient-reader-chapter-${i}/`,
-    });
+  const cacheKey = 'orv_details_live';
+  const cached = getCached(cacheKey);
+  if (cached) return cached;
+
+  let chapters = [];
+  try {
+    const res = await fetchWithTimeout('https://w1.omniscientreadersviewpoint.com/', { headers: HEADERS }, 6000);
+    if (res.ok) {
+      const html = await res.text();
+      const matches = [...html.matchAll(/href="(https:\/\/w1\.omniscientreadersviewpoint\.com\/manga\/omniscient-readers-viewpoint-chapter-([^"/]+)\/)"/gi)];
+      const seen = new Set();
+      for (const m of matches) {
+        const url = m[1];
+        const num = m[2];
+        if (seen.has(num)) continue;
+        seen.add(num);
+        chapters.push({
+          id: `webtoon:orv:${num}`,
+          chapter: num,
+          title: `Chapter ${num}`,
+          sourceUrl: url,
+        });
+      }
+      chapters.sort((a, b) => (parseFloat(b.chapter) || 0) - (parseFloat(a.chapter) || 0));
+    }
+  } catch (err) {
+    console.warn('Live ORV fetch error, using generated 311 chapters fallback:', err.message);
   }
-  return {
+
+  if (chapters.length === 0) {
+    for (let i = 311; i >= 1; i--) {
+      chapters.push({
+        id: `webtoon:orv:${i}`,
+        chapter: String(i),
+        title: `Chapter ${i}`,
+        sourceUrl: `https://w1.omniscientreadersviewpoint.com/manga/omniscient-readers-viewpoint-chapter-${i}/`,
+      });
+    }
+  }
+
+  const result = {
     ...entry,
     chapters,
     totalChapters: chapters.length,
     sourceName: 'Webtoon',
   };
+
+  setCache(cacheKey, result);
+  return result;
 }
 
 /**
@@ -688,6 +735,69 @@ export async function getWebtoonChapterPages(chapterId) {
       console.error('Solo Leveling page fetch error:', e);
       throw e;
     }
+  }
+
+  // Handle Omniscient Reader's Viewpoint
+  if (
+    chapterId.startsWith('webtoon:orv:') ||
+    chapterId.startsWith('webtoon:omniscient-reader:') ||
+    chapterId.startsWith('webtoon:omniscient-readers-viewpoint:')
+  ) {
+    const num = chapterId.match(/([0-9.]+)/)?.[1] || '1';
+
+    // 1. Try Asura Scans first (fast, HD webp images)
+    try {
+      const asuraUrl = `https://asurascans.com/comics/omniscient-readers-viewpoint-11fe7da3/chapter/${num}`;
+      const asuraRes = await fetchWithTimeout(asuraUrl, { headers: HEADERS }, 6500);
+      if (asuraRes.ok) {
+        const html = await asuraRes.text();
+        const allImgs = [...html.matchAll(/<img[^>]+(?:src|data-src)="([^"]+)"/gi)].map(m => m[1]);
+        const chapterImages = allImgs.filter(u => u.includes('asura-images/chapters'));
+        if (chapterImages.length > 0) {
+          const pages = chapterImages.map((imgUrl, idx) => ({
+            pageNumber: idx + 1,
+            url: `/api/image-proxy?url=${encodeURIComponent(imgUrl)}`,
+            originalUrl: imgUrl,
+          }));
+          const result = { chapterId, totalPages: pages.length, pages, sourceName: 'Asura Scans' };
+          setCache(cacheKey, result);
+          return result;
+        }
+      }
+    } catch (e) {
+      console.warn(`Asura ORV fetch failed for ch ${num}, trying secondary source:`, e.message);
+    }
+
+    // 2. Secondary source (w1.omniscientreadersviewpoint.com)
+    try {
+      const orvUrl = `https://w1.omniscientreadersviewpoint.com/manga/omniscient-readers-viewpoint-chapter-${num}/`;
+      const res = await fetchWithTimeout(orvUrl, { headers: HEADERS }, 7000);
+      if (res.ok) {
+        const html = await res.text();
+        const allImgs = [...html.matchAll(/<img[^>]+(?:src|data-src)="([^"]+)"/gi)].map(m => m[1]);
+        const chapterImages = allImgs.filter(u =>
+          !u.includes('logo') &&
+          !u.includes('avatar') &&
+          !u.includes('favicon') &&
+          !u.includes('cover') &&
+          (u.includes('lowee.us') || u.includes('wp-content/uploads') || u.includes('omniscient') || u.includes('/chapter'))
+        );
+        if (chapterImages.length > 0) {
+          const pages = chapterImages.map((imgUrl, idx) => ({
+            pageNumber: idx + 1,
+            url: `/api/image-proxy?url=${encodeURIComponent(imgUrl)}`,
+            originalUrl: imgUrl,
+          }));
+          const result = { chapterId, totalPages: pages.length, pages, sourceName: 'Webtoon' };
+          setCache(cacheKey, result);
+          return result;
+        }
+      }
+    } catch (err) {
+      console.error(`Secondary ORV fetch error for ch ${num}:`, err.message);
+    }
+
+    throw new Error(`Failed to load pages for Omniscient Reader chapter ${num}`);
   }
 
   throw new Error(`Unsupported webtoon chapter: ${chapterId}`);

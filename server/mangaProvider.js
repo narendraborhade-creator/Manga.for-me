@@ -9,6 +9,18 @@ import {
   getWeebCentralDetails,
   getWeebCentralChapterPages
 } from './weebcentralProvider.js';
+import {
+  searchAsura,
+  getPopularAsura,
+  getAsuraDetails,
+  getAsuraChapterPages
+} from './asuraProvider.js';
+import {
+  searchVortex,
+  getPopularVortex,
+  getVortexDetails,
+  getVortexChapterPages
+} from './vortexProvider.js';
 
 // Server-side provider for complete manga chapters and pages
 const USER_AGENT = 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36';
@@ -193,40 +205,46 @@ export async function getPopularManga() {
   });
 
   try {
-    const res = await fetchWithTimeout(BASE_URL, { headers: HEADERS }, 3500);
-    if (!res.ok) throw new Error(`HTTP ${res.status}`);
-    const html = await res.text();
+    const [asuraList, vortexList, scrapedList] = await Promise.all([
+      getPopularAsura().catch(() => []),
+      getPopularVortex().catch(() => []),
+      (async () => {
+        try {
+          const res = await fetchWithTimeout(BASE_URL, { headers: HEADERS }, 3500);
+          if (!res.ok) return [];
+          const html = await res.text();
+          const homeCardRegex = /<img\s+(?:data-)?src="([^"]+)"\s+alt="([^"]+)"[\s\S]*?<a\s+href="\/manga\/([0-9]+\/[^"]+)"[^>]*>([\s\S]*?)<\/a>/gi;
+          let m;
+          const list = [];
+          while ((m = homeCardRegex.exec(html)) !== null) {
+            const coverUrl = m[1];
+            const id = m[3];
+            const innerA = m[4];
+            if (seen.has(id)) continue;
+            seen.add(id);
+            const divs = [...innerA.matchAll(/<div[^>]*>([\s\S]*?)<\/div>/gi)].map((d) => d[1].replace(/<[^>]+>/g, '').trim());
+            const rawTitle = divs[0] || '';
+            const rawEnglish = divs.length > 1 ? divs[1] : null;
+            list.push({
+              id,
+              title: cleanTitle(rawTitle),
+              englishTitle: rawEnglish ? cleanTitle(rawEnglish) : null,
+              coverUrl,
+              status: 'Ongoing',
+              author: 'Manga Artist',
+              tags: ['Manga', 'Trending'],
+              sourceName: 'MangaPill',
+              provider: 'mangapill',
+            });
+          }
+          return list;
+        } catch {
+          return [];
+        }
+      })(),
+    ]);
 
-    const homeCardRegex = /<img\s+(?:data-)?src="([^"]+)"\s+alt="([^"]+)"[\s\S]*?<a\s+href="\/manga\/([0-9]+\/[^"]+)"[^>]*>([\s\S]*?)<\/a>/gi;
-    let m;
-    const scrapedList = [];
-
-    while ((m = homeCardRegex.exec(html)) !== null) {
-      const coverUrl = m[1];
-      const id = m[3];
-      const innerA = m[4];
-
-      if (seen.has(id)) continue;
-      seen.add(id);
-
-      const divs = [...innerA.matchAll(/<div[^>]*>([\s\S]*?)<\/div>/gi)].map((d) => d[1].replace(/<[^>]+>/g, '').trim());
-      const rawTitle = divs[0] || '';
-      const rawEnglish = divs.length > 1 ? divs[1] : null;
-
-      scrapedList.push({
-        id,
-        title: cleanTitle(rawTitle),
-        englishTitle: rawEnglish ? cleanTitle(rawEnglish) : null,
-        coverUrl,
-        status: 'Ongoing',
-        author: 'Manga Artist',
-        tags: ['Manga', 'Trending'],
-        sourceName: 'MangaPill',
-        provider: 'mangapill',
-      });
-    }
-
-    const merged = [...baseList, ...scrapedList];
+    const merged = [...baseList, ...asuraList.slice(0, 8), ...vortexList.slice(0, 8), ...scrapedList];
     setCache('popular_manga_v5', merged);
     return merged;
   } catch (error) {
@@ -242,15 +260,23 @@ export async function getPopularManga() {
 export async function searchManga(query = '') {
   if (!query || !query.trim()) return getPopularManga();
 
-  const cacheKey = `search_v5_${query.trim().toLowerCase()}`;
+  const cacheKey = `search_v6_${query.trim().toLowerCase()}`;
   const cached = getCached(cacheKey);
   if (cached) return cached;
 
   try {
-    // Run Webtoon provider, WeebCentral (Keiyoushi), and MangaPill in parallel
-    const [webtoonMatches, weebCentralMatches, mangapillMatches] = await Promise.all([
+    // Run Webtoon provider, Asura Scans, Vortex Scans, WeebCentral, and MangaPill in parallel
+    const [webtoonMatches, asuraMatches, vortexMatches, weebCentralMatches, mangapillMatches] = await Promise.all([
       searchWebtoons(query).catch((e) => {
         console.error('searchWebtoons error:', e);
+        return [];
+      }),
+      searchAsura(query).catch((e) => {
+        console.error('searchAsura error:', e);
+        return [];
+      }),
+      searchVortex(query).catch((e) => {
+        console.error('searchVortex error:', e);
         return [];
       }),
       searchWeebCentral(query).catch((e) => {
@@ -266,7 +292,7 @@ export async function searchManga(query = '') {
     const seen = new Set();
     const combined = [];
 
-    // 1. Prioritize direct webtoon matches (e.g. Fortune Telling Princess)
+    // 1. Webtoon curated catalog matches (Stepmother, Solo Leveling, ORV)
     webtoonMatches.forEach((item) => {
       if (!seen.has(item.id)) {
         combined.push({ ...item, sourceName: item.sourceName || 'Webtoon' });
@@ -274,7 +300,23 @@ export async function searchManga(query = '') {
       }
     });
 
-    // 2. WeebCentral matches (thousands of titles from Keiyoushi source)
+    // 2. Asura Scans matches (hundreds of top manhwa)
+    asuraMatches.forEach((item) => {
+      if (!seen.has(item.id)) {
+        combined.push({ ...item, sourceName: 'Asura Scans' });
+        seen.add(item.id);
+      }
+    });
+
+    // 3. Vortex Scans matches (high-demand action/fantasy manhwa)
+    vortexMatches.forEach((item) => {
+      if (!seen.has(item.id)) {
+        combined.push({ ...item, sourceName: 'Vortex Scans' });
+        seen.add(item.id);
+      }
+    });
+
+    // 4. WeebCentral matches
     weebCentralMatches.forEach((item) => {
       if (!seen.has(item.id)) {
         combined.push({ ...item, sourceName: 'WeebCentral' });
@@ -282,7 +324,7 @@ export async function searchManga(query = '') {
       }
     });
 
-    // 3. MangaPill matches
+    // 5. MangaPill matches
     mangapillMatches.forEach((item) => {
       if (!seen.has(item.id)) {
         combined.push({ ...item, sourceName: 'MangaPill' });
@@ -377,6 +419,12 @@ export async function getMangaDetails(mangaId, bypassCache = false) {
     }
   }
 
+  if (mangaId.startsWith('asura:')) {
+    return getAsuraDetails(mangaId);
+  }
+  if (mangaId.startsWith('vortex:')) {
+    return getVortexDetails(mangaId);
+  }
   if (mangaId.startsWith('webtoon:')) {
     return getWebtoonDetails(mangaId, bypassCache);
   }
@@ -526,6 +574,12 @@ export async function getChapterPages(chapterId) {
     return getWebtoonChapterPages(`webtoon:stepmother:${num}`);
   }
 
+  if (chapterId.startsWith('asura_ch:') || chapterId.startsWith('asura:')) {
+    return getAsuraChapterPages(chapterId);
+  }
+  if (chapterId.startsWith('vortex_ch:') || chapterId.startsWith('vortex:')) {
+    return getVortexChapterPages(chapterId);
+  }
   if (chapterId.startsWith('webtoon:')) {
     return getWebtoonChapterPages(chapterId);
   }
@@ -600,12 +654,20 @@ export async function proxyImage(imageUrl, res) {
         host.includes('lastation')
       ) {
         referer = 'https://weebcentral.com/';
+      } else if (host.includes('asurascans') || host.includes('asuracomic')) {
+        referer = 'https://asurascans.com/';
+      } else if (host.includes('vortexscans')) {
+        referer = 'https://vortexscans.org/';
+      } else if (
+        host.includes('omniscientreadersviewpoint') ||
+        host.includes('lowee.us') ||
+        host.includes('mangaclash')
+      ) {
+        referer = 'https://w1.omniscientreadersviewpoint.com/';
       } else if (host.includes('afortunetellingprincess')) {
         referer = 'https://afortunetellingprincess.com/';
       } else if (host.includes('readsololeveling')) {
         referer = 'https://readsololeveling.org/';
-      } else if (host.includes('omniscientreadersviewpoint')) {
-        referer = 'https://omniscientreadersviewpoint.com/';
       } else if (host.includes('kingofshojo')) {
         referer = 'https://kingofshojo.com/';
       } else if (host.includes('mangadex') || host.includes('uploads.mangadex.org')) {

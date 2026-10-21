@@ -53,11 +53,24 @@ export default function MangaCard({
             }`}>
               {manga.status || 'Ongoing'}
             </span>
-            {(manga.sourceName || (manga.id?.startsWith('wc:') ? 'WeebCentral' : manga.id?.startsWith('webtoon:') ? 'Webtoon' : 'MangaPill')) && (
-              <span className="px-1.5 py-0.5 rounded-md text-[9px] font-bold tracking-wider backdrop-blur-md bg-sky-600/80 text-white shadow-sm">
-                {manga.sourceName || (manga.id?.startsWith('wc:') ? 'WeebCentral' : manga.id?.startsWith('webtoon:') ? 'Webtoon' : 'MangaPill')}
-              </span>
-            )}
+            {(() => {
+              const src = manga.sourceName || (
+                manga.id?.startsWith('asura:') ? 'Asura Scans' :
+                manga.id?.startsWith('vortex:') ? 'Vortex Scans' :
+                manga.id?.startsWith('wc:') ? 'WeebCentral' :
+                manga.id?.startsWith('webtoon:') ? 'Webtoon' : 'MangaPill'
+              );
+              const colorClass = 
+                src === 'Asura Scans' ? 'bg-violet-600/90 text-white' :
+                src === 'Vortex Scans' ? 'bg-indigo-600/90 text-white' :
+                src === 'Webtoon' ? 'bg-emerald-600/90 text-white' :
+                'bg-sky-600/90 text-white';
+              return (
+                <span className={`px-1.5 py-0.5 rounded-md text-[9px] font-bold tracking-wider backdrop-blur-md shadow-sm ${colorClass}`}>
+                  {src}
+                </span>
+              );
+            })()}
           </div>
 
           {/* Bookmark Button */}

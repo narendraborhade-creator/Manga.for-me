@@ -171,21 +171,67 @@ export const FALLBACK_MANGA_CATALOG = [
   },
   {
     id: 'webtoon:omniscient-reader',
-    aliases: ['webtoon:omniscient-readers-viewpoint'],
+    aliases: ['webtoon:omniscient-readers-viewpoint', 'asura:omniscient-readers-viewpoint-11fe7da3'],
     title: "Omniscient Reader's Viewpoint",
     englishTitle: "Omniscient Reader's Viewpoint",
     coverUrl: 'https://uploads.mangadex.org/covers/9a414441-bbad-43f1-a3a7-dc262ca790a3/be18dc9a-7f1c-4ca5-b318-ffff2d7d58c3.jpg.512.jpg',
     status: 'Ongoing',
-    score: '9.5',
+    score: '9.8',
     year: '2020',
     author: 'sing N song & Sleepy-C',
     description: 'Dokja was an average office worker whose sole interest was reading his favorite web novel. But when the novel suddenly becomes reality, he is the only person who knows how the world will end.',
     tags: ['Action', 'Fantasy', 'Apocalypse', 'Manhwa'],
-    sourceName: 'Webtoon',
-    chapters: [
-      { id: 'webtoon:omniscient-readers-viewpoint:200', chapter: '200', title: 'Chapter 200' },
-      { id: 'webtoon:omniscient-readers-viewpoint:1', chapter: '1', title: 'Chapter 1' }
-    ]
+    sourceName: 'Asura Scans',
+    chapters: Array.from({ length: 311 }, (_, i) => {
+      const chNum = 311 - i;
+      return {
+        id: `webtoon:orv:${chNum}`,
+        chapter: String(chNum),
+        title: `Chapter ${chNum}`,
+      };
+    })
+  },
+  {
+    id: 'asura:surviving-the-game-as-a-barbarian-11fe7da3',
+    title: 'Surviving The Game as a Barbarian',
+    englishTitle: 'Surviving The Game as a Barbarian',
+    coverUrl: 'https://cdn.asurascans.com/asura-images/covers/surviving-the-game-as-a-barbarian.86af24-400.webp',
+    status: 'Ongoing',
+    score: '9.7',
+    year: '2023',
+    author: 'Asura Scans',
+    description: 'Entering the dungeon of the dark fantasy RPG Dungeon and Stone that no one has ever cleared.',
+    tags: ['Action', 'Fantasy', 'Manhwa', 'Asura'],
+    sourceName: 'Asura Scans',
+    chapters: Array.from({ length: 165 }, (_, i) => {
+      const chNum = 165 - i;
+      return {
+        id: `asura_ch:surviving-the-game-as-a-barbarian-11fe7da3:${chNum}`,
+        chapter: String(chNum),
+        title: `Chapter ${chNum}`,
+      };
+    })
+  },
+  {
+    id: 'vortex:regressing-as-the-reincarnated-bastard',
+    title: 'Regressing as the Reincarnated Bastard of the Sword Clan',
+    englishTitle: 'Regressing as the Reincarnated Bastard of the Sword Clan',
+    coverUrl: 'https://i0.wp.com/storage.vortexscans.org/upload/series/banner/4/7f6da000-9781-4d10-baee-0f6426996786.png?w=768&quality=50&strip=all&ssl=1',
+    status: 'Ongoing',
+    score: '9.6',
+    year: '2023',
+    author: 'Vortex Scans',
+    description: 'Reincarnated as a bastard of the empires greatest sword family, surviving against all odds.',
+    tags: ['Action', 'Reincarnation', 'Sword', 'Manhwa'],
+    sourceName: 'Vortex Scans',
+    chapters: Array.from({ length: 117 }, (_, i) => {
+      const chNum = 117 - i;
+      return {
+        id: `vortex_ch:regressing-as-the-reincarnated-bastard:${chNum}`,
+        chapter: String(chNum),
+        title: `Chapter ${chNum}`,
+      };
+    })
   }
 ];
 
@@ -343,7 +389,17 @@ function formatMangaItem(item) {
     author: item.author || 'Manga Artist',
     tags: item.tags || ['Manga', 'Action'],
     year: item.year || null,
-    sourceName: item.sourceName || (item.id?.startsWith('wc:') ? 'WeebCentral' : item.id?.startsWith('webtoon:') ? 'Webtoon' : 'MangaPill'),
-    provider: item.provider || (item.id?.startsWith('wc:') ? 'weebcentral' : item.id?.startsWith('webtoon:') ? 'webtoon' : 'mangapill'),
+    sourceName: item.sourceName || (
+      item.id?.startsWith('asura:') ? 'Asura Scans' :
+      item.id?.startsWith('vortex:') ? 'Vortex Scans' :
+      item.id?.startsWith('wc:') ? 'WeebCentral' :
+      item.id?.startsWith('webtoon:') ? 'Webtoon' : 'MangaPill'
+    ),
+    provider: item.provider || (
+      item.id?.startsWith('asura:') ? 'asura' :
+      item.id?.startsWith('vortex:') ? 'vortex' :
+      item.id?.startsWith('wc:') ? 'weebcentral' :
+      item.id?.startsWith('webtoon:') ? 'webtoon' : 'mangapill'
+    ),
   };
 }

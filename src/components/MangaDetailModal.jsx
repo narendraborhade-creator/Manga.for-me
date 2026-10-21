@@ -205,11 +205,24 @@ export default function MangaDetailModal({
                       {chapters.length} Chapters
                     </span>
 
-                    {(manga.sourceName || (manga.id.startsWith('wc:') ? 'WeebCentral' : manga.id.startsWith('webtoon:') ? 'Webtoon' : 'MangaPill')) && (
-                      <span className="px-2 py-0.5 rounded-md text-[11px] font-bold text-sky-400 bg-sky-500/10 border border-sky-500/30">
-                        {manga.sourceName || (manga.id.startsWith('wc:') ? 'WeebCentral' : manga.id.startsWith('webtoon:') ? 'Webtoon' : 'MangaPill')}
-                      </span>
-                    )}
+                    {(() => {
+                      const src = manga.sourceName || (
+                        manga.id?.startsWith('asura:') ? 'Asura Scans' :
+                        manga.id?.startsWith('vortex:') ? 'Vortex Scans' :
+                        manga.id?.startsWith('wc:') ? 'WeebCentral' :
+                        manga.id?.startsWith('webtoon:') ? 'Webtoon' : 'MangaPill'
+                      );
+                      const colorClass = 
+                        src === 'Asura Scans' ? 'text-violet-400 bg-violet-500/10 border-violet-500/30' :
+                        src === 'Vortex Scans' ? 'text-indigo-400 bg-indigo-500/10 border-indigo-500/30' :
+                        src === 'Webtoon' ? 'text-emerald-400 bg-emerald-500/10 border-emerald-500/30' :
+                        'text-sky-400 bg-sky-500/10 border-sky-500/30';
+                      return (
+                        <span className={`px-2 py-0.5 rounded-md text-[11px] font-bold border ${colorClass}`}>
+                          {src}
+                        </span>
+                      );
+                    })()}
                   </div>
 
                   <h2 className="text-xl sm:text-2xl md:text-3xl font-extrabold text-white tracking-tight mb-1">

@@ -97,6 +97,11 @@ export default function MangaReader({
     fetchChapterPages(chapterId)
       .then((data) => {
         if (!isMounted) return;
+        if (!data || !data.pages || data.pages.length === 0) {
+          setError(data?.warning || 'Pages for this chapter are currently synchronizing. Please try refreshing or choosing another chapter.');
+          setLoading(false);
+          return;
+        }
         setPages(data.pages || []);
         setLoading(false);
 
