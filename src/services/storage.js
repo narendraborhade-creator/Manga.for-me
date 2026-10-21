@@ -15,6 +15,7 @@ export const DEFAULT_SETTINGS = {
   fitMode: 'width', // 'width' | 'height' | 'original'
   pageGap: 0, // 0 = continuous seamless strip with 0px gap
   readingDirection: 'ltr', // 'ltr' | 'rtl' (for single/double)
+  continuousScroll: true, // Infinite continuous chapter scrolling (like Mihon)
 };
 
 // Safe JSON parser
