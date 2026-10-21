@@ -16,6 +16,7 @@ import {
   Palette,
   Compass,
   RotateCw,
+  Gauge,
   Infinity as InfinityIcon
 } from 'lucide-react';
 import { fetchChapterPages, fetchMangaChapters } from '../services/mangaApi';
@@ -76,13 +77,15 @@ export default function MangaReader({
     return {
       theme: 'oled',
       readingMode: 'webtoon',
-      fitMode: 'width',
+      fitMode: 'full', // Default to 'full' for edge-to-edge phone screen fit
       pageGap: 0,
       readingDirection: 'ltr',
-      autoScrollSpeed: 0,
+      autoScrollSpeed: 2, // 1 = 45px/s, 2 = 95px/s, 3 = 175px/s, 4 = 280px/s
       continuousScroll: true,
       ...saved,
       pageGap: effectiveGap,
+      fitMode: saved.fitMode || 'full',
+      autoScrollSpeed: saved.autoScrollSpeed || 2,
     };
   });
 
@@ -98,7 +101,7 @@ export default function MangaReader({
   const controlsTimeoutRef = useRef(null);
   const autoScrollRef = useRef(null);
 
-  // Auto-hide controls after idle
+  // Auto-hide controls after idle (only if not interacting)
   const handleMouseMove = () => {
     setControlsVisible(true);
     if (controlsTimeoutRef.current) clearTimeout(controlsTimeoutRef.current);
@@ -109,9 +112,15 @@ export default function MangaReader({
     }, 4500);
   };
 
-  // Tap reader to toggle floating controls
+  // Tap reader area: toggle floating controls or pause auto-scrolling
   const handleReaderTap = (e) => {
     if (e.target.closest('button, input, select, a, .glass-panel, [role="dialog"], .glass-nav')) {
+      return;
+    }
+    // If auto-scrolling is active, tapping the screen immediately pauses it
+    if (isAutoScrolling) {
+      setIsAutoScrolling(false);
+      setControlsVisible(true);
       return;
     }
     setControlsVisible((prev) => !prev);
@@ -231,7 +240,6 @@ export default function MangaReader({
       .then((chapList) => {
         if (isMounted) {
           setAllChapters(chapList);
-          // Enrich loaded chapter title if present
           const currentMeta = chapList.find((c) => String(c.id) === String(chapterId));
           if (currentMeta && currentMeta.title) {
             setLoadedChapters((prev) =>
@@ -261,12 +269,10 @@ export default function MangaReader({
     const last = currentChaps[currentChaps.length - 1];
     const lastIdx = allChaps.findIndex((c) => String(c.id) === String(last.id));
     if (lastIdx === -1 || lastIdx >= allChaps.length - 1) {
-      // Reached the end of available chapters
       return;
     }
 
     const nextChap = allChaps[lastIdx + 1];
-    // Guard against duplicate loading
     if (currentChaps.some((c) => String(c.id) === String(nextChap.id))) {
       return;
     }
@@ -330,7 +336,6 @@ export default function MangaReader({
         ...prev,
       ]);
 
-      // Preserve reader scroll position so user experience is rock solid
       requestAnimationFrame(() => {
         if (container) {
           const heightDiff = container.scrollHeight - oldScrollHeight;
@@ -348,7 +353,6 @@ export default function MangaReader({
   const jumpToChapter = (targetChapterId, targetChapterNumber) => {
     setShowChapterMenu(false);
 
-    // If chapter is already loaded on page, smooth scroll directly to it
     const existingEl = document.getElementById(`chapter-${targetChapterId}`);
     if (existingEl) {
       existingEl.scrollIntoView({ behavior: 'smooth', block: 'start' });
@@ -361,7 +365,6 @@ export default function MangaReader({
       return;
     }
 
-    // Otherwise load and initialize starting from this chapter
     currentHandledChapterIdRef.current = targetChapterId;
     setInitialLoading(true);
     setInitialError(null);
@@ -426,7 +429,7 @@ export default function MangaReader({
     if (settings.readingMode === 'webtoon') {
       // 1. Proactive auto-load when near bottom
       const remaining = container.scrollHeight - (container.scrollTop + container.clientHeight);
-      if (remaining < 1600 && settings.continuousScroll) {
+      if (remaining < 1800 && settings.continuousScroll) {
         loadNextChapter();
       }
 
@@ -496,7 +499,7 @@ export default function MangaReader({
       },
       {
         root: containerRef.current,
-        rootMargin: '1200px',
+        rootMargin: '1400px',
       }
     );
 
@@ -504,31 +507,76 @@ export default function MangaReader({
     return () => observer.disconnect();
   }, [loadedChapters.length, settings.continuousScroll, settings.readingMode, loadNextChapter]);
 
-  // Auto-Scroll Loop
+  // -------------------------------------------------------------
+  // High-Precision Auto-Scroll Engine (Tested for Mobile & Desktop)
+  // -------------------------------------------------------------
   useEffect(() => {
     if (!isAutoScrolling || settings.readingMode !== 'webtoon') {
-      if (autoScrollRef.current) cancelAnimationFrame(autoScrollRef.current);
+      if (autoScrollRef.current) {
+        cancelAnimationFrame(autoScrollRef.current);
+        autoScrollRef.current = null;
+      }
       return;
     }
 
-    const speed = settings.autoScrollSpeed === 3 ? 3.5 : settings.autoScrollSpeed === 2 ? 2 : 1;
-    let running = true;
-
-    const step = () => {
-      if (!running) return;
-      if (containerRef.current) {
-        containerRef.current.scrollBy({ top: speed, behavior: 'auto' });
-      }
-      autoScrollRef.current = requestAnimationFrame(step);
+    // Precise speeds in pixels per second:
+    // 1x = 45px/s (Relaxed), 2x = 95px/s (Normal), 3x = 175px/s (Fast), 4x = 280px/s (Turbo)
+    const speedMap = {
+      1: 45,
+      2: 95,
+      3: 175,
+      4: 280,
     };
 
-    autoScrollRef.current = requestAnimationFrame(step);
+    const currentSpeedLevel = settings.autoScrollSpeed || 2;
+    const pixelsPerSecond = speedMap[currentSpeedLevel] || 95;
+
+    let lastTime = performance.now();
+    let scrollAccumulator = 0;
+    let running = true;
+
+    const tick = (now) => {
+      if (!running) return;
+
+      const deltaSeconds = Math.min((now - lastTime) / 1000, 0.1); // clamp to prevent jumps
+      lastTime = now;
+
+      scrollAccumulator += pixelsPerSecond * deltaSeconds;
+
+      if (scrollAccumulator >= 1) {
+        const movePixels = Math.floor(scrollAccumulator);
+        scrollAccumulator -= movePixels;
+
+        const container = containerRef.current;
+        if (container) {
+          container.scrollTop += movePixels;
+
+          // Check if approaching bottom to trigger continuous chapter load
+          const remainingBottom = container.scrollHeight - (container.scrollTop + container.clientHeight);
+          if (remainingBottom < 1600 && hasNextChapterToLoad && !isLoadingNextRef.current) {
+            loadNextChapter();
+          }
+        }
+
+        // Also scroll window in case document is scrolling
+        if (typeof window !== 'undefined') {
+          window.scrollBy(0, movePixels);
+        }
+      }
+
+      autoScrollRef.current = requestAnimationFrame(tick);
+    };
+
+    autoScrollRef.current = requestAnimationFrame(tick);
 
     return () => {
       running = false;
-      if (autoScrollRef.current) cancelAnimationFrame(autoScrollRef.current);
+      if (autoScrollRef.current) {
+        cancelAnimationFrame(autoScrollRef.current);
+        autoScrollRef.current = null;
+      }
     };
-  }, [isAutoScrolling, settings.readingMode, settings.autoScrollSpeed]);
+  }, [isAutoScrolling, settings.readingMode, settings.autoScrollSpeed, hasNextChapterToLoad, loadNextChapter]);
 
   // Single Page Next / Prev helpers
   const handleSinglePageNext = useCallback(() => {
@@ -616,7 +664,7 @@ export default function MangaReader({
       ref={containerRef}
       onMouseMove={handleMouseMove}
       onClick={handleReaderTap}
-      className={`fixed inset-0 z-50 ${themeBg} text-slate-100 overflow-y-auto overscroll-y-contain selection:bg-rose-500 selection:text-white transition-colors duration-300`}
+      className={`fixed inset-0 z-50 ${themeBg} text-slate-100 overflow-y-auto overscroll-y-contain selection:bg-rose-500 selection:text-white transition-colors duration-300 w-full h-full`}
       style={{ WebkitOverflowScrolling: 'touch' }}
     >
       {/* Top Floating Control Bar */}
@@ -728,21 +776,19 @@ export default function MangaReader({
             {/* Auto-scroll toggle (Webtoon mode) */}
             {settings.readingMode === 'webtoon' && (
               <button
-                onClick={() => {
-                  if (settings.autoScrollSpeed === 0) {
-                    updateSetting('autoScrollSpeed', 1);
-                  }
-                  setIsAutoScrolling(!isAutoScrolling);
+                onClick={(e) => {
+                  e.stopPropagation();
+                  setIsAutoScrolling((prev) => !prev);
                 }}
                 className={`p-1.5 sm:p-2 rounded-xl border text-xs font-semibold flex items-center gap-1.5 transition-all ${
                   isAutoScrolling 
-                    ? 'bg-emerald-500/20 text-emerald-400 border-emerald-500/40' 
+                    ? 'bg-rose-600 text-white border-rose-500 shadow-lg shadow-rose-600/30' 
                     : 'bg-slate-900 border-white/10 text-slate-300 hover:text-white'
                 }`}
                 title="Toggle Auto-Scroll"
               >
                 {isAutoScrolling ? <Pause className="w-4 h-4" /> : <Play className="w-4 h-4" />}
-                <span className="hidden md:inline">Auto-Scroll</span>
+                <span className="hidden md:inline">{isAutoScrolling ? 'Auto-Scrolling' : 'Auto-Scroll'}</span>
               </button>
             )}
 
@@ -800,7 +846,7 @@ export default function MangaReader({
                     </div>
                   </div>
 
-                  {/* Continuous Infinite Chapter Scrolling Toggle (Mihon-style) */}
+                  {/* Continuous Infinite Chapter Scrolling Toggle */}
                   {settings.readingMode === 'webtoon' && (
                     <div className="flex items-center justify-between p-2.5 rounded-xl bg-slate-800/70 border border-white/5">
                       <div>
@@ -809,7 +855,7 @@ export default function MangaReader({
                           <span>Continuous Scrolling</span>
                         </div>
                         <div className="text-[10px] text-slate-400">
-                          Auto-loads next chapter seamlessly (no clicking)
+                          Auto-loads next chapter seamlessly (Mihon style)
                         </div>
                       </div>
                       <button
@@ -825,6 +871,71 @@ export default function MangaReader({
                           }`}
                         />
                       </button>
+                    </div>
+                  )}
+
+                  {/* Page Container Width / Phone Fit Mode */}
+                  <div>
+                    <label className="text-xs text-slate-300 block mb-1.5 font-medium flex items-center justify-between">
+                      <span>Screen Fit / Page Width</span>
+                      <span className="text-[10px] text-rose-400 font-bold uppercase">
+                        {settings.fitMode === 'full' ? 'Edge-to-Edge (Phone Fit)' : settings.fitMode === 'wide' ? 'Wide (1020px)' : 'Standard (800px)'}
+                      </span>
+                    </label>
+                    <div className="grid grid-cols-3 gap-1.5">
+                      {[
+                        { id: 'full', label: 'Phone Fit (Full)' },
+                        { id: 'width', label: '800px' },
+                        { id: 'wide', label: '1020px' },
+                      ].map((item) => (
+                        <button
+                          key={item.id}
+                          onClick={() => updateSetting('fitMode', item.id)}
+                          className={`py-1.5 px-1.5 rounded-lg text-[11px] font-semibold border text-center transition-all ${
+                            (settings.fitMode || 'full') === item.id
+                              ? 'bg-rose-600 border-rose-500 text-white'
+                              : 'bg-slate-800 border-white/5 text-slate-400 hover:text-white'
+                          }`}
+                        >
+                          {item.label}
+                        </button>
+                      ))}
+                    </div>
+                  </div>
+
+                  {/* Auto-scroll Speed Preset */}
+                  {settings.readingMode === 'webtoon' && (
+                    <div>
+                      <div className="flex items-center justify-between text-xs text-slate-300 mb-1.5">
+                        <span className="flex items-center gap-1.5">
+                          <Gauge className="w-3.5 h-3.5 text-rose-400" />
+                          <span>Auto-Scroll Speed</span>
+                        </span>
+                        <span className="text-rose-400 font-bold">
+                          {settings.autoScrollSpeed === 1 ? '1x (Slow)' : settings.autoScrollSpeed === 3 ? '3x (Fast)' : settings.autoScrollSpeed === 4 ? '4x (Turbo)' : '2x (Normal)'}
+                        </span>
+                      </div>
+                      <div className="grid grid-cols-4 gap-1.5">
+                        {[
+                          { val: 1, label: '1x Slow' },
+                          { val: 2, label: '2x Normal' },
+                          { val: 3, label: '3x Fast' },
+                          { val: 4, label: '4x Turbo' },
+                        ].map((sp) => (
+                          <button
+                            key={sp.val}
+                            type="button"
+                            onClick={() => updateSetting('autoScrollSpeed', sp.val)}
+                            className={`py-1.5 rounded-lg text-xs font-semibold border transition-all ${
+                              (settings.autoScrollSpeed || 2) === sp.val
+                                ? 'bg-rose-600 border-rose-500 text-white'
+                                : 'bg-slate-800 border-white/5 text-slate-400 hover:text-white'
+                            }`}
+                          >
+                            {sp.label}
+                          </button>
+                        ))}
+                      </div>
                     </div>
                   )}
 
@@ -888,22 +999,6 @@ export default function MangaReader({
                     </div>
                   )}
 
-                  {/* Container Width */}
-                  <div>
-                    <label className="text-xs text-slate-300 block mb-1.5 font-medium">
-                      Page Container Width
-                    </label>
-                    <select
-                      value={settings.fitMode || 'width'}
-                      onChange={(e) => updateSetting('fitMode', e.target.value)}
-                      className="w-full bg-slate-800 border border-white/10 text-slate-200 text-xs rounded-lg p-2 focus:outline-none"
-                    >
-                      <option value="width">Standard (800px)</option>
-                      <option value="wide">Wide (1020px)</option>
-                      <option value="full">Edge-to-Edge Full</option>
-                    </select>
-                  </div>
-
                   {/* Direction for Single Page */}
                   {settings.readingMode === 'single' && (
                     <div>
@@ -934,24 +1029,6 @@ export default function MangaReader({
                       </div>
                     </div>
                   )}
-
-                  {/* Auto-scroll Speed */}
-                  {settings.readingMode === 'webtoon' && (
-                    <div>
-                      <div className="flex items-center justify-between text-xs text-slate-300 mb-1">
-                        <span>Auto-Scroll Speed</span>
-                        <span className="text-rose-400 font-bold">{settings.autoScrollSpeed || 1}x</span>
-                      </div>
-                      <input
-                        type="range"
-                        min={1}
-                        max={3}
-                        value={settings.autoScrollSpeed || 1}
-                        onChange={(e) => updateSetting('autoScrollSpeed', Number(e.target.value))}
-                        className="w-full accent-rose-500 cursor-pointer"
-                      />
-                    </div>
-                  )}
                 </div>
               )}
             </div>
@@ -970,7 +1047,7 @@ export default function MangaReader({
       </div>
 
       {/* Main Reading Canvas */}
-      <main className="min-h-screen pt-20 pb-32 flex flex-col items-center justify-center">
+      <main className="min-h-screen pt-14 sm:pt-16 pb-24 sm:pb-32 w-full flex flex-col items-center justify-start">
         {initialLoading ? (
           <div className="flex flex-col items-center justify-center py-36 gap-3">
             <Loader2 className="w-12 h-12 text-rose-500 animate-spin" />
@@ -979,7 +1056,7 @@ export default function MangaReader({
             </p>
           </div>
         ) : initialError ? (
-          <div className="max-w-md mx-auto p-6 rounded-3xl bg-rose-500/10 border border-rose-500/20 text-center space-y-4">
+          <div className="max-w-md mx-auto p-6 rounded-3xl bg-rose-500/10 border border-rose-500/20 text-center space-y-4 my-auto">
             <AlertCircle className="w-10 h-10 text-rose-400 mx-auto" />
             <h3 className="font-bold text-white">Chapter Unavailable</h3>
             <p className="text-xs text-slate-300 leading-relaxed">{initialError}</p>
@@ -1002,11 +1079,11 @@ export default function MangaReader({
           </div>
         ) : (
           <>
-            {/* 1. Webtoon Mode: Continuous Seamless Stream */}
+            {/* 1. Webtoon Mode: Continuous Seamless Stream (Fitted to Phone Screen Width) */}
             {settings.readingMode === 'webtoon' && (
               <div className="w-full flex flex-col items-center">
                 
-                {/* Optional: Load Previous Chapter Button (if reading from middle chapter) */}
+                {/* Optional: Load Previous Chapter Button */}
                 {prevChapterToLoad && (
                   <div className="w-full max-w-xl mx-auto py-3 px-4 flex items-center justify-center">
                     <button
@@ -1058,21 +1135,21 @@ export default function MangaReader({
                       </div>
                     )}
 
-                    {/* Pages of Chapter */}
+                    {/* Pages of Chapter - Fitted to Phone Screen Size */}
                     <div 
-                      className={`w-full mx-auto flex flex-col items-center ${
+                      className={`w-full mx-auto flex flex-col items-center max-sm:w-full max-sm:max-w-full ${
                         settings.fitMode === 'wide'
                           ? 'max-w-4xl'
-                          : settings.fitMode === 'full'
-                          ? 'max-w-full'
-                          : 'max-w-3xl'
+                          : settings.fitMode === 'width'
+                          ? 'max-w-3xl sm:max-w-3xl'
+                          : 'max-w-full'
                       }`}
                       style={{ gap: `${settings.pageGap ?? 0}px` }}
                     >
                       {ch.pages.map((p, idx) => (
                         <div
                           key={`${ch.id}-p-${p.pageNumber}`}
-                          className="manga-page relative w-full flex justify-center p-0 m-0 border-0 shadow-none leading-none select-none text-[0px]"
+                          className="manga-page relative w-full min-w-full max-w-full block p-0 m-0 border-0 shadow-none leading-none select-none text-[0px]"
                           data-chapter-id={ch.id}
                           data-chapter-number={ch.chapter}
                           data-page-number={p.pageNumber}
@@ -1088,14 +1165,18 @@ export default function MangaReader({
                             alt={`Ch ${ch.chapter} - Page ${p.pageNumber}`}
                             loading={chIdx === 0 && idx < 4 ? 'eager' : 'lazy'}
                             referrerPolicy="no-referrer"
-                            className="block w-full h-auto select-none pointer-events-none p-0 m-0 border-0 outline-none align-bottom"
+                            className="block w-full min-w-full max-w-full h-auto select-none pointer-events-none p-0 m-0 border-0 outline-none align-bottom object-contain"
                             style={{
                               display: 'block',
                               verticalAlign: 'bottom',
                               width: '100%',
+                              minWidth: '100%',
+                              maxWidth: '100%',
                               height: 'auto',
                               border: 'none',
                               outline: 'none',
+                              margin: 0,
+                              padding: 0,
                             }}
                             onError={(e) => {
                               if (!e.target.dataset.retried) {
@@ -1111,7 +1192,7 @@ export default function MangaReader({
                   </div>
                 ))}
 
-                {/* Bottom Sentinel: Triggers continuous loading 1200px before reaching the end */}
+                {/* Bottom Sentinel: Triggers continuous loading 1400px before reaching the end */}
                 {settings.continuousScroll && hasNextChapterToLoad && !nextChapterError && (
                   <div ref={bottomSentinelRef} className="h-12 w-full pointer-events-none opacity-0" />
                 )}
@@ -1197,11 +1278,11 @@ export default function MangaReader({
               </div>
             )}
 
-            {/* 2. Single Page Mode */}
+            {/* 2. Single Page Mode: Fitted to Screen */}
             {settings.readingMode === 'single' && loadedChapters[0]?.pages?.length > 0 && (
-              <div className="flex flex-col items-center justify-center w-full max-w-4xl px-4 select-none">
+              <div className="flex flex-col items-center justify-center w-full max-w-4xl px-0 sm:px-4 select-none my-auto">
                 <div 
-                  className="relative w-full max-h-[85vh] flex items-center justify-center bg-black/50 rounded-2xl overflow-hidden shadow-2xl cursor-pointer"
+                  className="relative w-full flex items-center justify-center bg-black/40 sm:rounded-2xl overflow-hidden shadow-2xl cursor-pointer"
                   onClick={(e) => {
                     const rect = e.currentTarget.getBoundingClientRect();
                     const x = e.clientX - rect.left;
@@ -1219,7 +1300,14 @@ export default function MangaReader({
                     src={loadedChapters[0].pages[singlePageNum - 1]?.url}
                     alt={`Page ${singlePageNum}`}
                     referrerPolicy="no-referrer"
-                    className="max-h-[85vh] w-auto object-contain mx-auto"
+                    className="w-full sm:w-auto max-h-[88vh] sm:max-h-[85vh] object-contain mx-auto"
+                    style={{
+                      display: 'block',
+                      width: '100%',
+                      maxWidth: '100%',
+                      maxHeight: '88vh',
+                      objectFit: 'contain'
+                    }}
                   />
 
                   {/* Left / Right click hints */}
@@ -1232,7 +1320,7 @@ export default function MangaReader({
                 </div>
 
                 {/* Single Page Slider */}
-                <div className="flex items-center gap-4 mt-6 w-full max-w-md">
+                <div className="flex items-center gap-4 mt-6 w-full max-w-md px-4">
                   <button
                     disabled={singlePageNum <= 1 && !prevChapter}
                     onClick={handleSinglePagePrev}
@@ -1268,10 +1356,70 @@ export default function MangaReader({
         )}
       </main>
 
+      {/* Floating Auto-Scroll HUD Controller */}
+      {isAutoScrolling && (
+        <div className="fixed bottom-6 sm:bottom-8 left-1/2 -translate-x-1/2 z-50 animate-fadeIn select-none pointer-events-auto">
+          <div className="glass-panel px-3 sm:px-4 py-2 rounded-2xl border border-rose-500/40 shadow-2xl shadow-rose-950/60 backdrop-blur-xl flex items-center gap-2 sm:gap-3 bg-slate-900/95 text-white">
+            {/* Pulsing indicator */}
+            <div className="flex items-center gap-1.5 px-2 py-1 rounded-xl bg-rose-500/15 text-rose-400 border border-rose-500/30 text-[11px] font-bold">
+              <span className="w-2 h-2 rounded-full bg-rose-500 animate-ping" />
+              <span className="hidden xs:inline">Auto-Scroll</span>
+              <span>{settings.autoScrollSpeed || 2}x</span>
+            </div>
+
+            {/* Quick Speed Switcher */}
+            <div className="flex items-center gap-1 bg-white/5 p-0.5 rounded-xl border border-white/5">
+              {[1, 2, 3, 4].map((spd) => (
+                <button
+                  key={spd}
+                  onClick={(e) => {
+                    e.stopPropagation();
+                    updateSetting('autoScrollSpeed', spd);
+                  }}
+                  className={`px-2 py-1 rounded-lg text-[11px] font-bold transition-all ${
+                    (settings.autoScrollSpeed || 2) === spd
+                      ? 'bg-rose-600 text-white shadow-sm'
+                      : 'text-slate-400 hover:text-white'
+                  }`}
+                  title={`${spd}x Speed`}
+                >
+                  {spd}x
+                </button>
+              ))}
+            </div>
+
+            {/* Pause / Stop Button */}
+            <button
+              onClick={(e) => {
+                e.stopPropagation();
+                setIsAutoScrolling(false);
+              }}
+              className="p-1.5 rounded-xl bg-white/10 hover:bg-rose-600 text-slate-200 hover:text-white transition-all flex items-center gap-1 text-xs font-semibold px-2"
+              title="Pause Auto-Scroll"
+            >
+              <Pause className="w-3.5 h-3.5" />
+              <span className="hidden xs:inline">Pause</span>
+            </button>
+
+            {/* Close HUD */}
+            <button
+              onClick={(e) => {
+                e.stopPropagation();
+                setIsAutoScrolling(false);
+              }}
+              className="p-1 text-slate-400 hover:text-white transition-colors"
+              title="Close Auto-Scroll"
+            >
+              <X className="w-4 h-4" />
+            </button>
+          </div>
+        </div>
+      )}
+
       {/* Floating Bottom Bar (Controls & Progress Indicator) */}
       <div 
-        className={`fixed bottom-3 sm:bottom-4 left-1/2 -translate-x-1/2 z-50 w-[calc(100vw-24px)] sm:w-auto transition-all duration-300 ${
-          controlsVisible ? 'translate-y-0 opacity-100' : 'translate-y-16 opacity-0 pointer-events-none'
+        className={`fixed bottom-3 sm:bottom-4 left-1/2 -translate-x-1/2 z-40 w-[calc(100vw-24px)] sm:w-auto transition-all duration-300 ${
+          controlsVisible && !isAutoScrolling ? 'translate-y-0 opacity-100' : 'translate-y-16 opacity-0 pointer-events-none'
         }`}
       >
         <div className="glass-panel border border-white/10 rounded-2xl px-3.5 sm:px-5 py-2 sm:py-2.5 pb-[calc(0.5rem+env(safe-area-inset-bottom))] shadow-2xl flex items-center justify-between sm:justify-center gap-2 sm:gap-4 text-xs font-semibold">

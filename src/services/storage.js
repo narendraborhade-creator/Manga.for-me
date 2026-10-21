@@ -12,10 +12,11 @@ const KEYS = {
 export const DEFAULT_SETTINGS = {
   readingMode: 'webtoon', // 'webtoon' (vertical strip) | 'single' | 'double'
   dataSaver: false,
-  fitMode: 'width', // 'width' | 'height' | 'original'
+  fitMode: 'full', // 'full' (phone fit edge-to-edge) | 'width' (800px) | 'wide' (1020px)
   pageGap: 0, // 0 = continuous seamless strip with 0px gap
   readingDirection: 'ltr', // 'ltr' | 'rtl' (for single/double)
   continuousScroll: true, // Infinite continuous chapter scrolling (like Mihon)
+  autoScrollSpeed: 2, // 1 = slow, 2 = normal, 3 = fast, 4 = turbo
 };
 
 // Safe JSON parser
