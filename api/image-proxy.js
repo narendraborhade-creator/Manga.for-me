@@ -1,7 +1,12 @@
 import { proxyImage } from '../server/mangaProvider.js';
 
 export default async function handler(req, res) {
-
+  if (req.method !== 'GET') {
+    res.setHeader('Allow', 'GET');
+    res.statusCode = 405;
+    res.end('Method Not Allowed');
+    return;
+  }
 
   try {
     const urlObj = new URL(req.url, 'http://localhost');

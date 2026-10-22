@@ -144,6 +144,7 @@ export default function MangaDetailModal({
       >
         {/* Close Button */}
         <button
+          aria-label="Close details"
           onClick={onClose}
           className="absolute top-3.5 right-3.5 sm:top-4 sm:right-4 z-20 p-2 rounded-full bg-black/60 hover:bg-black/90 text-slate-300 hover:text-white border border-white/10 backdrop-blur-md transition-all"
         >
