@@ -21,6 +21,13 @@ import {
   getVortexDetails,
   getVortexChapterPages
 } from './vortexProvider.js';
+import {
+  searchMangaDex,
+  getPopularMangaDex,
+  getMangaDexDetails,
+  getMangaDexChapterPages,
+  getMangaDexRecommendations
+} from './mangadexProvider.js';
 
 // Server-side provider for complete manga chapters and pages
 const USER_AGENT = 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36';
@@ -205,7 +212,8 @@ export async function getPopularManga() {
   });
 
   try {
-    const [asuraList, vortexList, scrapedList] = await Promise.all([
+    const [dexList, asuraList, vortexList, scrapedList] = await Promise.all([
+      getPopularMangaDex(12).catch(() => []),
       getPopularAsura().catch(() => []),
       getPopularVortex().catch(() => []),
       (async () => {
@@ -244,7 +252,7 @@ export async function getPopularManga() {
       })(),
     ]);
 
-    const merged = [...baseList, ...asuraList.slice(0, 8), ...vortexList.slice(0, 8), ...scrapedList];
+    const merged = [...baseList, ...dexList.slice(0, 10), ...asuraList.slice(0, 8), ...vortexList.slice(0, 8), ...scrapedList];
     setCache('popular_manga_v5', merged);
     return merged;
   } catch (error) {
@@ -265,8 +273,12 @@ export async function searchManga(query = '') {
   if (cached) return cached;
 
   try {
-    // Run Webtoon provider, Asura Scans, Vortex Scans, WeebCentral, and MangaPill in parallel
-    const [webtoonMatches, asuraMatches, vortexMatches, weebCentralMatches, mangapillMatches] = await Promise.all([
+    // Run MangaDex, Webtoon provider, Asura Scans, Vortex Scans, WeebCentral, and MangaPill in parallel
+    const [dexMatches, webtoonMatches, asuraMatches, vortexMatches, weebCentralMatches, mangapillMatches] = await Promise.all([
+      searchMangaDex(query, 12).catch((e) => {
+        console.error('searchMangaDex error:', e);
+        return [];
+      }),
       searchWebtoons(query).catch((e) => {
         console.error('searchWebtoons error:', e);
         return [];
@@ -292,7 +304,15 @@ export async function searchManga(query = '') {
     const seen = new Set();
     const combined = [];
 
-    // 1. Webtoon curated catalog matches (Stepmother, Solo Leveling, ORV)
+    // 1. MangaDex matches (flagship Keiyoushi source)
+    dexMatches.forEach((item) => {
+      if (!seen.has(item.id)) {
+        combined.push({ ...item, sourceName: 'MangaDex' });
+        seen.add(item.id);
+      }
+    });
+
+    // 2. Webtoon curated catalog matches (Stepmother, Solo Leveling, ORV)
     webtoonMatches.forEach((item) => {
       if (!seen.has(item.id)) {
         combined.push({ ...item, sourceName: item.sourceName || 'Webtoon' });
@@ -300,7 +320,7 @@ export async function searchManga(query = '') {
       }
     });
 
-    // 2. Asura Scans matches (hundreds of top manhwa)
+    // 3. Asura Scans matches (hundreds of top manhwa)
     asuraMatches.forEach((item) => {
       if (!seen.has(item.id)) {
         combined.push({ ...item, sourceName: 'Asura Scans' });
@@ -308,7 +328,7 @@ export async function searchManga(query = '') {
       }
     });
 
-    // 3. Vortex Scans matches (high-demand action/fantasy manhwa)
+    // 4. Vortex Scans matches (high-demand action/fantasy manhwa)
     vortexMatches.forEach((item) => {
       if (!seen.has(item.id)) {
         combined.push({ ...item, sourceName: 'Vortex Scans' });
@@ -316,7 +336,7 @@ export async function searchManga(query = '') {
       }
     });
 
-    // 4. WeebCentral matches
+    // 5. WeebCentral matches
     weebCentralMatches.forEach((item) => {
       if (!seen.has(item.id)) {
         combined.push({ ...item, sourceName: 'WeebCentral' });
@@ -324,7 +344,7 @@ export async function searchManga(query = '') {
       }
     });
 
-    // 5. MangaPill matches
+    // 6. MangaPill matches
     mangapillMatches.forEach((item) => {
       if (!seen.has(item.id)) {
         combined.push({ ...item, sourceName: 'MangaPill' });
@@ -419,6 +439,9 @@ export async function getMangaDetails(mangaId, bypassCache = false) {
     }
   }
 
+  if (mangaId.startsWith('md:') || mangaId.startsWith('mangadex:')) {
+    return getMangaDexDetails(mangaId, bypassCache);
+  }
   if (mangaId.startsWith('asura:')) {
     return getAsuraDetails(mangaId);
   }
@@ -574,6 +597,9 @@ export async function getChapterPages(chapterId) {
     return getWebtoonChapterPages(`webtoon:stepmother:${num}`);
   }
 
+  if (chapterId.startsWith('md_ch:') || chapterId.startsWith('md:')) {
+    return getMangaDexChapterPages(chapterId);
+  }
   if (chapterId.startsWith('asura_ch:') || chapterId.startsWith('asura:')) {
     return getAsuraChapterPages(chapterId);
   }
@@ -704,5 +730,66 @@ export async function proxyImage(imageUrl, res) {
       res.writeHead(302, { Location: 'https://images.unsplash.com/photo-1578632767115-351597cf2477?w=500&auto=format&fit=crop&q=80' });
       res.end();
     }
+  }
+}
+
+/**
+ * Get Recommendations & Suggestions based on manga genres and categories
+ */
+export async function getMangaRecommendations(currentId = '', genres = [], limit = 8) {
+  try {
+    const cleanId = String(currentId).toLowerCase();
+    const dexRecs = await getMangaDexRecommendations(genres, limit + 2);
+    
+    // Also consider catalog webtoons if genre matches
+    const catalogMatches = WEBTOON_CATALOG
+      .filter(w => String(w.id).toLowerCase() !== cleanId)
+      .map(w => ({
+        id: w.id,
+        title: w.title,
+        englishTitle: w.englishTitle || null,
+        coverUrl: w.coverUrl,
+        genres: w.tags || ['Webtoon'],
+        rating: '4.9',
+        sourceName: 'Webtoon',
+      }));
+
+    const combined = [];
+    const seen = new Set();
+    if (cleanId) seen.add(cleanId);
+
+    // Prioritize high-quality MangaDex recommendations
+    dexRecs.forEach(item => {
+      const lower = String(item.id).toLowerCase();
+      if (!seen.has(lower)) {
+        seen.add(lower);
+        combined.push(item);
+      }
+    });
+
+    // Add catalog recommendations
+    catalogMatches.forEach(item => {
+      const lower = String(item.id).toLowerCase();
+      if (!seen.has(lower) && combined.length < limit) {
+        seen.add(lower);
+        combined.push(item);
+      }
+    });
+
+    // Fallback to featured manga if still low
+    if (combined.length < limit) {
+      FEATURED_MANGA.forEach(item => {
+        const lower = String(item.id).toLowerCase();
+        if (!seen.has(lower) && combined.length < limit) {
+          seen.add(lower);
+          combined.push(item);
+        }
+      });
+    }
+
+    return combined.slice(0, limit);
+  } catch (err) {
+    console.warn('getMangaRecommendations error:', err.message);
+    return FEATURED_MANGA.slice(0, limit);
   }
 }

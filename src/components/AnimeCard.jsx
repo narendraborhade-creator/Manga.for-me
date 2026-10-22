@@ -1,7 +1,7 @@
-import React from 'react';
-import { Star, Play, Film } from 'lucide-react';
+import React, { memo } from 'react';
+import { Star, Play } from 'lucide-react';
 
-export default function AnimeCard({ anime, onSelect }) {
+function AnimeCard({ anime, onSelect }) {
   if (!anime) return null;
 
   return (
@@ -82,3 +82,5 @@ export default function AnimeCard({ anime, onSelect }) {
     </div>
   );
 }
+
+export default memo(AnimeCard);

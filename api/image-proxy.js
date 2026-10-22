@@ -1,11 +1,10 @@
 import { proxyImage } from '../server/mangaProvider.js';
 
 export default async function handler(req, res) {
-  res.setHeader('Access-Control-Allow-Origin', '*');
-  res.setHeader('Access-Control-Allow-Methods', 'GET, OPTIONS');
-
-  if (req.method === 'OPTIONS') {
-    res.status(200).end();
+  if (req.method !== 'GET') {
+    res.setHeader('Allow', 'GET');
+    res.statusCode = 405;
+    res.end('Method Not Allowed');
     return;
   }
 
