@@ -1,5 +1,5 @@
 import React from 'react';
-import { Bookmark, Star, BookOpen, Check, Play } from 'lucide-react';
+import { Bookmark, Star, BookOpen, Check } from 'lucide-react';
 
 export default function MangaCard({
   manga,
@@ -104,7 +104,7 @@ export default function MangaCard({
                 Ch. {lastReadChapter}
               </span>
               <span className="text-slate-400 text-[10px]">
-                Read
+                {readChaptersCount > 0 ? `${readChaptersCount} read` : 'Read'}
               </span>
             </div>
           </div>

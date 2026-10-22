@@ -7,7 +7,6 @@ import {
   Search, 
   Play, 
   Download, 
-  Sparkles,
   Menu, 
   X, 
   Bell,
@@ -51,7 +50,7 @@ export default function Navbar({
   // Debounced search suggestions fetcher
   useEffect(() => {
     if (!searchQuery || searchQuery.trim().length < 2) {
-      setSuggestions([]);
+      setSuggestions((prev) => (prev.length > 0 ? [] : prev));
       setIsSearchingSuggestions(false);
       return;
     }

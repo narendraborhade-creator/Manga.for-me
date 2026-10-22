@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useCallback } from 'react';
 import { 
   X, 
   Play, 
@@ -6,10 +6,6 @@ import {
   Check, 
   Search, 
   ArrowUpDown, 
-  BookOpen, 
-  Clock, 
-  Tag, 
-  Users, 
   Layers,
   Sparkles,
   Loader2,
@@ -42,7 +38,7 @@ export default function MangaDetailModal({
   const [readChapterIds, setReadChapterIds] = useState([]);
 
   // Fetch manga details and chapters
-  const loadMangaData = (forceRefresh = false) => {
+  const loadMangaData = useCallback((forceRefresh = false) => {
     if (!mangaId) return;
     if (forceRefresh) {
       setIsRefreshing(true);
@@ -87,11 +83,11 @@ export default function MangaDetailModal({
         setLoadingChapters(false);
         setIsRefreshing(false);
       });
-  };
+  }, [mangaId, initialCoverUrl, chapterSort]);
 
   useEffect(() => {
     loadMangaData(false);
-  }, [mangaId]);
+  }, [loadMangaData]);
 
   // Handle sort change
   const toggleSort = () => {
