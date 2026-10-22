@@ -1,7 +1,11 @@
 import { searchManga } from '../../server/mangaProvider.js';
 
 export default async function handler(req, res) {
-
+  if (req.method !== 'GET') {
+    res.setHeader('Allow', 'GET');
+    res.status(405).json({ error: 'Method Not Allowed' });
+    return;
+  }
 
   try {
     const urlObj = new URL(req.url, 'http://localhost');

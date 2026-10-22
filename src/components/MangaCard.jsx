@@ -1,12 +1,11 @@
-import React from 'react';
-import { Bookmark, Star, BookOpen, Check, Play } from 'lucide-react';
+import React, { memo } from 'react';
+import { Bookmark, Star, BookOpen, Check } from 'lucide-react';
 
-export default function MangaCard({
+function MangaCard({
   manga,
   onSelect,
   isBookmarked,
   onToggleBookmark,
-  readChaptersCount = 0,
   lastReadChapter = null,
 }) {
   if (!manga) return null;
@@ -149,3 +148,5 @@ export default function MangaCard({
     </div>
   );
 }
+
+export default memo(MangaCard);
