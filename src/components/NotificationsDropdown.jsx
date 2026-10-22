@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useRef } from 'react';
+import React, { useState, useEffect, useRef, useCallback } from 'react';
 import { 
   Bell, 
   Sparkles, 
@@ -6,10 +6,7 @@ import {
   CheckCheck, 
   Trash2, 
   RefreshCw, 
-  X, 
-  ExternalLink,
-  Layers,
-  Settings,
+  X,
   Clock
 } from 'lucide-react';
 import { 
@@ -34,19 +31,18 @@ export default function NotificationsDropdown({
   const [updates, setUpdates] = useState([]);
   const [settings, setSettings] = useState(getUpdateSettings());
   const [checking, setChecking] = useState(false);
-  const [permissionState, setPermissionState] = useState(
-    typeof window !== 'undefined' && 'Notification' in window ? Notification.permission : 'default'
-  );
   const dropdownRef = useRef(null);
 
-  const loadData = () => {
+  const loadData = useCallback(() => {
     setUpdates(getUpdates());
     setSettings(getUpdateSettings());
-  };
+  }, []);
 
   useEffect(() => {
-    loadData();
-  }, [isOpen]);
+    if (isOpen) {
+      loadData();
+    }
+  }, [isOpen, loadData]);
 
   // Click outside listener
   useEffect(() => {
@@ -84,7 +80,6 @@ export default function NotificationsDropdown({
       saveUpdateSettings(updated);
     } else {
       const granted = await requestNotificationPermission();
-      setPermissionState(granted ? 'granted' : 'denied');
       const updated = { ...settings, browserNotifications: granted };
       setSettings(updated);
       saveUpdateSettings(updated);

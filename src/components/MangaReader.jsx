@@ -53,11 +53,17 @@ export default function MangaReader({
   // Each item: { id, chapter, title, pages: [{ pageNumber, url }] }
   const [loadedChapters, setLoadedChapters] = useState([]);
   const loadedChaptersRef = useRef([]);
-  loadedChaptersRef.current = loadedChapters;
 
   const [allChapters, setAllChapters] = useState([]);
   const allChaptersRef = useRef([]);
-  allChaptersRef.current = allChapters;
+
+  useEffect(() => {
+    loadedChaptersRef.current = loadedChapters;
+  }, [loadedChapters]);
+
+  useEffect(() => {
+    allChaptersRef.current = allChapters;
+  }, [allChapters]);
 
   const [initialLoading, setInitialLoading] = useState(true);
   const [initialError, setInitialError] = useState(null);
@@ -1744,21 +1750,22 @@ export default function MangaReader({
           )}
 
           {/* Row 2: Fast Navigation Actions Dock (Home Screen, Details, Prev Chapter, Chapter Menu, Next Chapter) */}
-          <div className="flex items-center justify-between sm:justify-center gap-1.5 sm:gap-2.5 pt-1.5 border-t border-white/10">
+          <div className="flex items-center justify-between sm:justify-center gap-1 sm:gap-2.5 pt-1.5 border-t border-white/10 overflow-x-auto scrollbar-none pb-0.5">
             {/* Go to Home Screen Button */}
             <button
               onClick={handleHome}
-              className="px-3 py-1.5 rounded-xl bg-slate-900 border border-white/10 hover:border-rose-500/40 text-slate-200 hover:text-white font-bold flex items-center gap-1.5 transition-all text-[11px] sm:text-xs"
+              className="px-2.5 sm:px-3 py-1.5 rounded-xl bg-slate-900 border border-white/10 hover:border-rose-500/40 text-slate-200 hover:text-white font-bold flex items-center gap-1.5 transition-all text-[11px] sm:text-xs flex-shrink-0"
               title="Go to Home Screen"
             >
               <Home className="w-3.5 h-3.5 text-rose-400" />
-              <span>Home Screen</span>
+              <span className="hidden xs:inline">Home Screen</span>
+              <span className="xs:hidden">Home</span>
             </button>
 
             {/* Go Back Button */}
             <button
               onClick={onClose}
-              className="px-2 sm:px-2.5 py-1.5 rounded-xl bg-slate-900 border border-white/10 hover:border-white/20 text-slate-300 hover:text-white font-bold flex items-center gap-1 transition-all text-[11px] sm:text-xs"
+              className="px-2 sm:px-2.5 py-1.5 rounded-xl bg-slate-900 border border-white/10 hover:border-white/20 text-slate-300 hover:text-white font-bold flex items-center gap-1 transition-all text-[11px] sm:text-xs flex-shrink-0"
               title="Back to Details / Previous View"
             >
               <ChevronLeft className="w-3.5 h-3.5" />
@@ -1769,11 +1776,11 @@ export default function MangaReader({
             <button
               disabled={!prevChapter}
               onClick={() => prevChapter && jumpToChapter(prevChapter.id, prevChapter.chapter)}
-              className="px-2 sm:px-2.5 py-1.5 rounded-xl bg-slate-900 border border-white/10 text-slate-300 hover:text-white disabled:opacity-30 disabled:cursor-not-allowed transition-all flex items-center gap-1 text-[11px] sm:text-xs font-semibold"
+              className="px-2 sm:px-2.5 py-1.5 rounded-xl bg-slate-900 border border-white/10 text-slate-300 hover:text-white disabled:opacity-30 disabled:cursor-not-allowed transition-all flex items-center gap-1 text-[11px] sm:text-xs font-semibold flex-shrink-0"
               title="Previous Chapter"
             >
               <ChevronLeft className="w-3.5 h-3.5 text-rose-400" />
-              <span className="truncate max-w-[55px] xs:max-w-none">
+              <span className="truncate max-w-[50px] xs:max-w-none">
                 Ch. {prevChapter?.chapter || '—'}
               </span>
             </button>
@@ -1781,7 +1788,7 @@ export default function MangaReader({
             {/* Chapter Picker Trigger */}
             <button
               onClick={() => setShowChapterMenu(!showChapterMenu)}
-              className="px-2.5 sm:px-3 py-1.5 rounded-xl bg-slate-900 border border-white/10 hover:border-rose-500/40 text-slate-200 font-bold flex items-center gap-1.5 transition-all text-[11px] sm:text-xs"
+              className="px-2 sm:px-3 py-1.5 rounded-xl bg-slate-900 border border-white/10 hover:border-rose-500/40 text-slate-200 font-bold flex items-center gap-1.5 transition-all text-[11px] sm:text-xs flex-shrink-0"
               title="Open Chapter List"
             >
               <Layers className="w-3.5 h-3.5 text-rose-400" />
@@ -1792,10 +1799,10 @@ export default function MangaReader({
             <button
               disabled={!nextChapter}
               onClick={() => nextChapter && jumpToChapter(nextChapter.id, nextChapter.chapter)}
-              className="px-3 sm:px-4 py-1.5 rounded-xl bg-gradient-to-r from-rose-600 to-rose-500 hover:from-rose-500 hover:to-rose-400 text-white font-bold disabled:opacity-30 disabled:cursor-not-allowed shadow-md shadow-rose-600/30 transition-all flex items-center gap-1 text-[11px] sm:text-xs"
+              className="px-2.5 sm:px-4 py-1.5 rounded-xl bg-gradient-to-r from-rose-600 to-rose-500 hover:from-rose-500 hover:to-rose-400 text-white font-bold disabled:opacity-30 disabled:cursor-not-allowed shadow-md shadow-rose-600/30 transition-all flex items-center gap-1 text-[11px] sm:text-xs flex-shrink-0"
               title="Move to Next Chapter"
             >
-              <span className="truncate max-w-[70px] xs:max-w-none">
+              <span className="truncate max-w-[65px] xs:max-w-none">
                 Next Ch. {nextChapter?.chapter || ''}
               </span>
               <ChevronRight className="w-3.5 h-3.5" />
@@ -1804,7 +1811,7 @@ export default function MangaReader({
             {/* Scroll to Top */}
             <button
               onClick={scrollToTop}
-              className="p-1.5 rounded-xl bg-slate-900 border border-white/10 hover:bg-white/10 text-slate-400 hover:text-white transition-colors"
+              className="p-1.5 rounded-xl bg-slate-900 border border-white/10 hover:bg-white/10 text-slate-400 hover:text-white transition-colors flex-shrink-0"
               title="Scroll to Top"
             >
               <ArrowUp className="w-3.5 h-3.5" />

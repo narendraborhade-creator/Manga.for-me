@@ -6,6 +6,7 @@ function MangaCard({
   onSelect,
   isBookmarked,
   onToggleBookmark,
+  readChaptersCount = 0,
   lastReadChapter = null,
 }) {
   if (!manga) return null;
@@ -103,7 +104,7 @@ function MangaCard({
                 Ch. {lastReadChapter}
               </span>
               <span className="text-slate-400 text-[10px]">
-                Read
+                {readChaptersCount > 0 ? `${readChaptersCount} read` : 'Read'}
               </span>
             </div>
           </div>

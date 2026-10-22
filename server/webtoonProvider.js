@@ -231,7 +231,7 @@ export async function searchWebtoons(query = '') {
         });
       }
     }
-  } catch (err) {
+  } catch {
     // Dynamic lookup failed, return curated catalog results
   }
 
