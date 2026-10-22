@@ -1,6 +1,8 @@
 import { getMangaRecommendations } from '../../server/mangaProvider.js';
 
 export default async function handler(req, res) {
+
+
   try {
     const urlObj = new URL(req.url, 'http://localhost');
     const id = req.query?.id || urlObj.searchParams.get('id') || '';

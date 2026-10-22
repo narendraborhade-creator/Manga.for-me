@@ -167,51 +167,40 @@ export default function MangaReader({
   const controlsTimeoutRef = useRef(null);
   const autoScrollRef = useRef(null);
 
-  // Auto-hide controls after idle (only if menus are not open)
-  const handleMouseMove = () => {
+  // Auto-hide controls after idle: unified scheduler
+  const rescheduleControls = useCallback((duration = 5500) => {
     setControlsVisible(true);
-    if (controlsTimeoutRef.current) clearTimeout(controlsTimeoutRef.current);
+    if (controlsTimeoutRef.current) {
+      clearTimeout(controlsTimeoutRef.current);
+    }
     controlsTimeoutRef.current = setTimeout(() => {
+      // Only hide if dropdown menus or modals are not open
       if (!showSettingsMenu && !showChapterMenu && !showHelpModal) {
         setControlsVisible(false);
       }
-    }, 4500);
-  };
+    }, duration);
+  }, [showSettingsMenu, showChapterMenu, showHelpModal]);
 
-  // Tap reader area: toggle floating controls, handle Mihon tap zones, or pause auto-scrolling
+  // Initial schedule on reader open
+  useEffect(() => {
+    rescheduleControls(6000);
+    return () => {
+      if (controlsTimeoutRef.current) clearTimeout(controlsTimeoutRef.current);
+    };
+  }, [rescheduleControls]);
+
+  // Tap anywhere on any manga page: show upper and lower bars and reschedule timer
   const handleReaderTap = (e) => {
-    if (e.target.closest('button, input, select, a, .glass-panel, [role="dialog"], .glass-nav')) {
+    if (e.target.closest('button, input, select, a, .glass-panel, [role="dialog"], .glass-nav, .slider-thumb')) {
       return;
     }
-    // If auto-scrolling is active, tapping the screen immediately pauses it
+    // If auto-scrolling is active, tapping anywhere immediately pauses it
     if (isAutoScrolling) {
       setIsAutoScrolling(false);
-      setControlsVisible(true);
-      return;
     }
 
-    // If controls are currently visible, clicking the page hides them
-    if (controlsVisible) {
-      setControlsVisible(false);
-      return;
-    }
-
-    // Controls are hidden: Mihon-style Tap Navigation Zones
-    if (settings.tapZones !== false) {
-      const xRatio = e.clientX / window.innerWidth;
-      if (xRatio < 0.22) {
-        // Left side tap: Go to previous page / scroll up
-        handlePrevPage();
-        return;
-      } else if (xRatio > 0.78) {
-        // Right side tap: Go to next page / scroll down
-        handleNextPage();
-        return;
-      }
-    }
-
-    // Center tap (or tap zones disabled): Show interactive controls overlay!
-    setControlsVisible(true);
+    // Reschedule upper and lower bars so they appear and stay visible
+    rescheduleControls(6000);
   };
 
   // Update Settings
@@ -537,6 +526,9 @@ export default function MangaReader({
 
   // Track scroll position in Webtoon mode to update active chapter, page number, and trigger infinite loading
   const handleScroll = useCallback(() => {
+    // Show upper and lower bars and reschedule auto-hide timer on user scroll
+    rescheduleControls(5000);
+
     const container = containerRef.current;
     if (!container) return;
 
@@ -589,15 +581,20 @@ export default function MangaReader({
         }
       }
     }
-  }, [settings.readingMode, settings.continuousScroll, loadNextChapter, mangaId, mangaTitle, mangaEnglishTitle, coverUrl, onChangeChapter, chapterId]);
+  }, [settings.readingMode, settings.continuousScroll, loadNextChapter, mangaId, mangaTitle, mangaEnglishTitle, coverUrl, onChangeChapter, chapterId, rescheduleControls]);
 
-  // Attach scroll listener to reader container
+  // Attach scroll & touch listeners to reader container so upper & lower bars appear on user interaction
   useEffect(() => {
     const container = containerRef.current;
     if (!container) return;
+    const onTouch = () => rescheduleControls(5000);
     container.addEventListener('scroll', handleScroll, { passive: true });
-    return () => container.removeEventListener('scroll', handleScroll);
-  }, [handleScroll]);
+    container.addEventListener('touchmove', onTouch, { passive: true });
+    return () => {
+      container.removeEventListener('scroll', handleScroll);
+      container.removeEventListener('touchmove', onTouch);
+    };
+  }, [handleScroll, rescheduleControls]);
 
   // IntersectionObserver for Bottom Sentinel (Proactive next chapter auto-fetch)
   useEffect(() => {
@@ -1387,6 +1384,15 @@ export default function MangaReader({
             >
               {isFullscreen ? <Minimize className="w-4 h-4" /> : <Maximize className="w-4 h-4" />}
             </button>
+
+            {/* Close / Hide Bars */}
+            <button
+              onClick={() => setControlsVisible(false)}
+              className="p-1.5 sm:p-2 rounded-xl bg-slate-900 border border-white/10 text-slate-400 hover:text-white transition-all"
+              title="Hide Bars"
+            >
+              <X className="w-4 h-4" />
+            </button>
           </div>
 
         </div>
@@ -1395,7 +1401,8 @@ export default function MangaReader({
       {/* Scrollable Canvas for Manga Pages (Dimmed by brightness filter) */}
       <div 
         ref={containerRef}
-        onMouseMove={handleMouseMove}
+        onMouseMove={() => rescheduleControls(4500)}
+        onTouchStart={() => rescheduleControls(5000)}
         onClick={handleReaderTap}
         className="absolute inset-0 overflow-y-auto overscroll-y-contain selection:bg-rose-500 selection:text-white transition-colors duration-300 w-full h-full"
         style={{ 
@@ -1656,26 +1663,7 @@ export default function MangaReader({
               <div className="flex flex-col items-center justify-center w-full max-w-4xl px-0 sm:px-4 select-none my-auto">
                 <div 
                   className="relative w-full flex items-center justify-center bg-black/40 sm:rounded-2xl overflow-hidden shadow-2xl cursor-pointer"
-                  onClick={(e) => {
-                    const rect = e.currentTarget.getBoundingClientRect();
-                    const x = e.clientX - rect.left;
-                    const ratio = x / rect.width;
-
-                    // Mihon/Webtoon: Center 50% toggles HUD controls
-                    if (ratio >= 0.25 && ratio <= 0.75) {
-                      setControlsVisible((prev) => !prev);
-                      return;
-                    }
-
-                    const isRight = ratio > 0.75;
-                    if (settings.readingDirection === 'rtl') {
-                      if (isRight) handleSinglePagePrev();
-                      else handleSinglePageNext();
-                    } else {
-                      if (isRight) handleSinglePageNext();
-                      else handleSinglePagePrev();
-                    }
-                  }}
+                  onClick={handleReaderTap}
                 >
                   <img
                     src={loadedChapters[0].pages[singlePageNum - 1]?.url}
@@ -1806,19 +1794,21 @@ export default function MangaReader({
       >
         <div className="glass-panel border border-white/15 bg-slate-950/95 backdrop-blur-2xl rounded-2xl sm:rounded-3xl p-2.5 sm:p-3 pb-[calc(0.5rem+env(safe-area-inset-bottom))] shadow-[0_12px_45px_rgba(0,0,0,0.85)] flex flex-col gap-2 text-xs font-semibold">
           
-          {/* Row 1: Interactive Page Scrubber Slider (Webtoon & Mihon signature feature) */}
+          {/* Row 1: Interactive Page Scrubber with "Go Back", "Page X of Y", and "Go Front" */}
           {activeTotalPages > 0 && (
             <div className="flex items-center gap-2 sm:gap-3 px-1 py-0.5">
+              {/* Go Back Button (Previous Page) */}
               <button
                 onClick={handlePrevPage}
                 disabled={activePageNumber <= 1 && !prevChapter}
-                className="px-2 py-1 rounded-xl bg-white/5 hover:bg-white/10 text-slate-300 hover:text-white disabled:opacity-30 disabled:cursor-not-allowed transition-all flex items-center gap-1 text-[11px] font-bold flex-shrink-0"
-                title="Previous Page"
+                className="px-2.5 py-1.5 rounded-xl bg-white/10 hover:bg-white/20 active:scale-95 text-slate-200 hover:text-white disabled:opacity-30 disabled:cursor-not-allowed transition-all flex items-center gap-1 text-[11px] font-bold flex-shrink-0"
+                title="Go Back (Previous Page)"
               >
                 <ChevronLeft className="w-3.5 h-3.5 text-rose-400" />
-                <span className="hidden xs:inline">Prev Page</span>
+                <span>Go Back</span>
               </button>
 
+              {/* Page Indicator ("On What Page I Am") & Scrubber Slider */}
               <div className="flex-1 flex items-center gap-2 min-w-[120px]">
                 <input
                   type="range"
@@ -1828,33 +1818,34 @@ export default function MangaReader({
                   onChange={(e) => scrollToPage(parseInt(e.target.value, 10))}
                   className="w-full h-1.5 bg-slate-800 rounded-lg appearance-none cursor-pointer accent-rose-500 hover:accent-rose-400"
                 />
-                <span className="text-[11px] font-mono text-slate-300 whitespace-nowrap bg-white/5 px-2 py-0.5 rounded-md border border-white/5 flex-shrink-0">
-                  {activePageNumber} / {activeTotalPages}
+                <span className="text-[11px] font-mono text-rose-400 font-bold whitespace-nowrap bg-rose-500/10 px-2.5 py-1 rounded-lg border border-rose-500/20 flex-shrink-0 shadow-sm">
+                  Page {activePageNumber} / {activeTotalPages}
                 </span>
               </div>
 
+              {/* Go Front Button (Next Page) */}
               <button
                 onClick={handleNextPage}
                 disabled={activePageNumber >= activeTotalPages && !nextChapter}
-                className="px-2 py-1 rounded-xl bg-white/5 hover:bg-white/10 text-slate-300 hover:text-white disabled:opacity-30 disabled:cursor-not-allowed transition-all flex items-center gap-1 text-[11px] font-bold flex-shrink-0"
-                title="Next Page"
+                className="px-2.5 py-1.5 rounded-xl bg-white/10 hover:bg-white/20 active:scale-95 text-slate-200 hover:text-white disabled:opacity-30 disabled:cursor-not-allowed transition-all flex items-center gap-1 text-[11px] font-bold flex-shrink-0"
+                title="Go Front (Next Page)"
               >
-                <span className="hidden xs:inline">Next Page</span>
+                <span>Go Front</span>
                 <ChevronRight className="w-3.5 h-3.5 text-rose-400" />
               </button>
             </div>
           )}
 
-          {/* Row 2: Fast Navigation Actions Dock (Home, Back, Prev Chapter, Chapter Menu, Next Chapter) */}
+          {/* Row 2: Fast Navigation Actions Dock (Home Screen, Details, Prev Chapter, Chapter Menu, Next Chapter) */}
           <div className="flex items-center justify-between sm:justify-center gap-1.5 sm:gap-2.5 pt-1.5 border-t border-white/10">
             {/* Go to Home Screen Button */}
             <button
               onClick={handleHome}
-              className="px-2.5 sm:px-3 py-1.5 rounded-xl bg-slate-900 border border-white/10 hover:border-rose-500/40 text-slate-200 hover:text-white font-bold flex items-center gap-1.5 transition-all text-[11px] sm:text-xs"
+              className="px-3 py-1.5 rounded-xl bg-slate-900 border border-white/10 hover:border-rose-500/40 text-slate-200 hover:text-white font-bold flex items-center gap-1.5 transition-all text-[11px] sm:text-xs"
               title="Go to Home Screen"
             >
               <Home className="w-3.5 h-3.5 text-rose-400" />
-              <span>Home</span>
+              <span>Home Screen</span>
             </button>
 
             {/* Go Back Button */}

@@ -1,6 +1,8 @@
 import { proxyImage } from '../server/mangaProvider.js';
 
 export default async function handler(req, res) {
+
+
   try {
     const urlObj = new URL(req.url, 'http://localhost');
     const targetUrl = req.query?.url || urlObj.searchParams.get('url');

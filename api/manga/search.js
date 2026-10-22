@@ -1,6 +1,8 @@
 import { searchManga } from '../../server/mangaProvider.js';
 
 export default async function handler(req, res) {
+
+
   try {
     const urlObj = new URL(req.url, 'http://localhost');
     const q = req.query?.q || urlObj.searchParams.get('q') || '';

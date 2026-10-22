@@ -1,6 +1,8 @@
 import { getChapterPages } from '../../server/mangaProvider.js';
 
 export default async function handler(req, res) {
+
+
   try {
     const urlObj = new URL(req.url, 'http://localhost');
     const chapterId = req.query?.chapterId || urlObj.searchParams.get('chapterId');
