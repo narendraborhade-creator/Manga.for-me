@@ -1,32 +1,5 @@
 import React, { useState, useEffect, useRef, useCallback } from 'react';
-import { 
-  X, 
-  ChevronLeft, 
-  ChevronRight, 
-  Settings, 
-  Maximize, 
-  Minimize, 
-  Play, 
-  Pause, 
-  Check, 
-  ArrowUp,
-  Loader2,
-  AlertCircle,
-  Layers,
-  Palette,
-  Compass,
-  RotateCw,
-  Gauge,
-  Sun,
-  Search,
-  ArrowUpDown,
-  HelpCircle,
-  Home,
-  Clock,
-  Battery,
-  Bookmark,
-  Infinity as InfinityIcon
-} from 'lucide-react';
+import { Loader2, AlertCircle } from 'lucide-react';
 import { fetchChapterPages, fetchMangaChapters } from '../services/mangaApi';
 import { 
   recordReadingProgress, 
@@ -37,6 +10,14 @@ import {
   setBookmark,
   removeBookmark
 } from '../services/storage';
+
+import ChapterSelectionModal from './reader/ChapterSelectionModal';
+import ReaderSettingsModal from './reader/ReaderSettingsModal';
+import KeyboardHelpModal from './reader/KeyboardHelpModal';
+import AutoScrollHud from './reader/AutoScrollHud';
+import ReaderBottomHud from './reader/ReaderBottomHud';
+import SinglePageView from './reader/SinglePageView';
+import WebtoonView from './reader/WebtoonView';
 
 export default function MangaReader({
   mangaId,
@@ -50,9 +31,12 @@ export default function MangaReader({
   onChangeChapter
 }) {
   // Loaded chapters in continuous reading sequence
-  // Each item: { id, chapter, title, pages: [{ pageNumber, url }] }
   const [loadedChapters, setLoadedChapters] = useState([]);
   const loadedChaptersRef = useRef([]);
+
+  useEffect(() => {
+    loadedChaptersRef.current = loadedChapters;
+  }, [loadedChapters]);
 
   const [allChapters, setAllChapters] = useState([]);
   const allChaptersRef = useRef([]);
@@ -68,7 +52,7 @@ export default function MangaReader({
   const [initialLoading, setInitialLoading] = useState(true);
   const [initialError, setInitialError] = useState(null);
 
-  // Next chapter auto-loading state (continuous stream)
+  // Next chapter auto-loading state
   const [isLoadingNext, setIsLoadingNext] = useState(false);
   const isLoadingNextRef = useRef(false);
   const [nextChapterError, setNextChapterError] = useState(null);
@@ -97,7 +81,7 @@ export default function MangaReader({
 
   const handleHome = onGoHome || onClose;
 
-  // Bookmarking integration (Mihon & Webtoon quick bookmark)
+  // Bookmarking integration
   const [bookmarked, setBookmarked] = useState(() => mangaId ? isBookmarked(mangaId) : false);
 
   const toggleBookmark = (e) => {
@@ -119,7 +103,7 @@ export default function MangaReader({
     }
   };
 
-  // Mihon Header Clock & Battery Indicator
+  // Clock & Battery Indicator
   const [clockTime, setClockTime] = useState(() => {
     const d = new Date();
     return d.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
@@ -150,11 +134,11 @@ export default function MangaReader({
     return {
       theme: saved.theme || 'oled',
       readingMode: saved.readingMode || 'webtoon',
-      fitMode: saved.fitMode || 'full', // Default to 'full' for edge-to-edge phone screen fit
+      fitMode: saved.fitMode || 'full',
       pageGap: effectiveGap,
       readingDirection: saved.readingDirection || 'ltr',
-      autoScrollSpeed: saved.autoScrollSpeed || 2, // 1 = 45px/s, 2 = 95px/s, 3 = 175px/s, 4 = 280px/s
-      brightness: saved.brightness ?? 100, // 40 - 100
+      autoScrollSpeed: saved.autoScrollSpeed || 2,
+      brightness: saved.brightness ?? 100,
       continuousScroll: saved.continuousScroll !== undefined ? saved.continuousScroll : true,
       tapZones: saved.tapZones !== undefined ? saved.tapZones : true,
     };
@@ -172,21 +156,19 @@ export default function MangaReader({
   const controlsTimeoutRef = useRef(null);
   const autoScrollRef = useRef(null);
 
-  // Auto-hide controls after idle: unified scheduler
+  // Auto-hide controls after idle
   const rescheduleControls = useCallback((duration = 5500) => {
     setControlsVisible(true);
     if (controlsTimeoutRef.current) {
       clearTimeout(controlsTimeoutRef.current);
     }
     controlsTimeoutRef.current = setTimeout(() => {
-      // Only hide if dropdown menus or modals are not open
       if (!showSettingsMenu && !showChapterMenu && !showHelpModal) {
         setControlsVisible(false);
       }
     }, duration);
   }, [showSettingsMenu, showChapterMenu, showHelpModal]);
 
-  // Initial schedule on reader open
   useEffect(() => {
     rescheduleControls(6000);
     return () => {
@@ -194,28 +176,22 @@ export default function MangaReader({
     };
   }, [rescheduleControls]);
 
-  // Tap anywhere on any manga page: show upper and lower bars and reschedule timer
   const handleReaderTap = (e) => {
     if (e.target.closest('button, input, select, a, .glass-panel, [role="dialog"], .glass-nav, .slider-thumb')) {
       return;
     }
-    // If auto-scrolling is active, tapping anywhere immediately pauses it
     if (isAutoScrolling) {
       setIsAutoScrolling(false);
     }
-
-    // Reschedule upper and lower bars so they appear and stay visible
     rescheduleControls(6000);
   };
 
-  // Update Settings
   const updateSetting = (key, value) => {
     const updated = { ...settings, [key]: value };
     setSettings(updated);
     saveReaderSettings(updated);
   };
 
-  // Fullscreen toggle
   const toggleFullscreen = () => {
     if (!document.fullscreenElement) {
       document.documentElement.requestFullscreen().catch(console.error);
@@ -228,7 +204,6 @@ export default function MangaReader({
     }
   };
 
-  // Scroll to top of container
   const scrollToTop = () => {
     if (containerRef.current) {
       containerRef.current.scrollTo({ top: 0, behavior: 'smooth' });
@@ -279,7 +254,6 @@ export default function MangaReader({
     setLoadedChapters([]);
     setNextChapterError(null);
 
-    // Load read history
     if (mangaId) {
       setReadChapterIds(getReadChaptersForManga(mangaId));
     }
@@ -343,15 +317,12 @@ export default function MangaReader({
     };
   }, [chapterId, chapterNumber, mangaId, coverUrl, mangaEnglishTitle, mangaTitle]);
 
-  // -------------------------------------------------------------
-  // Proactive Lookahead Page Preloader (Instant Scrolling)
-  // -------------------------------------------------------------
+  // Proactive Lookahead Page Preloader
   useEffect(() => {
     if (loadedChapters.length === 0) return;
     const allPages = loadedChapters.flatMap((ch) => ch.pages || []);
     if (allPages.length === 0) return;
 
-    // Prefetch upcoming 6 pages ahead into browser memory cache
     const currentIdx = allPages.findIndex((p) => p.pageNumber === activePageNumber);
     const start = Math.max(0, currentIdx);
     const end = Math.min(allPages.length, start + 6);
@@ -365,7 +336,7 @@ export default function MangaReader({
     }
   }, [activeChapterId, activePageNumber, loadedChapters]);
 
-  // Seamless Next Chapter Auto-loader (Continuous Infinite Scroll)
+  // Seamless Next Chapter Auto-loader
   const loadNextChapter = useCallback(async () => {
     if (isLoadingNextRef.current) return;
     if (!settings.continuousScroll || settings.readingMode !== 'webtoon') return;
@@ -419,7 +390,7 @@ export default function MangaReader({
     }
   }, [settings.continuousScroll, settings.readingMode]);
 
-  // Load Previous Chapter (Prepended seamlessly)
+  // Load Previous Chapter
   const loadPrevChapter = async () => {
     if (isLoadingPrev || !prevChapterToLoad) return;
     setIsLoadingPrev(true);
@@ -529,22 +500,19 @@ export default function MangaReader({
       });
   }, [onChangeChapter, mangaId, mangaTitle, mangaEnglishTitle, coverUrl]);
 
-  // Track scroll position in Webtoon mode to update active chapter, page number, and trigger infinite loading
+  // Track scroll position in Webtoon mode
   const handleScroll = useCallback(() => {
-    // Show upper and lower bars and reschedule auto-hide timer on user scroll
     rescheduleControls(5000);
 
     const container = containerRef.current;
     if (!container) return;
 
     if (settings.readingMode === 'webtoon') {
-      // 1. Proactive auto-load when near bottom
       const remaining = container.scrollHeight - (container.scrollTop + container.clientHeight);
       if (remaining < 1800 && settings.continuousScroll) {
         loadNextChapter();
       }
 
-      // 2. Active page & chapter tracking in viewport
       const midY = container.clientHeight / 2;
       const pageEls = container.querySelectorAll('.manga-page');
       for (let i = 0; i < pageEls.length; i++) {
@@ -588,7 +556,7 @@ export default function MangaReader({
     }
   }, [settings.readingMode, settings.continuousScroll, loadNextChapter, mangaId, mangaTitle, mangaEnglishTitle, coverUrl, onChangeChapter, chapterId, rescheduleControls]);
 
-  // Attach scroll & touch listeners to reader container so upper & lower bars appear on user interaction
+  // Attach scroll & touch listeners
   useEffect(() => {
     const container = containerRef.current;
     if (!container) return;
@@ -601,7 +569,7 @@ export default function MangaReader({
     };
   }, [handleScroll, rescheduleControls]);
 
-  // IntersectionObserver for Bottom Sentinel (Proactive next chapter auto-fetch)
+  // IntersectionObserver for Bottom Sentinel
   useEffect(() => {
     if (!settings.continuousScroll || settings.readingMode !== 'webtoon') return;
     const sentinel = bottomSentinelRef.current;
@@ -623,9 +591,7 @@ export default function MangaReader({
     return () => observer.disconnect();
   }, [loadedChapters.length, settings.continuousScroll, settings.readingMode, loadNextChapter]);
 
-  // -------------------------------------------------------------
-  // High-Precision Auto-Scroll Engine (Tested for Mobile & Desktop)
-  // -------------------------------------------------------------
+  // Auto-Scroll Engine
   useEffect(() => {
     if (!isAutoScrolling || settings.readingMode !== 'webtoon') {
       if (autoScrollRef.current) {
@@ -635,13 +601,7 @@ export default function MangaReader({
       return;
     }
 
-    const speedMap = {
-      1: 45,
-      2: 95,
-      3: 175,
-      4: 280,
-    };
-
+    const speedMap = { 1: 45, 2: 95, 3: 175, 4: 280 };
     const currentSpeedLevel = settings.autoScrollSpeed || 2;
     const pixelsPerSecond = speedMap[currentSpeedLevel] || 95;
 
@@ -665,7 +625,6 @@ export default function MangaReader({
         if (container) {
           container.scrollTop += movePixels;
 
-          // Check if approaching bottom to trigger continuous chapter load
           const remainingBottom = container.scrollHeight - (container.scrollTop + container.clientHeight);
           if (remainingBottom < 1600 && hasNextChapterToLoad && !isLoadingNextRef.current) {
             loadNextChapter();
@@ -734,7 +693,7 @@ export default function MangaReader({
     }
   }, [singlePageNum, prevChapter, mangaId, mangaTitle, mangaEnglishTitle, coverUrl, activeChapterId, activeChapterNumber, activeTotalPages, jumpToChapter]);
 
-  // Jump directly to a specific page inside the active chapter (Webtoon & Single Page Scrubber)
+  // Jump directly to a specific page
   const scrollToPage = useCallback((pageNum) => {
     const targetPage = Math.max(1, Math.min(pageNum, activeTotalPages || 1));
     setActivePageNumber(targetPage);
@@ -754,7 +713,6 @@ export default function MangaReader({
       return;
     }
 
-    // Webtoon continuous mode: scroll into view
     const pageEl = document.getElementById(`page-${activeChapterId}-${targetPage}`)
       || document.querySelector(`[data-page-number="${targetPage}"][data-chapter-id="${activeChapterId}"]`);
 
@@ -769,7 +727,6 @@ export default function MangaReader({
     }
   }, [settings.readingMode, activeTotalPages, activeChapterId, mangaId, mangaTitle, mangaEnglishTitle, coverUrl, activeChapterNumber]);
 
-  // Next Page action (Webtoon scroll step or Single Page step)
   const handleNextPage = useCallback(() => {
     if (settings.readingMode === 'single') {
       handleSinglePageNext();
@@ -782,7 +739,6 @@ export default function MangaReader({
     }
   }, [settings.readingMode, handleSinglePageNext, activePageNumber, activeTotalPages, scrollToPage, nextChapter, jumpToChapter]);
 
-  // Previous Page action (Webtoon scroll step or Single Page step)
   const handlePrevPage = useCallback(() => {
     if (settings.readingMode === 'single') {
       handleSinglePagePrev();
@@ -845,21 +801,6 @@ export default function MangaReader({
   // Reading progress percentage
   const progressPercent = Math.min(100, Math.max(0, Math.round((activePageNumber / Math.max(activeTotalPages, 1)) * 100)));
 
-  // Filtered chapters for chapter dropdown
-  const filteredChapters = allChapters.filter((ch) => {
-    if (!chapterFilter) return true;
-    return (
-      String(ch.chapter).toLowerCase().includes(chapterFilter.toLowerCase()) ||
-      (ch.title && ch.title.toLowerCase().includes(chapterFilter.toLowerCase()))
-    );
-  });
-
-  const sortedDropdownChapters = [...filteredChapters].sort((a, b) => {
-    const numA = parseFloat(a.chapter) || 0;
-    const numB = parseFloat(b.chapter) || 0;
-    return chapterSortAsc ? numA - numB : numB - numA;
-  });
-
   return (
     <div className={`fixed inset-0 z-50 ${themeBg} text-slate-100 overflow-hidden w-full h-full select-none`}>
       {/* Top 2px Reading Progress Bar */}
@@ -870,380 +811,43 @@ export default function MangaReader({
         />
       </div>
 
-      {/* Enhanced Chapter Selection Modal */}
-      {showChapterMenu && (
-        <div 
-          className="fixed inset-0 z-[70] flex items-end sm:items-center justify-center p-3 sm:p-4 bg-black/80 backdrop-blur-sm animate-fadeIn"
-          onClick={() => setShowChapterMenu(false)}
-        >
-          <div 
-            className="w-full sm:w-96 max-h-[75vh] bg-slate-900 border border-white/10 rounded-3xl shadow-2xl p-4 flex flex-col space-y-3"
-            onClick={(e) => e.stopPropagation()}
-          >
-            <div className="flex items-center justify-between border-b border-white/10 pb-2.5">
-              <span className="text-xs font-bold text-white flex items-center gap-1.5">
-                <Layers className="w-4 h-4 text-rose-400" />
-                <span>Chapter Selection</span>
-              </span>
-              <div className="flex items-center gap-1.5">
-                <button
-                  onClick={() => setChapterSortAsc(!chapterSortAsc)}
-                  className="p-1 px-2 rounded-lg bg-white/5 hover:bg-white/10 text-slate-300 text-[10px] font-semibold flex items-center gap-1 transition-all"
-                  title="Toggle Sort Order"
-                >
-                  <ArrowUpDown className="w-3 h-3" />
-                  <span>{chapterSortAsc ? '1 → N' : 'N → 1'}</span>
-                </button>
-                <button 
-                  onClick={() => setShowChapterMenu(false)} 
-                  className="text-slate-400 hover:text-white text-xs p-1 rounded-lg hover:bg-white/10"
-                >
-                  ✕
-                </button>
-              </div>
-            </div>
-
-            {/* Chapter Quick Filter Input */}
-            <div className="relative">
-              <Search className="w-3.5 h-3.5 text-slate-400 absolute left-2.5 top-1/2 -translate-y-1/2 pointer-events-none" />
-              <input
-                type="text"
-                placeholder="Filter chapter number (e.g. 50)..."
-                value={chapterFilter}
-                onChange={(e) => setChapterFilter(e.target.value)}
-                className="w-full bg-slate-800/90 border border-white/10 rounded-xl pl-8 pr-3 py-2 text-xs text-slate-200 placeholder:text-slate-500 focus:outline-none focus:border-rose-500/50"
-              />
-            </div>
-
-            {/* Chapters List */}
-            <div className="overflow-y-auto max-h-[50vh] space-y-1 pr-1">
-              {sortedDropdownChapters.map((ch) => {
-                const isRead = readChapterIds.includes(ch.id);
-                const isCurrent = String(ch.id) === String(activeChapterId);
-                return (
-                  <button
-                    key={ch.id}
-                    onClick={() => jumpToChapter(ch.id, ch.chapter)}
-                    className={`w-full text-left px-3 py-2.5 rounded-xl text-xs flex items-center justify-between transition-all min-h-[40px] ${
-                      isCurrent
-                        ? 'bg-rose-600 text-white font-bold'
-                        : 'text-slate-300 hover:bg-white/5'
-                    }`}
-                  >
-                    <div className="flex items-center gap-2 truncate">
-                      {isRead && !isCurrent && (
-                        <Check className="w-3.5 h-3.5 text-emerald-400 flex-shrink-0" />
-                      )}
-                      <span className="font-semibold">Chapter {ch.chapter}</span>
-                      {ch.title && (
-                        <span className="text-[11px] text-slate-400 truncate max-w-[140px] sm:max-w-[180px]">
-                          • {ch.title}
-                        </span>
-                      )}
-                    </div>
-                    {isCurrent && (
-                      <span className="text-[10px] uppercase font-bold bg-white/20 px-1.5 py-0.5 rounded text-white">
-                        Reading
-                      </span>
-                    )}
-                  </button>
-                );
-              })}
-            </div>
-          </div>
-        </div>
-      )}
+      {/* Chapter Selection Modal */}
+      <ChapterSelectionModal
+        isOpen={showChapterMenu}
+        onClose={() => setShowChapterMenu(false)}
+        allChapters={allChapters}
+        activeChapterId={activeChapterId}
+        readChapterIds={readChapterIds}
+        chapterFilter={chapterFilter}
+        setChapterFilter={setChapterFilter}
+        chapterSortAsc={chapterSortAsc}
+        setChapterSortAsc={setChapterSortAsc}
+        onJumpToChapter={jumpToChapter}
+      />
 
       {/* Reader Settings Modal */}
-      {showSettingsMenu && (
-        <div 
-          className="fixed inset-0 z-[70] flex items-end sm:items-center justify-center p-3 sm:p-4 bg-black/80 backdrop-blur-sm animate-fadeIn"
-          onClick={() => setShowSettingsMenu(false)}
-        >
-          <div 
-            className="w-full sm:w-96 max-h-[80vh] overflow-y-auto bg-slate-900 border border-white/10 rounded-3xl shadow-2xl p-4 sm:p-5 space-y-4"
-            onClick={(e) => e.stopPropagation()}
-          >
-            <div className="flex items-center justify-between border-b border-white/10 pb-2.5">
-              <span className="text-xs font-bold uppercase tracking-wider text-white flex items-center gap-1.5">
-                <Settings className="w-4 h-4 text-rose-400" />
-                <span>Reader Settings</span>
-              </span>
-              <button 
-                onClick={() => setShowSettingsMenu(false)} 
-                className="text-slate-400 hover:text-white text-xs p-1 rounded-lg hover:bg-white/10"
-              >
-                ✕
-              </button>
-            </div>
+      <ReaderSettingsModal
+        isOpen={showSettingsMenu}
+        onClose={() => setShowSettingsMenu(false)}
+        settings={settings}
+        updateSetting={updateSetting}
+        isAutoScrolling={isAutoScrolling}
+        setIsAutoScrolling={setIsAutoScrolling}
+        toggleFullscreen={toggleFullscreen}
+        isFullscreen={isFullscreen}
+        onOpenHelpModal={() => {
+          setShowSettingsMenu(false);
+          setShowHelpModal(true);
+        }}
+      />
 
-            {/* Reading Layout Mode */}
-            <div>
-              <label className="text-xs text-slate-300 block mb-1.5 font-medium flex items-center gap-1.5">
-                <Compass className="w-3.5 h-3.5 text-rose-400" />
-                <span>Reading Mode</span>
-              </label>
-              <div className="grid grid-cols-2 gap-1.5">
-                <button
-                  onClick={() => updateSetting('readingMode', 'webtoon')}
-                  className={`py-2 rounded-xl text-xs font-semibold border transition-all ${
-                    settings.readingMode === 'webtoon'
-                      ? 'bg-rose-600 border-rose-500 text-white'
-                      : 'bg-slate-800 border-white/5 text-slate-400 hover:text-white'
-                  }`}
-                >
-                  Webtoon (Strip)
-                </button>
-                <button
-                  onClick={() => updateSetting('readingMode', 'single')}
-                  className={`py-2 rounded-xl text-xs font-semibold border transition-all ${
-                    settings.readingMode === 'single'
-                      ? 'bg-rose-600 border-rose-500 text-white'
-                      : 'bg-slate-800 border-white/5 text-slate-400 hover:text-white'
-                  }`}
-                >
-                  Single Page
-                </button>
-              </div>
-            </div>
+      {/* Keyboard Shortcuts Help Modal */}
+      <KeyboardHelpModal
+        isOpen={showHelpModal}
+        onClose={() => setShowHelpModal(false)}
+      />
 
-            {/* Continuous Infinite Chapter Scrolling Toggle */}
-            {settings.readingMode === 'webtoon' && (
-              <div className="flex items-center justify-between p-2.5 rounded-xl bg-slate-800/70 border border-white/5">
-                <div>
-                  <div className="text-xs font-bold text-white flex items-center gap-1.5">
-                    <InfinityIcon className="w-3.5 h-3.5 text-rose-400" />
-                    <span>Continuous Scrolling</span>
-                  </div>
-                  <div className="text-[10px] text-slate-400">
-                    Auto-loads next chapter seamlessly (Mihon style)
-                  </div>
-                </div>
-                <button
-                  type="button"
-                  onClick={() => updateSetting('continuousScroll', !settings.continuousScroll)}
-                  className={`w-11 h-6 rounded-full transition-colors relative p-0.5 flex-shrink-0 ${
-                    settings.continuousScroll !== false ? 'bg-rose-600' : 'bg-slate-700'
-                  }`}
-                >
-                  <div
-                    className={`w-5 h-5 rounded-full bg-white transition-transform ${
-                      settings.continuousScroll !== false ? 'translate-x-5' : 'translate-x-0'
-                    }`}
-                  />
-                </button>
-              </div>
-            )}
-
-            {/* Auto-Scroll Toggle & Speed */}
-            {settings.readingMode === 'webtoon' && (
-              <div className="p-3 rounded-2xl bg-slate-800/50 border border-white/5 space-y-2.5">
-                <div className="flex items-center justify-between">
-                  <div className="text-xs font-bold text-white flex items-center gap-1.5">
-                    <Gauge className="w-3.5 h-3.5 text-rose-400" />
-                    <span>Auto-Scroll</span>
-                  </div>
-                  <button
-                    onClick={() => setIsAutoScrolling((prev) => !prev)}
-                    className={`px-3 py-1 rounded-lg text-xs font-bold flex items-center gap-1 transition-all ${
-                      isAutoScrolling
-                        ? 'bg-rose-600 text-white shadow-md shadow-rose-600/30'
-                        : 'bg-white/10 text-slate-300 hover:text-white'
-                    }`}
-                  >
-                    {isAutoScrolling ? <Pause className="w-3 h-3" /> : <Play className="w-3 h-3" />}
-                    <span>{isAutoScrolling ? 'Pause' : 'Start'}</span>
-                  </button>
-                </div>
-                <div className="grid grid-cols-4 gap-1.5">
-                  {[
-                    { val: 1, label: '1x Slow' },
-                    { val: 2, label: '2x Normal' },
-                    { val: 3, label: '3x Fast' },
-                    { val: 4, label: '4x Turbo' },
-                  ].map((sp) => (
-                    <button
-                      key={sp.val}
-                      type="button"
-                      onClick={() => updateSetting('autoScrollSpeed', sp.val)}
-                      className={`py-1.5 rounded-lg text-xs font-semibold border transition-all ${
-                        (settings.autoScrollSpeed || 2) === sp.val
-                          ? 'bg-rose-600 border-rose-500 text-white'
-                          : 'bg-slate-800 border-white/5 text-slate-400 hover:text-white'
-                      }`}
-                    >
-                      {sp.label}
-                    </button>
-                  ))}
-                </div>
-              </div>
-            )}
-
-            {/* Screen Dimmer / Night Mode Brightness */}
-            <div>
-              <div className="flex items-center justify-between text-xs text-slate-300 mb-1.5">
-                <span className="flex items-center gap-1.5">
-                  <Sun className="w-3.5 h-3.5 text-amber-400" />
-                  <span>Brightness (Night Mode)</span>
-                </span>
-                <span className="text-rose-400 font-bold">{settings.brightness ?? 100}%</span>
-              </div>
-              <input
-                type="range"
-                min="40"
-                max="100"
-                value={settings.brightness ?? 100}
-                onChange={(e) => updateSetting('brightness', Number(e.target.value))}
-                className="w-full accent-rose-500 cursor-pointer"
-              />
-            </div>
-
-            {/* Page Container Width / Phone Fit Mode */}
-            <div>
-              <label className="text-xs text-slate-300 block mb-1.5 font-medium flex items-center justify-between">
-                <span>Page Fit Mode</span>
-                <span className="text-[10px] text-rose-400 font-bold uppercase">
-                  {settings.fitMode === 'full' ? 'Phone Fit (Full)' : settings.fitMode === 'wide' ? 'Wide' : '800px'}
-                </span>
-              </label>
-              <div className="grid grid-cols-3 gap-1.5">
-                {[
-                  { id: 'full', label: 'Phone Fit' },
-                  { id: 'width', label: '800px' },
-                  { id: 'wide', label: '1020px' },
-                ].map((item) => (
-                  <button
-                    key={item.id}
-                    onClick={() => updateSetting('fitMode', item.id)}
-                    className={`py-1.5 px-1.5 rounded-lg text-[11px] font-semibold border text-center transition-all ${
-                      (settings.fitMode || 'full') === item.id
-                        ? 'bg-rose-600 border-rose-500 text-white'
-                        : 'bg-slate-800 border-white/5 text-slate-400 hover:text-white'
-                    }`}
-                  >
-                    {item.label}
-                  </button>
-                ))}
-              </div>
-            </div>
-
-            {/* Reading Theme */}
-            <div>
-              <label className="text-xs text-slate-300 block mb-1.5 font-medium flex items-center gap-1.5">
-                <Palette className="w-3.5 h-3.5 text-rose-400" />
-                <span>Theme Mood</span>
-              </label>
-              <div className="grid grid-cols-3 gap-1.5">
-                {[
-                  { id: 'oled', label: 'OLED Black', color: '#000000' },
-                  { id: 'obsidian', label: 'Obsidian', color: '#080a0f' },
-                  { id: 'sepia', label: 'Sepia Paper', color: '#181512' },
-                ].map((th) => (
-                  <button
-                    key={th.id}
-                    onClick={() => updateSetting('theme', th.id)}
-                    className={`py-1.5 px-2 rounded-lg text-xs font-semibold border flex items-center justify-center gap-1.5 ${
-                      settings.theme === th.id
-                        ? 'bg-rose-600 border-rose-500 text-white'
-                        : 'bg-slate-800 border-white/5 text-slate-400 hover:text-white'
-                    }`}
-                  >
-                    <span className="w-2.5 h-2.5 rounded-full border border-white/20" style={{ backgroundColor: th.color }} />
-                    <span>{th.label}</span>
-                  </button>
-                ))}
-              </div>
-            </div>
-
-            {/* Webtoon Page Spacing */}
-            {settings.readingMode === 'webtoon' && (
-              <div>
-                <label className="text-xs text-slate-300 block mb-1.5 font-medium flex items-center justify-between">
-                  <span>Page Spacing</span>
-                  <span className="text-rose-400 font-bold">
-                    {(settings.pageGap ?? 0) === 0 ? 'Seamless (0px)' : `${settings.pageGap}px`}
-                  </span>
-                </label>
-                <div className="grid grid-cols-3 gap-1.5">
-                  {[
-                    { val: 0, label: 'Seamless' },
-                    { val: 6, label: 'Compact' },
-                    { val: 14, label: 'Spaced' },
-                  ].map((sp) => (
-                    <button
-                      key={sp.val}
-                      type="button"
-                      onClick={() => updateSetting('pageGap', sp.val)}
-                      className={`py-1.5 rounded-lg text-xs font-semibold border transition-all ${
-                        (settings.pageGap ?? 0) === sp.val
-                          ? 'bg-rose-600 border-rose-500 text-white'
-                          : 'bg-slate-800 border-white/5 text-slate-400 hover:text-white'
-                      }`}
-                    >
-                      {sp.label}
-                    </button>
-                  ))}
-                </div>
-              </div>
-            )}
-
-            {/* Direction for Single Page */}
-            {settings.readingMode === 'single' && (
-              <div>
-                <label className="text-xs text-slate-300 block mb-1.5 font-medium">
-                  Reading Direction
-                </label>
-                <div className="grid grid-cols-2 gap-1.5">
-                  <button
-                    onClick={() => updateSetting('readingDirection', 'ltr')}
-                    className={`py-1 rounded-lg text-xs font-semibold border ${
-                      settings.readingDirection === 'ltr'
-                        ? 'bg-rose-600 border-rose-500 text-white'
-                        : 'bg-slate-800 border-white/5 text-slate-400'
-                    }`}
-                  >
-                    Left to Right
-                  </button>
-                  <button
-                    onClick={() => updateSetting('readingDirection', 'rtl')}
-                    className={`py-1 rounded-lg text-xs font-semibold border ${
-                      settings.readingDirection === 'rtl'
-                        ? 'bg-rose-600 border-rose-500 text-white'
-                        : 'bg-slate-800 border-white/5 text-slate-400'
-                    }`}
-                  >
-                    Right to Left (JP)
-                  </button>
-                </div>
-              </div>
-            )}
-
-            {/* Quick Actions: Fullscreen & Shortcuts Help */}
-            <div className="pt-2 border-t border-white/10 flex items-center justify-between gap-2">
-              <button
-                onClick={toggleFullscreen}
-                className="flex-1 py-2 px-3 rounded-xl bg-slate-800 hover:bg-slate-700 text-slate-200 text-xs font-semibold flex items-center justify-center gap-1.5 transition-all"
-              >
-                {isFullscreen ? <Minimize className="w-4 h-4" /> : <Maximize className="w-4 h-4" />}
-                <span>{isFullscreen ? 'Exit Fullscreen' : 'Fullscreen'}</span>
-              </button>
-              <button
-                onClick={() => {
-                  setShowSettingsMenu(false);
-                  setShowHelpModal(true);
-                }}
-                className="py-2 px-3 rounded-xl bg-slate-800 hover:bg-slate-700 text-slate-400 hover:text-white text-xs font-semibold flex items-center gap-1.5 transition-all"
-                title="Keyboard Shortcuts"
-              >
-                <HelpCircle className="w-4 h-4" />
-                <span>Help</span>
-              </button>
-            </div>
-          </div>
-        </div>
-      )}
-
-      {/* Scrollable Canvas for Manga Pages (Dimmed by brightness filter) */}
+      {/* Scrollable Canvas for Manga Pages */}
       <div 
         ref={containerRef}
         onMouseMove={() => rescheduleControls(4500)}
@@ -1255,499 +859,78 @@ export default function MangaReader({
           filter: `brightness(${settings.brightness ?? 100}%)`
         }}
       >
-        {/* Main Reading Canvas */}
         <main className="min-h-screen pt-4 sm:pt-6 pb-36 sm:pb-40 w-full flex flex-col items-center justify-start">
-        {initialLoading ? (
-          <div className="flex flex-col items-center justify-center py-36 gap-3">
-            <Loader2 className="w-12 h-12 text-rose-500 animate-spin" />
-            <p className="text-sm text-slate-300 font-bold">
-              Fetching Chapter {chapterNumber} Pages...
-            </p>
-          </div>
-        ) : initialError ? (
-          <div className="max-w-md mx-auto p-6 rounded-3xl bg-rose-500/10 border border-rose-500/20 text-center space-y-4 my-auto">
-            <AlertCircle className="w-10 h-10 text-rose-400 mx-auto" />
-            <h3 className="font-bold text-white">Chapter Unavailable</h3>
-            <p className="text-xs text-slate-300 leading-relaxed">{initialError}</p>
-            <div className="flex justify-center gap-2 pt-2">
-              <button
-                onClick={() => jumpToChapter(chapterId, chapterNumber)}
-                className="px-4 py-2 rounded-xl text-xs font-semibold bg-white/10 hover:bg-white/20 text-white"
-              >
-                Retry
-              </button>
-              {nextChapter && (
+          {initialLoading ? (
+            <div className="flex flex-col items-center justify-center py-36 gap-3">
+              <Loader2 className="w-12 h-12 text-rose-500 animate-spin" />
+              <p className="text-sm text-slate-300 font-bold">
+                Fetching Chapter {chapterNumber} Pages...
+              </p>
+            </div>
+          ) : initialError ? (
+            <div className="max-w-md mx-auto p-6 rounded-3xl bg-rose-500/10 border border-rose-500/20 text-center space-y-4 my-auto">
+              <AlertCircle className="w-10 h-10 text-rose-400 mx-auto" />
+              <h3 className="font-bold text-white">Chapter Unavailable</h3>
+              <p className="text-xs text-slate-300 leading-relaxed">{initialError}</p>
+              <div className="flex justify-center gap-2 pt-2">
                 <button
-                  onClick={() => jumpToChapter(nextChapter.id, nextChapter.chapter)}
-                  className="px-4 py-2 rounded-xl text-xs font-semibold bg-rose-600 text-white"
+                  onClick={() => jumpToChapter(chapterId, chapterNumber)}
+                  className="px-4 py-2 rounded-xl text-xs font-semibold bg-white/10 hover:bg-white/20 text-white"
                 >
-                  Try Next Chapter
+                  Retry
                 </button>
-              )}
-            </div>
-          </div>
-        ) : (
-          <>
-            {/* 1. Webtoon Mode: Continuous Seamless Stream (Fitted to Phone Screen Width) */}
-            {settings.readingMode === 'webtoon' && (
-              <div className="w-full flex flex-col items-center">
-                
-                {/* Optional: Load Previous Chapter Button */}
-                {prevChapterToLoad && (
-                  <div className="w-full max-w-xl mx-auto py-3 px-4 flex items-center justify-center">
-                    <button
-                      onClick={loadPrevChapter}
-                      disabled={isLoadingPrev}
-                      className="px-4 py-2 rounded-2xl bg-slate-900/90 border border-white/10 hover:border-rose-500/40 text-slate-300 hover:text-white text-xs font-semibold flex items-center gap-2 transition-all shadow-lg shadow-black/40 hover:bg-slate-800 disabled:opacity-50"
-                    >
-                      {isLoadingPrev ? (
-                        <Loader2 className="w-3.5 h-3.5 animate-spin text-rose-400" />
-                      ) : (
-                        <ChevronLeft className="w-3.5 h-3.5 text-rose-400" />
-                      )}
-                      <span>Load Previous: Chapter {prevChapterToLoad.chapter}</span>
-                    </button>
-                  </div>
-                )}
-
-                {/* Chapters Stream */}
-                {loadedChapters.map((ch, chIdx) => (
-                  <div 
-                    key={ch.id} 
-                    id={`chapter-${ch.id}`}
-                    className="w-full flex flex-col items-center"
-                  >
-                    {/* Chapter Separator / Continuous Transition Header */}
-                    {chIdx > 0 && (
-                      <div 
-                        id={`chapter-header-${ch.id}`}
-                        className="w-full py-8 px-4 flex items-center justify-center select-none"
-                      >
-                        <div className="flex items-center gap-3 w-full max-w-lg">
-                          <div className="flex-1 h-px bg-gradient-to-r from-transparent via-rose-500/30 to-rose-500/60" />
-                          <div className="px-4 py-2 rounded-2xl bg-slate-900/90 border border-rose-500/30 shadow-lg shadow-rose-950/50 backdrop-blur-md flex items-center gap-2.5">
-                            <span className="w-2 h-2 rounded-full bg-rose-500 animate-pulse" />
-                            <span className="text-xs font-bold text-white tracking-wide">
-                              Chapter {ch.chapter}
-                            </span>
-                            {ch.title && (
-                              <>
-                                <span className="text-slate-600">•</span>
-                                <span className="text-[11px] text-slate-300 font-medium truncate max-w-[150px] sm:max-w-xs">
-                                  {ch.title}
-                                </span>
-                              </>
-                            )}
-                          </div>
-                          <div className="flex-1 h-px bg-gradient-to-l from-transparent via-rose-500/30 to-rose-500/60" />
-                        </div>
-                      </div>
-                    )}
-
-                    {/* Pages of Chapter - Fitted to Phone Screen Size */}
-                    <div 
-                      className={`w-full mx-auto flex flex-col items-center max-sm:w-full max-sm:max-w-full ${
-                        settings.fitMode === 'wide'
-                          ? 'max-w-4xl'
-                          : settings.fitMode === 'width'
-                          ? 'max-w-3xl sm:max-w-3xl'
-                          : 'max-w-full'
-                      }`}
-                      style={{ gap: `${settings.pageGap ?? 0}px` }}
-                    >
-                      {ch.pages.map((p, idx) => (
-                        <div
-                          key={`${ch.id}-p-${p.pageNumber}`}
-                          id={`page-${ch.id}-${p.pageNumber}`}
-                          className="manga-page relative w-full min-w-full max-w-full block p-0 m-0 border-0 shadow-none leading-none select-none text-[0px]"
-                          data-chapter-id={ch.id}
-                          data-chapter-number={ch.chapter}
-                          data-page-number={p.pageNumber}
-                          data-total-pages={ch.pages.length}
-                          style={
-                            (settings.pageGap ?? 0) === 0 && idx > 0
-                              ? { marginTop: '-1px' }
-                              : {}
-                          }
-                        >
-                          <img
-                            src={p.url}
-                            alt={`Ch ${ch.chapter} - Page ${p.pageNumber}`}
-                            loading={chIdx === 0 && idx < 4 ? 'eager' : 'lazy'}
-                            referrerPolicy="no-referrer"
-                            className="block w-full min-w-full max-w-full h-auto select-none pointer-events-none p-0 m-0 border-0 outline-none align-bottom object-contain"
-                            style={{
-                              display: 'block',
-                              verticalAlign: 'bottom',
-                              width: '100%',
-                              minWidth: '100%',
-                              maxWidth: '100%',
-                              height: 'auto',
-                              border: 'none',
-                              outline: 'none',
-                              margin: 0,
-                              padding: 0,
-                            }}
-                            onError={(e) => {
-                              if (!e.target.dataset.retried) {
-                                e.target.dataset.retried = 'true';
-                                const sep = p.url.includes('?') ? '&' : '?';
-                                e.target.src = `${p.url}${sep}_retry=${Date.now()}`;
-                              }
-                            }}
-                          />
-                        </div>
-                      ))}
-                    </div>
-                  </div>
-                ))}
-
-                {/* Bottom Sentinel: Triggers continuous loading 1400px before reaching the end */}
-                {settings.continuousScroll && hasNextChapterToLoad && !nextChapterError && (
-                  <div ref={bottomSentinelRef} className="h-12 w-full pointer-events-none opacity-0" />
-                )}
-
-                {/* Loading indicator for the Next Chapter */}
-                {isLoadingNext && (
-                  <div className="w-full py-12 flex flex-col items-center justify-center gap-3 select-none animate-fadeIn">
-                    <Loader2 className="w-8 h-8 text-rose-500 animate-spin" />
-                    <span className="text-xs font-semibold text-slate-300">
-                      Loading Chapter {nextChapterToLoad?.chapter}...
-                    </span>
-                  </div>
-                )}
-
-                {/* Error handling when auto-loading next chapter fails */}
-                {nextChapterError && (
-                  <div className="w-full max-w-md mx-auto my-8 p-5 rounded-3xl bg-rose-950/40 border border-rose-500/30 text-center space-y-3 select-none">
-                    <AlertCircle className="w-7 h-7 text-rose-400 mx-auto" />
-                    <p className="text-xs text-rose-200 font-medium">
-                      Failed to load Chapter {nextChapterError.chapter?.chapter}.
-                    </p>
-                    <button
-                      onClick={loadNextChapter}
-                      className="px-4 py-2 rounded-xl text-xs font-bold bg-rose-600 hover:bg-rose-500 text-white transition-all shadow-md shadow-rose-600/30 flex items-center gap-2 mx-auto"
-                    >
-                      <RotateCw className="w-3.5 h-3.5" />
-                      <span>Retry Chapter {nextChapterError.chapter?.chapter}</span>
-                    </button>
-                  </div>
-                )}
-
-                {/* End of Manga Series Milestone */}
-                {!hasNextChapterToLoad && !isLoadingNext && (
-                  <div className="w-full p-8 mt-12 rounded-3xl bg-slate-900/80 border border-white/10 text-center space-y-3 max-w-xl select-none">
-                    <div className="w-12 h-12 rounded-full bg-emerald-500/20 text-emerald-400 flex items-center justify-center mx-auto border border-emerald-500/30">
-                      <Check className="w-6 h-6" />
-                    </div>
-                    <h3 className="text-lg font-extrabold text-white">
-                      Caught up to the latest chapter!
-                    </h3>
-                    <p className="text-xs text-slate-400">
-                      You've completed Chapter {activeChapterNumber}. All released chapters read!
-                    </p>
-                    <div className="pt-2 flex items-center justify-center gap-3">
-                      <button
-                        onClick={handleHome}
-                        className="px-5 py-2.5 rounded-xl bg-gradient-to-r from-rose-600 to-rose-500 hover:from-rose-500 hover:to-rose-400 text-white text-xs font-bold transition-all flex items-center gap-2 shadow-lg shadow-rose-600/30"
-                      >
-                        <Home className="w-4 h-4" />
-                        <span>Home Screen</span>
-                      </button>
-                      <button
-                        onClick={onClose}
-                        className="px-5 py-2.5 rounded-xl bg-slate-800 hover:bg-slate-700 text-white text-xs font-semibold transition-all flex items-center gap-1.5"
-                      >
-                        <ChevronLeft className="w-4 h-4" />
-                        <span>Back to Details</span>
-                      </button>
-                    </div>
-                  </div>
-                )}
-
-                {/* Fallback button if continuous scrolling is toggled off */}
-                {!settings.continuousScroll && (
-                  <div className="w-full p-8 mt-12 rounded-3xl bg-slate-900/80 border border-white/10 text-center space-y-4 max-w-xl">
-                    <h3 className="text-lg font-extrabold text-white">
-                      Completed Chapter {activeChapterNumber}
-                    </h3>
-                    <div className="flex flex-col sm:flex-row items-center justify-center gap-3 pt-2">
-                      <button
-                        onClick={handleHome}
-                        className="w-full sm:w-auto px-4 py-2.5 rounded-xl bg-slate-800 text-slate-300 text-xs font-bold hover:bg-slate-700 transition-all flex items-center justify-center gap-2"
-                      >
-                        <Home className="w-4 h-4 text-rose-400" />
-                        <span>Home</span>
-                      </button>
-                      {prevChapter && (
-                        <button
-                          onClick={() => jumpToChapter(prevChapter.id, prevChapter.chapter)}
-                          className="w-full sm:w-auto px-5 py-2.5 rounded-xl bg-slate-800 text-slate-300 text-xs font-semibold hover:bg-slate-700 transition-all flex items-center justify-center gap-2"
-                        >
-                          <ChevronLeft className="w-4 h-4" />
-                          <span>Ch. {prevChapter.chapter}</span>
-                        </button>
-                      )}
-                      {nextChapter && (
-                        <button
-                          onClick={() => jumpToChapter(nextChapter.id, nextChapter.chapter)}
-                          className="w-full sm:w-auto px-6 py-2.5 rounded-xl bg-gradient-to-r from-rose-600 to-rose-500 text-white text-xs sm:text-sm font-bold shadow-lg shadow-rose-600/30 transition-all flex items-center justify-center gap-2"
-                        >
-                          <span>Next: Chapter {nextChapter.chapter}</span>
-                          <ChevronRight className="w-4 h-4" />
-                        </button>
-                      )}
-                    </div>
-                  </div>
-                )}
-              </div>
-            )}
-
-            {/* 2. Single Page Mode: Fitted to Screen */}
-            {settings.readingMode === 'single' && loadedChapters[0]?.pages?.length > 0 && (
-              <div className="flex flex-col items-center justify-center w-full max-w-4xl px-0 sm:px-4 select-none my-auto">
-                <div 
-                  className="relative w-full flex items-center justify-center bg-black/40 sm:rounded-2xl overflow-hidden shadow-2xl cursor-pointer"
-                  onClick={handleReaderTap}
-                >
-                  <img
-                    src={loadedChapters[0].pages[singlePageNum - 1]?.url}
-                    alt={`Page ${singlePageNum}`}
-                    referrerPolicy="no-referrer"
-                    className="w-full sm:w-auto max-h-[88vh] sm:max-h-[85vh] object-contain mx-auto"
-                    style={{
-                      display: 'block',
-                      width: '100%',
-                      maxWidth: '100%',
-                      maxHeight: '88vh',
-                      objectFit: 'contain'
-                    }}
-                  />
-
-                  {/* Left / Right click hints */}
-                  <div className="absolute left-4 top-1/2 -translate-y-1/2 p-2 rounded-full bg-black/40 text-white opacity-40 hover:opacity-100 transition-opacity">
-                    <ChevronLeft className="w-6 h-6" />
-                  </div>
-                  <div className="absolute right-4 top-1/2 -translate-y-1/2 p-2 rounded-full bg-black/40 text-white opacity-40 hover:opacity-100 transition-opacity">
-                    <ChevronRight className="w-6 h-6" />
-                  </div>
-                </div>
-
-                {/* Single Page Slider */}
-                <div className="flex items-center gap-4 mt-6 w-full max-w-md px-4">
+                {nextChapter && (
                   <button
-                    disabled={singlePageNum <= 1 && !prevChapter}
-                    onClick={handleSinglePagePrev}
-                    className="p-2 rounded-xl bg-slate-900 border border-white/10 disabled:opacity-30"
+                    onClick={() => jumpToChapter(nextChapter.id, nextChapter.chapter)}
+                    className="px-4 py-2 rounded-xl text-xs font-semibold bg-rose-600 text-white"
                   >
-                    <ChevronLeft className="w-4 h-4" />
+                    Try Next Chapter
                   </button>
-
-                  <input
-                    type="range"
-                    min={1}
-                    max={loadedChapters[0].pages.length}
-                    value={singlePageNum}
-                    onChange={(e) => {
-                      const p = Number(e.target.value);
-                      setSinglePageNum(p);
-                      setActivePageNumber(p);
-                    }}
-                    className="flex-1 accent-rose-500 cursor-pointer"
-                  />
-
-                  <button
-                    disabled={singlePageNum >= loadedChapters[0].pages.length && !nextChapter}
-                    onClick={handleSinglePageNext}
-                    className="p-2 rounded-xl bg-slate-900 border border-white/10 disabled:opacity-30"
-                  >
-                    <ChevronRight className="w-4 h-4" />
-                  </button>
-                </div>
-              </div>
-            )}
-          </>
-        )}
-      </main>
-      </div>
-
-      {/* Floating Auto-Scroll HUD Controller (Fixed above the bottom dock) */}
-      {isAutoScrolling && (
-        <div className="fixed bottom-20 sm:bottom-24 left-1/2 -translate-x-1/2 z-50 animate-fadeIn select-none pointer-events-auto">
-          <div className="glass-panel px-3 sm:px-4 py-2 rounded-2xl border border-rose-500/40 shadow-2xl shadow-rose-950/60 backdrop-blur-xl flex items-center gap-2 sm:gap-3 bg-slate-900/95 text-white">
-            {/* Pulsing indicator */}
-            <div className="flex items-center gap-1.5 px-2 py-1 rounded-xl bg-rose-500/15 text-rose-400 border border-rose-500/30 text-[11px] font-bold">
-              <span className="w-2 h-2 rounded-full bg-rose-500 animate-ping" />
-              <span className="hidden xs:inline">Auto-Scroll</span>
-              <span>{settings.autoScrollSpeed || 2}x</span>
-            </div>
-
-            {/* Quick Speed Switcher */}
-            <div className="flex items-center gap-1 bg-white/5 p-0.5 rounded-xl border border-white/5">
-              {[1, 2, 3, 4].map((spd) => (
-                <button
-                  key={spd}
-                  onClick={(e) => {
-                    e.stopPropagation();
-                    updateSetting('autoScrollSpeed', spd);
-                  }}
-                  className={`px-2 py-1 rounded-lg text-[11px] font-bold transition-all ${
-                    (settings.autoScrollSpeed || 2) === spd
-                      ? 'bg-rose-600 text-white shadow-sm'
-                      : 'text-slate-400 hover:text-white'
-                  }`}
-                  title={`${spd}x Speed`}
-                >
-                  {spd}x
-                </button>
-              ))}
-            </div>
-
-            {/* Pause / Stop Button */}
-            <button
-              onClick={(e) => {
-                e.stopPropagation();
-                setIsAutoScrolling(false);
-              }}
-              className="p-1.5 rounded-xl bg-white/10 hover:bg-rose-600 text-slate-200 hover:text-white transition-all flex items-center gap-1 text-xs font-semibold px-2"
-              title="Pause Auto-Scroll"
-            >
-              <Pause className="w-3.5 h-3.5" />
-              <span className="hidden xs:inline">Pause</span>
-            </button>
-
-            {/* Close HUD */}
-            <button
-              onClick={(e) => {
-                e.stopPropagation();
-                setIsAutoScrolling(false);
-              }}
-              className="p-1 text-slate-400 hover:text-white transition-colors"
-              title="Close Auto-Scroll"
-            >
-              <X className="w-4 h-4" />
-            </button>
-          </div>
-        </div>
-      )}
-
-      {/* Floating Bottom HUD: Sole Action Dock (Fixed at bottom of phone) */}
-      <div 
-        className={`fixed bottom-2 sm:bottom-4 left-1/2 -translate-x-1/2 z-50 w-[calc(100vw-16px)] sm:w-auto max-w-xl transition-all duration-300 select-none pointer-events-auto pb-[env(safe-area-inset-bottom)] ${
-          controlsVisible && !isAutoScrolling ? 'translate-y-0 opacity-100' : 'translate-y-36 opacity-0 pointer-events-none'
-        }`}
-      >
-        <div className="glass-panel border border-white/15 bg-slate-950/95 backdrop-blur-2xl rounded-2xl sm:rounded-3xl p-2.5 sm:p-3 pb-[calc(0.5rem+env(safe-area-inset-bottom))] shadow-[0_12px_45px_rgba(0,0,0,0.85)] flex flex-col gap-2 text-xs font-semibold">
-          
-          {/* Header Row: Manga Title, Chapter, Clock & Battery, Settings, Bookmark, Close */}
-          <div className="flex items-center justify-between text-[11px] text-slate-300 px-1 border-b border-white/10 pb-1.5 gap-2">
-            <div className="min-w-0 flex items-center gap-1.5 truncate">
-              <span className="font-bold text-white truncate max-w-[130px] xs:max-w-[200px] sm:max-w-xs" title={mangaEnglishTitle || mangaTitle}>
-                {mangaEnglishTitle || mangaTitle}
-              </span>
-              <span className="text-slate-500">•</span>
-              <span className="text-rose-400 font-semibold font-mono whitespace-nowrap">
-                Ch. {activeChapterNumber}
-              </span>
-              {settings.continuousScroll && settings.readingMode === 'webtoon' && (
-                <span className="hidden sm:inline-flex items-center gap-1 px-1.5 py-0.2 text-[9px] bg-rose-500/10 text-rose-400 border border-rose-500/20 rounded-md font-mono">
-                  <InfinityIcon className="w-2.5 h-2.5" /> Continuous
-                </span>
-              )}
-            </div>
-            
-            <div className="flex items-center gap-1.5 flex-shrink-0">
-              {/* Clock & Battery */}
-              <div className="hidden xs:flex items-center gap-1.5 text-[10px] font-mono text-slate-400 px-1.5 py-0.5 rounded-lg bg-white/5 select-none">
-                <Clock className="w-3 h-3 text-rose-400" />
-                <span>{clockTime}</span>
-                {batteryLevel !== null && (
-                  <>
-                    <span className="text-slate-600">•</span>
-                    <Battery className="w-3 h-3 text-emerald-400" />
-                    <span>{batteryLevel}%</span>
-                  </>
                 )}
               </div>
-
-              {/* Bookmark Toggle */}
-              <button
-                onClick={toggleBookmark}
-                className={`p-1.5 rounded-lg border transition-all ${
-                  bookmarked
-                    ? 'bg-rose-500/20 border-rose-500/50 text-rose-400'
-                    : 'bg-white/5 border-white/5 text-slate-400 hover:text-white'
-                }`}
-                title={bookmarked ? 'Saved in Library' : 'Save to Library'}
-              >
-                <Bookmark className={`w-3.5 h-3.5 ${bookmarked ? 'fill-current' : ''}`} />
-              </button>
-
-              {/* Reader Settings Toggle */}
-              <button
-                onClick={() => setShowSettingsMenu((prev) => !prev)}
-                className={`p-1.5 rounded-lg border transition-all ${
-                  showSettingsMenu
-                    ? 'bg-rose-600 border-rose-500 text-white'
-                    : 'bg-white/5 border-white/5 text-slate-400 hover:text-white'
-                }`}
-                title="Reader Settings"
-              >
-                <Settings className="w-3.5 h-3.5" />
-              </button>
-
-              {/* Hide Bar */}
-              <button
-                onClick={() => setControlsVisible(false)}
-                className="p-1.5 rounded-lg bg-white/5 border border-white/5 text-slate-400 hover:text-white transition-all"
-                title="Hide Bar"
-              >
-                <X className="w-3.5 h-3.5" />
-              </button>
             </div>
-          </div>
-          
-          {/* Row 1: Interactive Page Scrubber with "Go Back", "Page X of Y", and "Go Front" */}
-          {activeTotalPages > 0 && (
-            <div className="flex items-center gap-2 sm:gap-3 px-1 py-0.5">
-              {/* Go Back Button (Previous Page) */}
-              <button
-                onClick={handlePrevPage}
-                disabled={activePageNumber <= 1 && !prevChapter}
-                className="px-2.5 py-1.5 rounded-xl bg-white/10 hover:bg-white/20 active:scale-95 text-slate-200 hover:text-white disabled:opacity-30 disabled:cursor-not-allowed transition-all flex items-center gap-1 text-[11px] font-bold flex-shrink-0"
-                title="Go Back (Previous Page)"
-              >
-                <ChevronLeft className="w-3.5 h-3.5 text-rose-400" />
-                <span>Go Back</span>
-              </button>
-
-              {/* Page Indicator ("On What Page I Am") & Scrubber Slider */}
-              <div className="flex-1 flex items-center gap-2 min-w-[120px]">
-                <input
-                  type="range"
-                  min="1"
-                  max={activeTotalPages || 1}
-                  value={activePageNumber}
-                  onChange={(e) => scrollToPage(parseInt(e.target.value, 10))}
-                  className="w-full h-1.5 bg-slate-800 rounded-lg appearance-none cursor-pointer accent-rose-500 hover:accent-rose-400"
+          ) : (
+            <>
+              {/* 1. Webtoon Mode */}
+              {settings.readingMode === 'webtoon' && (
+                <WebtoonView
+                  prevChapterToLoad={prevChapterToLoad}
+                  loadPrevChapter={loadPrevChapter}
+                  isLoadingPrev={isLoadingPrev}
+                  loadedChapters={loadedChapters}
+                  settings={settings}
+                  bottomSentinelRef={bottomSentinelRef}
+                  hasNextChapterToLoad={hasNextChapterToLoad}
+                  nextChapterError={nextChapterError}
+                  isLoadingNext={isLoadingNext}
+                  nextChapterToLoad={nextChapterToLoad}
+                  loadNextChapter={loadNextChapter}
+                  activeChapterNumber={activeChapterNumber}
+                  handleHome={handleHome}
+                  onClose={onClose}
+                  prevChapter={prevChapter}
+                  nextChapter={nextChapter}
+                  jumpToChapter={jumpToChapter}
                 />
-                <span className="text-[11px] font-mono text-rose-400 font-bold whitespace-nowrap bg-rose-500/10 px-2.5 py-1 rounded-lg border border-rose-500/20 flex-shrink-0 shadow-sm">
-                  Page {activePageNumber} / {activeTotalPages}
-                </span>
-              </div>
+              )}
 
-              {/* Go Front Button (Next Page) */}
-              <button
-                onClick={handleNextPage}
-                disabled={activePageNumber >= activeTotalPages && !nextChapter}
-                className="px-2.5 py-1.5 rounded-xl bg-white/10 hover:bg-white/20 active:scale-95 text-slate-200 hover:text-white disabled:opacity-30 disabled:cursor-not-allowed transition-all flex items-center gap-1 text-[11px] font-bold flex-shrink-0"
-                title="Go Front (Next Page)"
-              >
-                <span>Go Front</span>
-                <ChevronRight className="w-3.5 h-3.5 text-rose-400" />
-              </button>
-            </div>
+              {/* 2. Single Page Mode */}
+              {settings.readingMode === 'single' && (
+                <SinglePageView
+                  loadedChapters={loadedChapters}
+                  singlePageNum={singlePageNum}
+                  setSinglePageNum={setSinglePageNum}
+                  setActivePageNumber={setActivePageNumber}
+                  handleSinglePagePrev={handleSinglePagePrev}
+                  handleSinglePageNext={handleSinglePageNext}
+                  handleReaderTap={handleReaderTap}
+                  prevChapter={prevChapter}
+                  nextChapter={nextChapter}
+                />
+              )}
+            </>
           )}
+        </main>
 
           {/* Row 2: Fast Navigation Actions Dock (Home Screen, Details, Prev Chapter, Chapter Menu, Next Chapter) */}
           <div className="flex items-center justify-between sm:justify-center gap-1 sm:gap-2.5 pt-1.5 border-t border-white/10 overflow-x-auto scrollbar-none pb-0.5">
@@ -1820,50 +1003,43 @@ export default function MangaReader({
         </div>
       </div>
 
-      {/* Keyboard Shortcuts Cheat Sheet Modal */}
-      {showHelpModal && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/80 backdrop-blur-md animate-fadeIn">
-          <div className="bg-slate-900 border border-white/10 rounded-3xl p-6 max-w-sm w-full space-y-4 shadow-2xl text-white">
-            <div className="flex items-center justify-between border-b border-white/10 pb-3">
-              <div className="flex items-center gap-2">
-                <HelpCircle className="w-5 h-5 text-rose-500" />
-                <h3 className="font-bold text-base font-['Outfit']">Keyboard Shortcuts</h3>
-              </div>
-              <button onClick={() => setShowHelpModal(false)} className="text-slate-400 hover:text-white">✕</button>
-            </div>
-            
-            <div className="space-y-2 text-xs">
-              <div className="flex items-center justify-between py-1.5 border-b border-white/5">
-                <span className="text-slate-400">Next Page / Chapter</span>
-                <span className="font-mono bg-white/10 px-2 py-0.5 rounded text-white font-bold">Space / → / D</span>
-              </div>
-              <div className="flex items-center justify-between py-1.5 border-b border-white/5">
-                <span className="text-slate-400">Previous Page / Chapter</span>
-                <span className="font-mono bg-white/10 px-2 py-0.5 rounded text-white font-bold">← / A</span>
-              </div>
-              <div className="flex items-center justify-between py-1.5 border-b border-white/5">
-                <span className="text-slate-400">Toggle Fullscreen</span>
-                <span className="font-mono bg-white/10 px-2 py-0.5 rounded text-white font-bold">F</span>
-              </div>
-              <div className="flex items-center justify-between py-1.5 border-b border-white/5">
-                <span className="text-slate-400">Toggle Reader Settings</span>
-                <span className="font-mono bg-white/10 px-2 py-0.5 rounded text-white font-bold">S</span>
-              </div>
-              <div className="flex items-center justify-between py-1.5">
-                <span className="text-slate-400">Close Reader</span>
-                <span className="font-mono bg-white/10 px-2 py-0.5 rounded text-white font-bold">Esc</span>
-              </div>
-            </div>
+      {/* Floating Auto-Scroll HUD Controller */}
+      <AutoScrollHud
+        isAutoScrolling={isAutoScrolling}
+        setIsAutoScrolling={setIsAutoScrolling}
+        autoScrollSpeed={settings.autoScrollSpeed}
+        updateSetting={updateSetting}
+      />
 
-            <button
-              onClick={() => setShowHelpModal(false)}
-              className="w-full py-2.5 rounded-xl bg-rose-600 hover:bg-rose-500 text-white font-bold text-xs transition-all shadow-md shadow-rose-600/30"
-            >
-              Got it!
-            </button>
-          </div>
-        </div>
-      )}
+      {/* Floating Bottom HUD */}
+      <ReaderBottomHud
+        controlsVisible={controlsVisible}
+        isAutoScrolling={isAutoScrolling}
+        mangaTitle={mangaTitle}
+        mangaEnglishTitle={mangaEnglishTitle}
+        activeChapterNumber={activeChapterNumber}
+        settings={settings}
+        clockTime={clockTime}
+        batteryLevel={batteryLevel}
+        bookmarked={bookmarked}
+        toggleBookmark={toggleBookmark}
+        showSettingsMenu={showSettingsMenu}
+        setShowSettingsMenu={setShowSettingsMenu}
+        setControlsVisible={setControlsVisible}
+        activeTotalPages={activeTotalPages}
+        activePageNumber={activePageNumber}
+        handlePrevPage={handlePrevPage}
+        handleNextPage={handleNextPage}
+        scrollToPage={scrollToPage}
+        prevChapter={prevChapter}
+        nextChapter={nextChapter}
+        handleHome={handleHome}
+        onClose={onClose}
+        jumpToChapter={jumpToChapter}
+        showChapterMenu={showChapterMenu}
+        setShowChapterMenu={setShowChapterMenu}
+        scrollToTop={scrollToTop}
+      />
     </div>
   );
 }
