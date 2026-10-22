@@ -9,7 +9,7 @@ export default async function handler(req, res) {
     const genresRaw = req.query?.genres || urlObj.searchParams.get('genres') || '';
     const limit = parseInt(req.query?.limit || urlObj.searchParams.get('limit') || '8', 10);
 
-    const genres = genresRaw 
+    const genres = genresRaw
       ? genresRaw.split(',').map(g => g.trim()).filter(Boolean)
       : [];
 

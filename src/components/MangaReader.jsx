@@ -858,7 +858,7 @@ export default function MangaReader({
     <div className={`fixed inset-0 z-50 ${themeBg} text-slate-100 overflow-hidden w-full h-full select-none`}>
       {/* Top 2px Reading Progress Bar */}
       <div className="fixed top-0 left-0 right-0 h-[2.5px] bg-white/10 z-[60] pointer-events-none">
-        <div 
+        <div
           className="h-full bg-gradient-to-r from-rose-600 via-rose-500 to-amber-400 transition-all duration-150 shadow-sm shadow-rose-500/50"
           style={{ width: `${progressPercent}%` }}
         />
@@ -866,11 +866,11 @@ export default function MangaReader({
 
       {/* Enhanced Chapter Selection Modal */}
       {showChapterMenu && (
-        <div 
+        <div
           className="fixed inset-0 z-[70] flex items-end sm:items-center justify-center p-3 sm:p-4 bg-black/80 backdrop-blur-sm animate-fadeIn"
           onClick={() => setShowChapterMenu(false)}
         >
-          <div 
+          <div
             className="w-full sm:w-96 max-h-[75vh] bg-slate-900 border border-white/10 rounded-3xl shadow-2xl p-4 flex flex-col space-y-3"
             onClick={(e) => e.stopPropagation()}
           >
@@ -888,8 +888,8 @@ export default function MangaReader({
                   <ArrowUpDown className="w-3 h-3" />
                   <span>{chapterSortAsc ? '1 → N' : 'N → 1'}</span>
                 </button>
-                <button 
-                  onClick={() => setShowChapterMenu(false)} 
+                <button
+                  onClick={() => setShowChapterMenu(false)}
                   className="text-slate-400 hover:text-white text-xs p-1 rounded-lg hover:bg-white/10"
                 >
                   ✕
@@ -950,11 +950,11 @@ export default function MangaReader({
 
       {/* Reader Settings Modal */}
       {showSettingsMenu && (
-        <div 
+        <div
           className="fixed inset-0 z-[70] flex items-end sm:items-center justify-center p-3 sm:p-4 bg-black/80 backdrop-blur-sm animate-fadeIn"
           onClick={() => setShowSettingsMenu(false)}
         >
-          <div 
+          <div
             className="w-full sm:w-96 max-h-[80vh] overflow-y-auto bg-slate-900 border border-white/10 rounded-3xl shadow-2xl p-4 sm:p-5 space-y-4"
             onClick={(e) => e.stopPropagation()}
           >
@@ -963,8 +963,8 @@ export default function MangaReader({
                 <Settings className="w-4 h-4 text-rose-400" />
                 <span>Reader Settings</span>
               </span>
-              <button 
-                onClick={() => setShowSettingsMenu(false)} 
+              <button
+                onClick={() => setShowSettingsMenu(false)}
                 className="text-slate-400 hover:text-white text-xs p-1 rounded-lg hover:bg-white/10"
               >
                 ✕
@@ -1238,13 +1238,13 @@ export default function MangaReader({
       )}
 
       {/* Scrollable Canvas for Manga Pages (Dimmed by brightness filter) */}
-      <div 
+      <div
         ref={containerRef}
         onMouseMove={() => rescheduleControls(4500)}
         onTouchStart={() => rescheduleControls(5000)}
         onClick={handleReaderTap}
         className="absolute inset-0 overflow-y-auto overscroll-y-contain selection:bg-rose-500 selection:text-white transition-colors duration-300 w-full h-full"
-        style={{ 
+        style={{
           WebkitOverflowScrolling: 'touch',
           filter: `brightness(${settings.brightness ?? 100}%)`
         }}
@@ -1632,7 +1632,7 @@ export default function MangaReader({
         }`}
       >
         <div className="glass-panel border border-white/15 bg-slate-950/95 backdrop-blur-2xl rounded-2xl sm:rounded-3xl p-2.5 sm:p-3 pb-[calc(0.5rem+env(safe-area-inset-bottom))] shadow-[0_12px_45px_rgba(0,0,0,0.85)] flex flex-col gap-2 text-xs font-semibold">
-          
+
           {/* Header Row: Manga Title, Chapter, Clock & Battery, Settings, Bookmark, Close */}
           <div className="flex items-center justify-between text-[11px] text-slate-300 px-1 border-b border-white/10 pb-1.5 gap-2">
             <div className="min-w-0 flex items-center gap-1.5 truncate">
@@ -1649,7 +1649,7 @@ export default function MangaReader({
                 </span>
               )}
             </div>
-            
+
             <div className="flex items-center gap-1.5 flex-shrink-0">
               {/* Clock & Battery */}
               <div className="hidden xs:flex items-center gap-1.5 text-[10px] font-mono text-slate-400 px-1.5 py-0.5 rounded-lg bg-white/5 select-none">
@@ -1700,7 +1700,7 @@ export default function MangaReader({
               </button>
             </div>
           </div>
-          
+
           {/* Row 1: Interactive Page Scrubber with "Go Back", "Page X of Y", and "Go Front" */}
           {activeTotalPages > 0 && (
             <div className="flex items-center gap-2 sm:gap-3 px-1 py-0.5">
@@ -1824,7 +1824,7 @@ export default function MangaReader({
               </div>
               <button onClick={() => setShowHelpModal(false)} className="text-slate-400 hover:text-white">✕</button>
             </div>
-            
+
             <div className="space-y-2 text-xs">
               <div className="flex items-center justify-between py-1.5 border-b border-white/5">
                 <span className="text-slate-400">Next Page / Chapter</span>

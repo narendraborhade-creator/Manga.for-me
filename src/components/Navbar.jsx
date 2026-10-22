@@ -8,8 +8,8 @@ import {
   Play, 
   Download, 
   Sparkles,
-  Menu, 
-  X, 
+  Menu,
+  X,
   Bell,
   TrendingUp,
   Loader2

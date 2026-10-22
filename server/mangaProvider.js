@@ -740,7 +740,7 @@ export async function getMangaRecommendations(currentId = '', genres = [], limit
   try {
     const cleanId = String(currentId).toLowerCase();
     const dexRecs = await getMangaDexRecommendations(genres, limit + 2);
-    
+
     // Also consider catalog webtoons if genre matches
     const catalogMatches = WEBTOON_CATALOG
       .filter(w => String(w.id).toLowerCase() !== cleanId)

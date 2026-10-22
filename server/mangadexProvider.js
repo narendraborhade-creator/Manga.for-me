@@ -52,12 +52,12 @@ function formatMangaDexItem(item) {
   if (!item) return null;
   const id = item.id;
   const attrs = item.attributes || {};
-  
+
   // Title resolution
-  const title = attrs.title?.en 
-    || attrs.title?.['ja-ro'] 
-    || attrs.title?.['ko-ro'] 
-    || Object.values(attrs.title || {})[0] 
+  const title = attrs.title?.en
+    || attrs.title?.['ja-ro']
+    || attrs.title?.['ko-ro']
+    || Object.values(attrs.title || {})[0]
     || 'Untitled Manga';
 
   // Alt title resolution
@@ -158,7 +158,7 @@ export async function searchMangaDex(query, limit = 15) {
 export async function getMangaDexDetails(rawId, bypassCache = false) {
   const cleanId = String(rawId).replace(/^md:/, '').replace(/^mangadex:/, '');
   const cacheKey = `md_details_${cleanId}`;
-  
+
   if (!bypassCache) {
     const cached = getCached(cacheKey);
     if (cached) return cached;
@@ -189,7 +189,7 @@ export async function getMangaDexDetails(rawId, bypassCache = false) {
             const chNum = ch.attributes?.chapter || '0';
             const chTitle = ch.attributes?.title || '';
             const publishAt = ch.attributes?.publishAt || '';
-            
+
             // Deduplicate same chapter numbers (take first English translation)
             if (seenChapters.has(chNum)) return null;
             seenChapters.add(chNum);
