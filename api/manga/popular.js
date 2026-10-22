@@ -1,6 +1,8 @@
 import { getPopularManga } from '../../server/mangaProvider.js';
 
 export default async function handler(req, res) {
+
+
   try {
     const list = await getPopularManga();
     res.setHeader('Content-Type', 'application/json');
