@@ -21,6 +21,11 @@ import {
   Search,
   ArrowUpDown,
   HelpCircle,
+  Home,
+  Clock,
+  Battery,
+  Bookmark,
+  Smartphone,
   Infinity as InfinityIcon
 } from 'lucide-react';
 import { fetchChapterPages, fetchMangaChapters } from '../services/mangaApi';
@@ -28,7 +33,10 @@ import {
   recordReadingProgress, 
   getReaderSettings, 
   saveReaderSettings,
-  getReadChaptersForManga
+  getReadChaptersForManga,
+  isBookmarked,
+  setBookmark,
+  removeBookmark
 } from '../services/storage';
 
 export default function MangaReader({
@@ -39,6 +47,7 @@ export default function MangaReader({
   mangaEnglishTitle = null,
   coverUrl,
   onClose,
+  onGoHome,
   onChangeChapter
 }) {
   // Loaded chapters in continuous reading sequence
@@ -81,6 +90,54 @@ export default function MangaReader({
   const [chapterSortAsc, setChapterSortAsc] = useState(true);
   const [showHelpModal, setShowHelpModal] = useState(false);
 
+  const handleHome = onGoHome || onClose;
+
+  // Bookmarking integration (Mihon & Webtoon quick bookmark)
+  const [bookmarked, setBookmarked] = useState(() => mangaId ? isBookmarked(mangaId) : false);
+
+  const toggleBookmark = (e) => {
+    e?.stopPropagation?.();
+    if (!mangaId) return;
+    if (bookmarked) {
+      removeBookmark(mangaId);
+      setBookmarked(false);
+    } else {
+      setBookmark(mangaId, {
+        id: mangaId,
+        title: mangaTitle,
+        englishTitle: mangaEnglishTitle,
+        coverUrl: coverUrl,
+        currentChapter: activeChapterNumber,
+        updatedAt: new Date().toISOString(),
+      });
+      setBookmarked(true);
+    }
+  };
+
+  // Mihon Header Clock & Battery Indicator
+  const [clockTime, setClockTime] = useState(() => {
+    const d = new Date();
+    return d.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
+  });
+  const [batteryLevel, setBatteryLevel] = useState(null);
+
+  useEffect(() => {
+    const timer = setInterval(() => {
+      const d = new Date();
+      setClockTime(d.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }));
+    }, 15000);
+
+    if (typeof navigator !== 'undefined' && 'getBattery' in navigator) {
+      navigator.getBattery().then((battery) => {
+        const updateBat = () => setBatteryLevel(Math.round(battery.level * 100));
+        updateBat();
+        battery.addEventListener('levelchange', updateBat);
+      }).catch(() => {});
+    }
+
+    return () => clearInterval(timer);
+  }, []);
+
   // Settings
   const [settings, setSettings] = useState(() => {
     const saved = getReaderSettings() || {};
@@ -94,6 +151,7 @@ export default function MangaReader({
       autoScrollSpeed: saved.autoScrollSpeed || 2, // 1 = 45px/s, 2 = 95px/s, 3 = 175px/s, 4 = 280px/s
       brightness: saved.brightness ?? 100, // 40 - 100
       continuousScroll: saved.continuousScroll !== undefined ? saved.continuousScroll : true,
+      tapZones: saved.tapZones !== undefined ? saved.tapZones : true,
     };
   });
 
@@ -120,7 +178,7 @@ export default function MangaReader({
     }, 4500);
   };
 
-  // Tap reader area: toggle floating controls or pause auto-scrolling
+  // Tap reader area: toggle floating controls, handle Mihon tap zones, or pause auto-scrolling
   const handleReaderTap = (e) => {
     if (e.target.closest('button, input, select, a, .glass-panel, [role="dialog"], .glass-nav')) {
       return;
@@ -131,7 +189,29 @@ export default function MangaReader({
       setControlsVisible(true);
       return;
     }
-    setControlsVisible((prev) => !prev);
+
+    // If controls are currently visible, clicking the page hides them
+    if (controlsVisible) {
+      setControlsVisible(false);
+      return;
+    }
+
+    // Controls are hidden: Mihon-style Tap Navigation Zones
+    if (settings.tapZones !== false) {
+      const xRatio = e.clientX / window.innerWidth;
+      if (xRatio < 0.22) {
+        // Left side tap: Go to previous page / scroll up
+        handlePrevPage();
+        return;
+      } else if (xRatio > 0.78) {
+        // Right side tap: Go to next page / scroll down
+        handleNextPage();
+        return;
+      }
+    }
+
+    // Center tap (or tap zones disabled): Show interactive controls overlay!
+    setControlsVisible(true);
   };
 
   // Update Settings
@@ -652,6 +732,67 @@ export default function MangaReader({
     }
   }, [singlePageNum, prevChapter, mangaId, mangaTitle, mangaEnglishTitle, coverUrl, activeChapterId, activeChapterNumber, activeTotalPages, jumpToChapter]);
 
+  // Jump directly to a specific page inside the active chapter (Webtoon & Single Page Scrubber)
+  const scrollToPage = useCallback((pageNum) => {
+    const targetPage = Math.max(1, Math.min(pageNum, activeTotalPages || 1));
+    setActivePageNumber(targetPage);
+
+    if (settings.readingMode === 'single') {
+      setSinglePageNum(targetPage);
+      recordReadingProgress({
+        mangaId,
+        mangaTitle,
+        mangaEnglishTitle,
+        coverUrl,
+        chapterId: activeChapterId,
+        chapterNumber: activeChapterNumber,
+        currentPage: targetPage,
+        totalPages: activeTotalPages,
+      });
+      return;
+    }
+
+    // Webtoon continuous mode: scroll into view
+    const pageEl = document.getElementById(`page-${activeChapterId}-${targetPage}`)
+      || document.querySelector(`[data-page-number="${targetPage}"][data-chapter-id="${activeChapterId}"]`);
+
+    if (pageEl) {
+      pageEl.scrollIntoView({ behavior: 'smooth', block: 'start' });
+    } else if (containerRef.current) {
+      const ratio = (targetPage - 1) / Math.max(1, (activeTotalPages - 1));
+      containerRef.current.scrollTo({
+        top: containerRef.current.scrollHeight * ratio,
+        behavior: 'smooth',
+      });
+    }
+  }, [settings.readingMode, activeTotalPages, activeChapterId, mangaId, mangaTitle, mangaEnglishTitle, coverUrl, activeChapterNumber]);
+
+  // Next Page action (Webtoon scroll step or Single Page step)
+  const handleNextPage = useCallback(() => {
+    if (settings.readingMode === 'single') {
+      handleSinglePageNext();
+    } else {
+      if (activePageNumber < activeTotalPages) {
+        scrollToPage(activePageNumber + 1);
+      } else if (nextChapter) {
+        jumpToChapter(nextChapter.id, nextChapter.chapter);
+      }
+    }
+  }, [settings.readingMode, handleSinglePageNext, activePageNumber, activeTotalPages, scrollToPage, nextChapter, jumpToChapter]);
+
+  // Previous Page action (Webtoon scroll step or Single Page step)
+  const handlePrevPage = useCallback(() => {
+    if (settings.readingMode === 'single') {
+      handleSinglePagePrev();
+    } else {
+      if (activePageNumber > 1) {
+        scrollToPage(activePageNumber - 1);
+      } else if (prevChapter) {
+        jumpToChapter(prevChapter.id, prevChapter.chapter);
+      }
+    }
+  }, [settings.readingMode, handleSinglePagePrev, activePageNumber, scrollToPage, prevChapter, jumpToChapter]);
+
   // Keyboard Navigation
   useEffect(() => {
     const handleKeyDown = (e) => {
@@ -744,22 +885,34 @@ export default function MangaReader({
       >
         <div className="glass-nav border-b border-white/10 px-3 sm:px-4 py-2.5 sm:py-3 pt-[calc(0.6rem+env(safe-area-inset-top))] max-w-7xl mx-auto flex items-center justify-between gap-2 sm:gap-3 shadow-2xl">
           
-          {/* Left: Back & Manga Title */}
-          <div className="flex items-center gap-2 sm:gap-3 min-w-0">
+          {/* Left: Back, Home & Manga Title */}
+          <div className="flex items-center gap-1.5 sm:gap-2.5 min-w-0">
+            {/* Back Button (Returns back to Manga Details / Previous Screen) */}
             <button
               onClick={onClose}
-              className="p-1.5 sm:p-2 rounded-xl bg-slate-900/90 border border-white/10 text-slate-300 hover:text-white hover:bg-rose-600 transition-all flex-shrink-0"
-              title="Close Reader (Esc)"
+              className="p-1.5 sm:px-2.5 sm:py-1.5 rounded-xl bg-slate-900/90 border border-white/10 text-slate-300 hover:text-white hover:bg-white/10 transition-all flex items-center gap-1 text-xs font-bold flex-shrink-0"
+              title="Go Back to Manga Details (Esc)"
             >
-              <X className="w-5 h-5" />
+              <ChevronLeft className="w-4 h-4 text-rose-400 sm:text-inherit" />
+              <span className="hidden sm:inline">Back</span>
+            </button>
+
+            {/* Home Button (Direct to Home Screen) */}
+            <button
+              onClick={handleHome}
+              className="p-1.5 sm:px-2.5 sm:py-1.5 rounded-xl bg-slate-900/90 border border-white/10 text-slate-300 hover:text-white hover:bg-white/10 transition-all flex items-center gap-1 text-xs font-bold flex-shrink-0"
+              title="Go to Home Screen"
+            >
+              <Home className="w-4 h-4 text-rose-400 sm:text-inherit" />
+              <span className="hidden md:inline">Home</span>
             </button>
 
             <div className="min-w-0">
-              <h2 className="text-xs sm:text-sm font-bold text-white truncate max-w-[110px] xs:max-w-[170px] sm:max-w-md" title={mangaEnglishTitle || mangaTitle}>
+              <h2 className="text-xs sm:text-sm font-bold text-white truncate max-w-[90px] xs:max-w-[140px] sm:max-w-xs md:max-w-sm" title={mangaEnglishTitle || mangaTitle}>
                 {mangaEnglishTitle || mangaTitle}
               </h2>
               {mangaEnglishTitle && mangaEnglishTitle.toLowerCase() !== mangaTitle.toLowerCase() && (
-                <div className="text-[10px] text-zinc-400 truncate max-w-[110px] xs:max-w-[150px] sm:max-w-sm hidden xs:block" title={mangaTitle}>
+                <div className="text-[10px] text-zinc-400 truncate max-w-[90px] xs:max-w-[130px] sm:max-w-xs hidden xs:block" title={mangaTitle}>
                   {mangaTitle}
                 </div>
               )}
@@ -883,8 +1036,44 @@ export default function MangaReader({
             </button>
           </div>
 
-          {/* Right: Auto-Scroll, Settings, Shortcuts & Fullscreen */}
+          {/* Right: Clock & Battery, Bookmark, Mode Switcher, Auto-Scroll, Settings, Fullscreen */}
           <div className="flex items-center gap-1.5 sm:gap-2">
+            {/* Mihon App Clock & Battery Status */}
+            <div className="hidden lg:flex items-center gap-1.5 px-2.5 py-1.5 rounded-xl bg-slate-900/90 border border-white/10 text-[11px] font-mono text-slate-300 select-none">
+              <Clock className="w-3.5 h-3.5 text-rose-400" />
+              <span>{clockTime}</span>
+              {batteryLevel !== null && (
+                <>
+                  <span className="text-slate-600">•</span>
+                  <Battery className="w-3.5 h-3.5 text-emerald-400" />
+                  <span>{batteryLevel}%</span>
+                </>
+              )}
+            </div>
+
+            {/* Quick Bookmark Toggle (Mihon / Webtoon feature) */}
+            <button
+              onClick={toggleBookmark}
+              className={`p-1.5 sm:p-2 rounded-xl border transition-all ${
+                bookmarked
+                  ? 'bg-rose-500/20 border-rose-500/50 text-rose-400 shadow-sm shadow-rose-500/20'
+                  : 'bg-slate-900 border-white/10 text-slate-400 hover:text-white'
+              }`}
+              title={bookmarked ? 'Saved in Library (Click to remove)' : 'Save to Library'}
+            >
+              <Bookmark className={`w-4 h-4 ${bookmarked ? 'fill-current' : ''}`} />
+            </button>
+
+            {/* Quick Reading Mode Switcher */}
+            <button
+              onClick={() => updateSetting('readingMode', settings.readingMode === 'webtoon' ? 'single' : 'webtoon')}
+              className="p-1.5 sm:px-2.5 sm:py-1.5 rounded-xl bg-slate-900 border border-white/10 text-slate-300 hover:text-white text-xs font-semibold flex items-center gap-1.5 transition-all"
+              title={`Switch Mode: Currently ${settings.readingMode === 'webtoon' ? 'Webtoon' : 'Single Page'}`}
+            >
+              <RotateCw className="w-3.5 h-3.5 text-rose-400" />
+              <span className="hidden xl:inline">{settings.readingMode === 'webtoon' ? 'Webtoon' : 'Paged'}</span>
+            </button>
+
             {/* Auto-scroll toggle (Webtoon mode) */}
             {settings.readingMode === 'webtoon' && (
               <button
@@ -985,6 +1174,32 @@ export default function MangaReader({
                       </button>
                     </div>
                   )}
+
+                  {/* Mihon Tap Navigation Zones Toggle */}
+                  <div className="flex items-center justify-between p-2.5 rounded-xl bg-slate-800/70 border border-white/5">
+                    <div>
+                      <div className="text-xs font-bold text-white flex items-center gap-1.5">
+                        <Smartphone className="w-3.5 h-3.5 text-rose-400" />
+                        <span>Tap Navigation Zones</span>
+                      </div>
+                      <div className="text-[10px] text-slate-400">
+                        Tap sides to page/scroll, tap center to show controls (Mihon style)
+                      </div>
+                    </div>
+                    <button
+                      type="button"
+                      onClick={() => updateSetting('tapZones', settings.tapZones === false)}
+                      className={`w-11 h-6 rounded-full transition-colors relative p-0.5 flex-shrink-0 ${
+                        settings.tapZones !== false ? 'bg-rose-600' : 'bg-slate-700'
+                      }`}
+                    >
+                      <div
+                        className={`w-5 h-5 rounded-full bg-white transition-transform ${
+                          settings.tapZones !== false ? 'translate-x-5' : 'translate-x-0'
+                        }`}
+                      />
+                    </button>
+                  </div>
 
                   {/* Screen Dimmer / Night Mode Brightness */}
                   <div>
@@ -1289,6 +1504,7 @@ export default function MangaReader({
                       {ch.pages.map((p, idx) => (
                         <div
                           key={`${ch.id}-p-${p.pageNumber}`}
+                          id={`page-${ch.id}-${p.pageNumber}`}
                           className="manga-page relative w-full min-w-full max-w-full block p-0 m-0 border-0 shadow-none leading-none select-none text-[0px]"
                           data-chapter-id={ch.id}
                           data-chapter-number={ch.chapter}
@@ -1376,12 +1592,20 @@ export default function MangaReader({
                     <p className="text-xs text-slate-400">
                       You've completed Chapter {activeChapterNumber}. All released chapters read!
                     </p>
-                    <div className="pt-2">
+                    <div className="pt-2 flex items-center justify-center gap-3">
+                      <button
+                        onClick={handleHome}
+                        className="px-5 py-2.5 rounded-xl bg-gradient-to-r from-rose-600 to-rose-500 hover:from-rose-500 hover:to-rose-400 text-white text-xs font-bold transition-all flex items-center gap-2 shadow-lg shadow-rose-600/30"
+                      >
+                        <Home className="w-4 h-4" />
+                        <span>Home Screen</span>
+                      </button>
                       <button
                         onClick={onClose}
-                        className="px-5 py-2.5 rounded-xl bg-slate-800 hover:bg-slate-700 text-white text-xs font-semibold transition-all"
+                        className="px-5 py-2.5 rounded-xl bg-slate-800 hover:bg-slate-700 text-white text-xs font-semibold transition-all flex items-center gap-1.5"
                       >
-                        Close Reader
+                        <ChevronLeft className="w-4 h-4" />
+                        <span>Back to Details</span>
                       </button>
                     </div>
                   </div>
@@ -1394,6 +1618,13 @@ export default function MangaReader({
                       Completed Chapter {activeChapterNumber}
                     </h3>
                     <div className="flex flex-col sm:flex-row items-center justify-center gap-3 pt-2">
+                      <button
+                        onClick={handleHome}
+                        className="w-full sm:w-auto px-4 py-2.5 rounded-xl bg-slate-800 text-slate-300 text-xs font-bold hover:bg-slate-700 transition-all flex items-center justify-center gap-2"
+                      >
+                        <Home className="w-4 h-4 text-rose-400" />
+                        <span>Home</span>
+                      </button>
                       {prevChapter && (
                         <button
                           onClick={() => jumpToChapter(prevChapter.id, prevChapter.chapter)}
@@ -1426,7 +1657,15 @@ export default function MangaReader({
                   onClick={(e) => {
                     const rect = e.currentTarget.getBoundingClientRect();
                     const x = e.clientX - rect.left;
-                    const isRight = x > rect.width / 2;
+                    const ratio = x / rect.width;
+
+                    // Mihon/Webtoon: Center 50% toggles HUD controls
+                    if (ratio >= 0.25 && ratio <= 0.75) {
+                      setControlsVisible((prev) => !prev);
+                      return;
+                    }
+
+                    const isRight = ratio > 0.75;
                     if (settings.readingDirection === 'rtl') {
                       if (isRight) handleSinglePagePrev();
                       else handleSinglePageNext();
@@ -1556,44 +1795,120 @@ export default function MangaReader({
         </div>
       )}
 
-      {/* Floating Bottom Bar (Controls & Progress Indicator) */}
+      {/* Floating Bottom HUD: Mihon & Webtoon Page Scrubber & Action Dock */}
       <div 
-        className={`fixed bottom-3 sm:bottom-4 left-1/2 -translate-x-1/2 z-40 w-[calc(100vw-24px)] sm:w-auto transition-all duration-300 ${
-          controlsVisible && !isAutoScrolling ? 'translate-y-0 opacity-100' : 'translate-y-16 opacity-0 pointer-events-none'
+        className={`fixed bottom-2 sm:bottom-4 left-1/2 -translate-x-1/2 z-40 w-[calc(100vw-16px)] sm:w-auto max-w-xl transition-all duration-300 select-none ${
+          controlsVisible && !isAutoScrolling ? 'translate-y-0 opacity-100' : 'translate-y-28 opacity-0 pointer-events-none'
         }`}
       >
-        <div className="glass-panel border border-white/10 rounded-2xl px-3.5 sm:px-5 py-2 sm:py-2.5 pb-[calc(0.5rem+env(safe-area-inset-bottom))] shadow-2xl flex items-center justify-between sm:justify-center gap-2 sm:gap-4 text-xs font-semibold">
-          {prevChapter && (
-            <button
-              onClick={() => jumpToChapter(prevChapter.id, prevChapter.chapter)}
-              className="text-slate-300 hover:text-white flex items-center gap-1 transition-colors p-1"
-            >
-              <ChevronLeft className="w-4 h-4" />
-              <span className="hidden sm:inline">Prev Chapter</span>
-            </button>
+        <div className="glass-panel border border-white/15 bg-slate-950/95 backdrop-blur-2xl rounded-2xl sm:rounded-3xl p-2.5 sm:p-3 pb-[calc(0.5rem+env(safe-area-inset-bottom))] shadow-[0_12px_45px_rgba(0,0,0,0.85)] flex flex-col gap-2 text-xs font-semibold">
+          
+          {/* Row 1: Interactive Page Scrubber Slider (Webtoon & Mihon signature feature) */}
+          {activeTotalPages > 0 && (
+            <div className="flex items-center gap-2 sm:gap-3 px-1 py-0.5">
+              <button
+                onClick={handlePrevPage}
+                disabled={activePageNumber <= 1 && !prevChapter}
+                className="px-2 py-1 rounded-xl bg-white/5 hover:bg-white/10 text-slate-300 hover:text-white disabled:opacity-30 disabled:cursor-not-allowed transition-all flex items-center gap-1 text-[11px] font-bold flex-shrink-0"
+                title="Previous Page"
+              >
+                <ChevronLeft className="w-3.5 h-3.5 text-rose-400" />
+                <span className="hidden xs:inline">Prev Page</span>
+              </button>
+
+              <div className="flex-1 flex items-center gap-2 min-w-[120px]">
+                <input
+                  type="range"
+                  min="1"
+                  max={activeTotalPages || 1}
+                  value={activePageNumber}
+                  onChange={(e) => scrollToPage(parseInt(e.target.value, 10))}
+                  className="w-full h-1.5 bg-slate-800 rounded-lg appearance-none cursor-pointer accent-rose-500 hover:accent-rose-400"
+                />
+                <span className="text-[11px] font-mono text-slate-300 whitespace-nowrap bg-white/5 px-2 py-0.5 rounded-md border border-white/5 flex-shrink-0">
+                  {activePageNumber} / {activeTotalPages}
+                </span>
+              </div>
+
+              <button
+                onClick={handleNextPage}
+                disabled={activePageNumber >= activeTotalPages && !nextChapter}
+                className="px-2 py-1 rounded-xl bg-white/5 hover:bg-white/10 text-slate-300 hover:text-white disabled:opacity-30 disabled:cursor-not-allowed transition-all flex items-center gap-1 text-[11px] font-bold flex-shrink-0"
+                title="Next Page"
+              >
+                <span className="hidden xs:inline">Next Page</span>
+                <ChevronRight className="w-3.5 h-3.5 text-rose-400" />
+              </button>
+            </div>
           )}
 
-          <div className="px-2.5 sm:px-3 py-1 rounded-lg bg-white/5 border border-white/5 text-slate-200 text-[11px] sm:text-xs">
-            Ch. {activeChapterNumber} • Page {activePageNumber} / {activeTotalPages}
+          {/* Row 2: Fast Navigation Actions Dock (Home, Back, Prev Chapter, Chapter Menu, Next Chapter) */}
+          <div className="flex items-center justify-between sm:justify-center gap-1.5 sm:gap-2.5 pt-1.5 border-t border-white/10">
+            {/* Go to Home Screen Button */}
+            <button
+              onClick={handleHome}
+              className="px-2.5 sm:px-3 py-1.5 rounded-xl bg-slate-900 border border-white/10 hover:border-rose-500/40 text-slate-200 hover:text-white font-bold flex items-center gap-1.5 transition-all text-[11px] sm:text-xs"
+              title="Go to Home Screen"
+            >
+              <Home className="w-3.5 h-3.5 text-rose-400" />
+              <span>Home</span>
+            </button>
+
+            {/* Go Back Button */}
+            <button
+              onClick={onClose}
+              className="px-2 sm:px-2.5 py-1.5 rounded-xl bg-slate-900 border border-white/10 hover:border-white/20 text-slate-300 hover:text-white font-bold flex items-center gap-1 transition-all text-[11px] sm:text-xs"
+              title="Back to Details / Previous View"
+            >
+              <ChevronLeft className="w-3.5 h-3.5" />
+              <span>Back</span>
+            </button>
+
+            {/* Previous Chapter Button */}
+            <button
+              disabled={!prevChapter}
+              onClick={() => prevChapter && jumpToChapter(prevChapter.id, prevChapter.chapter)}
+              className="px-2 sm:px-2.5 py-1.5 rounded-xl bg-slate-900 border border-white/10 text-slate-300 hover:text-white disabled:opacity-30 disabled:cursor-not-allowed transition-all flex items-center gap-1 text-[11px] sm:text-xs font-semibold"
+              title="Previous Chapter"
+            >
+              <ChevronLeft className="w-3.5 h-3.5 text-rose-400" />
+              <span className="truncate max-w-[55px] xs:max-w-none">
+                Ch. {prevChapter?.chapter || '—'}
+              </span>
+            </button>
+
+            {/* Chapter Picker Trigger */}
+            <button
+              onClick={() => setShowChapterMenu(!showChapterMenu)}
+              className="px-2.5 sm:px-3 py-1.5 rounded-xl bg-slate-900 border border-white/10 hover:border-rose-500/40 text-slate-200 font-bold flex items-center gap-1.5 transition-all text-[11px] sm:text-xs"
+              title="Open Chapter List"
+            >
+              <Layers className="w-3.5 h-3.5 text-rose-400" />
+              <span>Ch. {activeChapterNumber}</span>
+            </button>
+
+            {/* Move to Next Chapter (Highlighted Gradient) */}
+            <button
+              disabled={!nextChapter}
+              onClick={() => nextChapter && jumpToChapter(nextChapter.id, nextChapter.chapter)}
+              className="px-3 sm:px-4 py-1.5 rounded-xl bg-gradient-to-r from-rose-600 to-rose-500 hover:from-rose-500 hover:to-rose-400 text-white font-bold disabled:opacity-30 disabled:cursor-not-allowed shadow-md shadow-rose-600/30 transition-all flex items-center gap-1 text-[11px] sm:text-xs"
+              title="Move to Next Chapter"
+            >
+              <span className="truncate max-w-[70px] xs:max-w-none">
+                Next Ch. {nextChapter?.chapter || ''}
+              </span>
+              <ChevronRight className="w-3.5 h-3.5" />
+            </button>
+
+            {/* Scroll to Top */}
+            <button
+              onClick={scrollToTop}
+              className="p-1.5 rounded-xl bg-slate-900 border border-white/10 hover:bg-white/10 text-slate-400 hover:text-white transition-colors"
+              title="Scroll to Top"
+            >
+              <ArrowUp className="w-3.5 h-3.5" />
+            </button>
           </div>
-
-          {nextChapter && (
-            <button
-              onClick={() => jumpToChapter(nextChapter.id, nextChapter.chapter)}
-              className="text-rose-400 hover:text-rose-300 flex items-center gap-1 transition-colors p-1"
-            >
-              <span className="hidden sm:inline">Next Chapter</span>
-              <ChevronRight className="w-4 h-4" />
-            </button>
-          )}
-
-          <button
-            onClick={scrollToTop}
-            className="p-1 rounded-lg hover:bg-white/10 text-slate-400 hover:text-white transition-colors"
-            title="Scroll to Top"
-          >
-            <ArrowUp className="w-4 h-4" />
-          </button>
         </div>
       </div>
 
