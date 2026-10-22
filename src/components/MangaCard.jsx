@@ -1,14 +1,14 @@
-import React from 'react';
+import React, { memo } from 'react';
 import { Bookmark, Star, BookOpen, Check, Play } from 'lucide-react';
 
-export default function MangaCard({
+const MangaCard = ({
   manga,
   onSelect,
   isBookmarked,
   onToggleBookmark,
   readChaptersCount = 0,
   lastReadChapter = null,
-}) {
+}) => {
   if (!manga) return null;
 
   const handleBookmarkClick = (e) => {
@@ -148,4 +148,13 @@ export default function MangaCard({
       </div>
     </div>
   );
-}
+};
+
+export default memo(MangaCard, (prevProps, nextProps) => {
+  return (
+    prevProps.manga?.id === nextProps.manga?.id &&
+    prevProps.isBookmarked === nextProps.isBookmarked &&
+    prevProps.readChaptersCount === nextProps.readChaptersCount &&
+    prevProps.lastReadChapter === nextProps.lastReadChapter
+  );
+});

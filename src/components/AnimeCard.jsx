@@ -1,7 +1,7 @@
-import React from 'react';
+import React, { memo } from 'react';
 import { Star, Play, Film } from 'lucide-react';
 
-export default function AnimeCard({ anime, onSelect }) {
+const AnimeCard = ({ anime, onSelect }) => {
   if (!anime) return null;
 
   return (
@@ -81,4 +81,8 @@ export default function AnimeCard({ anime, onSelect }) {
       </div>
     </div>
   );
-}
+};
+
+export default memo(AnimeCard, (prevProps, nextProps) => {
+  return prevProps.anime?.id === nextProps.anime?.id;
+});
