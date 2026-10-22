@@ -17,13 +17,19 @@ import {
   Compass,
   RotateCw,
   Gauge,
+  Sun,
+  Search,
+  ArrowUpDown,
+  HelpCircle,
+  Zap,
   Infinity as InfinityIcon
 } from 'lucide-react';
 import { fetchChapterPages, fetchMangaChapters } from '../services/mangaApi';
 import { 
   recordReadingProgress, 
   getReaderSettings, 
-  saveReaderSettings 
+  saveReaderSettings,
+  getReadChaptersForManga
 } from '../services/storage';
 
 export default function MangaReader({
@@ -70,6 +76,12 @@ export default function MangaReader({
   // Single page mode page tracker
   const [singlePageNum, setSinglePageNum] = useState(1);
 
+  // Read chapters list for checkmark indicators
+  const [readChapterIds, setReadChapterIds] = useState([]);
+  const [chapterFilter, setChapterFilter] = useState('');
+  const [chapterSortAsc, setChapterSortAsc] = useState(true);
+  const [showHelpModal, setShowHelpModal] = useState(false);
+
   // Settings
   const [settings, setSettings] = useState(() => {
     const saved = getReaderSettings();
@@ -81,11 +93,13 @@ export default function MangaReader({
       pageGap: 0,
       readingDirection: 'ltr',
       autoScrollSpeed: 2, // 1 = 45px/s, 2 = 95px/s, 3 = 175px/s, 4 = 280px/s
+      brightness: 100, // 40 - 100
       continuousScroll: true,
       ...saved,
       pageGap: effectiveGap,
       fitMode: saved.fitMode || 'full',
       autoScrollSpeed: saved.autoScrollSpeed || 2,
+      brightness: saved.brightness ?? 100,
     };
   });
 
@@ -101,14 +115,14 @@ export default function MangaReader({
   const controlsTimeoutRef = useRef(null);
   const autoScrollRef = useRef(null);
 
-  // Auto-hide controls after idle (only if not interacting)
+  // Auto-hide controls after idle (only if menus are not open)
   const handleMouseMove = () => {
     setControlsVisible(true);
     if (controlsTimeoutRef.current) clearTimeout(controlsTimeoutRef.current);
     controlsTimeoutRef.current = setTimeout(() => {
-      setControlsVisible(false);
-      setShowSettingsMenu(false);
-      setShowChapterMenu(false);
+      if (!showSettingsMenu && !showChapterMenu && !showHelpModal) {
+        setControlsVisible(false);
+      }
     }, 4500);
   };
 
@@ -180,9 +194,8 @@ export default function MangaReader({
     : -1;
   const prevChapterToLoad = firstLoadedIndex > 0 ? allChapters[firstLoadedIndex - 1] : null;
 
-  // Initial Chapter Load / Prop Change (Only when changed from outside)
+  // Initial Chapter Load / Prop Change
   useEffect(() => {
-    // If the prop matches the chapter we already loaded or transitioned into, do not re-fetch
     if (chapterId && String(chapterId) === String(currentHandledChapterIdRef.current) && loadedChaptersRef.current.length > 0) {
       return;
     }
@@ -197,6 +210,11 @@ export default function MangaReader({
     setSinglePageNum(1);
     setLoadedChapters([]);
     setNextChapterError(null);
+
+    // Load read history
+    if (mangaId) {
+      setReadChapterIds(getReadChaptersForManga(mangaId));
+    }
 
     fetchChapterPages(chapterId)
       .then((data) => {
@@ -256,6 +274,28 @@ export default function MangaReader({
       if (autoScrollRef.current) cancelAnimationFrame(autoScrollRef.current);
     };
   }, [chapterId, chapterNumber, mangaId, coverUrl, mangaEnglishTitle, mangaTitle]);
+
+  // -------------------------------------------------------------
+  // Proactive Lookahead Page Preloader (Instant Scrolling)
+  // -------------------------------------------------------------
+  useEffect(() => {
+    if (loadedChapters.length === 0) return;
+    const allPages = loadedChapters.flatMap((ch) => ch.pages || []);
+    if (allPages.length === 0) return;
+
+    // Prefetch upcoming 6 pages ahead into browser memory cache
+    const currentIdx = allPages.findIndex((p) => p.pageNumber === activePageNumber);
+    const start = Math.max(0, currentIdx);
+    const end = Math.min(allPages.length, start + 6);
+
+    for (let i = start; i < end; i++) {
+      const p = allPages[i];
+      if (p?.url) {
+        const img = new Image();
+        img.src = p.url;
+      }
+    }
+  }, [activeChapterId, activePageNumber, loadedChapters]);
 
   // Seamless Next Chapter Auto-loader (Continuous Infinite Scroll)
   const loadNextChapter = useCallback(async () => {
@@ -519,8 +559,6 @@ export default function MangaReader({
       return;
     }
 
-    // Precise speeds in pixels per second:
-    // 1x = 45px/s (Relaxed), 2x = 95px/s (Normal), 3x = 175px/s (Fast), 4x = 280px/s (Turbo)
     const speedMap = {
       1: 45,
       2: 95,
@@ -538,7 +576,7 @@ export default function MangaReader({
     const tick = (now) => {
       if (!running) return;
 
-      const deltaSeconds = Math.min((now - lastTime) / 1000, 0.1); // clamp to prevent jumps
+      const deltaSeconds = Math.min((now - lastTime) / 1000, 0.1);
       lastTime = now;
 
       scrollAccumulator += pixelsPerSecond * deltaSeconds;
@@ -558,7 +596,6 @@ export default function MangaReader({
           }
         }
 
-        // Also scroll window in case document is scrolling
         if (typeof window !== 'undefined') {
           window.scrollBy(0, movePixels);
         }
@@ -624,6 +661,8 @@ export default function MangaReader({
   // Keyboard Navigation
   useEffect(() => {
     const handleKeyDown = (e) => {
+      if (e.target.tagName === 'INPUT' || e.target.tagName === 'TEXTAREA') return;
+
       if (e.key === 'ArrowRight' || e.key === 'd' || e.key === ' ') {
         if (settings.readingMode === 'single') {
           if (settings.readingDirection === 'rtl') {
@@ -640,16 +679,23 @@ export default function MangaReader({
             handleSinglePagePrev();
           }
         }
-      } else if (e.key === 'f') {
+      } else if (e.key === 'f' || e.key === 'F') {
         toggleFullscreen();
+      } else if (e.key === 's' || e.key === 'S') {
+        setShowSettingsMenu((prev) => !prev);
+      } else if (e.key === '?' || (e.shiftKey && e.key === '/')) {
+        setShowHelpModal((prev) => !prev);
       } else if (e.key === 'Escape') {
-        onClose();
+        if (showHelpModal) setShowHelpModal(false);
+        else if (showSettingsMenu) setShowSettingsMenu(false);
+        else if (showChapterMenu) setShowChapterMenu(false);
+        else onClose();
       }
     };
 
     window.addEventListener('keydown', handleKeyDown);
     return () => window.removeEventListener('keydown', handleKeyDown);
-  }, [settings.readingMode, settings.readingDirection, handleSinglePageNext, handleSinglePagePrev, onClose]);
+  }, [settings.readingMode, settings.readingDirection, handleSinglePageNext, handleSinglePagePrev, onClose, showHelpModal, showSettingsMenu, showChapterMenu]);
 
   // Theme background styles
   const themeBg = 
@@ -659,14 +705,43 @@ export default function MangaReader({
       ? 'bg-[#181512]' 
       : 'bg-[#06080e]';
 
+  // Reading progress percentage
+  const progressPercent = Math.min(100, Math.max(0, Math.round((activePageNumber / Math.max(activeTotalPages, 1)) * 100)));
+
+  // Filtered chapters for chapter dropdown
+  const filteredChapters = allChapters.filter((ch) => {
+    if (!chapterFilter) return true;
+    return (
+      String(ch.chapter).toLowerCase().includes(chapterFilter.toLowerCase()) ||
+      (ch.title && ch.title.toLowerCase().includes(chapterFilter.toLowerCase()))
+    );
+  });
+
+  const sortedDropdownChapters = [...filteredChapters].sort((a, b) => {
+    const numA = parseFloat(a.chapter) || 0;
+    const numB = parseFloat(b.chapter) || 0;
+    return chapterSortAsc ? numA - numB : numB - numA;
+  });
+
   return (
     <div 
       ref={containerRef}
       onMouseMove={handleMouseMove}
       onClick={handleReaderTap}
       className={`fixed inset-0 z-50 ${themeBg} text-slate-100 overflow-y-auto overscroll-y-contain selection:bg-rose-500 selection:text-white transition-colors duration-300 w-full h-full`}
-      style={{ WebkitOverflowScrolling: 'touch' }}
+      style={{ 
+        WebkitOverflowScrolling: 'touch',
+        filter: `brightness(${settings.brightness ?? 100}%)`
+      }}
     >
+      {/* Top 2px Reading Progress Bar */}
+      <div className="fixed top-0 left-0 right-0 h-[2.5px] bg-white/10 z-[60] pointer-events-none">
+        <div 
+          className="h-full bg-gradient-to-r from-rose-600 via-rose-500 to-amber-400 transition-all duration-150 shadow-sm shadow-rose-500/50"
+          style={{ width: `${progressPercent}%` }}
+        />
+      </div>
+
       {/* Top Floating Control Bar */}
       <div 
         className={`fixed top-0 left-0 right-0 z-50 transition-all duration-300 ${
@@ -680,7 +755,7 @@ export default function MangaReader({
             <button
               onClick={onClose}
               className="p-1.5 sm:p-2 rounded-xl bg-slate-900/90 border border-white/10 text-slate-300 hover:text-white hover:bg-rose-600 transition-all flex-shrink-0"
-              title="Close Reader"
+              title="Close Reader (Esc)"
             >
               <X className="w-5 h-5" />
             </button>
@@ -698,7 +773,7 @@ export default function MangaReader({
                 <span>Ch. {activeChapterNumber}</span>
                 {activeTotalPages > 0 && (
                   <span className="text-slate-400 font-normal">
-                    • {activePageNumber}/{activeTotalPages}
+                    • {activePageNumber}/{activeTotalPages} ({progressPercent}%)
                   </span>
                 )}
                 {settings.continuousScroll && settings.readingMode === 'webtoon' && (
@@ -731,31 +806,74 @@ export default function MangaReader({
                 <span className="max-w-[80px] sm:max-w-none truncate">Ch. {activeChapterNumber}</span>
               </button>
 
-              {/* Chapter Dropdown List */}
+              {/* Enhanced Chapter Dropdown List with Search & Sort */}
               {showChapterMenu && (
-                <div className="fixed sm:absolute inset-x-3 sm:inset-x-auto top-16 sm:top-full sm:left-1/2 sm:-translate-x-1/2 mt-2 w-auto sm:w-72 max-h-[65vh] overflow-y-auto bg-slate-900 border border-white/10 rounded-2xl shadow-2xl p-2 z-50">
-                  <div className="text-[11px] font-bold uppercase tracking-wider text-slate-400 px-3 py-1.5 border-b border-white/5 flex items-center justify-between">
-                    <span>Jump to Chapter</span>
-                    <button onClick={() => setShowChapterMenu(false)} className="text-slate-400 hover:text-white sm:hidden text-xs">✕</button>
+                <div className="fixed sm:absolute inset-x-3 sm:inset-x-auto top-16 sm:top-full sm:left-1/2 sm:-translate-x-1/2 mt-2 w-auto sm:w-80 max-h-[70vh] bg-slate-900 border border-white/10 rounded-2xl shadow-2xl p-3 z-50 flex flex-col space-y-2">
+                  <div className="flex items-center justify-between border-b border-white/5 pb-2">
+                    <span className="text-xs font-bold text-white flex items-center gap-1.5">
+                      <Layers className="w-3.5 h-3.5 text-rose-400" />
+                      <span>Chapter Navigation</span>
+                    </span>
+                    <div className="flex items-center gap-1">
+                      <button
+                        onClick={() => setChapterSortAsc(!chapterSortAsc)}
+                        className="p-1 px-1.5 rounded-lg bg-white/5 hover:bg-white/10 text-slate-300 text-[10px] font-semibold flex items-center gap-1"
+                        title="Toggle Sort Order"
+                      >
+                        <ArrowUpDown className="w-3 h-3" />
+                        <span>{chapterSortAsc ? '1 → N' : 'N → 1'}</span>
+                      </button>
+                      <button onClick={() => setShowChapterMenu(false)} className="text-slate-400 hover:text-white text-xs p-1">✕</button>
+                    </div>
                   </div>
-                  {allChapters.map((ch) => (
-                    <button
-                      key={ch.id}
-                      onClick={() => jumpToChapter(ch.id, ch.chapter)}
-                      className={`w-full text-left px-3 py-2.5 rounded-xl text-xs flex items-center justify-between transition-all min-h-[40px] ${
-                        String(ch.id) === String(activeChapterId)
-                          ? 'bg-rose-600 text-white font-bold'
-                          : 'text-slate-300 hover:bg-white/5'
-                      }`}
-                    >
-                      <span>Chapter {ch.chapter}</span>
-                      {ch.title && (
-                        <span className="text-[11px] text-slate-400 truncate max-w-[120px]">
-                          {ch.title}
-                        </span>
-                      )}
-                    </button>
-                  ))}
+
+                  {/* Chapter Quick Filter Input */}
+                  <div className="relative">
+                    <Search className="w-3.5 h-3.5 text-slate-400 absolute left-2.5 top-1/2 -translate-y-1/2 pointer-events-none" />
+                    <input
+                      type="text"
+                      placeholder="Filter chapter number (e.g. 50)..."
+                      value={chapterFilter}
+                      onChange={(e) => setChapterFilter(e.target.value)}
+                      className="w-full bg-slate-800/90 border border-white/10 rounded-xl pl-8 pr-3 py-1.5 text-xs text-slate-200 placeholder:text-slate-500 focus:outline-none focus:border-rose-500/50"
+                    />
+                  </div>
+
+                  {/* Chapters List */}
+                  <div className="overflow-y-auto max-h-[48vh] space-y-1 pr-1">
+                    {sortedDropdownChapters.map((ch) => {
+                      const isRead = readChapterIds.includes(ch.id);
+                      const isCurrent = String(ch.id) === String(activeChapterId);
+                      return (
+                        <button
+                          key={ch.id}
+                          onClick={() => jumpToChapter(ch.id, ch.chapter)}
+                          className={`w-full text-left px-3 py-2 rounded-xl text-xs flex items-center justify-between transition-all min-h-[38px] ${
+                            isCurrent
+                              ? 'bg-rose-600 text-white font-bold'
+                              : 'text-slate-300 hover:bg-white/5'
+                          }`}
+                        >
+                          <div className="flex items-center gap-2 truncate">
+                            {isRead && !isCurrent && (
+                              <Check className="w-3.5 h-3.5 text-emerald-400 flex-shrink-0" />
+                            )}
+                            <span className="font-semibold">Chapter {ch.chapter}</span>
+                            {ch.title && (
+                              <span className="text-[11px] text-slate-400 truncate max-w-[120px]">
+                                • {ch.title}
+                              </span>
+                            )}
+                          </div>
+                          {isCurrent && (
+                            <span className="text-[10px] uppercase font-bold bg-white/20 px-1.5 py-0.2 rounded text-white">
+                              Reading
+                            </span>
+                          )}
+                        </button>
+                      );
+                    })}
+                  </div>
                 </div>
               )}
             </div>
@@ -771,7 +889,7 @@ export default function MangaReader({
             </button>
           </div>
 
-          {/* Right: Auto-Scroll, Settings & Fullscreen */}
+          {/* Right: Auto-Scroll, Settings, Shortcuts & Fullscreen */}
           <div className="flex items-center gap-1.5 sm:gap-2">
             {/* Auto-scroll toggle (Webtoon mode) */}
             {settings.readingMode === 'webtoon' && (
@@ -792,7 +910,7 @@ export default function MangaReader({
               </button>
             )}
 
-            {/* Settings Trigger */}
+            {/* Reader Settings Modal Trigger */}
             <div className="relative">
               <button
                 onClick={() => setShowSettingsMenu(!showSettingsMenu)}
@@ -801,7 +919,7 @@ export default function MangaReader({
                     ? 'bg-rose-600 border-rose-500 text-white'
                     : 'bg-slate-900 border-white/10 text-slate-300 hover:text-white'
                 }`}
-                title="Reader Settings"
+                title="Reader Settings (S)"
               >
                 <Settings className="w-4 h-4" />
               </button>
@@ -873,6 +991,25 @@ export default function MangaReader({
                       </button>
                     </div>
                   )}
+
+                  {/* Screen Dimmer / Night Mode Brightness */}
+                  <div>
+                    <div className="flex items-center justify-between text-xs text-slate-300 mb-1.5">
+                      <span className="flex items-center gap-1.5">
+                        <Sun className="w-3.5 h-3.5 text-amber-400" />
+                        <span>Screen Dimmer (Night Mode)</span>
+                      </span>
+                      <span className="text-rose-400 font-bold">{settings.brightness ?? 100}%</span>
+                    </div>
+                    <input
+                      type="range"
+                      min="40"
+                      max="100"
+                      value={settings.brightness ?? 100}
+                      onChange={(e) => updateSetting('brightness', Number(e.target.value))}
+                      className="w-full accent-rose-500 cursor-pointer"
+                    />
+                  </div>
 
                   {/* Page Container Width / Phone Fit Mode */}
                   <div>
@@ -1032,6 +1169,15 @@ export default function MangaReader({
                 </div>
               )}
             </div>
+
+            {/* Keyboard Shortcuts Help */}
+            <button
+              onClick={() => setShowHelpModal(true)}
+              className="p-2 rounded-xl bg-slate-900 border border-white/10 text-slate-400 hover:text-white transition-all hidden sm:block"
+              title="Keyboard Shortcuts (?)"
+            >
+              <HelpCircle className="w-4 h-4" />
+            </button>
 
             {/* Fullscreen */}
             <button
@@ -1456,6 +1602,51 @@ export default function MangaReader({
           </button>
         </div>
       </div>
+
+      {/* Keyboard Shortcuts Cheat Sheet Modal */}
+      {showHelpModal && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/80 backdrop-blur-md animate-fadeIn">
+          <div className="bg-slate-900 border border-white/10 rounded-3xl p-6 max-w-sm w-full space-y-4 shadow-2xl text-white">
+            <div className="flex items-center justify-between border-b border-white/10 pb-3">
+              <div className="flex items-center gap-2">
+                <HelpCircle className="w-5 h-5 text-rose-500" />
+                <h3 className="font-bold text-base font-['Outfit']">Keyboard Shortcuts</h3>
+              </div>
+              <button onClick={() => setShowHelpModal(false)} className="text-slate-400 hover:text-white">✕</button>
+            </div>
+            
+            <div className="space-y-2 text-xs">
+              <div className="flex items-center justify-between py-1.5 border-b border-white/5">
+                <span className="text-slate-400">Next Page / Chapter</span>
+                <span className="font-mono bg-white/10 px-2 py-0.5 rounded text-white font-bold">Space / → / D</span>
+              </div>
+              <div className="flex items-center justify-between py-1.5 border-b border-white/5">
+                <span className="text-slate-400">Previous Page / Chapter</span>
+                <span className="font-mono bg-white/10 px-2 py-0.5 rounded text-white font-bold">← / A</span>
+              </div>
+              <div className="flex items-center justify-between py-1.5 border-b border-white/5">
+                <span className="text-slate-400">Toggle Fullscreen</span>
+                <span className="font-mono bg-white/10 px-2 py-0.5 rounded text-white font-bold">F</span>
+              </div>
+              <div className="flex items-center justify-between py-1.5 border-b border-white/5">
+                <span className="text-slate-400">Toggle Reader Settings</span>
+                <span className="font-mono bg-white/10 px-2 py-0.5 rounded text-white font-bold">S</span>
+              </div>
+              <div className="flex items-center justify-between py-1.5">
+                <span className="text-slate-400">Close Reader</span>
+                <span className="font-mono bg-white/10 px-2 py-0.5 rounded text-white font-bold">Esc</span>
+              </div>
+            </div>
+
+            <button
+              onClick={() => setShowHelpModal(false)}
+              className="w-full py-2.5 rounded-xl bg-rose-600 hover:bg-rose-500 text-white font-bold text-xs transition-all shadow-md shadow-rose-600/30"
+            >
+              Got it!
+            </button>
+          </div>
+        </div>
+      )}
     </div>
   );
 }

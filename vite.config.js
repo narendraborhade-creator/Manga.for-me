@@ -6,7 +6,8 @@ import {
   searchManga, 
   getMangaDetails, 
   getChapterPages, 
-  proxyImage 
+  proxyImage,
+  getMangaRecommendations
 } from './server/mangaProvider.js'
 
 function mangaApiPlugin() {
@@ -27,6 +28,17 @@ function mangaApiPlugin() {
         const list = await searchManga(q);
         res.setHeader('Content-Type', 'application/json');
         res.end(JSON.stringify(list));
+        return;
+      }
+
+      if (pathname === '/api/manga/recommendations') {
+        const id = urlObj.searchParams.get('id') || '';
+        const genresRaw = urlObj.searchParams.get('genres') || '';
+        const genres = genresRaw ? genresRaw.split(',').map(g => g.trim()).filter(Boolean) : [];
+        const limit = parseInt(urlObj.searchParams.get('limit') || '8', 10);
+        const recommendations = await getMangaRecommendations(id, genres, limit);
+        res.setHeader('Content-Type', 'application/json');
+        res.end(JSON.stringify({ recommendations }));
         return;
       }
 

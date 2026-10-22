@@ -787,6 +787,7 @@ export default function App() {
             setSelectedMangaCover('');
           }}
           onOpenReader={handleOpenReader}
+          onSelectManga={handleOpenMangaDetails}
           isBookmarked={isBookmarked(selectedMangaId)}
           bookmarkStatus={getBookmarkStatus(selectedMangaId)}
           onSetBookmark={handleSetBookmark}
