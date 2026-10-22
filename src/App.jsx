@@ -273,14 +273,14 @@ export default function App() {
   }, [searchQuery, selectedGenre, activeTab]);
 
   // Bookmarking handlers
-  const handleToggleBookmark = (manga) => {
+  const handleToggleBookmark = useCallback((manga) => {
     if (bookmarks[manga.id]) {
       removeBookmark(manga.id);
     } else {
       setBookmark(manga.id, manga, 'reading');
     }
     refreshStorageData();
-  }, [refreshStorageData]);
+  }, [bookmarks, refreshStorageData]);
 
   const handleSetBookmark = useCallback((mangaId, mangaData, status) => {
     setBookmark(mangaId, mangaData, status);
@@ -342,14 +342,6 @@ export default function App() {
     ...(trendingAnime.slice(0, 2)),
   ];
   // Memoized O(1) lookups for performance
-  const historyMap = useMemo(() => {
-    const map = {};
-    history.forEach(h => {
-      map[h.mangaId] = h;
-    });
-    return map;
-  }, [history]);
-
   const historyMap = useMemo(() => {
     const map = {};
     history.forEach((entry) => {
