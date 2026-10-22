@@ -316,10 +316,25 @@ export default function App() {
     refreshStorageData();
   };
 
-  // Close Reader
+  // Close Reader (Returns back to manga details or previous view)
   const handleCloseReader = () => {
     setReaderState((prev) => ({ ...prev, active: false }));
     refreshStorageData();
+  };
+
+  // Go Directly to Home Screen from Reader
+  const handleGoHome = () => {
+    setReaderState((prev) => ({ ...prev, active: false }));
+    setSelectedMangaId(null);
+    setSelectedAnime(null);
+    setActiveTab('manga');
+    setSearchQuery('');
+    setSelectedGenre('All');
+    setSelectedSource('All');
+    refreshStorageData();
+    if (typeof window !== 'undefined') {
+      window.scrollTo({ top: 0, behavior: 'smooth' });
+    }
   };
 
   // Featured Spotlight Items for Hero Carousel (Manga & Anime mix)
@@ -787,6 +802,7 @@ export default function App() {
             setSelectedMangaCover('');
           }}
           onOpenReader={handleOpenReader}
+          onSelectManga={handleOpenMangaDetails}
           isBookmarked={isBookmarked(selectedMangaId)}
           bookmarkStatus={getBookmarkStatus(selectedMangaId)}
           onSetBookmark={handleSetBookmark}
@@ -815,6 +831,7 @@ export default function App() {
           mangaEnglishTitle={readerState.mangaEnglishTitle}
           coverUrl={readerState.coverUrl}
           onClose={handleCloseReader}
+          onGoHome={handleGoHome}
           onChangeChapter={handleChangeChapter}
         />
       )}

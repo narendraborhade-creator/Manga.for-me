@@ -235,16 +235,39 @@ export const FALLBACK_MANGA_CATALOG = [
   }
 ];
 
+// High-speed client-side memory cache with 5-minute TTL
+const clientCache = new Map();
+const CACHE_TTL_MS = 5 * 60 * 1000;
+
+function getClientCached(key) {
+  const item = clientCache.get(key);
+  if (!item) return null;
+  if (Date.now() - item.time > CACHE_TTL_MS) {
+    clientCache.delete(key);
+    return null;
+  }
+  return item.data;
+}
+
+function setClientCached(key, data) {
+  clientCache.set(key, { data, time: Date.now() });
+}
+
 /**
  * Fetch Popular / Trending Manga
  */
 export async function fetchPopularManga() {
+  const cached = getClientCached('popular_manga');
+  if (cached) return cached;
+
   try {
     const res = await fetch('/api/manga/popular');
     if (!res.ok) throw new Error(`HTTP ${res.status}`);
     const data = await res.json();
     if (Array.isArray(data) && data.length > 0) {
-      return data.map(formatMangaItem);
+      const formatted = data.map(formatMangaItem);
+      setClientCached('popular_manga', formatted);
+      return formatted;
     }
     return FALLBACK_MANGA_CATALOG.map(formatMangaItem);
   } catch (err) {
@@ -259,13 +282,19 @@ export async function fetchPopularManga() {
 export async function searchManga(query = '') {
   if (!query || !query.trim()) return fetchPopularManga();
 
+  const cacheKey = `search_${query.trim().toLowerCase()}`;
+  const cached = getClientCached(cacheKey);
+  if (cached) return cached;
+
   try {
     const url = `/api/manga/search?q=${encodeURIComponent(query.trim())}`;
     const res = await fetch(url);
     if (!res.ok) throw new Error(`HTTP ${res.status}`);
     const data = await res.json();
     if (Array.isArray(data) && data.length > 0) {
-      return data.map(formatMangaItem);
+      const formatted = data.map(formatMangaItem);
+      setClientCached(cacheKey, formatted);
+      return formatted;
     }
   } catch (err) {
     console.warn('searchManga API warning, matching fallback:', err);
@@ -287,7 +316,7 @@ export async function searchManga(query = '') {
 function needsImageProxy(url) {
   if (!url) return false;
   if (url.startsWith('/api/image-proxy') || url.startsWith('data:')) return false;
-  if (url.includes('unsplash.com') || url.includes('mangadex.org')) return false;
+  if (url.includes('unsplash.com') || url.includes('mangadex.org') || url.includes('mangadex.network')) return false;
   return true;
 }
 
@@ -295,6 +324,12 @@ function needsImageProxy(url) {
  * Fetch Manga Details & Full Chapter List
  */
 export async function fetchMangaDetails(mangaId, refresh = false) {
+  const cacheKey = `details_${mangaId}`;
+  if (!refresh) {
+    const cached = getClientCached(cacheKey);
+    if (cached) return cached;
+  }
+
   try {
     const refreshQuery = refresh ? '&refresh=true' : '';
     const url = `/api/manga/details?id=${encodeURIComponent(mangaId)}${refreshQuery}`;
@@ -304,6 +339,7 @@ export async function fetchMangaDetails(mangaId, refresh = false) {
     if (data && data.coverUrl && needsImageProxy(data.coverUrl)) {
       data.coverUrl = `/api/image-proxy?url=${encodeURIComponent(data.coverUrl)}`;
     }
+    if (data) setClientCached(cacheKey, data);
     return data;
   } catch (err) {
     console.warn('fetchMangaDetails API warning, checking fallback:', err);
@@ -313,21 +349,49 @@ export async function fetchMangaDetails(mangaId, refresh = false) {
     );
     // 2. Try finding by title/slug tokens
     if (!fallbackItem) {
-      const q = mangaId.toLowerCase().replace(/^wc:|^webtoon:/, '').replace(/[-_:]/g, ' ');
+      const q = mangaId.toLowerCase().replace(/^wc:|^webtoon:|^md:/, '').replace(/[-_:]/g, ' ');
       fallbackItem = FALLBACK_MANGA_CATALOG.find((m) => {
         const titleQ = m.title.toLowerCase().replace(/[-_:]/g, ' ');
         return q.includes(titleQ) || titleQ.includes(q);
       });
     }
     if (fallbackItem) {
-      return {
+      const result = {
         ...fallbackItem,
         id: mangaId,
         coverUrl: fallbackItem.coverUrl,
         chapters: fallbackItem.chapters || []
       };
+      setClientCached(cacheKey, result);
+      return result;
     }
     return null;
+  }
+}
+
+/**
+ * Fetch Smart Manga Recommendations / Suggestions
+ */
+export async function fetchMangaRecommendations(mangaId = '', genres = [], limit = 8) {
+  const genresStr = Array.isArray(genres) ? genres.slice(0, 3).join(',') : String(genres || '');
+  const cacheKey = `recs_${mangaId}_${genresStr}_${limit}`;
+  const cached = getClientCached(cacheKey);
+  if (cached) return cached;
+
+  try {
+    const url = `/api/manga/recommendations?id=${encodeURIComponent(mangaId)}&genres=${encodeURIComponent(genresStr)}&limit=${limit}`;
+    const res = await fetch(url);
+    if (!res.ok) throw new Error(`HTTP ${res.status}`);
+    const data = await res.json();
+    const list = (data?.recommendations || []).map(formatMangaItem).filter(Boolean);
+    if (list.length > 0) {
+      setClientCached(cacheKey, list);
+      return list;
+    }
+    return FALLBACK_MANGA_CATALOG.slice(0, limit).map(formatMangaItem);
+  } catch (err) {
+    console.warn('fetchMangaRecommendations error:', err);
+    return FALLBACK_MANGA_CATALOG.slice(0, limit).map(formatMangaItem);
   }
 }
 
@@ -390,12 +454,14 @@ function formatMangaItem(item) {
     tags: item.tags || ['Manga', 'Action'],
     year: item.year || null,
     sourceName: item.sourceName || (
+      item.id?.startsWith('md:') ? 'MangaDex' :
       item.id?.startsWith('asura:') ? 'Asura Scans' :
       item.id?.startsWith('vortex:') ? 'Vortex Scans' :
       item.id?.startsWith('wc:') ? 'WeebCentral' :
       item.id?.startsWith('webtoon:') ? 'Webtoon' : 'MangaPill'
     ),
     provider: item.provider || (
+      item.id?.startsWith('md:') ? 'mangadex' :
       item.id?.startsWith('asura:') ? 'asura' :
       item.id?.startsWith('vortex:') ? 'vortex' :
       item.id?.startsWith('wc:') ? 'weebcentral' :

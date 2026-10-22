@@ -1,5 +1,7 @@
 import React, { memo } from 'react';
 import { Star, Play, Film } from 'lucide-react';
+import React from 'react';
+import { Star, Play } from 'lucide-react';
 
 const AnimeCard = ({ anime, onSelect }) => {
   if (!anime) return null;

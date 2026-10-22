@@ -1,5 +1,5 @@
 import React from 'react';
-import { History, Play, Trash2, Clock, BookOpen, AlertTriangle } from 'lucide-react';
+import { History, Play, Trash2, Clock } from 'lucide-react';
 import { clearHistory, removeFromHistory } from '../services/storage';
 
 export default function HistoryView({
