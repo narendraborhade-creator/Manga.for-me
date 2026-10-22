@@ -859,16 +859,7 @@ export default function MangaReader({
   });
 
   return (
-    <div 
-      ref={containerRef}
-      onMouseMove={handleMouseMove}
-      onClick={handleReaderTap}
-      className={`fixed inset-0 z-50 ${themeBg} text-slate-100 overflow-y-auto overscroll-y-contain selection:bg-rose-500 selection:text-white transition-colors duration-300 w-full h-full`}
-      style={{ 
-        WebkitOverflowScrolling: 'touch',
-        filter: `brightness(${settings.brightness ?? 100}%)`
-      }}
-    >
+    <div className={`fixed inset-0 z-50 ${themeBg} text-slate-100 overflow-hidden w-full h-full select-none`}>
       {/* Top 2px Reading Progress Bar */}
       <div className="fixed top-0 left-0 right-0 h-[2.5px] bg-white/10 z-[60] pointer-events-none">
         <div 
@@ -1401,8 +1392,19 @@ export default function MangaReader({
         </div>
       </div>
 
-      {/* Main Reading Canvas */}
-      <main className="min-h-screen pt-14 sm:pt-16 pb-24 sm:pb-32 w-full flex flex-col items-center justify-start">
+      {/* Scrollable Canvas for Manga Pages (Dimmed by brightness filter) */}
+      <div 
+        ref={containerRef}
+        onMouseMove={handleMouseMove}
+        onClick={handleReaderTap}
+        className="absolute inset-0 overflow-y-auto overscroll-y-contain selection:bg-rose-500 selection:text-white transition-colors duration-300 w-full h-full"
+        style={{ 
+          WebkitOverflowScrolling: 'touch',
+          filter: `brightness(${settings.brightness ?? 100}%)`
+        }}
+      >
+        {/* Main Reading Canvas */}
+        <main className="min-h-screen pt-14 sm:pt-16 pb-32 sm:pb-40 w-full flex flex-col items-center justify-start">
         {initialLoading ? (
           <div className="flex flex-col items-center justify-center py-36 gap-3">
             <Loader2 className="w-12 h-12 text-rose-500 animate-spin" />
@@ -1734,10 +1736,11 @@ export default function MangaReader({
           </>
         )}
       </main>
+      </div>
 
-      {/* Floating Auto-Scroll HUD Controller */}
+      {/* Floating Auto-Scroll HUD Controller (Fixed above the bottom dock) */}
       {isAutoScrolling && (
-        <div className="fixed bottom-6 sm:bottom-8 left-1/2 -translate-x-1/2 z-50 animate-fadeIn select-none pointer-events-auto">
+        <div className="fixed bottom-20 sm:bottom-24 left-1/2 -translate-x-1/2 z-50 animate-fadeIn select-none pointer-events-auto">
           <div className="glass-panel px-3 sm:px-4 py-2 rounded-2xl border border-rose-500/40 shadow-2xl shadow-rose-950/60 backdrop-blur-xl flex items-center gap-2 sm:gap-3 bg-slate-900/95 text-white">
             {/* Pulsing indicator */}
             <div className="flex items-center gap-1.5 px-2 py-1 rounded-xl bg-rose-500/15 text-rose-400 border border-rose-500/30 text-[11px] font-bold">
@@ -1795,10 +1798,10 @@ export default function MangaReader({
         </div>
       )}
 
-      {/* Floating Bottom HUD: Mihon & Webtoon Page Scrubber & Action Dock */}
+      {/* Floating Bottom HUD: Mihon & Webtoon Page Scrubber & Action Dock (Fixed at bottom of phone) */}
       <div 
-        className={`fixed bottom-2 sm:bottom-4 left-1/2 -translate-x-1/2 z-40 w-[calc(100vw-16px)] sm:w-auto max-w-xl transition-all duration-300 select-none ${
-          controlsVisible && !isAutoScrolling ? 'translate-y-0 opacity-100' : 'translate-y-28 opacity-0 pointer-events-none'
+        className={`fixed bottom-2 sm:bottom-4 left-1/2 -translate-x-1/2 z-50 w-[calc(100vw-16px)] sm:w-auto max-w-xl transition-all duration-300 select-none pointer-events-auto pb-[env(safe-area-inset-bottom)] ${
+          controlsVisible && !isAutoScrolling ? 'translate-y-0 opacity-100' : 'translate-y-36 opacity-0 pointer-events-none'
         }`}
       >
         <div className="glass-panel border border-white/15 bg-slate-950/95 backdrop-blur-2xl rounded-2xl sm:rounded-3xl p-2.5 sm:p-3 pb-[calc(0.5rem+env(safe-area-inset-bottom))] shadow-[0_12px_45px_rgba(0,0,0,0.85)] flex flex-col gap-2 text-xs font-semibold">
