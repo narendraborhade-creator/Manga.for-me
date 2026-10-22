@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useMemo, useCallback } from 'react';
+import React, { useState, useEffect, useMemo } from 'react';
 import Navbar from './components/Navbar';
 import ContinueReadingBanner from './components/ContinueReadingBanner';
 import HeroCarousel from './components/HeroCarousel';
@@ -273,8 +273,8 @@ export default function App() {
   }, [searchQuery, selectedGenre, activeTab]);
 
   // Bookmarking handlers
-  const handleToggleBookmark = useCallback((manga) => {
-    if (getBookmarks()[manga.id]) {
+  const handleToggleBookmark = (manga) => {
+    if (bookmarks[manga.id]) {
       removeBookmark(manga.id);
     } else {
       setBookmark(manga.id, manga, 'reading');
@@ -341,6 +341,15 @@ export default function App() {
     ...(popularManga.slice(0, 3)),
     ...(trendingAnime.slice(0, 2)),
   ];
+  // Memoized O(1) lookups for performance
+  const historyMap = useMemo(() => {
+    const map = {};
+    history.forEach(h => {
+      map[h.mangaId] = h;
+    });
+    return map;
+  }, [history]);
+
   const historyMap = useMemo(() => {
     const map = {};
     history.forEach((entry) => {
@@ -395,6 +404,8 @@ export default function App() {
                 {spotlightItems.length > 0 && (
                   <HeroCarousel
                     items={spotlightItems}
+                    onSelectManga={(id, cover) => handleOpenMangaDetails(id, cover)}
+                    onSelectAnime={(anime) => setSelectedAnime(anime)}
                     onSelectManga={handleOpenMangaDetails}
                     onSelectAnime={handleSelectAnime}
                     isBookmarkedFn={(id) => !!bookmarks[id]}
@@ -455,6 +466,7 @@ export default function App() {
                           <MangaCard
                             key={manga.id}
                             manga={manga}
+                            onSelect={(id, cover) => handleOpenMangaDetails(id, cover)}
                             onSelect={handleOpenMangaDetails}
                             isBookmarked={!!bookmarks[manga.id]}
                             onToggleBookmark={handleToggleBookmark}
@@ -491,6 +503,7 @@ export default function App() {
                         <MangaCard
                           key={manga.id}
                           manga={manga}
+                          onSelect={(id, cover) => handleOpenMangaDetails(id, cover)}
                           onSelect={handleOpenMangaDetails}
                           isBookmarked={!!bookmarks[manga.id]}
                           onToggleBookmark={handleToggleBookmark}
@@ -526,6 +539,7 @@ export default function App() {
                         <MangaCard
                           key={manga.id}
                           manga={manga}
+                          onSelect={(id, cover) => handleOpenMangaDetails(id, cover)}
                           onSelect={handleOpenMangaDetails}
                           isBookmarked={!!bookmarks[manga.id]}
                           onToggleBookmark={handleToggleBookmark}
@@ -606,6 +620,7 @@ export default function App() {
                         <MangaCard
                           key={manga.id}
                           manga={manga}
+                          onSelect={(id, cover) => handleOpenMangaDetails(id, cover)}
                           onSelect={handleOpenMangaDetails}
                           isBookmarked={!!bookmarks[manga.id]}
                           onToggleBookmark={handleToggleBookmark}
@@ -790,6 +805,10 @@ export default function App() {
           <HistoryView
             history={history}
             onOpenReader={handleOpenReader}
+            onOpenMangaDetails={(id) => {
+              const item = historyMap[id];
+              handleOpenMangaDetails(id, item?.coverUrl);
+            }}
             onOpenMangaDetails={handleOpenHistoryMangaDetails}
             onRefreshHistory={refreshStorageData}
           />
