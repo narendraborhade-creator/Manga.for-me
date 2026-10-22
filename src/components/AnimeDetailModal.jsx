@@ -1,5 +1,5 @@
 import React from 'react';
-import { X, Star, Film, Tv, Calendar, Tag, Play } from 'lucide-react';
+import { X, Star } from 'lucide-react';
 
 export default function AnimeDetailModal({ anime, onClose }) {
   if (!anime) return null;

@@ -1,5 +1,5 @@
 import React from 'react';
-import { Star, Play, Film } from 'lucide-react';
+import { Star, Play } from 'lucide-react';
 
 export default function AnimeCard({ anime, onSelect }) {
   if (!anime) return null;

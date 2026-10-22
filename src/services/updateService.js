@@ -5,8 +5,8 @@ import {
   addUpdateNotification, 
   getUpdateSettings, 
   saveUpdateSettings 
-} from './storage';
-import { fetchMangaDetails } from './mangaApi';
+} from './storage.js';
+import { fetchMangaDetails } from './mangaApi.js';
 
 /**
  * Request Browser Push / Desktop Notification Permission
@@ -120,64 +120,73 @@ export async function checkAllLibraryUpdates(onUpdateFound = null) {
   let newUpdatesFound = 0;
   const discoveredUpdates = [];
 
-  for (const item of targets) {
+  // Fetch all updates concurrently to avoid N+1 query latency
+  const updatePromises = targets.map(async (item) => {
     try {
       const res = await checkSingleMangaUpdates(item.id);
-      if (!res || !res.latestChapter) continue;
-
-      const latestNum = parseFloat(res.latestChapter.chapter) || 0;
-      
-      // Determine user's last known chapter
-      const histItem = history.find((h) => h.mangaId === item.id);
-      const lastReadNum = histItem ? parseFloat(histItem.chapterNumber) || 0 : 0;
-      const knownLatestNum = parseFloat(item.latestChapter) || 0;
-
-      // Has a new chapter dropped that is greater than what user read or previously recorded?
-      const isNewDrop = latestNum > 0 && (
-        (lastReadNum > 0 && latestNum > lastReadNum) || 
-        (knownLatestNum > 0 && latestNum > knownLatestNum) ||
-        (!lastReadNum && !knownLatestNum)
-      );
-
-      // Check if this notification already exists
-      const existingUpdates = getUpdates();
-      const alreadyNotified = existingUpdates.some(
-        (u) => u.mangaId === item.id && String(u.chapterNumber) === String(res.latestChapter.chapter)
-      );
-
-      if (isNewDrop && !alreadyNotified) {
-        const notif = {
-          mangaId: item.id,
-          mangaTitle: res.mangaTitle,
-          mangaEnglishTitle: res.mangaEnglishTitle,
-          coverUrl: res.coverUrl,
-          chapterId: res.latestChapter.id,
-          chapterNumber: res.latestChapter.chapter,
-          chapterTitle: res.latestChapter.title,
-          publishedAt: res.latestChapter.publishedAt || new Date().toLocaleDateString(),
-        };
-
-        const savedNotif = addUpdateNotification(notif);
-        if (savedNotif) {
-          newUpdatesFound++;
-          discoveredUpdates.push(savedNotif);
-
-          // Trigger Browser Desktop Notification if enabled
-          if (settings.browserNotifications) {
-            sendBrowserNotification(
-              `New Chapter: ${res.mangaEnglishTitle || res.mangaTitle}`,
-              `Chapter ${res.latestChapter.chapter} is now available!`,
-              res.coverUrl
-            );
-          }
-
-          if (onUpdateFound) {
-            onUpdateFound(savedNotif);
-          }
-        }
-      }
+      return { item, res };
     } catch (e) {
       console.warn(`Update check failed for ${item.id}:`, e);
+      return { item, res: null };
+    }
+  });
+
+  const updateResults = await Promise.all(updatePromises);
+
+  // Process the fetched results synchronously to maintain data consistency
+  for (const { item, res } of updateResults) {
+    if (!res || !res.latestChapter) continue;
+
+    const latestNum = parseFloat(res.latestChapter.chapter) || 0;
+
+    // Determine user's last known chapter
+    const histItem = history.find((h) => h.mangaId === item.id);
+    const lastReadNum = histItem ? parseFloat(histItem.chapterNumber) || 0 : 0;
+    const knownLatestNum = parseFloat(item.latestChapter) || 0;
+
+    // Has a new chapter dropped that is greater than what user read or previously recorded?
+    const isNewDrop = latestNum > 0 && (
+      (lastReadNum > 0 && latestNum > lastReadNum) ||
+      (knownLatestNum > 0 && latestNum > knownLatestNum) ||
+      (!lastReadNum && !knownLatestNum)
+    );
+
+    // Check if this notification already exists
+    const existingUpdates = getUpdates();
+    const alreadyNotified = existingUpdates.some(
+      (u) => u.mangaId === item.id && String(u.chapterNumber) === String(res.latestChapter.chapter)
+    );
+
+    if (isNewDrop && !alreadyNotified) {
+      const notif = {
+        mangaId: item.id,
+        mangaTitle: res.mangaTitle,
+        mangaEnglishTitle: res.mangaEnglishTitle,
+        coverUrl: res.coverUrl,
+        chapterId: res.latestChapter.id,
+        chapterNumber: res.latestChapter.chapter,
+        chapterTitle: res.latestChapter.title,
+        publishedAt: res.latestChapter.publishedAt || new Date().toLocaleDateString(),
+      };
+
+      const savedNotif = addUpdateNotification(notif);
+      if (savedNotif) {
+        newUpdatesFound++;
+        discoveredUpdates.push(savedNotif);
+
+        // Trigger Browser Desktop Notification if enabled
+        if (settings.browserNotifications) {
+          sendBrowserNotification(
+            `New Chapter: ${res.mangaEnglishTitle || res.mangaTitle}`,
+            `Chapter ${res.latestChapter.chapter} is now available!`,
+            res.coverUrl
+          );
+        }
+
+        if (onUpdateFound) {
+          onUpdateFound(savedNotif);
+        }
+      }
     }
   }
 

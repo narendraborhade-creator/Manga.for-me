@@ -1,3 +1,3 @@
-## 2024-05-18 - LocalStorage IO Bottleneck in Render Loops
-**Learning:** Using helper functions like `isBookmarked(id)` that internally call `localStorage.getItem` and `JSON.parse` inside React `.map()` render loops causes massive synchronous IO bottlenecks, blocking the main thread up to hundreds of times per render. Additionally, using `Array.prototype.find()` inside render loops for state mapping (like finding history items) results in O(N*M) performance degradation.
-**Action:** When a global state is already mirrored in React state (e.g., `bookmarks` and `history`), ALWAYS pass down the React state (like `!!bookmarks[id]`) instead of calling the storage utility. Use `useMemo` to construct O(1) lookup maps (e.g., `historyMap`) for array state to prevent O(N*M) iterations.
+## 2024-10-22 - Optimize N+1 Query in Update Service
+**Learning:** Sequential async API requests in loops cause an O(N) network waterfall delay which is easily parallelizable. When refactoring loops with `Promise.all`, separating the async data fetch from the synchronous state manipulation preserves safety against race conditions.
+**Action:** Always identify sequential `await` calls in array iterations as a target for parallel execution via `Promise.all` or `Promise.allSettled`, taking care to process UI state changes or database mutations synchronously afterward.
