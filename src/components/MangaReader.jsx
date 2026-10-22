@@ -21,7 +21,6 @@ import {
   Search,
   ArrowUpDown,
   HelpCircle,
-  Zap,
   Infinity as InfinityIcon
 } from 'lucide-react';
 import { fetchChapterPages, fetchMangaChapters } from '../services/mangaApi';
@@ -84,22 +83,17 @@ export default function MangaReader({
 
   // Settings
   const [settings, setSettings] = useState(() => {
-    const saved = getReaderSettings();
+    const saved = getReaderSettings() || {};
     const effectiveGap = (saved.pageGap === 8 || saved.pageGap === 10) ? 0 : (saved.pageGap ?? 0);
     return {
-      theme: 'oled',
-      readingMode: 'webtoon',
-      fitMode: 'full', // Default to 'full' for edge-to-edge phone screen fit
-      pageGap: 0,
-      readingDirection: 'ltr',
-      autoScrollSpeed: 2, // 1 = 45px/s, 2 = 95px/s, 3 = 175px/s, 4 = 280px/s
-      brightness: 100, // 40 - 100
-      continuousScroll: true,
-      ...saved,
+      theme: saved.theme || 'oled',
+      readingMode: saved.readingMode || 'webtoon',
+      fitMode: saved.fitMode || 'full', // Default to 'full' for edge-to-edge phone screen fit
       pageGap: effectiveGap,
-      fitMode: saved.fitMode || 'full',
-      autoScrollSpeed: saved.autoScrollSpeed || 2,
-      brightness: saved.brightness ?? 100,
+      readingDirection: saved.readingDirection || 'ltr',
+      autoScrollSpeed: saved.autoScrollSpeed || 2, // 1 = 45px/s, 2 = 95px/s, 3 = 175px/s, 4 = 280px/s
+      brightness: saved.brightness ?? 100, // 40 - 100
+      continuousScroll: saved.continuousScroll !== undefined ? saved.continuousScroll : true,
     };
   });
 
@@ -390,7 +384,7 @@ export default function MangaReader({
   };
 
   // Jump directly to a selected chapter
-  const jumpToChapter = (targetChapterId, targetChapterNumber) => {
+  const jumpToChapter = useCallback((targetChapterId, targetChapterNumber) => {
     setShowChapterMenu(false);
 
     const existingEl = document.getElementById(`chapter-${targetChapterId}`);
@@ -459,7 +453,7 @@ export default function MangaReader({
         setInitialError('Failed to load chapter pages. Please try again.');
         setInitialLoading(false);
       });
-  };
+  }, [onChangeChapter, mangaId, mangaTitle, mangaEnglishTitle, coverUrl]);
 
   // Track scroll position in Webtoon mode to update active chapter, page number, and trigger infinite loading
   const handleScroll = useCallback(() => {
@@ -636,7 +630,7 @@ export default function MangaReader({
     } else if (nextChapter) {
       jumpToChapter(nextChapter.id, nextChapter.chapter);
     }
-  }, [loadedChapters, singlePageNum, nextChapter, mangaId, mangaTitle, mangaEnglishTitle, coverUrl, activeChapterId, activeChapterNumber]);
+  }, [loadedChapters, singlePageNum, nextChapter, mangaId, mangaTitle, mangaEnglishTitle, coverUrl, activeChapterId, activeChapterNumber, jumpToChapter]);
 
   const handleSinglePagePrev = useCallback(() => {
     if (singlePageNum > 1) {
@@ -656,7 +650,7 @@ export default function MangaReader({
     } else if (prevChapter) {
       jumpToChapter(prevChapter.id, prevChapter.chapter);
     }
-  }, [singlePageNum, prevChapter, mangaId, mangaTitle, mangaEnglishTitle, coverUrl, activeChapterId, activeChapterNumber, activeTotalPages]);
+  }, [singlePageNum, prevChapter, mangaId, mangaTitle, mangaEnglishTitle, coverUrl, activeChapterId, activeChapterNumber, activeTotalPages, jumpToChapter]);
 
   // Keyboard Navigation
   useEffect(() => {

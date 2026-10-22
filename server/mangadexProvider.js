@@ -24,7 +24,7 @@ function setCache(key, data) {
   cache.set(key, { data, timestamp: Date.now() });
 }
 
-async function fetchWithTimeout(url, options = {}, timeoutMs = 6000) {
+async function fetchWithTimeout(url, options = {}, timeoutMs = 10000) {
   const controller = new AbortController();
   const id = setTimeout(() => controller.abort(), timeoutMs);
   try {
@@ -179,7 +179,7 @@ export async function getMangaDexDetails(rawId, bypassCache = false) {
     let chapters = [];
     try {
       const feedUrl = `${BASE_URL}/manga/${cleanId}/feed?translatedLanguage[]=en&order[chapter]=desc&limit=100&contentRating[]=safe&contentRating[]=suggestive`;
-      const feedRes = await fetchWithTimeout(feedUrl, {}, 5000);
+      const feedRes = await fetchWithTimeout(feedUrl, {}, 8000);
       if (feedRes.ok) {
         const feedData = await feedRes.json();
         const seenChapters = new Set();
@@ -310,7 +310,7 @@ export async function getMangaDexRecommendations(genres = [], limit = 8) {
       url += `&includedTags[]=${tagId}`;
     }
 
-    const res = await fetchWithTimeout(url, {}, 5000);
+    const res = await fetchWithTimeout(url, {}, 8000);
     if (!res.ok) throw new Error(`HTTP ${res.status}`);
     const data = await res.json();
 
