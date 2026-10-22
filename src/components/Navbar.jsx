@@ -194,6 +194,7 @@ export default function Navbar({
                 <Loader2 className="w-3.5 h-3.5 text-rose-400 animate-spin absolute right-3 top-1/2 -translate-y-1/2" />
               ) : searchQuery ? (
                 <button
+                  aria-label="Clear search"
                   onClick={() => {
                     setSearchQuery('');
                     setSuggestions([]);
@@ -335,6 +336,8 @@ export default function Navbar({
 
             {/* Mobile menu trigger */}
             <button
+              aria-label={mobileMenuOpen ? 'Close menu' : 'Open menu'}
+              aria-expanded={mobileMenuOpen}
               onClick={() => setMobileMenuOpen(!mobileMenuOpen)}
               className="md:hidden p-2 rounded-xl bg-slate-900/80 border border-white/10 text-slate-400 hover:text-white"
             >
@@ -363,6 +366,7 @@ export default function Navbar({
               <Loader2 className="w-3.5 h-3.5 text-rose-400 animate-spin absolute right-3 top-1/2 -translate-y-1/2" />
             ) : searchQuery ? (
               <button
+                aria-label="Clear search"
                 onClick={() => {
                   setSearchQuery('');
                   setSuggestions([]);
