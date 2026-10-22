@@ -21,11 +21,13 @@ export default function HistoryView({
     if (onRefreshHistory) onRefreshHistory();
   };
 
+  const [currentTimestamp] = React.useState(() => Date.now());
+
   const formatTime = (isoString) => {
     if (!isoString) return 'Recently';
     try {
       const date = new Date(isoString);
-      const diffMs = Date.now() - date.getTime();
+      const diffMs = currentTimestamp - date.getTime();
       const diffMins = Math.floor(diffMs / 60000);
       if (diffMins < 1) return 'Just now';
       if (diffMins < 60) return `${diffMins} min ago`;

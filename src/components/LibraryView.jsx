@@ -2,18 +2,10 @@ import React, { useState } from 'react';
 import { 
   Bookmark, 
   Search, 
-  BookOpen, 
   Play, 
-  Check, 
   Trash2, 
   FolderHeart,
-  TrendingUp,
-  Download,
-  Upload,
-  Layers,
-  Sparkles,
-  Bell,
-  RefreshCw
+  Download
 } from 'lucide-react';
 import { getHistory, getUpdates } from '../services/storage';
 
@@ -223,9 +215,20 @@ export default function LibraryView({
                   {/* Resume Chapter Pill if read */}
                   {lastCh && (
                     <div className="absolute bottom-2 left-2 right-2 z-10">
-                      <div className="px-2 py-1 rounded-md bg-black/80 backdrop-blur-md border border-white/10 text-[10px] text-emerald-400 flex items-center justify-between font-semibold">
+                      <div 
+                        onClick={(e) => {
+                          e.stopPropagation();
+                          if (onOpenReader && historyItem) {
+                            onOpenReader(item.id, historyItem.chapterId, lastCh, item.title, item.coverUrl, item.englishTitle);
+                          } else {
+                            onSelectManga(item.id, item.coverUrl);
+                          }
+                        }}
+                        className="px-2 py-1 rounded-md bg-black/80 hover:bg-rose-600 hover:text-white backdrop-blur-md border border-white/10 text-[10px] text-emerald-400 flex items-center justify-between font-semibold transition-colors cursor-pointer"
+                        title={`Resume Reading Chapter ${lastCh}`}
+                      >
                         <span>Ch. {lastCh}</span>
-                        <Play className="w-2.5 h-2.5 fill-emerald-400" />
+                        <Play className="w-2.5 h-2.5 fill-current" />
                       </div>
                     </div>
                   )}

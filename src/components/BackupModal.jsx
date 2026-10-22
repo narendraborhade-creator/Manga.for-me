@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { X, Download, Upload, Copy, Check, AlertCircle, FileText, ExternalLink, Globe, Sparkles } from 'lucide-react';
+import { X, Download, Upload, Copy, Check, AlertCircle, ExternalLink, Globe, Sparkles } from 'lucide-react';
 import { exportData, importData, encodeDataForUrl } from '../services/storage';
 
 export default function BackupModal({ isOpen, onClose, onRefreshData }) {

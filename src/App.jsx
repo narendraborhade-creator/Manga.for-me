@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useMemo } from 'react';
+import React, { useState, useEffect, useMemo, useCallback } from 'react';
 import Navbar from './components/Navbar';
 import ContinueReadingBanner from './components/ContinueReadingBanner';
 import HeroCarousel from './components/HeroCarousel';
@@ -44,13 +44,11 @@ import {
   Sparkles, 
   TrendingUp, 
   Star, 
-  Clock, 
-  Layers, 
-  Compass, 
   Loader2,
   Filter,
   Play,
-  Bell
+  Bookmark,
+  History
 } from 'lucide-react';
 
 const GENRES = [
@@ -244,8 +242,8 @@ export default function App() {
   // Handle Search Debounce
   useEffect(() => {
     if (!searchQuery.trim() && selectedGenre === 'All') {
-      setSearchMangaList([]);
-      setSearchAnimeList([]);
+      setSearchMangaList((prev) => (prev.length > 0 ? [] : prev));
+      setSearchAnimeList((prev) => (prev.length > 0 ? [] : prev));
       return;
     }
 
@@ -396,8 +394,6 @@ export default function App() {
                 {spotlightItems.length > 0 && (
                   <HeroCarousel
                     items={spotlightItems}
-                    onSelectManga={(id, cover) => handleOpenMangaDetails(id, cover)}
-                    onSelectAnime={(anime) => setSelectedAnime(anime)}
                     onSelectManga={handleOpenMangaDetails}
                     onSelectAnime={handleSelectAnime}
                     isBookmarkedFn={(id) => !!bookmarks[id]}
@@ -458,7 +454,6 @@ export default function App() {
                           <MangaCard
                             key={manga.id}
                             manga={manga}
-                            onSelect={(id, cover) => handleOpenMangaDetails(id, cover)}
                             onSelect={handleOpenMangaDetails}
                             isBookmarked={!!bookmarks[manga.id]}
                             onToggleBookmark={handleToggleBookmark}
@@ -495,7 +490,6 @@ export default function App() {
                         <MangaCard
                           key={manga.id}
                           manga={manga}
-                          onSelect={(id, cover) => handleOpenMangaDetails(id, cover)}
                           onSelect={handleOpenMangaDetails}
                           isBookmarked={!!bookmarks[manga.id]}
                           onToggleBookmark={handleToggleBookmark}
@@ -531,7 +525,6 @@ export default function App() {
                         <MangaCard
                           key={manga.id}
                           manga={manga}
-                          onSelect={(id, cover) => handleOpenMangaDetails(id, cover)}
                           onSelect={handleOpenMangaDetails}
                           isBookmarked={!!bookmarks[manga.id]}
                           onToggleBookmark={handleToggleBookmark}
@@ -612,7 +605,6 @@ export default function App() {
                         <MangaCard
                           key={manga.id}
                           manga={manga}
-                          onSelect={(id, cover) => handleOpenMangaDetails(id, cover)}
                           onSelect={handleOpenMangaDetails}
                           isBookmarked={!!bookmarks[manga.id]}
                           onToggleBookmark={handleToggleBookmark}
@@ -797,10 +789,6 @@ export default function App() {
           <HistoryView
             history={history}
             onOpenReader={handleOpenReader}
-            onOpenMangaDetails={(id) => {
-              const item = historyMap[id];
-              handleOpenMangaDetails(id, item?.coverUrl);
-            }}
             onOpenMangaDetails={handleOpenHistoryMangaDetails}
             onRefreshHistory={refreshStorageData}
           />
@@ -916,7 +904,7 @@ export default function App() {
       )}
 
       {/* Footer */}
-      <footer className="border-t border-white/5 py-8 mt-12 mb-16 md:mb-0 text-center text-xs text-slate-500 bg-[#06080c]">
+      <footer className="border-t border-white/5 py-8 mt-12 mb-20 md:mb-0 text-center text-xs text-slate-500 bg-[#06080c]">
         <div className="max-w-7xl mx-auto px-4 flex flex-col sm:flex-row items-center justify-between gap-4">
           <div className="flex items-center gap-2.5 font-['Outfit'] font-bold text-slate-400">
             <img src="/logo.jpg" alt="KuroNeko Logo" className="w-6 h-6 rounded-lg object-cover border border-white/10 shadow-sm" />
@@ -929,6 +917,49 @@ export default function App() {
           </p>
         </div>
       </footer>
+
+      {/* Mobile Bottom Navigation Bar (Phone-Optimized, Safe-Area aware) */}
+      {!readerState.active && (
+        <nav className="md:hidden fixed bottom-0 left-0 right-0 z-40 bg-slate-950/95 backdrop-blur-2xl border-t border-white/10 px-2 py-1.5 pb-[calc(0.5rem+env(safe-area-inset-bottom))] shadow-[0_-10px_30px_rgba(0,0,0,0.8)]">
+          <div className="grid grid-cols-4 items-center justify-around max-w-md mx-auto">
+            {[
+              { id: 'manga', label: 'Manga', icon: BookOpen },
+              { id: 'anime', label: 'Anime', icon: Film },
+              { id: 'library', label: 'Library', icon: Bookmark, badge: Object.keys(bookmarks).length || null },
+              { id: 'history', label: 'History', icon: History, badge: history.length || null },
+            ].map((tab) => {
+              const Icon = tab.icon;
+              const isActive = activeTab === tab.id;
+              return (
+                <button
+                  key={tab.id}
+                  onClick={() => {
+                    setActiveTab(tab.id);
+                    window.scrollTo({ top: 0, behavior: 'smooth' });
+                  }}
+                  className={`flex flex-col items-center justify-center py-1 px-2 rounded-xl transition-all relative ${
+                    isActive
+                      ? 'text-rose-400 font-bold'
+                      : 'text-slate-400 hover:text-slate-200'
+                  }`}
+                >
+                  <div className="relative">
+                    <Icon className={`w-5 h-5 ${isActive ? 'text-rose-500' : ''}`} />
+                    {tab.badge ? (
+                      <span className="absolute -top-1 -right-2 px-1 text-[9px] font-black rounded-full bg-rose-600 text-white min-w-[14px] text-center">
+                        {tab.badge > 99 ? '99+' : tab.badge}
+                      </span>
+                    ) : null}
+                  </div>
+                  <span className="text-[10px] mt-0.5 tracking-tight font-medium">
+                    {tab.label}
+                  </span>
+                </button>
+              );
+            })}
+          </div>
+        </nav>
+      )}
     </div>
   );
 }
