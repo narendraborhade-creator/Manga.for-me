@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useMemo } from 'react';
 import Navbar from './components/Navbar';
 import ContinueReadingBanner from './components/ContinueReadingBanner';
 import HeroCarousel from './components/HeroCarousel';
@@ -27,7 +27,6 @@ import {
   getBookmarks, 
   setBookmark, 
   removeBookmark, 
-  isBookmarked,
   getBookmarkStatus,
   getLastRead, 
   getHistory,
@@ -89,10 +88,10 @@ export default function App() {
   const [selectedMangaCover, setSelectedMangaCover] = useState('');
   const [selectedAnime, setSelectedAnime] = useState(null);
 
-  const handleOpenMangaDetails = (id, coverUrl = '') => {
+  const handleOpenMangaDetails = useCallback((id, coverUrl = '') => {
     setSelectedMangaId(id);
     setSelectedMangaCover(coverUrl);
-  };
+  }, []);
 
   const [readerState, setReaderState] = useState({
     active: false,
@@ -122,12 +121,12 @@ export default function App() {
   const [searchingAnime, setSearchingAnime] = useState(false);
 
   // Refresh Storage Data
-  const refreshStorageData = () => {
+  const refreshStorageData = useCallback(() => {
     setBookmarks(getBookmarks());
     setHistory(getHistory());
     setLastRead(getLastRead());
     setUpdates(getUpdates());
-  };
+  }, []);
 
   useEffect(() => {
     refreshStorageData();
@@ -155,7 +154,7 @@ export default function App() {
         console.error('Failed to parse sync data from URL hash:', err);
       }
     }
-  }, []);
+  }, [refreshStorageData]);
 
   // Background Periodic Chapter Updates Engine
   useEffect(() => {
@@ -190,7 +189,7 @@ export default function App() {
       clearTimeout(initialTimer);
       clearInterval(intervalId);
     };
-  }, []);
+  }, [refreshStorageData]);
 
   // Fetch Initial Manga Catalog
   useEffect(() => {
@@ -275,23 +274,23 @@ export default function App() {
 
   // Bookmarking handlers
   const handleToggleBookmark = (manga) => {
-    if (isBookmarked(manga.id)) {
+    if (bookmarks[manga.id]) {
       removeBookmark(manga.id);
     } else {
       setBookmark(manga.id, manga, 'reading');
     }
     refreshStorageData();
-  };
+  }, [refreshStorageData]);
 
-  const handleSetBookmark = (mangaId, mangaData, status) => {
+  const handleSetBookmark = useCallback((mangaId, mangaData, status) => {
     setBookmark(mangaId, mangaData, status);
     refreshStorageData();
-  };
+  }, [refreshStorageData]);
 
-  const handleRemoveBookmark = (mangaId) => {
+  const handleRemoveBookmark = useCallback((mangaId) => {
     removeBookmark(mangaId);
     refreshStorageData();
-  };
+  }, [refreshStorageData]);
 
   // Open Reader
   const handleOpenReader = (mangaId, chapterId, chapterNumber, mangaTitle, coverUrl, mangaEnglishTitle = null) => {
@@ -342,6 +341,29 @@ export default function App() {
     ...(popularManga.slice(0, 3)),
     ...(trendingAnime.slice(0, 2)),
   ];
+  // Memoized O(1) lookups for performance
+  const historyMap = useMemo(() => {
+    const map = {};
+    history.forEach(h => {
+      map[h.mangaId] = h;
+    });
+    return map;
+  }, [history]);
+
+  const historyMap = useMemo(() => {
+    const map = {};
+    history.forEach((entry) => {
+      map[entry.mangaId] = entry;
+    });
+    return map;
+  }, [history]);
+  const handleSelectAnime = useCallback((anime) => {
+    setSelectedAnime(anime);
+  }, []);
+  const handleOpenHistoryMangaDetails = useCallback((id) => {
+    const item = historyMap[id];
+    handleOpenMangaDetails(id, item?.coverUrl);
+  }, [handleOpenMangaDetails, historyMap]);
 
   return (
     <div className="min-h-screen bg-[#080a0f] text-slate-100 flex flex-col font-['Plus_Jakarta_Sans',sans-serif]">
@@ -384,7 +406,9 @@ export default function App() {
                     items={spotlightItems}
                     onSelectManga={(id, cover) => handleOpenMangaDetails(id, cover)}
                     onSelectAnime={(anime) => setSelectedAnime(anime)}
-                    isBookmarkedFn={(id) => isBookmarked(id)}
+                    onSelectManga={handleOpenMangaDetails}
+                    onSelectAnime={handleSelectAnime}
+                    isBookmarkedFn={(id) => !!bookmarks[id]}
                     onToggleBookmark={handleToggleBookmark}
                   />
                 )}
@@ -437,15 +461,15 @@ export default function App() {
                   ) : (
                     <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-6 gap-4 sm:gap-5">
                       {popularManga.map((manga) => {
-                        const hist = history.find((h) => h.mangaId === manga.id);
+                        const hist = historyMap[manga.id];
                         return (
                           <MangaCard
                             key={manga.id}
                             manga={manga}
                             onSelect={(id, cover) => handleOpenMangaDetails(id, cover)}
-                            isBookmarked={isBookmarked(manga.id)}
+                            onSelect={handleOpenMangaDetails}
+                            isBookmarked={!!bookmarks[manga.id]}
                             onToggleBookmark={handleToggleBookmark}
-                            readChaptersCount={hist?.readChapters?.length || 0}
                             lastReadChapter={hist?.chapterNumber || null}
                           />
                         );
@@ -474,15 +498,15 @@ export default function App() {
 
                   <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-6 gap-4 sm:gap-5">
                     {latestManga.map((manga) => {
-                      const hist = history.find((h) => h.mangaId === manga.id);
+                      const hist = historyMap[manga.id];
                       return (
                         <MangaCard
                           key={manga.id}
                           manga={manga}
                           onSelect={(id, cover) => handleOpenMangaDetails(id, cover)}
-                          isBookmarked={isBookmarked(manga.id)}
+                          onSelect={handleOpenMangaDetails}
+                          isBookmarked={!!bookmarks[manga.id]}
                           onToggleBookmark={handleToggleBookmark}
-                          readChaptersCount={hist?.readChapters?.length || 0}
                           lastReadChapter={hist?.chapterNumber || null}
                         />
                       );
@@ -510,15 +534,15 @@ export default function App() {
 
                   <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-6 gap-4 sm:gap-5">
                     {topRatedManga.map((manga) => {
-                      const hist = history.find((h) => h.mangaId === manga.id);
+                      const hist = historyMap[manga.id];
                       return (
                         <MangaCard
                           key={manga.id}
                           manga={manga}
                           onSelect={(id, cover) => handleOpenMangaDetails(id, cover)}
-                          isBookmarked={isBookmarked(manga.id)}
+                          onSelect={handleOpenMangaDetails}
+                          isBookmarked={!!bookmarks[manga.id]}
                           onToggleBookmark={handleToggleBookmark}
-                          readChaptersCount={hist?.readChapters?.length || 0}
                           lastReadChapter={hist?.chapterNumber || null}
                         />
                       );
@@ -597,7 +621,8 @@ export default function App() {
                           key={manga.id}
                           manga={manga}
                           onSelect={(id, cover) => handleOpenMangaDetails(id, cover)}
-                          isBookmarked={isBookmarked(manga.id)}
+                          onSelect={handleOpenMangaDetails}
+                          isBookmarked={!!bookmarks[manga.id]}
                           onToggleBookmark={handleToggleBookmark}
                         />
                       ))}
@@ -618,8 +643,8 @@ export default function App() {
                 {trendingAnime.length > 0 && (
                   <HeroCarousel
                     items={trendingAnime.slice(0, 4)}
-                    onSelectAnime={(anime) => setSelectedAnime(anime)}
-                    onSelectManga={(id, cover) => handleOpenMangaDetails(id, cover)}
+                    onSelectAnime={handleSelectAnime}
+                    onSelectManga={handleOpenMangaDetails}
                   />
                 )}
 
@@ -653,7 +678,7 @@ export default function App() {
                         <AnimeCard
                           key={anime.id}
                           anime={anime}
-                          onSelect={(a) => setSelectedAnime(a)}
+                          onSelect={handleSelectAnime}
                         />
                       ))}
                     </div>
@@ -683,7 +708,7 @@ export default function App() {
                       <AnimeCard
                         key={anime.id}
                         anime={anime}
-                        onSelect={(a) => setSelectedAnime(a)}
+                        onSelect={handleSelectAnime}
                       />
                     ))}
                   </div>
@@ -712,7 +737,7 @@ export default function App() {
                       <AnimeCard
                         key={anime.id}
                         anime={anime}
-                        onSelect={(a) => setSelectedAnime(a)}
+                        onSelect={handleSelectAnime}
                       />
                     ))}
                   </div>
@@ -753,7 +778,7 @@ export default function App() {
                       <AnimeCard
                         key={anime.id}
                         anime={anime}
-                        onSelect={(a) => setSelectedAnime(a)}
+                        onSelect={handleSelectAnime}
                       />
                     ))}
                   </div>
@@ -781,9 +806,10 @@ export default function App() {
             history={history}
             onOpenReader={handleOpenReader}
             onOpenMangaDetails={(id) => {
-              const item = history.find((h) => h.mangaId === id);
+              const item = historyMap[id];
               handleOpenMangaDetails(id, item?.coverUrl);
             }}
+            onOpenMangaDetails={handleOpenHistoryMangaDetails}
             onRefreshHistory={refreshStorageData}
           />
         )}
@@ -803,12 +829,12 @@ export default function App() {
           }}
           onOpenReader={handleOpenReader}
           onSelectManga={handleOpenMangaDetails}
-          isBookmarked={isBookmarked(selectedMangaId)}
+          isBookmarked={!!bookmarks[selectedMangaId]}
           bookmarkStatus={getBookmarkStatus(selectedMangaId)}
           onSetBookmark={handleSetBookmark}
           onRemoveBookmark={handleRemoveBookmark}
           lastReadChapter={
-            history.find((h) => h.mangaId === selectedMangaId)?.chapterNumber || null
+            historyMap[selectedMangaId]?.chapterNumber || null
           }
         />
       )}

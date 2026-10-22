@@ -2,6 +2,7 @@ import React, { memo } from 'react';
 import { Star, Play } from 'lucide-react';
 
 const AnimeCard = ({ anime, onSelect }) => {
+function AnimeCard({ anime, onSelect }) {
   if (!anime) return null;
 
   return (
@@ -86,3 +87,6 @@ const AnimeCard = ({ anime, onSelect }) => {
 export default memo(AnimeCard, (prevProps, nextProps) => {
   return prevProps.anime?.id === nextProps.anime?.id;
 });
+}
+
+export default memo(AnimeCard);
