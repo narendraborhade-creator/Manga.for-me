@@ -167,31 +167,40 @@ export default function MangaReader({
   const controlsTimeoutRef = useRef(null);
   const autoScrollRef = useRef(null);
 
-  // Auto-hide controls after idle (only if menus are not open)
-  const handleMouseMove = () => {
+  // Auto-hide controls after idle: unified scheduler
+  const rescheduleControls = useCallback((duration = 5500) => {
     setControlsVisible(true);
-    if (controlsTimeoutRef.current) clearTimeout(controlsTimeoutRef.current);
+    if (controlsTimeoutRef.current) {
+      clearTimeout(controlsTimeoutRef.current);
+    }
     controlsTimeoutRef.current = setTimeout(() => {
+      // Only hide if dropdown menus or modals are not open
       if (!showSettingsMenu && !showChapterMenu && !showHelpModal) {
         setControlsVisible(false);
       }
-    }, 4500);
-  };
+    }, duration);
+  }, [showSettingsMenu, showChapterMenu, showHelpModal]);
 
-  // Tap anywhere on any manga page: toggle the options bar
+  // Initial schedule on reader open
+  useEffect(() => {
+    rescheduleControls(6000);
+    return () => {
+      if (controlsTimeoutRef.current) clearTimeout(controlsTimeoutRef.current);
+    };
+  }, [rescheduleControls]);
+
+  // Tap anywhere on any manga page: show upper and lower bars and reschedule timer
   const handleReaderTap = (e) => {
     if (e.target.closest('button, input, select, a, .glass-panel, [role="dialog"], .glass-nav, .slider-thumb')) {
       return;
     }
-    // If auto-scrolling is active, tapping anywhere immediately pauses it and reveals options
+    // If auto-scrolling is active, tapping anywhere immediately pauses it
     if (isAutoScrolling) {
       setIsAutoScrolling(false);
-      setControlsVisible(true);
-      return;
     }
 
-    // Toggle options bar on/off anywhere the user clicks on the manga page
-    setControlsVisible((prev) => !prev);
+    // Reschedule upper and lower bars so they appear and stay visible
+    rescheduleControls(6000);
   };
 
   // Update Settings
@@ -517,6 +526,9 @@ export default function MangaReader({
 
   // Track scroll position in Webtoon mode to update active chapter, page number, and trigger infinite loading
   const handleScroll = useCallback(() => {
+    // Show upper and lower bars and reschedule auto-hide timer on user scroll
+    rescheduleControls(5000);
+
     const container = containerRef.current;
     if (!container) return;
 
@@ -569,15 +581,20 @@ export default function MangaReader({
         }
       }
     }
-  }, [settings.readingMode, settings.continuousScroll, loadNextChapter, mangaId, mangaTitle, mangaEnglishTitle, coverUrl, onChangeChapter, chapterId]);
+  }, [settings.readingMode, settings.continuousScroll, loadNextChapter, mangaId, mangaTitle, mangaEnglishTitle, coverUrl, onChangeChapter, chapterId, rescheduleControls]);
 
-  // Attach scroll listener to reader container
+  // Attach scroll & touch listeners to reader container so upper & lower bars appear on user interaction
   useEffect(() => {
     const container = containerRef.current;
     if (!container) return;
+    const onTouch = () => rescheduleControls(5000);
     container.addEventListener('scroll', handleScroll, { passive: true });
-    return () => container.removeEventListener('scroll', handleScroll);
-  }, [handleScroll]);
+    container.addEventListener('touchmove', onTouch, { passive: true });
+    return () => {
+      container.removeEventListener('scroll', handleScroll);
+      container.removeEventListener('touchmove', onTouch);
+    };
+  }, [handleScroll, rescheduleControls]);
 
   // IntersectionObserver for Bottom Sentinel (Proactive next chapter auto-fetch)
   useEffect(() => {
@@ -1367,6 +1384,15 @@ export default function MangaReader({
             >
               {isFullscreen ? <Minimize className="w-4 h-4" /> : <Maximize className="w-4 h-4" />}
             </button>
+
+            {/* Close / Hide Bars */}
+            <button
+              onClick={() => setControlsVisible(false)}
+              className="p-1.5 sm:p-2 rounded-xl bg-slate-900 border border-white/10 text-slate-400 hover:text-white transition-all"
+              title="Hide Bars"
+            >
+              <X className="w-4 h-4" />
+            </button>
           </div>
 
         </div>
@@ -1375,7 +1401,8 @@ export default function MangaReader({
       {/* Scrollable Canvas for Manga Pages (Dimmed by brightness filter) */}
       <div 
         ref={containerRef}
-        onMouseMove={handleMouseMove}
+        onMouseMove={() => rescheduleControls(4500)}
+        onTouchStart={() => rescheduleControls(5000)}
         onClick={handleReaderTap}
         className="absolute inset-0 overflow-y-auto overscroll-y-contain selection:bg-rose-500 selection:text-white transition-colors duration-300 w-full h-full"
         style={{ 
@@ -1636,7 +1663,7 @@ export default function MangaReader({
               <div className="flex flex-col items-center justify-center w-full max-w-4xl px-0 sm:px-4 select-none my-auto">
                 <div 
                   className="relative w-full flex items-center justify-center bg-black/40 sm:rounded-2xl overflow-hidden shadow-2xl cursor-pointer"
-                  onClick={() => setControlsVisible((prev) => !prev)}
+                  onClick={handleReaderTap}
                 >
                   <img
                     src={loadedChapters[0].pages[singlePageNum - 1]?.url}
