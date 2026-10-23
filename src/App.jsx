@@ -13,7 +13,8 @@ import BackupModal from './components/BackupModal';
 
 import { 
   fetchPopularManga, 
-  searchManga 
+  searchManga,
+  getFallbackCover
 } from './services/mangaApi';
 
 import { 
@@ -144,7 +145,7 @@ export default function App() {
               chapterNumber: 'Sync Success',
               mangaTitle: 'Localhost Data Restored!',
               mangaEnglishTitle: 'Your library bookmarks and reading history were successfully imported to this app.',
-              coverUrl: 'https://images.unsplash.com/photo-1578632767115-351597cf2477?w=200&auto=format&fit=crop&q=80',
+              coverUrl: getFallbackCover('Sync Complete'),
             });
           }
         }
@@ -859,7 +860,7 @@ export default function App() {
               referrerPolicy="no-referrer"
               className="w-full h-full object-cover"
               onError={(e) => {
-                e.target.src = 'https://images.unsplash.com/photo-1578632767115-351597cf2477?w=100&auto=format&fit=crop&q=80';
+                e.target.src = getFallbackCover(activeToast.mangaTitle);
               }}
             />
           </div>

@@ -28,6 +28,11 @@ import {
   getMangaDexChapterPages,
   getMangaDexRecommendations
 } from './mangadexProvider.js';
+import {
+  getPopularMangaKakalot,
+  getMangaKakalotDetails,
+  getMangaKakalotChapterPages
+} from './mangakakalotProvider.js';
 
 // Server-side provider for complete manga chapters and pages
 const USER_AGENT = 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36';
@@ -212,10 +217,11 @@ export async function getPopularManga() {
   });
 
   try {
-    const [dexList, asuraList, vortexList, scrapedList] = await Promise.all([
+    const [dexList, asuraList, vortexList, mkList, scrapedList] = await Promise.all([
       getPopularMangaDex(12).catch(() => []),
       getPopularAsura().catch(() => []),
       getPopularVortex().catch(() => []),
+      getPopularMangaKakalot().catch(() => []),
       (async () => {
         try {
           const res = await fetchWithTimeout(BASE_URL, { headers: HEADERS }, 3500);
@@ -252,7 +258,7 @@ export async function getPopularManga() {
       })(),
     ]);
 
-    const merged = [...baseList, ...dexList.slice(0, 10), ...asuraList.slice(0, 8), ...vortexList.slice(0, 8), ...scrapedList];
+    const merged = [...baseList, ...dexList.slice(0, 10), ...asuraList.slice(0, 8), ...vortexList.slice(0, 8), ...mkList.slice(0, 10), ...scrapedList];
     setCache('popular_manga_v5', merged);
     return merged;
   } catch (error) {
@@ -454,6 +460,9 @@ export async function getMangaDetails(mangaId, bypassCache = false) {
   if (mangaId.startsWith('wc:')) {
     return getWeebCentralDetails(mangaId.replace('wc:', ''), '', bypassCache);
   }
+  if (mangaId.startsWith('mk:')) {
+    return getMangaKakalotDetails(mangaId, bypassCache);
+  }
 
   const cacheKey = `details_v4_${mangaId}`;
   if (!bypassCache) {
@@ -612,6 +621,9 @@ export async function getChapterPages(chapterId) {
   if (chapterId.startsWith('wc_ch:')) {
     return getWeebCentralChapterPages(chapterId.replace('wc_ch:', ''));
   }
+  if (chapterId.startsWith('mk_ch:')) {
+    return getMangaKakalotChapterPages(chapterId);
+  }
 
   const cacheKey = `chapter_v3_${chapterId}`;
   const cached = getCached(cacheKey);
@@ -656,79 +668,121 @@ export async function getChapterPages(chapterId) {
   }
 }
 
+const FALLBACK_PAGE_SVG = `<svg xmlns="http://www.w3.org/2000/svg" width="800" height="1200" viewBox="0 0 800 1200">
+  <rect width="800" height="1200" fill="#080a0f"/>
+  <rect x="40" y="40" width="720" height="1120" rx="24" fill="#0d1117" stroke="#ffffff" stroke-opacity="0.08" stroke-width="2"/>
+  <circle cx="400" cy="540" r="48" fill="#f43f5e" fill-opacity="0.12"/>
+  <path d="M400 516v32M400 564h.01" stroke="#f43f5e" stroke-width="4" stroke-linecap="round" stroke-linejoin="round"/>
+  <text x="400" y="628" text-anchor="middle" fill="#ffffff" font-family="system-ui, -apple-system, sans-serif" font-size="20" font-weight="700">Chapter Page Reload Required</text>
+  <text x="400" y="662" text-anchor="middle" fill="#94a3b8" font-family="system-ui, -apple-system, sans-serif" font-size="14">Tap or click to refresh this manga page</text>
+</svg>`;
+
 /**
  * Proxy Image with proper Referer to bypass CDN hotlink protection
  */
 export async function proxyImage(imageUrl, res) {
   if (!imageUrl) {
     if (!res.headersSent) {
-      res.writeHead(302, { Location: 'https://images.unsplash.com/photo-1578632767115-351597cf2477?w=500&auto=format&fit=crop&q=80' });
-      res.end();
+      res.setHeader('Content-Type', 'image/svg+xml');
+      res.setHeader('Cache-Control', 'public, max-age=60');
+      res.end(FALLBACK_PAGE_SVG);
     }
     return;
   }
 
   try {
-    let referer = `${BASE_URL}/`;
+    let primaryReferer = `${BASE_URL}/`;
+    let parsedOrigin = '';
     try {
       const parsed = new URL(imageUrl);
+      parsedOrigin = parsed.origin + '/';
       const host = parsed.hostname.toLowerCase();
+
       if (
+        host.includes('kakamanga') ||
+        host.includes('2xstorage') ||
+        host.includes('mangakakalot') ||
+        host.includes('chapmanganato')
+      ) {
+        primaryReferer = 'https://www.kakamanga.com/';
+      } else if (
         host.includes('weebcentral') || 
         host.includes('planeptune') || 
         host.includes('compsci88') || 
         host.includes('lastation')
       ) {
-        referer = 'https://weebcentral.com/';
+        primaryReferer = 'https://weebcentral.com/';
       } else if (host.includes('asurascans') || host.includes('asuracomic')) {
-        referer = 'https://asurascans.com/';
+        primaryReferer = 'https://asurascans.com/';
       } else if (host.includes('vortexscans')) {
-        referer = 'https://vortexscans.org/';
+        primaryReferer = 'https://vortexscans.org/';
       } else if (
         host.includes('omniscientreadersviewpoint') ||
         host.includes('lowee.us') ||
         host.includes('mangaclash')
       ) {
-        referer = 'https://w1.omniscientreadersviewpoint.com/';
+        primaryReferer = 'https://w1.omniscientreadersviewpoint.com/';
       } else if (host.includes('afortunetellingprincess')) {
-        referer = 'https://afortunetellingprincess.com/';
+        primaryReferer = 'https://afortunetellingprincess.com/';
       } else if (host.includes('readsololeveling')) {
-        referer = 'https://readsololeveling.org/';
+        primaryReferer = 'https://readsololeveling.org/';
       } else if (host.includes('kingofshojo')) {
-        referer = 'https://kingofshojo.com/';
+        primaryReferer = 'https://kingofshojo.com/';
       } else if (host.includes('mangadex') || host.includes('uploads.mangadex.org')) {
-        referer = 'https://mangadex.org/';
+        primaryReferer = 'https://mangadex.org/';
       } else if (host.includes('mangapill') || host.includes('readdetectiveconan')) {
-        referer = 'https://mangapill.com/';
+        primaryReferer = 'https://mangapill.com/';
       } else {
-        referer = parsed.origin + '/';
+        primaryReferer = parsedOrigin;
       }
     } catch {}
 
-    const response = await fetchWithTimeout(imageUrl, {
-      headers: {
-        'User-Agent': USER_AGENT,
-        'Referer': referer,
-      },
-    }, 5500);
+    // Multi-candidate referer resolution
+    const candidates = [
+      primaryReferer,
+      parsedOrigin,
+      '',
+    ].filter((v, idx, arr) => arr.indexOf(v) === idx);
 
-    if (!response.ok) {
-      res.writeHead(302, { Location: 'https://images.unsplash.com/photo-1578632767115-351597cf2477?w=500&auto=format&fit=crop&q=80' });
-      res.end();
+    let finalRes = null;
+    for (const ref of candidates) {
+      try {
+        const testRes = await fetchWithTimeout(imageUrl, {
+          headers: {
+            'User-Agent': USER_AGENT,
+            'Accept': 'image/avif,image/webp,image/apng,image/svg+xml,image/*,*/*;q=0.8',
+            ...(ref ? { 'Referer': ref } : {}),
+          },
+        }, 5500);
+
+        if (testRes.ok) {
+          finalRes = testRes;
+          break;
+        }
+      } catch {}
+    }
+
+    if (!finalRes || !finalRes.ok) {
+      if (!res.headersSent) {
+        res.setHeader('Content-Type', 'image/svg+xml');
+        res.setHeader('Cache-Control', 'public, max-age=60');
+        res.end(FALLBACK_PAGE_SVG);
+      }
       return;
     }
 
-    const contentType = response.headers.get('content-type') || 'image/jpeg';
+    const contentType = finalRes.headers.get('content-type') || 'image/jpeg';
     res.setHeader('Content-Type', contentType);
     res.setHeader('Cache-Control', 'public, max-age=86400, immutable');
 
-    const buffer = await response.arrayBuffer();
+    const buffer = await finalRes.arrayBuffer();
     res.end(Buffer.from(buffer));
   } catch (err) {
-    console.warn('proxyImage redirecting to placeholder:', err.message);
+    console.warn('proxyImage fetch warning:', err.message);
     if (!res.headersSent) {
-      res.writeHead(302, { Location: 'https://images.unsplash.com/photo-1578632767115-351597cf2477?w=500&auto=format&fit=crop&q=80' });
-      res.end();
+      res.setHeader('Content-Type', 'image/svg+xml');
+      res.setHeader('Cache-Control', 'public, max-age=60');
+      res.end(FALLBACK_PAGE_SVG);
     }
   }
 }

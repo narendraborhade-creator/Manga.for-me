@@ -1,5 +1,6 @@
 import React, { memo } from 'react';
 import { Star, Play } from 'lucide-react';
+import { getFallbackCover } from '../services/mangaApi';
 
 function AnimeCard({ anime, onSelect }) {
   if (!anime) return null;
@@ -18,7 +19,7 @@ function AnimeCard({ anime, onSelect }) {
           referrerPolicy="no-referrer"
           className="w-full h-full object-cover object-center group-hover:scale-105 transition-transform duration-500 ease-out"
           onError={(e) => {
-            e.target.src = 'https://images.unsplash.com/photo-1578632767115-351597cf2477?w=500&auto=format&fit=crop&q=80';
+            e.target.src = getFallbackCover(anime.title);
           }}
         />
 

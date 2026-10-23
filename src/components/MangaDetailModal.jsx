@@ -1,4 +1,5 @@
 import React, { useState, useEffect, useCallback } from 'react';
+import { getFallbackCover } from '../services/mangaApi';
 import { 
   X, 
   Play, 
@@ -185,7 +186,7 @@ export default function MangaDetailModal({
                       if (initialCoverUrl && e.target.src !== initialCoverUrl) {
                         e.target.src = initialCoverUrl;
                       } else {
-                        e.target.src = 'https://images.unsplash.com/photo-1578632767115-351597cf2477?w=500&auto=format&fit=crop&q=80';
+                        e.target.src = getFallbackCover(mangaData?.title);
                       }
                     }}
                   />

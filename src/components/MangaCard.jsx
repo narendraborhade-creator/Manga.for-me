@@ -1,5 +1,6 @@
 import React, { memo } from 'react';
 import { Bookmark, Star, BookOpen, Check } from 'lucide-react';
+import { getFallbackCover } from '../services/mangaApi';
 
 function MangaCard({
   manga,
@@ -35,7 +36,7 @@ function MangaCard({
             if (manga.rawCoverUrl && e.target.src !== manga.rawCoverUrl) {
               e.target.src = manga.rawCoverUrl;
             } else {
-              e.target.src = 'https://images.unsplash.com/photo-1578632767115-351597cf2477?w=500&auto=format&fit=crop&q=80';
+              e.target.src = getFallbackCover(manga.title);
             }
           }}
         />

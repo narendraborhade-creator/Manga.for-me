@@ -175,10 +175,10 @@ export async function getMangaDexDetails(rawId, bypassCache = false) {
 
     const formatted = formatMangaDexItem(item);
 
-    // 2. Fetch Chapters (English, sorted descending, up to 100)
+    // 2. Fetch Chapters (English, sorted descending, up to 100, hosted only)
     let chapters = [];
     try {
-      const feedUrl = `${BASE_URL}/manga/${cleanId}/feed?translatedLanguage[]=en&order[chapter]=desc&limit=100&contentRating[]=safe&contentRating[]=suggestive`;
+      const feedUrl = `${BASE_URL}/manga/${cleanId}/feed?translatedLanguage[]=en&order[chapter]=desc&limit=100&includeExternalUrl=0&contentRating[]=safe&contentRating[]=suggestive`;
       const feedRes = await fetchWithTimeout(feedUrl, {}, 8000);
       if (feedRes.ok) {
         const feedData = await feedRes.json();
@@ -186,6 +186,8 @@ export async function getMangaDexDetails(rawId, bypassCache = false) {
 
         chapters = (feedData.data || [])
           .map(ch => {
+            if (ch.attributes?.externalUrl) return null;
+            if (ch.attributes?.pages === 0) return null;
             const chNum = ch.attributes?.chapter || '0';
             const chTitle = ch.attributes?.title || '';
             const publishAt = ch.attributes?.publishAt || '';

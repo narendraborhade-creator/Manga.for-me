@@ -1,4 +1,5 @@
 import React, { useState, useEffect, useRef, useCallback } from 'react';
+import { getFallbackCover } from '../services/mangaApi';
 import { 
   Bell, 
   Sparkles, 
@@ -215,7 +216,7 @@ export default function NotificationsDropdown({
                   referrerPolicy="no-referrer"
                   className="w-full h-full object-cover group-hover:scale-105 transition-transform"
                   onError={(e) => {
-                    e.target.src = 'https://images.unsplash.com/photo-1578632767115-351597cf2477?w=100&auto=format&fit=crop&q=80';
+                    e.target.src = getFallbackCover(item.mangaTitle);
                   }}
                 />
               </div>

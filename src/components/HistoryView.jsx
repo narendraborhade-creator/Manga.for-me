@@ -1,6 +1,7 @@
 import React from 'react';
 import { History, Play, Trash2, Clock } from 'lucide-react';
 import { clearHistory, removeFromHistory } from '../services/storage';
+import { getFallbackCover } from '../services/mangaApi';
 
 export default function HistoryView({
   history = [],
@@ -96,7 +97,7 @@ export default function HistoryView({
                     referrerPolicy="no-referrer"
                     className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-300"
                     onError={(e) => {
-                      e.target.src = 'https://images.unsplash.com/photo-1578632767115-351597cf2477?w=400&auto=format&fit=crop&q=80';
+                      e.target.src = getFallbackCover(item.mangaTitle);
                     }}
                   />
                 </div>

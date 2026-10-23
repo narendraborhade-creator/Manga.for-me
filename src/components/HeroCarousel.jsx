@@ -1,5 +1,6 @@
 import React, { useState, useEffect, useRef } from 'react';
 import { Play, BookOpen, Star, Bookmark, ChevronLeft, ChevronRight, Info, Sparkles } from 'lucide-react';
+import { getFallbackCover } from '../services/mangaApi';
 
 export default function HeroCarousel({
   items = [],
@@ -63,7 +64,7 @@ export default function HeroCarousel({
             if (current.rawCoverUrl && e.target.src !== current.rawCoverUrl) {
               e.target.src = current.rawCoverUrl;
             } else {
-              e.target.src = 'https://images.unsplash.com/photo-1578632767115-351597cf2477?w=1200&auto=format&fit=crop&q=80';
+              e.target.src = getFallbackCover(current.title);
             }
           }}
         />

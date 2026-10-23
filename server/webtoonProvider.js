@@ -716,24 +716,48 @@ export async function getWebtoonChapterPages(chapterId) {
   }
 
   // Handle Solo Leveling
-  if (chapterId.startsWith('webtoon:solo:')) {
-    const num = chapterId.replace('webtoon:solo:', '');
+  if (chapterId.startsWith('webtoon:solo:') || chapterId.startsWith('webtoon:solo-leveling:')) {
+    const num = chapterId.match(/([0-9.]+)/)?.[1] || '1';
     const url = `https://readsololeveling.org/chapter/solo-leveling-chapter-${num}/`;
     try {
-      const res = await fetch(url, { headers: HEADERS });
-      const html = await res.text();
-      const pageRegex = /<img[^>]+(?:src|data-src)="([^"]+(?:sololeveling|wp-content|chapter)[^"]+)"/gi;
-      const pages = [...html.matchAll(pageRegex)].map((match, idx) => ({
-        pageNumber: idx + 1,
-        url: `/api/image-proxy?url=${encodeURIComponent(match[1])}`,
-        originalUrl: match[1],
-      }));
-      const result = { chapterId, totalPages: pages.length, pages };
-      setCache(cacheKey, result);
-      return result;
+      const res = await fetchWithTimeout(url, { headers: HEADERS }, 6500);
+      if (res.ok) {
+        const html = await res.text();
+        const pageRegex = /<img[^>]+(?:src|data-src)="([^"]+(?:sololeveling|wp-content|chapter|file)[^"]+)"/gi;
+        const pages = [...html.matchAll(pageRegex)]
+          .map((m) => m[1])
+          .filter((u) => !u.startsWith('data:') && !u.includes('logo') && !u.includes('avatar'))
+          .map((imgUrl, idx) => ({
+            pageNumber: idx + 1,
+            url: `/api/image-proxy?url=${encodeURIComponent(imgUrl)}`,
+            originalUrl: imgUrl,
+          }));
+
+        if (pages.length > 0) {
+          const result = { chapterId, totalPages: pages.length, pages };
+          setCache(cacheKey, result);
+          return result;
+        }
+      }
     } catch (e) {
-      console.error('Solo Leveling page fetch error:', e);
-      throw e;
+      console.warn('Solo Leveling primary fetch failed, falling back:', e.message);
+    }
+
+    // Fallback: WeebCentral Solo Leveling
+    try {
+      const { getWeebCentralDetails, getWeebCentralChapterPages } = await import('./weebcentralProvider.js');
+      const wcDetails = await getWeebCentralDetails('01J76XYCPSY3C4BNPBRY8JMCBE');
+      const targetCh = wcDetails?.chapters?.find((c) => String(c.chapter) === String(num));
+      if (targetCh) {
+        const wcPages = await getWeebCentralChapterPages(targetCh.id.replace('wc_ch:', ''));
+        if (wcPages?.pages?.length > 0) {
+          const result = { chapterId, totalPages: wcPages.pages.length, pages: wcPages.pages };
+          setCache(cacheKey, result);
+          return result;
+        }
+      }
+    } catch (wcErr) {
+      console.warn('WeebCentral Solo Leveling fallback warning:', wcErr.message);
     }
   }
 

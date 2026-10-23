@@ -1,5 +1,6 @@
 import React from 'react';
 import { Play, BookOpen, Clock, ChevronRight, X } from 'lucide-react';
+import { getFallbackCover } from '../services/mangaApi';
 
 export default function ContinueReadingBanner({
   lastRead,
@@ -46,7 +47,7 @@ export default function ContinueReadingBanner({
               referrerPolicy="no-referrer"
               className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-300"
               onError={(e) => {
-                e.target.src = 'https://images.unsplash.com/photo-1578632767115-351597cf2477?w=400&auto=format&fit=crop&q=80';
+                e.target.src = getFallbackCover(lastRead.mangaTitle);
               }}
             />
             <div className="absolute inset-0 bg-black/20 group-hover:bg-transparent transition-colors" />

@@ -47,7 +47,7 @@ export const formatMangaItem = (item) => {
   const coverFileName = coverRel?.attributes?.fileName;
   const coverUrl = coverFileName
     ? `${COVER_BASE_URL}/${id}/${coverFileName}.512.jpg`
-    : 'https://images.unsplash.com/photo-1578632767115-351597cf2477?w=600&auto=format&fit=crop&q=80';
+    : `data:image/svg+xml;utf8,${encodeURIComponent('<svg xmlns="http://www.w3.org/2000/svg" width="400" height="600" viewBox="0 0 400 600"><rect width="400" height="600" fill="#080a0f"/><text x="200" y="300" text-anchor="middle" fill="#f43f5e" font-family="sans-serif" font-size="20" font-weight="bold">MangaDex</text></svg>')}`;
 
   const authorRel = relationships.find((r) => r.type === 'author');
   const author = authorRel?.attributes?.name || 'Unknown Author';

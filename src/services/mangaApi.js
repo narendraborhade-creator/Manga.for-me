@@ -433,6 +433,28 @@ export async function fetchChapterPages(chapterId) {
   }
 }
 
+export function getFallbackCover(title = 'Manga') {
+  const clean = (title || 'Manga').slice(0, 24);
+  const svg = `<svg xmlns="http://www.w3.org/2000/svg" width="400" height="600" viewBox="0 0 400 600">
+    <defs>
+      <linearGradient id="bg" x1="0%" y1="0%" x2="100%" y2="100%">
+        <stop offset="0%" stop-color="#0b0e14"/>
+        <stop offset="100%" stop-color="#1e1322"/>
+      </linearGradient>
+      <linearGradient id="acc" x1="0%" y1="0%" x2="100%" y2="100%">
+        <stop offset="0%" stop-color="#f43f5e"/>
+        <stop offset="100%" stop-color="#e11d48"/>
+      </linearGradient>
+    </defs>
+    <rect width="400" height="600" fill="url(#bg)"/>
+    <circle cx="200" cy="240" r="64" fill="url(#acc)" fill-opacity="0.15"/>
+    <path d="M175 220h50M175 240h50M175 260h30" stroke="#f43f5e" stroke-width="4" stroke-linecap="round"/>
+    <text x="200" y="360" text-anchor="middle" fill="#ffffff" font-family="system-ui, -apple-system, sans-serif" font-size="20" font-weight="800">${clean.replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;')}</text>
+    <text x="200" y="390" text-anchor="middle" fill="#94a3b8" font-family="system-ui, -apple-system, sans-serif" font-size="12" font-weight="600" letter-spacing="1.5">MANGA UNIVERSE</text>
+  </svg>`;
+  return `data:image/svg+xml;utf8,${encodeURIComponent(svg)}`;
+}
+
 /**
  * Format a Manga item into standard shape
  */
@@ -441,7 +463,7 @@ function formatMangaItem(item) {
   // Proxy cover image only if hotlinking bypass is required
   const proxiedCover = item.coverUrl
     ? (needsImageProxy(item.coverUrl) ? `/api/image-proxy?url=${encodeURIComponent(item.coverUrl)}` : item.coverUrl)
-    : 'https://images.unsplash.com/photo-1578632767115-351597cf2477?w=500&auto=format&fit=crop&q=80';
+    : getFallbackCover(item.title);
 
   return {
     id: item.id,
@@ -458,6 +480,7 @@ function formatMangaItem(item) {
       item.id?.startsWith('asura:') ? 'Asura Scans' :
       item.id?.startsWith('vortex:') ? 'Vortex Scans' :
       item.id?.startsWith('wc:') ? 'WeebCentral' :
+      item.id?.startsWith('mk:') ? 'MangaKakalot' :
       item.id?.startsWith('webtoon:') ? 'Webtoon' : 'MangaPill'
     ),
     provider: item.provider || (
@@ -465,6 +488,7 @@ function formatMangaItem(item) {
       item.id?.startsWith('asura:') ? 'asura' :
       item.id?.startsWith('vortex:') ? 'vortex' :
       item.id?.startsWith('wc:') ? 'weebcentral' :
+      item.id?.startsWith('mk:') ? 'mangakakalot' :
       item.id?.startsWith('webtoon:') ? 'webtoon' : 'mangapill'
     ),
   };
