@@ -3,6 +3,8 @@
  * Scrapes manga, manhwa & webtoons from Vortex Scans (vortexscans.org)
  */
 
+import { decodeHtml, cleanTitle } from './htmlUtils.js';
+
 const BASE_URL = 'https://vortexscans.org';
 const USER_AGENT = 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/124.0.0.0 Safari/537.36';
 const HEADERS = {
@@ -47,9 +49,10 @@ async function fetchWithTimeout(url, options = {}, timeoutMs = 8000) {
  * Format raw slug into a human-readable title
  */
 function cleanSlugTitle(slug) {
-  return slug
+  const clean = decodeHtml(slug);
+  return clean
     .replace(/-[a-f0-9]{8}$/i, '')
-    .replace(/-/g, ' ')
+    .replace(/[-_]+/g, ' ')
     .replace(/\b\w/g, (l) => l.toUpperCase());
 }
 
@@ -74,14 +77,16 @@ export async function searchVortex(query) {
     const seen = new Set();
 
     for (const m of linkMatches) {
-      const slug = m[1].replace('/series/', '').replace(/\/$/, '');
+      const rawSlug = m[1].replace('/series/', '').replace(/\/$/, '');
+      const slug = decodeHtml(rawSlug);
       if (slug === 'series' || seen.has(slug)) continue;
       seen.add(slug);
 
       const inner = m[2];
       const imgMatch = inner.match(/src="([^"]+)"/i);
-      const coverUrl = imgMatch ? imgMatch[1].replace(/&amp;/g, '&') : '';
-      const title = cleanSlugTitle(slug);
+      const coverUrl = imgMatch ? decodeHtml(imgMatch[1]) : '';
+      const titleAttr = m[0].match(/title="([^"]+)"/i) || inner.match(/alt="([^"]+)"/i);
+      const title = titleAttr ? cleanTitle(titleAttr[1]) : cleanSlugTitle(slug);
 
       results.push({
         id: `vortex:${slug}`,
@@ -124,14 +129,16 @@ export async function getPopularVortex() {
     const seen = new Set();
 
     for (const m of linkMatches) {
-      const slug = m[1].replace('/series/', '').replace(/\/$/, '');
+      const rawSlug = m[1].replace('/series/', '').replace(/\/$/, '');
+      const slug = decodeHtml(rawSlug);
       if (slug === 'series' || seen.has(slug)) continue;
       seen.add(slug);
 
       const inner = m[2];
       const imgMatch = inner.match(/src="([^"]+)"/i);
-      const coverUrl = imgMatch ? imgMatch[1].replace(/&amp;/g, '&') : '';
-      const title = cleanSlugTitle(slug);
+      const coverUrl = imgMatch ? decodeHtml(imgMatch[1]) : '';
+      const titleAttr = m[0].match(/title="([^"]+)"/i) || inner.match(/alt="([^"]+)"/i);
+      const title = titleAttr ? cleanTitle(titleAttr[1]) : cleanSlugTitle(slug);
 
       results.push({
         id: `vortex:${slug}`,
@@ -161,33 +168,34 @@ export async function getPopularVortex() {
  * Get Vortex Series Details & Chapter List
  */
 export async function getVortexDetails(slug) {
-  const cleanSlug = slug.replace(/^vortex:/, '');
+  const cleanSlug = decodeHtml(slug.replace(/^vortex:/i, ''));
   const cacheKey = `vortex_details_${cleanSlug}`;
   const cached = getCached(cacheKey);
   if (cached) return cached;
 
   try {
-    const url = `${BASE_URL}/series/${cleanSlug}`;
+    const url = `${BASE_URL}/series/${encodeURI(cleanSlug)}`;
     const res = await fetchWithTimeout(url, { headers: HEADERS }, 8000);
     if (!res.ok) throw new Error(`HTTP ${res.status}`);
     const html = await res.text();
 
-    const title = html.match(/<h1[^>]*>([^<]+)<\/h1>/i)?.[1]?.trim() || cleanSlugTitle(cleanSlug);
+    const rawTitle = html.match(/<h1[^>]*>([^<]+)<\/h1>/i)?.[1]?.trim();
+    const title = rawTitle ? cleanTitle(rawTitle) : cleanSlugTitle(cleanSlug);
     const descMatch =
       html.match(/<p[^>]+class="[^"]*description[^"]*"[^>]*>([\s\S]*?)<\/p>/i) ||
       html.match(/<div[^>]+class="[^"]*description[^"]*"[^>]*>([\s\S]*?)<\/div>/i) ||
       html.match(/<div[^>]+class="[^"]*summary[^"]*"[^>]*>([\s\S]*?)<\/div>/i);
     const description = descMatch
-      ? descMatch[1].replace(/<[^>]+>/g, '').trim()
+      ? decodeHtml(descMatch[1].replace(/<[^>]+>/g, '').trim())
       : 'Read this hot series directly from Vortex Scans.';
 
     const coverMatch =
       html.match(/<img[^>]+src="([^"]*upload\/series[^"]+)"/i) ||
       html.match(/<img[^>]+src="([^"]*storage\.vortexscans[^"]+)"/i);
-    const coverUrl = coverMatch ? coverMatch[1].replace(/&amp;/g, '&') : '';
+    const coverUrl = coverMatch ? decodeHtml(coverMatch[1]) : '';
 
     // Extract tags
-    const genreMatches = [...html.matchAll(/href="\/genre\/[^"]+"[^>]*>([^<]+)<\/a>/gi)].map(m => m[1].trim());
+    const genreMatches = [...html.matchAll(/href="\/genre\/[^"]+"[^>]*>([^<]+)<\/a>/gi)].map(m => decodeHtml(m[1].trim()));
     const tags = genreMatches.length > 0 ? genreMatches.slice(0, 6) : ['Manhwa', 'Action', 'Fantasy'];
 
     // Extract chapters
@@ -203,7 +211,7 @@ export async function getVortexDetails(slug) {
         id: `vortex_ch:${cleanSlug}:${chNum}`,
         chapter: chNum,
         title: `Chapter ${chNum}`,
-        sourceUrl: `${BASE_URL}${cm[1]}`,
+        sourceUrl: `${BASE_URL}${decodeHtml(cm[1])}`,
       });
     }
 
@@ -238,7 +246,7 @@ export async function getVortexDetails(slug) {
  */
 export async function getVortexChapterPages(chapterId) {
   const parts = chapterId.replace(/^vortex_ch:/, '').split(':');
-  const slug = parts[0];
+  const slug = decodeHtml(parts[0]);
   const chNum = parts[1];
 
   const cacheKey = `vortex_pages_${slug}_${chNum}`;
@@ -246,7 +254,7 @@ export async function getVortexChapterPages(chapterId) {
   if (cached) return cached;
 
   try {
-    const url = `${BASE_URL}/series/${slug}/chapter-${chNum}`;
+    const url = `${BASE_URL}/series/${encodeURI(slug)}/chapter-${chNum}`;
     const res = await fetchWithTimeout(url, { headers: HEADERS }, 8000);
     if (!res.ok) throw new Error(`HTTP ${res.status}`);
     const html = await res.text();

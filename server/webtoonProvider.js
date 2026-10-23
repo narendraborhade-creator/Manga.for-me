@@ -1,3 +1,5 @@
+import { decodeHtml } from './htmlUtils.js';
+
 // Multi-source Webtoon & Manhwa Provider
 // Dedicated provider for Korean webtoons, manhwa, and expanded library titles
 
@@ -23,16 +25,6 @@ function getCached(key) {
 
 function setCache(key, data) {
   cache.set(key, { data, time: Date.now() });
-}
-
-function decodeHtml(str) {
-  if (!str) return '';
-  return str
-    .replace(/&quot;/g, '"')
-    .replace(/&#039;/g, "'")
-    .replace(/&amp;/g, '&')
-    .replace(/&lt;/g, '<')
-    .replace(/&gt;/g, '>');
 }
 
 async function fetchWithTimeout(url, options = {}, timeoutMs = 8000) {

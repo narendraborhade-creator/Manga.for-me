@@ -3,6 +3,8 @@
  * Scrapes manga, manhwa & webtoons from Asura Scans (asurascans.com)
  */
 
+import { decodeHtml, cleanTitle } from './htmlUtils.js';
+
 const BASE_URL = 'https://asurascans.com';
 const USER_AGENT = 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/124.0.0.0 Safari/537.36';
 const HEADERS = {
@@ -47,9 +49,10 @@ async function fetchWithTimeout(url, options = {}, timeoutMs = 8000) {
  * Format raw slug into a human-readable title
  */
 function cleanSlugTitle(slug) {
-  return slug
+  const clean = decodeHtml(slug);
+  return clean
     .replace(/-[a-f0-9]{8}$/i, '')
-    .replace(/-/g, ' ')
+    .replace(/[-_]+/g, ' ')
     .replace(/\b\w/g, (l) => l.toUpperCase());
 }
 
@@ -75,18 +78,21 @@ export async function searchAsura(query) {
 
     for (const m of linkMatches) {
       const link = m[1];
-      const slug = link.replace('/comics/', '').replace(/\/$/, '');
+      const rawSlug = link.replace('/comics/', '').replace(/\/$/, '');
+      const slug = decodeHtml(rawSlug);
       if (seen.has(slug)) continue;
       seen.add(slug);
 
       const inner = m[2];
       const imgMatch = inner.match(/src="([^"]+)"/i);
-      const coverUrl = imgMatch ? imgMatch[1] : '';
+      const coverUrl = imgMatch ? decodeHtml(imgMatch[1]) : '';
 
       const titleMatch =
         inner.match(/<span[^>]*class="[^"]*title[^"]*"[^>]*>([^<]+)<\/span>/i) ||
         inner.match(/<h[2-6][^>]*>([^<]+)<\/h[2-6]>/i);
-      const title = titleMatch ? titleMatch[1].trim() : cleanSlugTitle(slug);
+      const titleAttr = m[0].match(/title="([^"]+)"/i);
+      const rawT = titleMatch ? titleMatch[1].trim() : (titleAttr ? titleAttr[1].trim() : cleanSlugTitle(slug));
+      const title = cleanTitle(rawT);
 
       results.push({
         id: `asura:${slug}`,
@@ -130,14 +136,16 @@ export async function getPopularAsura() {
 
     for (const m of linkMatches) {
       const link = m[1];
-      const slug = link.replace('/comics/', '').replace(/\/$/, '');
+      const rawSlug = link.replace('/comics/', '').replace(/\/$/, '');
+      const slug = decodeHtml(rawSlug);
       if (seen.has(slug)) continue;
       seen.add(slug);
 
       const inner = m[2];
       const imgMatch = inner.match(/src="([^"]+)"/i);
-      const coverUrl = imgMatch ? imgMatch[1] : '';
-      const title = cleanSlugTitle(slug);
+      const coverUrl = imgMatch ? decodeHtml(imgMatch[1]) : '';
+      const titleAttr = m[0].match(/title="([^"]+)"/i) || inner.match(/alt="([^"]+)"/i);
+      const title = titleAttr ? cleanTitle(titleAttr[1]) : cleanSlugTitle(slug);
 
       results.push({
         id: `asura:${slug}`,
@@ -167,33 +175,34 @@ export async function getPopularAsura() {
  * Get Asura Comic Details & Chapter List
  */
 export async function getAsuraDetails(slug) {
-  const cleanSlug = slug.replace(/^asura:/, '');
+  const cleanSlug = decodeHtml(slug.replace(/^asura:/i, ''));
   const cacheKey = `asura_details_${cleanSlug}`;
   const cached = getCached(cacheKey);
   if (cached) return cached;
 
   try {
-    const url = `${BASE_URL}/comics/${cleanSlug}`;
+    const url = `${BASE_URL}/comics/${encodeURI(cleanSlug)}`;
     const res = await fetchWithTimeout(url, { headers: HEADERS }, 8000);
     if (!res.ok) throw new Error(`HTTP ${res.status}`);
     const html = await res.text();
 
-    const title = html.match(/<h1[^>]*>([^<]+)<\/h1>/i)?.[1]?.trim() || cleanSlugTitle(cleanSlug);
+    const rawTitle = html.match(/<h1[^>]*>([^<]+)<\/h1>/i)?.[1]?.trim();
+    const title = rawTitle ? cleanTitle(rawTitle) : cleanSlugTitle(cleanSlug);
     const descMatch =
       html.match(/<span[^>]*class="[^"]*description[^"]*"[^>]*>([\s\S]*?)<\/span>/i) ||
       html.match(/<div[^>]*class="[^"]*description[^"]*"[^>]*>([\s\S]*?)<\/div>/i) ||
       html.match(/<p[^>]*class="[^"]*text-sm[^"]*"[^>]*>([\s\S]*?)<\/p>/i);
     const description = descMatch
-      ? descMatch[1].replace(/<[^>]+>/g, '').trim()
+      ? decodeHtml(descMatch[1].replace(/<[^>]+>/g, '').trim())
       : 'Read this hit series directly from Asura Scans.';
 
     const coverMatch =
       html.match(/<img[^>]+src="([^"]*asura-images\/covers[^"]+)"/i) ||
       html.match(/<img[^>]+src="([^"]*covers\/[^"]+)"/i);
-    const coverUrl = coverMatch ? coverMatch[1] : '';
+    const coverUrl = coverMatch ? decodeHtml(coverMatch[1]) : '';
 
     // Extract tags
-    const genreMatches = [...html.matchAll(/href="\/genres\/[^"]+"[^>]*>([^<]+)<\/a>/gi)].map(m => m[1].trim());
+    const genreMatches = [...html.matchAll(/href="\/genres\/[^"]+"[^>]*>([^<]+)<\/a>/gi)].map(m => decodeHtml(m[1].trim()));
     const tags = genreMatches.length > 0 ? genreMatches.slice(0, 6) : ['Manhwa', 'Action', 'Fantasy'];
 
     // Extract chapters
@@ -209,7 +218,7 @@ export async function getAsuraDetails(slug) {
         id: `asura_ch:${cleanSlug}:${chNum}`,
         chapter: chNum,
         title: `Chapter ${chNum}`,
-        sourceUrl: `${BASE_URL}${cm[1]}`,
+        sourceUrl: `${BASE_URL}${decodeHtml(cm[1])}`,
       });
     }
 
@@ -244,7 +253,7 @@ export async function getAsuraDetails(slug) {
  */
 export async function getAsuraChapterPages(chapterId) {
   const parts = chapterId.replace(/^asura_ch:/, '').split(':');
-  const slug = parts[0];
+  const slug = decodeHtml(parts[0]);
   const chNum = parts[1];
 
   const cacheKey = `asura_pages_${slug}_${chNum}`;
@@ -252,7 +261,7 @@ export async function getAsuraChapterPages(chapterId) {
   if (cached) return cached;
 
   try {
-    const url = `${BASE_URL}/comics/${slug}/chapter/${chNum}`;
+    const url = `${BASE_URL}/comics/${encodeURI(slug)}/chapter/${chNum}`;
     const res = await fetchWithTimeout(url, { headers: HEADERS }, 8000);
     if (!res.ok) throw new Error(`HTTP ${res.status}`);
     const html = await res.text();

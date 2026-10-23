@@ -1,4 +1,5 @@
 import { getWebtoonDetails, getWebtoonChapterPages, WEBTOON_CATALOG } from './webtoonProvider.js';
+import { decodeHtml, getFallbackCover } from './htmlUtils.js';
 
 // WeebCentral Multi-Source Provider (from Keiyoushi Extension ecosystem)
 // Provides access to over 15,000+ manga, manhwa, and manhua titles
@@ -60,16 +61,6 @@ function getCached(key) {
 
 function setCache(key, data) {
   cache.set(key, { data, time: Date.now() });
-}
-
-function decodeHtml(str) {
-  if (!str) return '';
-  return str
-    .replace(/&quot;/g, '"')
-    .replace(/&#039;/g, "'")
-    .replace(/&amp;/g, '&')
-    .replace(/&lt;/g, '<')
-    .replace(/&gt;/g, '>');
 }
 
 /**
@@ -336,7 +327,7 @@ export async function getWeebCentralDetails(seriesId, initialCover = '', bypassC
     id: `wc:${seriesId}`,
     title: fallbackTitle,
     englishTitle: fallbackTitle,
-    coverUrl: initialCover || 'https://images.unsplash.com/photo-1578632767115-351597cf2477?w=500&auto=format&fit=crop&q=80',
+    coverUrl: initialCover || getFallbackCover(fallbackTitle),
     status: 'Ongoing',
     description: `${fallbackTitle} chapters and summary are available from archived backup sources.`,
     tags: ['Manga', 'Ongoing'],

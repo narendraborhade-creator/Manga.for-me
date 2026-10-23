@@ -3,6 +3,8 @@
  * Flagship source from the Keiyoushi ecosystem
  */
 
+import { cleanTitle, getFallbackCover } from './htmlUtils.js';
+
 const BASE_URL = 'https://api.mangadex.org';
 const COVER_BASE_URL = 'https://uploads.mangadex.org/covers';
 
@@ -54,24 +56,25 @@ function formatMangaDexItem(item) {
   const attrs = item.attributes || {};
   
   // Title resolution
-  const title = attrs.title?.en 
+  const rawTitle = attrs.title?.en 
     || attrs.title?.['ja-ro'] 
     || attrs.title?.['ko-ro'] 
     || Object.values(attrs.title || {})[0] 
     || 'Untitled Manga';
+  const title = cleanTitle(rawTitle);
 
   // Alt title resolution
   let englishTitle = null;
   if (attrs.altTitles && Array.isArray(attrs.altTitles)) {
     const enAlt = attrs.altTitles.find(t => t.en);
-    if (enAlt) englishTitle = enAlt.en;
+    if (enAlt) englishTitle = cleanTitle(enAlt.en);
   }
   if (!englishTitle && attrs.title?.en && attrs.title['ja-ro']) {
-    englishTitle = attrs.title.en;
+    englishTitle = cleanTitle(attrs.title.en);
   }
 
   // Cover resolution
-  let coverUrl = 'https://images.unsplash.com/photo-1578632767115-351597cf2477?w=500&auto=format&fit=crop&q=80';
+  let coverUrl = getFallbackCover(title);
   const coverRel = (item.relationships || []).find(r => r.type === 'cover_art');
   if (coverRel?.attributes?.fileName) {
     coverUrl = `${COVER_BASE_URL}/${id}/${coverRel.attributes.fileName}.512.jpg`;

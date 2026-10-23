@@ -33,6 +33,7 @@ import {
   getMangaKakalotDetails,
   getMangaKakalotChapterPages
 } from './mangakakalotProvider.js';
+import { decodeHtml, cleanTitle, getFallbackCover } from './htmlUtils.js';
 
 // Server-side provider for complete manga chapters and pages
 const USER_AGENT = 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36';
@@ -59,34 +60,6 @@ function getCached(key) {
 
 function setCache(key, data) {
   cache.set(key, { data, time: Date.now() });
-}
-
-function decodeHtml(str) {
-  if (!str) return '';
-  return str
-    .replace(/&quot;/g, '"')
-    .replace(/&#039;/g, "'")
-    .replace(/&amp;/g, '&')
-    .replace(/&lt;/g, '<')
-    .replace(/&gt;/g, '>');
-}
-
-function cleanTitle(raw) {
-  if (!raw) return 'Manga';
-  let t = raw
-    .replace(/Chapter\s+[0-9.]+/i, '')
-    .replace(/\s+manga$/i, '')
-    .trim();
-  const words = t.split(/\s+/);
-  const half = Math.floor(words.length / 2);
-  if (words.length >= 2 && words.length % 2 === 0) {
-    const firstHalf = words.slice(0, half).join(' ');
-    const secondHalf = words.slice(half).join(' ');
-    if (firstHalf.toLowerCase() === secondHalf.toLowerCase()) {
-      t = firstHalf;
-    }
-  }
-  return decodeHtml(t);
 }
 
 // Curated Top Masterpieces for Spotlight with verified high-res artwork
@@ -575,16 +548,17 @@ export async function getMangaDetails(mangaId, bypassCache = false) {
       };
     }
 
-    // Return safe fallback object
+    // Return safe fallback object with sanitized title and SVG cover
     const cleanIdTitle = cleanTitle(mangaId.split('/')[1] || mangaId);
     return {
       id: mangaId,
       title: cleanIdTitle,
       englishTitle: cleanIdTitle,
-      coverUrl: 'https://images.unsplash.com/photo-1578632767115-351597cf2477?w=500&auto=format&fit=crop&q=80',
-      description: 'Manga information is loading from backup archives.',
+      coverUrl: getFallbackCover(cleanIdTitle),
+      description: `${cleanIdTitle} chapters and updates are being indexed. Check back shortly.`,
       status: 'Ongoing',
-      tags: ['Manga'],
+      author: 'Manga',
+      tags: ['Manga', 'Ongoing'],
       chapters: [],
       totalChapters: 0,
     };

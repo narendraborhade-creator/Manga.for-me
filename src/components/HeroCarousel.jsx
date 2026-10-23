@@ -1,6 +1,6 @@
 import React, { useState, useEffect, useRef } from 'react';
 import { Play, BookOpen, Star, Bookmark, ChevronLeft, ChevronRight, Info, Sparkles } from 'lucide-react';
-import { getFallbackCover } from '../services/mangaApi';
+import { getFallbackCover, cleanTitle } from '../services/mangaApi';
 
 export default function HeroCarousel({
   items = [],
@@ -104,13 +104,13 @@ export default function HeroCarousel({
 
         {/* Title */}
         <h1 className="text-2xl sm:text-4xl md:text-5xl lg:text-6xl font-black text-white tracking-tight mb-1.5 sm:mb-3 line-clamp-2 drop-shadow-lg font-['Outfit']">
-          {current.englishTitle || current.title}
+          {cleanTitle(current.englishTitle || current.title)}
         </h1>
 
         {current.englishTitle && current.englishTitle.toLowerCase() !== current.title.toLowerCase() && (
           <p className="text-[11px] sm:text-sm text-zinc-300 mb-1.5 sm:mb-2 font-medium flex items-center gap-1.5 drop-shadow">
             <span className="px-1.5 py-0.5 rounded text-[10px] font-mono uppercase bg-white/15 text-zinc-200 border border-white/10">JP</span>
-            <span className="truncate">{current.title}</span>
+            <span className="truncate">{cleanTitle(current.title)}</span>
           </p>
         )}
 

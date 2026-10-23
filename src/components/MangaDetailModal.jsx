@@ -1,5 +1,4 @@
 import React, { useState, useEffect, useCallback } from 'react';
-import { getFallbackCover } from '../services/mangaApi';
 import { 
   X, 
   Play, 
@@ -12,7 +11,7 @@ import {
   Loader2,
   RefreshCw
 } from 'lucide-react';
-import { fetchMangaDetails, fetchMangaRecommendations } from '../services/mangaApi';
+import { getFallbackCover, fetchMangaDetails, fetchMangaRecommendations, cleanTitle, decodeHtml } from '../services/mangaApi';
 import { getReadChaptersForManga } from '../services/storage';
 
 export default function MangaDetailModal({
@@ -234,7 +233,7 @@ export default function MangaDetailModal({
                   </div>
 
                   <h2 className="text-xl sm:text-2xl md:text-3xl font-extrabold text-white tracking-tight mb-1">
-                    {manga.englishTitle || manga.title}
+                    {cleanTitle(manga.englishTitle || manga.title)}
                   </h2>
 
                   {manga.englishTitle && manga.englishTitle.toLowerCase() !== manga.title.toLowerCase() && (
@@ -243,14 +242,16 @@ export default function MangaDetailModal({
                         Original Title
                       </span>
                       <span className="text-xs sm:text-sm text-zinc-300 font-medium truncate max-w-xs">
-                        {manga.title}
+                        {cleanTitle(manga.title)}
                       </span>
                     </div>
                   )}
 
-                  <p className="text-xs sm:text-sm text-slate-400 mb-3 flex items-center justify-center sm:justify-start gap-2">
-                    <span className="text-slate-300 font-medium">By {manga.author}</span>
-                  </p>
+                  {manga.author && manga.author.trim() !== '' && manga.author.toLowerCase() !== 'unknown author' && (
+                    <p className="text-xs sm:text-sm text-slate-400 mb-3 flex items-center justify-center sm:justify-start gap-2">
+                      <span className="text-slate-300 font-medium">By {decodeHtml(manga.author)}</span>
+                    </p>
+                  )}
 
                   {/* Tags */}
                   <div className="flex flex-wrap justify-center sm:justify-start gap-1.5 mb-4">

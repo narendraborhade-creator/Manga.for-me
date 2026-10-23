@@ -1,4 +1,5 @@
 import React from 'react';
+import { cleanTitle } from '../../services/mangaApi';
 import {
   Infinity as InfinityIcon,
   Clock,
@@ -52,8 +53,8 @@ export default function ReaderBottomHud({
         {/* Header Row: Manga Title, Chapter, Clock & Battery, Settings, Bookmark, Close */}
         <div className="flex items-center justify-between text-[11px] text-slate-300 px-1 border-b border-white/10 pb-1.5 gap-2">
           <div className="min-w-0 flex items-center gap-1.5 truncate">
-            <span className="font-bold text-white truncate max-w-[130px] xs:max-w-[200px] sm:max-w-xs" title={mangaEnglishTitle || mangaTitle}>
-              {mangaEnglishTitle || mangaTitle}
+            <span className="font-bold text-white truncate max-w-[130px] xs:max-w-[200px] sm:max-w-xs" title={cleanTitle(mangaEnglishTitle || mangaTitle)}>
+              {cleanTitle(mangaEnglishTitle || mangaTitle)}
             </span>
             <span className="text-slate-500">•</span>
             <span className="text-rose-400 font-semibold font-mono whitespace-nowrap">

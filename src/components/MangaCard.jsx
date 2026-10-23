@@ -1,6 +1,6 @@
 import React, { memo } from 'react';
 import { Bookmark, Star, BookOpen, Check } from 'lucide-react';
-import { getFallbackCover } from '../services/mangaApi';
+import { getFallbackCover, cleanTitle } from '../services/mangaApi';
 
 function MangaCard({
   manga,
@@ -117,14 +117,14 @@ function MangaCard({
         <div>
           <h3 
             className="font-bold text-sm text-slate-100 group-hover:text-rose-400 line-clamp-1 transition-colors tracking-tight"
-            title={manga.englishTitle || manga.title}
+            title={cleanTitle(manga.englishTitle || manga.title)}
           >
-            {manga.englishTitle || manga.title}
+            {cleanTitle(manga.englishTitle || manga.title)}
           </h3>
           {manga.englishTitle && manga.englishTitle.toLowerCase() !== manga.title.toLowerCase() ? (
-            <p className="text-[11px] text-zinc-400 mt-0.5 truncate flex items-center gap-1.5 font-medium" title={manga.title}>
+            <p className="text-[11px] text-zinc-400 mt-0.5 truncate flex items-center gap-1.5 font-medium" title={cleanTitle(manga.title)}>
               <span className="text-zinc-500 font-mono text-[9px] uppercase px-1 py-0.5 bg-white/5 rounded border border-white/5">JP</span>
-              <span className="truncate">{manga.title}</span>
+              <span className="truncate">{cleanTitle(manga.title)}</span>
             </p>
           ) : (
             <p className="text-xs text-slate-400 mt-0.5 truncate flex items-center gap-1">

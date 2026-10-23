@@ -10,6 +10,8 @@ const HEADERS = {
   'Referer': 'https://www.kakamanga.com/',
 };
 
+import { decodeHtml, cleanTitle } from './htmlUtils.js';
+
 const BASE_URL = 'https://www.kakamanga.com';
 
 // In-memory cache
@@ -26,16 +28,6 @@ function getCached(key) {
 
 function setCache(key, data) {
   cache.set(key, { data, time: Date.now() });
-}
-
-function decodeHtml(str) {
-  if (!str) return '';
-  return str
-    .replace(/&quot;/g, '"')
-    .replace(/&#039;/g, "'")
-    .replace(/&amp;/g, '&')
-    .replace(/&lt;/g, '<')
-    .replace(/&gt;/g, '>');
 }
 
 async function fetchWithTimeout(url, options = {}, timeoutMs = 8000) {
@@ -103,8 +95,8 @@ export async function getPopularMangaKakalot() {
         list.push({
           id: `mk:${slug}`,
           slug,
-          title: decodeHtml(rawTitle),
-          englishTitle: decodeHtml(rawTitle),
+          title: cleanTitle(rawTitle),
+          englishTitle: cleanTitle(rawTitle),
           coverUrl: rawCover,
           status: 'Ongoing',
           author: 'MangaKakalot',
@@ -152,7 +144,7 @@ export async function getMangaKakalotDetails(slug, bypassCache = false) {
     if (pageRes.ok) {
       const html = await pageRes.text();
       const h1Match = html.match(/<h1[^>]*>([\s\S]*?)<\/h1>/i);
-      if (h1Match) title = decodeHtml(h1Match[1].trim());
+      if (h1Match) title = cleanTitle(h1Match[1].trim());
 
       const imgMatch = html.match(/class="manga-info-pic"[\s\S]*?<img[^>]+src="([^"]+)"/i);
       if (imgMatch) coverUrl = imgMatch[1];

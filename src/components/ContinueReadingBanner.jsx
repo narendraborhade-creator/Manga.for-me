@@ -1,6 +1,6 @@
 import React from 'react';
 import { Play, BookOpen, Clock, ChevronRight, X } from 'lucide-react';
-import { getFallbackCover } from '../services/mangaApi';
+import { getFallbackCover, cleanTitle } from '../services/mangaApi';
 
 export default function ContinueReadingBanner({
   lastRead,
@@ -68,14 +68,14 @@ export default function ContinueReadingBanner({
             <h3 
               onClick={() => onOpenMangaDetails(lastRead.mangaId)}
               className="text-base sm:text-lg font-bold text-white truncate hover:text-rose-400 cursor-pointer transition-colors"
-              title={lastRead.mangaEnglishTitle || lastRead.mangaTitle}
+              title={cleanTitle(lastRead.mangaEnglishTitle || lastRead.mangaTitle)}
             >
-              {lastRead.mangaEnglishTitle || lastRead.mangaTitle}
+              {cleanTitle(lastRead.mangaEnglishTitle || lastRead.mangaTitle)}
             </h3>
             {lastRead.mangaEnglishTitle && lastRead.mangaEnglishTitle.toLowerCase() !== lastRead.mangaTitle.toLowerCase() && (
-              <p className="text-[11px] text-zinc-400 truncate flex items-center gap-1 font-medium mt-0.5" title={lastRead.mangaTitle}>
+              <p className="text-[11px] text-zinc-400 truncate flex items-center gap-1 font-medium mt-0.5" title={cleanTitle(lastRead.mangaTitle)}>
                 <span className="text-zinc-500 font-mono text-[9px] uppercase px-1 py-0.2 bg-white/5 rounded border border-white/5">JP</span>
-                <span className="truncate">{lastRead.mangaTitle}</span>
+                <span className="truncate">{cleanTitle(lastRead.mangaTitle)}</span>
               </p>
             )}
 

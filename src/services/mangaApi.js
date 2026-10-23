@@ -311,13 +311,119 @@ export async function searchManga(query = '') {
 }
 
 /**
- * Helper to check if an image needs proxying (skips Unsplash, MangaDex, Data URIs)
+ * Helper to check if an image needs proxying (skips MangaDex, Data URIs)
  */
 function needsImageProxy(url) {
   if (!url) return false;
   if (url.startsWith('/api/image-proxy') || url.startsWith('data:')) return false;
-  if (url.includes('unsplash.com') || url.includes('mangadex.org') || url.includes('mangadex.network')) return false;
+  if (url.includes('mangadex.org') || url.includes('mangadex.network')) return false;
   return true;
+}
+
+/**
+ * Robust HTML entity decoder
+ */
+export function decodeHtml(str) {
+  if (!str || typeof str !== 'string') return '';
+  let decoded = str
+    .replace(/&quot;/gi, '"')
+    .replace(/&apos;/gi, "'")
+    .replace(/&#039;/g, "'")
+    .replace(/&#39;/g, "'")
+    .replace(/&amp;/gi, '&')
+    .replace(/&lt;/gi, '<')
+    .replace(/&gt;/gi, '>')
+    .replace(/&nbsp;/gi, ' ')
+    .replace(/&mdash;/gi, '—')
+    .replace(/&ndash;/gi, '–')
+    .replace(/&hellip;/gi, '…')
+    .replace(/&lsquo;/gi, "‘")
+    .replace(/&rsquo;/gi, "’")
+    .replace(/&ldquo;/gi, '“')
+    .replace(/&rdquo;/gi, '”')
+    // Hex entities like &#x27; or &#X27;
+    .replace(/&#x([0-9a-f]+);/gi, (_, hex) => {
+      try {
+        return String.fromCodePoint(parseInt(hex, 16));
+      } catch {
+        return '';
+      }
+    })
+    // Decimal entities like &#8217; or &#39;
+    .replace(/&#([0-9]+);/g, (_, dec) => {
+      try {
+        return String.fromCodePoint(parseInt(dec, 10));
+      } catch {
+        return '';
+      }
+    });
+
+  if (decoded.includes('&amp;') || decoded.includes('&#')) {
+    decoded = decoded
+      .replace(/&quot;/gi, '"')
+      .replace(/&apos;/gi, "'")
+      .replace(/&#039;/g, "'")
+      .replace(/&#39;/g, "'")
+      .replace(/&amp;/gi, '&')
+      .replace(/&lt;/gi, '<')
+      .replace(/&gt;/gi, '>')
+      .replace(/&#x([0-9a-f]+);/gi, (_, hex) => {
+        try {
+          return String.fromCodePoint(parseInt(hex, 16));
+        } catch {
+          return '';
+        }
+      })
+      .replace(/&#([0-9]+);/g, (_, dec) => {
+        try {
+          return String.fromCodePoint(parseInt(dec, 10));
+        } catch {
+          return '';
+        }
+      });
+  }
+  return decoded;
+}
+
+/**
+ * Title cleaner: strips provider prefix tags (Vortex:, Asura:, etc.) and decodes entities
+ */
+export function cleanTitle(raw) {
+  if (!raw || typeof raw !== 'string') return 'Manga';
+  let t = decodeHtml(raw);
+
+  // Strip source provider prefixes like "vortex:", "asura:", "webtoon:", "weebcentral:", "mangadex:", "mk:", "wc:"
+  t = t.replace(/^(vortex|asura|webtoon|weebcentral|mangadex|mangakakalot|kakamanga|mangapill|wc|mk|md)\s*:\s*/i, '');
+
+  // Strip Chapter trailing text or manga suffix
+  t = t
+    .replace(/Chapter\s+[0-9.]+/i, '')
+    .replace(/\s+manga$/i, '')
+    .trim();
+
+  // Deduplicate repeating title segments like "Solo Leveling Solo Leveling"
+  const words = t.split(/\s+/);
+  const half = Math.floor(words.length / 2);
+  if (words.length >= 2 && words.length % 2 === 0) {
+    const firstHalf = words.slice(0, half).join(' ');
+    const secondHalf = words.slice(half).join(' ');
+    if (firstHalf.toLowerCase() === secondHalf.toLowerCase()) {
+      t = firstHalf;
+    }
+  }
+
+  // Normalize dashes/underscores if it was a raw slug
+  if (t.includes('-') && !t.includes(' ')) {
+    t = t.replace(/-/g, ' ');
+  }
+  t = t.replace(/\s+/g, ' ').trim();
+
+  // Capitalize properly if all lowercase
+  if (t === t.toLowerCase()) {
+    t = t.replace(/\b\w/g, (c) => c.toUpperCase());
+  }
+
+  return t || 'Manga';
 }
 
 /**
@@ -336,10 +442,18 @@ export async function fetchMangaDetails(mangaId, refresh = false) {
     const res = await fetch(url);
     if (!res.ok) throw new Error(`HTTP ${res.status}`);
     const data = await res.json();
-    if (data && data.coverUrl && needsImageProxy(data.coverUrl)) {
-      data.coverUrl = `/api/image-proxy?url=${encodeURIComponent(data.coverUrl)}`;
+    if (data) {
+      if (data.title) data.title = cleanTitle(data.title);
+      if (data.englishTitle) data.englishTitle = cleanTitle(data.englishTitle);
+      if (data.description) data.description = decodeHtml(data.description);
+      if (!data.author || !data.author.trim() || data.author.toLowerCase() === 'author') {
+        data.author = 'Unknown Author';
+      }
+      if (data.coverUrl && needsImageProxy(data.coverUrl)) {
+        data.coverUrl = `/api/image-proxy?url=${encodeURIComponent(data.coverUrl)}`;
+      }
+      setClientCached(cacheKey, data);
     }
-    if (data) setClientCached(cacheKey, data);
     return data;
   } catch (err) {
     console.warn('fetchMangaDetails API warning, checking fallback:', err);
@@ -359,6 +473,8 @@ export async function fetchMangaDetails(mangaId, refresh = false) {
       const result = {
         ...fallbackItem,
         id: mangaId,
+        title: cleanTitle(fallbackItem.title),
+        englishTitle: fallbackItem.englishTitle ? cleanTitle(fallbackItem.englishTitle) : null,
         coverUrl: fallbackItem.coverUrl,
         chapters: fallbackItem.chapters || []
       };
@@ -460,20 +576,22 @@ export function getFallbackCover(title = 'Manga') {
  */
 function formatMangaItem(item) {
   if (!item) return null;
+  const safeTitle = cleanTitle(item.title);
+  const safeEnglishTitle = item.englishTitle ? cleanTitle(item.englishTitle) : null;
   // Proxy cover image only if hotlinking bypass is required
   const proxiedCover = item.coverUrl
     ? (needsImageProxy(item.coverUrl) ? `/api/image-proxy?url=${encodeURIComponent(item.coverUrl)}` : item.coverUrl)
-    : getFallbackCover(item.title);
+    : getFallbackCover(safeTitle);
 
   return {
     id: item.id,
-    title: item.title,
-    englishTitle: item.englishTitle || null,
+    title: safeTitle,
+    englishTitle: safeEnglishTitle,
     coverUrl: proxiedCover,
     rawCoverUrl: item.coverUrl,
     status: item.status || 'Ongoing',
-    author: item.author || 'Manga Artist',
-    tags: item.tags || ['Manga', 'Action'],
+    author: item.author && item.author.trim() ? decodeHtml(item.author) : 'Unknown Author',
+    tags: (item.tags || ['Manga', 'Action']).map(decodeHtml),
     year: item.year || null,
     sourceName: item.sourceName || (
       item.id?.startsWith('md:') ? 'MangaDex' :
