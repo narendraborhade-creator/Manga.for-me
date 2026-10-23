@@ -24,6 +24,20 @@ export default function SinglePageView({
           src={loadedChapters[0].pages[singlePageNum - 1]?.url}
           alt={`Page ${singlePageNum}`}
           referrerPolicy="no-referrer"
+          onError={(e) => {
+            const cur = loadedChapters[0]?.pages?.[singlePageNum - 1];
+            const target = e.currentTarget;
+            if (!target.dataset.proxied && cur?.url && !cur.url.startsWith('/api/image-proxy')) {
+              target.dataset.proxied = 'true';
+              target.src = `/api/image-proxy?url=${encodeURIComponent(cur.originalUrl || cur.url)}`;
+              return;
+            }
+            if (!target.dataset.retried) {
+              target.dataset.retried = 'true';
+              const sep = target.src.includes('?') ? '&' : '?';
+              target.src = `${target.src}${sep}_retry=${Date.now()}`;
+            }
+          }}
           className="w-full sm:w-auto max-h-[88vh] sm:max-h-[85vh] object-contain mx-auto"
           style={{
             display: 'block',

@@ -119,10 +119,16 @@ export default function WebtoonView({
                     padding: 0,
                   }}
                   onError={(e) => {
-                    if (!e.target.dataset.retried) {
-                      e.target.dataset.retried = 'true';
-                      const sep = p.url.includes('?') ? '&' : '?';
-                      e.target.src = `${p.url}${sep}_retry=${Date.now()}`;
+                    const target = e.currentTarget;
+                    if (!target.dataset.proxied && p.url && !p.url.startsWith('/api/image-proxy')) {
+                      target.dataset.proxied = 'true';
+                      target.src = `/api/image-proxy?url=${encodeURIComponent(p.originalUrl || p.url)}`;
+                      return;
+                    }
+                    if (!target.dataset.retried) {
+                      target.dataset.retried = 'true';
+                      const sep = target.src.includes('?') ? '&' : '?';
+                      target.src = `${target.src}${sep}_retry=${Date.now()}`;
                     }
                   }}
                 />
