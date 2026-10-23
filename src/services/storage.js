@@ -39,10 +39,57 @@ function safeSet(key, value) {
 }
 
 // ----------------- BOOKMARKS & LIBRARY -----------------
-export const getBookmarks = () => safeGet(KEYS.BOOKMARKS, {});
+function getNormalizedMangaKey(id, title, englishTitle) {
+  const raw = englishTitle || title || id || '';
+  return raw
+    .toLowerCase()
+    .replace(/^(vortex|asura|webtoon|weebcentral|mangadex|mangakakalot|kakamanga|mangapill|wc|mk|md)\s*:\s*/i, '')
+    .replace(/[^a-z0-9]+/g, '');
+}
+
+export const getBookmarks = () => {
+  const raw = safeGet(KEYS.BOOKMARKS, {});
+  // Deduplicate bookmarks by normalized title to prevent duplicate cards in library
+  const deduped = {};
+  const seenTitles = new Map();
+
+  for (const [key, b] of Object.entries(raw)) {
+    if (!b || (!b.id && !b.title)) continue;
+    const normKey = getNormalizedMangaKey(b.id, b.title, b.englishTitle);
+    if (normKey) {
+      if (seenTitles.has(normKey)) {
+        // Already seen this manga: keep the newer or preferred entry
+        const existingKey = seenTitles.get(normKey);
+        const existing = deduped[existingKey];
+        const existingTime = new Date(existing.updatedAt || 0).getTime();
+        const curTime = new Date(b.updatedAt || 0).getTime();
+        if (curTime > existingTime) {
+          delete deduped[existingKey];
+          deduped[key] = b;
+          seenTitles.set(normKey, key);
+        }
+        continue;
+      }
+      seenTitles.set(normKey, key);
+    }
+    deduped[key] = b;
+  }
+  return deduped;
+};
 
 export const setBookmark = (mangaId, mangaData, status = 'reading') => {
   const bookmarks = getBookmarks();
+  const targetNorm = getNormalizedMangaKey(mangaId, mangaData.title, mangaData.englishTitle);
+
+  // Check if this manga is already bookmarked under an alias/alternate provider ID
+  if (targetNorm) {
+    for (const [k, existing] of Object.entries(bookmarks)) {
+      if (k !== mangaId && getNormalizedMangaKey(existing.id, existing.title, existing.englishTitle) === targetNorm) {
+        delete bookmarks[k]; // Remove duplicate alias
+      }
+    }
+  }
+
   bookmarks[mangaId] = {
     id: mangaId,
     title: mangaData.title,
@@ -59,19 +106,41 @@ export const setBookmark = (mangaId, mangaData, status = 'reading') => {
 
 export const removeBookmark = (mangaId) => {
   const bookmarks = getBookmarks();
+  const targetNorm = getNormalizedMangaKey(mangaId, '', '');
   delete bookmarks[mangaId];
+
+  // Also remove any duplicate alias that shares the same normalized key
+  if (targetNorm) {
+    for (const [k, b] of Object.entries(bookmarks)) {
+      if (getNormalizedMangaKey(b.id, b.title, b.englishTitle) === targetNorm) {
+        delete bookmarks[k];
+      }
+    }
+  }
+
   safeSet(KEYS.BOOKMARKS, bookmarks);
   return bookmarks;
 };
 
 export const isBookmarked = (mangaId) => {
   const bookmarks = getBookmarks();
-  return !!bookmarks[mangaId];
+  if (bookmarks[mangaId]) return true;
+  const targetNorm = getNormalizedMangaKey(mangaId, '', '');
+  if (!targetNorm) return false;
+  return Object.values(bookmarks).some(
+    (b) => getNormalizedMangaKey(b.id, b.title, b.englishTitle) === targetNorm
+  );
 };
 
 export const getBookmarkStatus = (mangaId) => {
   const bookmarks = getBookmarks();
-  return bookmarks[mangaId]?.status || null;
+  if (bookmarks[mangaId]) return bookmarks[mangaId].status;
+  const targetNorm = getNormalizedMangaKey(mangaId, '', '');
+  if (!targetNorm) return null;
+  const found = Object.values(bookmarks).find(
+    (b) => getNormalizedMangaKey(b.id, b.title, b.englishTitle) === targetNorm
+  );
+  return found?.status || null;
 };
 
 // ----------------- READING HISTORY & TRACKING -----------------

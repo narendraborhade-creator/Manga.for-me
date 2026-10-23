@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useMemo, useCallback } from 'react';
+import React, { useState, useEffect, useMemo, useCallback, useRef } from 'react';
 import Navbar from './components/Navbar';
 import ContinueReadingBanner from './components/ContinueReadingBanner';
 import HeroCarousel from './components/HeroCarousel';
@@ -320,20 +320,64 @@ export default function App() {
     refreshStorageData();
   };
 
-  // Go Directly to Home Screen from Reader
-  const handleGoHome = () => {
+  // Go Directly to Home Screen from Reader / Modals / Subviews
+  const handleGoHome = useCallback(() => {
     setReaderState((prev) => ({ ...prev, active: false }));
     setSelectedMangaId(null);
     setSelectedAnime(null);
+    setIsBackupOpen(false);
     setActiveTab('manga');
     setSearchQuery('');
     setSelectedGenre('All');
     setSelectedSource('All');
     refreshStorageData();
     if (typeof window !== 'undefined') {
+      if (window.history.state?.appScreen === 'subview') {
+        window.history.replaceState({ appScreen: 'home' }, '');
+      }
       window.scrollTo({ top: 0, behavior: 'smooth' });
     }
-  };
+  }, [refreshStorageData]);
+
+  // Mobile Device Back Button & Swipe-to-back Gesture Integration
+  const isSubView = readerState.active || Boolean(selectedMangaId) || Boolean(selectedAnime) || isBackupOpen || activeTab !== 'manga';
+  const isSubViewRef = useRef(false);
+
+  useEffect(() => {
+    isSubViewRef.current = isSubView;
+  }, [isSubView]);
+
+  useEffect(() => {
+    if (typeof window === 'undefined') return;
+
+    if (!window.history.state || !window.history.state.appScreen) {
+      window.history.replaceState({ appScreen: 'home' }, '');
+    }
+
+    if (isSubView) {
+      if (window.history.state?.appScreen !== 'subview') {
+        window.history.pushState({ appScreen: 'subview' }, '');
+      }
+    } else {
+      if (window.history.state?.appScreen === 'subview') {
+        window.history.replaceState({ appScreen: 'home' }, '');
+      }
+    }
+  }, [isSubView]);
+
+  useEffect(() => {
+    if (typeof window === 'undefined') return;
+
+    const handlePopState = () => {
+      // User pressed device hardware back button or used swipe-to-back gesture
+      if (isSubViewRef.current) {
+        handleGoHome();
+      }
+    };
+
+    window.addEventListener('popstate', handlePopState);
+    return () => window.removeEventListener('popstate', handlePopState);
+  }, [handleGoHome]);
 
   // Featured Spotlight Items for Hero Carousel (Manga & Anime mix)
   const spotlightItems = [

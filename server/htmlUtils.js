@@ -103,6 +103,69 @@ export function cleanTitle(raw) {
   return t || 'Manga';
 }
 
+/**
+ * Deduplicate chapter lists by normalized chapter number and ID
+ * Prevents "double chapters" from multi-group scanlations or re-releases
+ */
+export function deduplicateChapters(chapters) {
+  if (!Array.isArray(chapters)) return [];
+  const seenNumbers = new Map();
+  const seenIds = new Set();
+  const result = [];
+
+  for (const ch of chapters) {
+    if (!ch || (!ch.id && !ch.chapter)) continue;
+
+    // Check unique ID
+    if (ch.id && seenIds.has(ch.id)) continue;
+    if (ch.id) seenIds.add(ch.id);
+
+    // Normalize chapter key
+    let normKey = null;
+    const parsedNum = parseFloat(ch.chapter);
+    if (!isNaN(parsedNum)) {
+      normKey = `num:${parsedNum}`;
+    } else if (ch.chapter) {
+      normKey = `str:${String(ch.chapter).toLowerCase().trim()}`;
+    } else if (ch.title) {
+      normKey = `title:${String(ch.title).toLowerCase().trim()}`;
+    }
+
+    if (normKey) {
+      if (seenNumbers.has(normKey)) {
+        // Double chapter found! Pick the one with richer title if available
+        const existingIdx = seenNumbers.get(normKey);
+        const existing = result[existingIdx];
+        const existingTitle = (existing.title || '').toLowerCase();
+        const curTitle = (ch.title || '').toLowerCase();
+        const genericTitle = `chapter ${ch.chapter}`.toLowerCase();
+
+        if (
+          (existingTitle === genericTitle || !existingTitle) &&
+          curTitle &&
+          curTitle !== genericTitle
+        ) {
+          result[existingIdx] = ch;
+        }
+        continue;
+      }
+      seenNumbers.set(normKey, result.length);
+    }
+
+    result.push(ch);
+  }
+
+  // Sort descending by chapter number
+  result.sort((a, b) => {
+    const numA = parseFloat(a.chapter);
+    const numB = parseFloat(b.chapter);
+    if (!isNaN(numA) && !isNaN(numB)) return numB - numA;
+    return 0;
+  });
+
+  return result;
+}
+
 export function getFallbackCover(title = 'Manga') {
   const safeTitle = cleanTitle(title).slice(0, 24);
   const svg = `<svg xmlns="http://www.w3.org/2000/svg" width="400" height="600" viewBox="0 0 400 600">

@@ -11,7 +11,7 @@ import {
   Loader2,
   RefreshCw
 } from 'lucide-react';
-import { getFallbackCover, fetchMangaDetails, fetchMangaRecommendations, cleanTitle, decodeHtml } from '../services/mangaApi';
+import { getFallbackCover, fetchMangaDetails, fetchMangaRecommendations, cleanTitle, decodeHtml, deduplicateChapters } from '../services/mangaApi';
 import { getReadChaptersForManga } from '../services/storage';
 
 export default function MangaDetailModal({
@@ -59,7 +59,8 @@ export default function MangaDetailModal({
           }
           setManga(data);
           if (data.chapters && Array.isArray(data.chapters)) {
-            const sorted = [...data.chapters].sort((a, b) => {
+            const uniqueChapters = deduplicateChapters(data.chapters);
+            const sorted = uniqueChapters.sort((a, b) => {
               const numA = parseFloat(a.chapter) || 0;
               const numB = parseFloat(b.chapter) || 0;
               return chapterSort === 'asc' ? numA - numB : numB - numA;

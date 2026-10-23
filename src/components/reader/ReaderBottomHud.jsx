@@ -11,7 +11,8 @@ import {
   ChevronRight,
   Home,
   Layers,
-  ArrowUp
+  ArrowUp,
+  RotateCw
 } from 'lucide-react';
 
 export default function ReaderBottomHud({
@@ -40,7 +41,9 @@ export default function ReaderBottomHud({
   jumpToChapter,
   showChapterMenu,
   setShowChapterMenu,
-  scrollToTop
+  scrollToTop,
+  handleReloadChapter,
+  isReloadingChapter
 }) {
   return (
     <div
@@ -60,6 +63,19 @@ export default function ReaderBottomHud({
             <span className="text-rose-400 font-semibold font-mono whitespace-nowrap">
               Ch. {activeChapterNumber}
             </span>
+            {handleReloadChapter && (
+              <button
+                type="button"
+                onClick={(e) => {
+                  e.stopPropagation();
+                  handleReloadChapter();
+                }}
+                className="p-1 rounded-md text-slate-400 hover:text-rose-400 hover:bg-white/10 transition-colors"
+                title="Reload Chapter Pages"
+              >
+                <RotateCw className={`w-3 h-3 ${isReloadingChapter ? 'animate-spin text-rose-400' : ''}`} />
+              </button>
+            )}
             {settings.continuousScroll && settings.readingMode === 'webtoon' && (
               <span className="hidden sm:inline-flex items-center gap-1 px-1.5 py-0.2 text-[9px] bg-rose-500/10 text-rose-400 border border-rose-500/20 rounded-md font-mono">
                 <InfinityIcon className="w-2.5 h-2.5" /> Continuous

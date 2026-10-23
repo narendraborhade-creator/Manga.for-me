@@ -72,6 +72,7 @@ export default function MangaReader({
 
   // Single page mode page tracker
   const [singlePageNum, setSinglePageNum] = useState(1);
+  const [isReloadingChapter, setIsReloadingChapter] = useState(false);
 
   // Read chapters list for checkmark indicators
   const [readChapterIds, setReadChapterIds] = useState([]);
@@ -499,6 +500,28 @@ export default function MangaReader({
         setInitialLoading(false);
       });
   }, [onChangeChapter, mangaId, mangaTitle, mangaEnglishTitle, coverUrl]);
+
+  const handleReloadCurrentChapter = useCallback(async () => {
+    const targetChapId = activeChapterIdRef.current || chapterId;
+    if (!targetChapId || isReloadingChapter) return;
+    setIsReloadingChapter(true);
+    try {
+      const data = await fetchChapterPages(targetChapId);
+      if (data && data.pages && data.pages.length > 0) {
+        setLoadedChapters((prev) =>
+          prev.map((c) =>
+            String(c.id) === String(targetChapId)
+              ? { ...c, pages: data.pages }
+              : c
+          )
+        );
+      }
+    } catch (err) {
+      console.error('Error reloading chapter:', err);
+    } finally {
+      setIsReloadingChapter(false);
+    }
+  }, [chapterId, isReloadingChapter]);
 
   // Track scroll position in Webtoon mode
   const handleScroll = useCallback(() => {
@@ -965,6 +988,8 @@ export default function MangaReader({
         showChapterMenu={showChapterMenu}
         setShowChapterMenu={setShowChapterMenu}
         scrollToTop={scrollToTop}
+        handleReloadChapter={handleReloadCurrentChapter}
+        isReloadingChapter={isReloadingChapter}
       />
     </div>
   );

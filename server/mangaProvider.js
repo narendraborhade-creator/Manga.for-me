@@ -33,7 +33,7 @@ import {
   getMangaKakalotDetails,
   getMangaKakalotChapterPages
 } from './mangakakalotProvider.js';
-import { decodeHtml, cleanTitle, getFallbackCover } from './htmlUtils.js';
+import { decodeHtml, cleanTitle, getFallbackCover, deduplicateChapters } from './htmlUtils.js';
 
 // Server-side provider for complete manga chapters and pages
 const USER_AGENT = 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36';
@@ -419,22 +419,34 @@ export async function getMangaDetails(mangaId, bypassCache = false) {
   }
 
   if (mangaId.startsWith('md:') || mangaId.startsWith('mangadex:')) {
-    return getMangaDexDetails(mangaId, bypassCache);
+    const d = await getMangaDexDetails(mangaId, bypassCache);
+    if (d && Array.isArray(d.chapters)) d.chapters = deduplicateChapters(d.chapters);
+    return d;
   }
   if (mangaId.startsWith('asura:')) {
-    return getAsuraDetails(mangaId);
+    const d = await getAsuraDetails(mangaId);
+    if (d && Array.isArray(d.chapters)) d.chapters = deduplicateChapters(d.chapters);
+    return d;
   }
   if (mangaId.startsWith('vortex:')) {
-    return getVortexDetails(mangaId);
+    const d = await getVortexDetails(mangaId);
+    if (d && Array.isArray(d.chapters)) d.chapters = deduplicateChapters(d.chapters);
+    return d;
   }
   if (mangaId.startsWith('webtoon:')) {
-    return getWebtoonDetails(mangaId, bypassCache);
+    const d = await getWebtoonDetails(mangaId, bypassCache);
+    if (d && Array.isArray(d.chapters)) d.chapters = deduplicateChapters(d.chapters);
+    return d;
   }
   if (mangaId.startsWith('wc:')) {
-    return getWeebCentralDetails(mangaId.replace('wc:', ''), '', bypassCache);
+    const d = await getWeebCentralDetails(mangaId.replace('wc:', ''), '', bypassCache);
+    if (d && Array.isArray(d.chapters)) d.chapters = deduplicateChapters(d.chapters);
+    return d;
   }
   if (mangaId.startsWith('mk:')) {
-    return getMangaKakalotDetails(mangaId, bypassCache);
+    const d = await getMangaKakalotDetails(mangaId, bypassCache);
+    if (d && Array.isArray(d.chapters)) d.chapters = deduplicateChapters(d.chapters);
+    return d;
   }
 
   const cacheKey = `details_v4_${mangaId}`;
@@ -503,13 +515,8 @@ export async function getMangaDetails(mangaId, bypassCache = false) {
       });
     }
 
-    // Ensure chapters are sorted descending (latest chapter first)
-    chapters.sort((a, b) => {
-      const numA = parseFloat(a.chapter);
-      const numB = parseFloat(b.chapter);
-      if (!isNaN(numA) && !isNaN(numB)) return numB - numA;
-      return 0;
-    });
+    // Ensure chapters are unique and sorted descending
+    const dedupedChapters = deduplicateChapters(chapters);
 
     const result = {
       id: mangaId,
@@ -521,8 +528,8 @@ export async function getMangaDetails(mangaId, bypassCache = false) {
       type,
       year,
       tags: genres.length > 0 ? genres : ['Manga', 'Action'],
-      chapters,
-      totalChapters: chapters.length,
+      chapters: dedupedChapters,
+      totalChapters: dedupedChapters.length,
     };
 
     setCache(cacheKey, result);

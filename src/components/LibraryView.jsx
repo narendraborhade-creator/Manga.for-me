@@ -21,7 +21,18 @@ export default function LibraryView({
   const [filterStatus, setFilterStatus] = useState('all');
   const [searchQuery, setSearchQuery] = useState('');
 
-  const bookmarkList = Object.values(bookmarks);
+  // Deduplicate library items by normalized key to ensure 0 duplicates in library
+  const seenLibraryKeys = new Set();
+  const bookmarkList = Object.values(bookmarks).filter((item) => {
+    if (!item) return false;
+    const norm = (item.englishTitle || item.title || item.id || '')
+      .toLowerCase()
+      .replace(/^(vortex|asura|webtoon|weebcentral|mangadex|mangakakalot|kakamanga|mangapill|wc|mk|md)\s*:\s*/i, '')
+      .replace(/[^a-z0-9]+/g, '');
+    if (norm && seenLibraryKeys.has(norm)) return false;
+    if (norm) seenLibraryKeys.add(norm);
+    return true;
+  });
   const history = getHistory();
   const updates = getUpdates();
 
