@@ -630,10 +630,6 @@ export default function MangaReader({
             loadNextChapter();
           }
         }
-
-        if (typeof window !== 'undefined') {
-          window.scrollBy(0, movePixels);
-        }
       }
 
       autoScrollRef.current = requestAnimationFrame(tick);

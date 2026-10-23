@@ -89,6 +89,15 @@ export default function MangaDetailModal({
     loadMangaData(false);
   }, [loadMangaData]);
 
+  // Lock body scroll when modal is open
+  useEffect(() => {
+    const originalOverflow = document.body.style.overflow;
+    document.body.style.overflow = 'hidden';
+    return () => {
+      document.body.style.overflow = originalOverflow;
+    };
+  }, []);
+
   // Handle sort change
   const toggleSort = () => {
     const newSort = chapterSort === 'asc' ? 'desc' : 'asc';
@@ -137,16 +146,20 @@ export default function MangaDetailModal({
   if (!mangaId) return null;
 
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center p-0 sm:p-4 md:p-6 bg-black/80 backdrop-blur-md overflow-y-auto animate-fadeIn">
+    <div 
+      className="fixed inset-0 z-50 flex items-center justify-center p-0 sm:p-4 md:p-6 bg-black/80 backdrop-blur-md overflow-y-auto animate-fadeIn"
+      onClick={onClose}
+    >
       <div 
-        className="relative w-full max-w-4xl bg-[#0c1017] border-0 sm:border border-white/10 rounded-none sm:rounded-3xl shadow-2xl overflow-hidden my-auto max-h-full sm:max-h-[92vh] h-full sm:h-auto flex flex-col"
+        className="relative w-full max-w-4xl bg-[#0c1017] border-0 sm:border border-white/10 rounded-none sm:rounded-3xl shadow-2xl overflow-y-auto overscroll-contain my-auto max-h-full sm:max-h-[90vh] h-full sm:h-auto flex flex-col scrollbar-thin scrollbar-thumb-white/20 scrollbar-track-transparent"
+        style={{ WebkitOverflowScrolling: 'touch' }}
         onClick={(e) => e.stopPropagation()}
       >
-        {/* Close Button */}
+        {/* Sticky Close Button */}
         <button
           aria-label="Close details"
           onClick={onClose}
-          className="absolute top-3.5 right-3.5 sm:top-4 sm:right-4 z-20 p-2 rounded-full bg-black/60 hover:bg-black/90 text-slate-300 hover:text-white border border-white/10 backdrop-blur-md transition-all"
+          className="sticky top-3.5 right-3.5 sm:top-4 sm:right-4 z-30 self-end -mb-10 mr-3.5 sm:mr-4 p-2 rounded-full bg-black/70 hover:bg-black/90 text-slate-300 hover:text-white border border-white/15 backdrop-blur-md transition-all shadow-lg flex-shrink-0 cursor-pointer"
         >
           <X className="w-5 h-5" />
         </button>
@@ -342,7 +355,7 @@ export default function MangaDetailModal({
             </div>
 
             {/* Chapters Feed Section */}
-            <div className="flex-1 p-4 sm:p-6 flex flex-col min-h-0 bg-[#080a0f] pb-[calc(1.2rem+env(safe-area-inset-bottom))] sm:pb-6">
+            <div className="p-4 sm:p-6 flex flex-col bg-[#080a0f] pb-[calc(1.2rem+env(safe-area-inset-bottom))] sm:pb-6">
               <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3 mb-4">
                 <div className="flex items-center gap-2 flex-wrap">
                   <h3 className="text-base font-bold text-white flex items-center gap-2">
@@ -397,7 +410,7 @@ export default function MangaDetailModal({
               </div>
 
               {/* Chapter List */}
-              <div className="flex-1 overflow-y-auto space-y-1.5 pr-1 max-h-[340px]">
+              <div className="space-y-1.5 pr-1.5 min-h-[260px] max-h-[380px] sm:max-h-[460px] overflow-y-auto overscroll-contain rounded-2xl border border-white/10 bg-slate-950/60 p-2 sm:p-3 scrollbar-thin scrollbar-thumb-white/20">
                 {loadingChapters ? (
                   <div className="py-12 flex flex-col items-center justify-center gap-2 text-slate-500">
                     <Loader2 className="w-6 h-6 animate-spin text-rose-500" />
