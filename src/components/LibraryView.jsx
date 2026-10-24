@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useMemo } from 'react';
 import { 
   Bookmark, 
   Search, 
@@ -22,26 +22,32 @@ export default function LibraryView({
   const [searchQuery, setSearchQuery] = useState('');
 
   // Deduplicate library items by normalized key to ensure 0 duplicates in library
-  const seenLibraryKeys = new Set();
-  const bookmarkList = Object.values(bookmarks).filter((item) => {
-    if (!item) return false;
-    const norm = (item.englishTitle || item.title || item.id || '')
-      .toLowerCase()
-      .replace(/^(vortex|asura|webtoon|weebcentral|mangadex|mangakakalot|kakamanga|mangapill|wc|mk|md)\s*:\s*/i, '')
-      .replace(/[^a-z0-9]+/g, '');
-    if (norm && seenLibraryKeys.has(norm)) return false;
-    if (norm) seenLibraryKeys.add(norm);
-    return true;
-  });
+  const bookmarkList = useMemo(() => {
+    const seenLibraryKeys = new Set();
+    return Object.values(bookmarks).filter((item) => {
+      if (!item) return false;
+      const norm = (item.englishTitle || item.title || item.id || '')
+        .toLowerCase()
+        .replace(/^(vortex|asura|webtoon|weebcentral|mangadex|mangakakalot|kakamanga|mangapill|wc|mk|md)\s*:\s*/i, '')
+        .replace(/[^a-z0-9]+/g, '');
+      if (norm && seenLibraryKeys.has(norm)) return false;
+      if (norm) seenLibraryKeys.add(norm);
+      return true;
+    });
+  }, [bookmarks]);
+
   const history = getHistory();
   const updates = getUpdates();
 
-  const updatesByManga = new Map();
-  updates.forEach((u) => {
-    if (!u.read) {
-      updatesByManga.set(u.mangaId, u);
-    }
-  });
+  const updatesByManga = useMemo(() => {
+    const map = new Map();
+    updates.forEach((u) => {
+      if (!u.read) {
+        map.set(u.mangaId, u);
+      }
+    });
+    return map;
+  }, [updates]);
 
   // Calculate statistics
   const totalReadChapters = history.reduce((acc, cur) => acc + (cur.readChapters?.length || 1), 0);
@@ -61,18 +67,20 @@ export default function LibraryView({
     { id: 'on_hold', label: 'On Hold', count: bookmarkList.filter((b) => b.status === 'on_hold').length },
   ];
 
-  const filteredList = bookmarkList.filter((item) => {
-    const matchesStatus = filterStatus === 'all'
-      ? true
-      : filterStatus === 'updates'
-      ? updatesByManga.has(item.id)
-      : item.status === filterStatus;
-    const q = searchQuery.toLowerCase();
-    const matchesSearch = !searchQuery || 
-      item.title?.toLowerCase().includes(q) || 
-      item.englishTitle?.toLowerCase().includes(q);
-    return matchesStatus && matchesSearch;
-  });
+  const filteredList = useMemo(() => {
+    return bookmarkList.filter((item) => {
+      const matchesStatus = filterStatus === 'all'
+        ? true
+        : filterStatus === 'updates'
+        ? updatesByManga.has(item.id)
+        : item.status === filterStatus;
+      const q = searchQuery.toLowerCase();
+      const matchesSearch = !searchQuery ||
+        item.title?.toLowerCase().includes(q) ||
+        item.englishTitle?.toLowerCase().includes(q);
+      return matchesStatus && matchesSearch;
+    });
+  }, [bookmarkList, filterStatus, searchQuery, updatesByManga]);
 
   return (
     <div className="space-y-8 animate-fadeIn">
