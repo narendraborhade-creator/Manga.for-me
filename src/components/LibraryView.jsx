@@ -175,12 +175,17 @@ export default function LibraryView({
         </div>
       ) : (
         <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 xl:grid-cols-6 gap-4 sm:gap-5">
-          {filteredList.map((item) => {
-            const histEntry = history.find((h) => h.mangaId === item.id);
-            const lastCh = histEntry?.chapterNumber;
-            const updateObj = updatesByManga.get(item.id);
+          {(() => {
+            // O(N) hash map lookup for O(1) history access inside map
+            const historyMap = new Map();
+            history.forEach((h) => historyMap.set(h.mangaId, h));
 
-            return (
+            return filteredList.map((item) => {
+              const histEntry = historyMap.get(item.id);
+              const lastCh = histEntry?.chapterNumber;
+              const updateObj = updatesByManga.get(item.id);
+
+              return (
               <div
                 key={item.id}
                 className="group relative flex flex-col bg-slate-900/60 hover:bg-slate-900/90 rounded-2xl overflow-hidden border border-white/5 hover:border-rose-500/30 transition-all duration-300 shadow-lg cursor-pointer"
@@ -230,8 +235,8 @@ export default function LibraryView({
                       <div 
                         onClick={(e) => {
                           e.stopPropagation();
-                          if (onOpenReader && historyItem) {
-                            onOpenReader(item.id, historyItem.chapterId, lastCh, item.title, item.coverUrl, item.englishTitle);
+                          if (onOpenReader && histEntry) {
+                            onOpenReader(item.id, histEntry.chapterId, lastCh, item.title, item.coverUrl, item.englishTitle);
                           } else {
                             onSelectManga(item.id, item.coverUrl);
                           }
@@ -284,7 +289,8 @@ export default function LibraryView({
                 </div>
               </div>
             );
-          })}
+          });
+          })()}
         </div>
       )}
     </div>
