@@ -113,16 +113,16 @@ export default function Navbar({
   ];
 
   return (
-    <header className="sticky top-0 z-40 w-full glass-nav backdrop-blur-xl border-b border-white/5 transition-all">
+    <header className="sticky top-0 z-40 w-full glass-nav backdrop-blur-2xl border-b border-white/10 transition-all">
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
         <div className="flex items-center justify-between h-16 sm:h-20 gap-4">
           
-          {/* Logo & Brand */}
+          {/* Logo & Brand with Holographic Aura & HUD Tag */}
           <div 
             className="flex items-center gap-3 cursor-pointer group select-none"
             onClick={() => setActiveTab('manga')}
           >
-            <div className="relative flex items-center justify-center w-10 h-10 sm:w-11 sm:h-11 rounded-2xl overflow-hidden border border-rose-500/40 shadow-lg shadow-rose-600/30 ring-2 ring-rose-500/20 group-hover:ring-rose-500/50 group-hover:scale-105 transition-all duration-300 bg-slate-900">
+            <div className="relative flex items-center justify-center w-10 h-10 sm:w-11 sm:h-11 rounded-2xl overflow-hidden border border-cyan-400/40 shadow-lg shadow-cyan-500/20 ring-2 ring-rose-500/25 group-hover:ring-cyan-400/60 group-hover:scale-105 transition-all duration-300 bg-slate-950 holo-glow">
               <img 
                 src="/logo.jpg" 
                 alt="Logo" 
@@ -131,21 +131,25 @@ export default function Navbar({
             </div>
             <div>
               <div className="flex items-center gap-2">
-                <span className="font-extrabold text-xl sm:text-2xl tracking-tight bg-gradient-to-r from-white via-slate-100 to-slate-400 bg-clip-text text-transparent font-['Outfit']">
+                <span className="font-extrabold text-xl sm:text-2xl tracking-tight holo-text font-['Outfit']">
                   KuroNeko
                 </span>
-                <span className="text-[10px] uppercase tracking-widest px-1.5 py-0.5 rounded bg-rose-500/10 text-rose-400 font-semibold border border-rose-500/20">
+                <span className="text-[10px] uppercase font-mono tracking-widest px-1.5 py-0.5 rounded bg-rose-500/15 text-rose-300 font-bold border border-rose-500/30">
                   黒猫
+                </span>
+                <span className="hidden xl:inline-flex items-center gap-1.5 px-2 py-0.5 rounded-full bg-cyan-950/40 border border-cyan-500/30 text-[9px] font-mono text-cyan-300 tracking-wider">
+                  <span className="w-1.5 h-1.5 rounded-full bg-cyan-400 animate-ping" />
+                  SYS::ONLINE
                 </span>
               </div>
               <p className="text-[11px] text-slate-400 hidden sm:block font-medium">
-                Manga & Anime Reader
+                Manga & Anime Terminal
               </p>
             </div>
           </div>
 
-          {/* Desktop Navigation Tabs */}
-          <nav className="hidden md:flex items-center gap-1 bg-slate-900/60 p-1 rounded-2xl border border-white/5 shadow-inner">
+          {/* Desktop Navigation Tabs with Glassmorphism & Holographic Active Indicator */}
+          <nav className="hidden md:flex items-center gap-1 bg-slate-950/80 p-1.5 rounded-2xl border border-white/10 shadow-inner backdrop-blur-2xl">
             {navItems.map((item) => {
               const Icon = item.icon;
               const isActive = activeTab === item.id;
@@ -153,17 +157,17 @@ export default function Navbar({
                 <button
                   key={item.id}
                   onClick={() => setActiveTab(item.id)}
-                  className={`flex items-center gap-2 px-4 py-2 rounded-xl text-sm font-semibold transition-all duration-200 relative ${
+                  className={`flex items-center gap-2 px-4 py-2 rounded-xl text-sm font-semibold transition-all duration-300 relative ${
                     isActive
-                      ? 'bg-gradient-to-r from-rose-600 to-rose-500 text-white shadow-md shadow-rose-500/20'
+                      ? 'bg-gradient-to-r from-rose-600 via-rose-500 to-indigo-600 text-white shadow-lg shadow-rose-600/30 border border-white/20 holo-border'
                       : 'text-slate-400 hover:text-white hover:bg-white/5'
                   }`}
                 >
                   <Icon className="w-4 h-4" />
                   <span>{item.label}</span>
                   {item.badge && (
-                    <span className={`text-[10px] px-1.5 py-0.2 rounded-full font-bold ${
-                      isActive ? 'bg-white/20 text-white' : 'bg-rose-500/20 text-rose-400'
+                    <span className={`text-[10px] px-1.5 py-0.2 rounded-full font-mono font-bold ${
+                      isActive ? 'bg-white/25 text-white' : 'bg-rose-500/20 text-rose-300 border border-rose-500/30'
                     }`}>
                       {item.badge}
                     </span>
@@ -173,11 +177,11 @@ export default function Navbar({
             })}
           </nav>
 
-          {/* Search & Actions */}
+          {/* Search & Actions with HUD Reticle */}
           <div className="flex items-center gap-3">
             {/* Desktop Search Input with Suggestions Dropdown */}
             <div ref={desktopSearchRef} className="relative hidden lg:block w-72">
-              <Search className="w-4 h-4 text-slate-400 absolute left-3.5 top-1/2 -translate-y-1/2 pointer-events-none" />
+              <Search className="w-4 h-4 text-cyan-400/80 absolute left-3.5 top-1/2 -translate-y-1/2 pointer-events-none" />
               <input
                 type="text"
                 placeholder={activeTab === 'anime' ? 'Search anime...' : 'Search manga by title...'}
@@ -187,10 +191,10 @@ export default function Navbar({
                   setSearchQuery(e.target.value);
                   setShowSuggestions(true);
                 }}
-                className="w-full bg-slate-900/80 border border-white/10 rounded-xl pl-9 pr-8 py-2 text-sm text-slate-200 placeholder:text-slate-500 focus:outline-none focus:border-rose-500/50 focus:ring-2 focus:ring-rose-500/20 transition-all"
+                className="w-full bg-slate-950/80 border border-white/10 rounded-xl pl-9 pr-8 py-2 text-sm text-slate-200 placeholder:text-slate-500 focus:outline-none focus:border-cyan-400/60 focus:ring-2 focus:ring-cyan-500/25 transition-all shadow-inner"
               />
               {isSearchingSuggestions ? (
-                <Loader2 className="w-3.5 h-3.5 text-rose-400 animate-spin absolute right-3 top-1/2 -translate-y-1/2" />
+                <Loader2 className="w-3.5 h-3.5 text-cyan-400 animate-spin absolute right-3 top-1/2 -translate-y-1/2" />
               ) : searchQuery ? (
                 <button
                   aria-label="Clear search"
@@ -204,9 +208,9 @@ export default function Navbar({
                 </button>
               ) : null}
 
-              {/* Suggestions Popover Card */}
+              {/* Suggestions Popover Card with HUD Corner & Glassmorphism */}
               {showSuggestions && (
-                <div className="absolute left-0 right-0 top-full mt-2 bg-slate-900/95 border border-white/10 rounded-2xl shadow-2xl backdrop-blur-xl p-2 z-50 animate-fadeIn space-y-1 max-h-[80vh] overflow-y-auto">
+                <div className="absolute left-0 right-0 top-full mt-2 bg-slate-950/95 border border-cyan-500/30 rounded-2xl shadow-2xl backdrop-blur-2xl p-2 z-50 animate-fadeIn space-y-1 max-h-[80vh] overflow-y-auto glass-panel-elevated">
                   {searchQuery.trim().length >= 2 ? (
                     suggestions.length > 0 ? (
                       <div>

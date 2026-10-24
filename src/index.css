@@ -4,6 +4,11 @@
   :root {
     --font-heading: 'Outfit', sans-serif;
     --font-body: 'Plus Jakarta Sans', sans-serif;
+    --font-mono: 'JetBrains Mono', monospace;
+    --holo-cyan: #00f5d4;
+    --holo-magenta: #f43f5e;
+    --holo-violet: #8b5cf6;
+    --hud-border: rgba(0, 245, 212, 0.25);
   }
 
   html, body {
@@ -15,10 +20,18 @@
   }
 
   body {
-    background-color: #080a0f;
+    background-color: #060810;
     color: #e2e8f0;
     font-family: var(--font-body);
     min-height: 100vh;
+    background-image: 
+      radial-gradient(circle at 10% 15%, rgba(244, 63, 94, 0.08) 0%, transparent 35%),
+      radial-gradient(circle at 90% 25%, rgba(0, 245, 212, 0.07) 0%, transparent 35%),
+      radial-gradient(circle at 50% 85%, rgba(139, 92, 246, 0.08) 0%, transparent 45%),
+      linear-gradient(rgba(0, 245, 212, 0.02) 1px, transparent 1px),
+      linear-gradient(90deg, rgba(0, 245, 212, 0.02) 1px, transparent 1px);
+    background-size: 100% 100%, 100% 100%, 100% 100%, 48px 48px, 48px 48px;
+    background-attachment: fixed;
   }
 
   h1, h2, h3, h4, h5, h6 {
@@ -31,38 +44,297 @@
     height: 7px;
   }
   ::-webkit-scrollbar-track {
-    background: #080a0f;
+    background: #060810;
   }
   ::-webkit-scrollbar-thumb {
-    background: #1e2638;
+    background: #172136;
     border-radius: 9999px;
+    border: 1px solid rgba(0, 245, 212, 0.15);
   }
   ::-webkit-scrollbar-thumb:hover {
-    background: #334155;
+    background: #00f5d4;
+    box-shadow: 0 0 10px rgba(0, 245, 212, 0.5);
   }
 }
 
-/* Glassmorphism & Glow Effects */
+/* ==========================================================================
+   1. GLASSMORPHISM (BASE UI)
+   ========================================================================== */
 .glass-panel {
-  background: rgba(15, 20, 31, 0.75);
-  backdrop-filter: blur(16px);
-  -webkit-backdrop-filter: blur(16px);
-  border: 1px solid rgba(255, 255, 255, 0.08);
+  background: rgba(10, 15, 28, 0.72);
+  backdrop-filter: blur(24px) saturate(180%);
+  -webkit-backdrop-filter: blur(24px) saturate(180%);
+  border: 1px solid rgba(255, 255, 255, 0.1);
+  box-shadow: 0 16px 40px -10px rgba(0, 0, 0, 0.6), inset 0 1px 1px 0 rgba(255, 255, 255, 0.15);
+}
+
+.glass-panel-elevated {
+  background: rgba(13, 20, 38, 0.82);
+  backdrop-filter: blur(28px) saturate(190%);
+  -webkit-backdrop-filter: blur(28px) saturate(190%);
+  border: 1px solid rgba(255, 255, 255, 0.14);
+  box-shadow: 0 24px 60px -15px rgba(0, 0, 0, 0.85), inset 0 1px 2px 0 rgba(255, 255, 255, 0.2);
 }
 
 .glass-nav {
-  background: rgba(8, 10, 15, 0.85);
-  backdrop-filter: blur(20px);
-  -webkit-backdrop-filter: blur(20px);
-  border-bottom: 1px solid rgba(255, 255, 255, 0.06);
+  background: rgba(6, 9, 18, 0.85);
+  backdrop-filter: blur(24px) saturate(190%);
+  -webkit-backdrop-filter: blur(24px) saturate(190%);
+  border-bottom: 1px solid rgba(255, 255, 255, 0.08);
+  box-shadow: 0 8px 32px rgba(0, 0, 0, 0.7);
+}
+
+.glass-card {
+  background: rgba(11, 16, 32, 0.68);
+  backdrop-filter: blur(16px);
+  -webkit-backdrop-filter: blur(16px);
+  border: 1px solid rgba(255, 255, 255, 0.08);
+  box-shadow: 0 10px 25px -5px rgba(0, 0, 0, 0.5), inset 0 1px 1px 0 rgba(255, 255, 255, 0.08);
+}
+
+/* ==========================================================================
+   2. HUD UI (TACTICAL ACCENTS & TELEMETRY)
+   ========================================================================== */
+.hud-corner {
+  position: relative;
+}
+.hud-corner::before,
+.hud-corner::after {
+  content: '';
+  position: absolute;
+  width: 8px;
+  height: 8px;
+  pointer-events: none;
+  z-index: 10;
+  transition: all 0.3s ease;
+}
+.hud-corner::before {
+  top: 0;
+  left: 0;
+  border-top: 2px solid rgba(0, 245, 212, 0.7);
+  border-left: 2px solid rgba(0, 245, 212, 0.7);
+}
+.hud-corner::after {
+  bottom: 0;
+  right: 0;
+  border-bottom: 2px solid rgba(244, 63, 94, 0.7);
+  border-right: 2px solid rgba(244, 63, 94, 0.7);
+}
+.hud-corner:hover::before {
+  width: 14px;
+  height: 14px;
+  border-color: #00f5d4;
+  box-shadow: -2px -2px 8px rgba(0, 245, 212, 0.6);
+}
+.hud-corner:hover::after {
+  width: 14px;
+  height: 14px;
+  border-color: #f43f5e;
+  box-shadow: 2px 2px 8px rgba(244, 63, 94, 0.6);
+}
+
+/* HUD All-4 Corners */
+.hud-box {
+  position: relative;
+}
+.hud-box > .hud-corners {
+  position: absolute;
+  inset: 0;
+  pointer-events: none;
+  z-index: 10;
+}
+.hud-box > .hud-corners::before {
+  content: '';
+  position: absolute;
+  top: 0;
+  right: 0;
+  width: 8px;
+  height: 8px;
+  border-top: 2px solid rgba(139, 92, 246, 0.7);
+  border-right: 2px solid rgba(139, 92, 246, 0.7);
+}
+.hud-box > .hud-corners::after {
+  content: '';
+  position: absolute;
+  bottom: 0;
+  left: 0;
+  width: 8px;
+  height: 8px;
+  border-bottom: 2px solid rgba(0, 245, 212, 0.7);
+  border-left: 2px solid rgba(0, 245, 212, 0.7);
+}
+
+.hud-tag {
+  font-family: var(--font-mono);
+  font-size: 10px;
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
+  font-weight: 700;
+}
+
+.hud-telemetry {
+  font-family: var(--font-mono);
+  font-size: 11px;
+  letter-spacing: 0.05em;
+}
+
+.hud-line {
+  background: linear-gradient(90deg, transparent, rgba(0, 245, 212, 0.4), rgba(244, 63, 94, 0.4), transparent);
+  height: 1px;
+}
+
+/* ==========================================================================
+   3. HOLOGRAPHIC UI (IRIDESCENCE & PRISMATIC SHIMMER)
+   ========================================================================== */
+.holo-text {
+  background: linear-gradient(135deg, #00f5d4 0%, #38bdf8 25%, #f43f5e 65%, #c084fc 100%);
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
+  text-shadow: 0 0 30px rgba(0, 245, 212, 0.25);
+}
+
+.holo-text-cyan {
+  background: linear-gradient(135deg, #00f5d4 0%, #38bdf8 100%);
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
+}
+
+.holo-text-magenta {
+  background: linear-gradient(135deg, #f43f5e 0%, #c084fc 100%);
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
+}
+
+.holo-border {
+  position: relative;
+}
+.holo-border::before {
+  content: '';
+  position: absolute;
+  inset: -1px;
+  border-radius: inherit;
+  padding: 1px;
+  background: linear-gradient(135deg, rgba(0, 245, 212, 0.5) 0%, rgba(244, 63, 94, 0.5) 50%, rgba(139, 92, 246, 0.5) 100%);
+  -webkit-mask: linear-gradient(#fff 0 0) content-box, linear-gradient(#fff 0 0);
+  -webkit-mask-composite: xor;
+  mask-composite: exclude;
+  pointer-events: none;
+  z-index: 1;
+}
+
+.holo-glow {
+  box-shadow: 
+    0 0 25px -4px rgba(0, 245, 212, 0.25),
+    0 0 45px -8px rgba(244, 63, 94, 0.2),
+    inset 0 1px 2px rgba(255, 255, 255, 0.2);
+}
+
+.holo-badge {
+  background: linear-gradient(135deg, rgba(0, 245, 212, 0.12), rgba(244, 63, 94, 0.12));
+  border: 1px solid rgba(0, 245, 212, 0.35);
+  box-shadow: 0 0 15px -3px rgba(0, 245, 212, 0.2);
+  backdrop-filter: blur(8px);
+}
+
+.holo-badge-rose {
+  background: linear-gradient(135deg, rgba(244, 63, 94, 0.15), rgba(139, 92, 246, 0.15));
+  border: 1px solid rgba(244, 63, 94, 0.4);
+  box-shadow: 0 0 15px -3px rgba(244, 63, 94, 0.25);
+  backdrop-filter: blur(8px);
+}
+
+/* Holographic dynamic light sweep reflection on hover */
+.holo-sheen {
+  position: relative;
+  overflow: hidden;
+}
+.holo-sheen::after {
+  content: '';
+  position: absolute;
+  top: -50%;
+  left: -50%;
+  width: 200%;
+  height: 200%;
+  background: linear-gradient(
+    60deg,
+    transparent 35%,
+    rgba(0, 245, 212, 0.08) 45%,
+    rgba(244, 63, 94, 0.12) 50%,
+    rgba(139, 92, 246, 0.08) 55%,
+    transparent 65%
+  );
+  transform: translateX(-100%) rotate(25deg);
+  transition: transform 0.8s ease;
+  pointer-events: none;
+  z-index: 5;
+}
+.holo-sheen:hover::after {
+  transform: translateX(100%) rotate(25deg);
+}
+
+/* Scanlines overlay */
+.holo-scanlines {
+  background-image: repeating-linear-gradient(
+    to bottom,
+    transparent 0px,
+    transparent 3px,
+    rgba(0, 245, 212, 0.015) 3px,
+    rgba(0, 245, 212, 0.015) 4px
+  );
+}
+
+/* Holographic Button */
+.btn-holo {
+  background: linear-gradient(135deg, #00f5d4 0%, #f43f5e 50%, #8b5cf6 100%);
+  background-size: 200% 200%;
+  color: #ffffff;
+  font-weight: 700;
+  border-radius: 0.75rem;
+  transition: all 0.3s ease;
+  box-shadow: 0 0 20px -3px rgba(0, 245, 212, 0.4);
+}
+.btn-holo:hover {
+  background-position: right center;
+  box-shadow: 0 0 30px -2px rgba(244, 63, 94, 0.6);
+  transform: translateY(-1px);
+}
+
+.btn-hud {
+  font-family: var(--font-mono);
+  background: rgba(10, 15, 30, 0.8);
+  border: 1px solid rgba(0, 245, 212, 0.4);
+  color: #00f5d4;
+  backdrop-filter: blur(12px);
+  transition: all 0.25s ease;
+  position: relative;
+}
+.btn-hud:hover {
+  background: rgba(0, 245, 212, 0.15);
+  border-color: #00f5d4;
+  box-shadow: 0 0 20px rgba(0, 245, 212, 0.35);
+  color: #ffffff;
+}
+
+/* Subtle laser pulse animation */
+@keyframes laserPulse {
+  0%, 100% { opacity: 0.4; }
+  50% { opacity: 1; filter: drop-shadow(0 0 6px #00f5d4); }
+}
+
+.animate-laser {
+  animation: laserPulse 2.5s infinite;
 }
 
 .neon-glow-rose {
-  box-shadow: 0 0 25px -5px rgba(244, 63, 94, 0.35);
+  box-shadow: 0 0 25px -5px rgba(244, 63, 94, 0.4);
 }
 
 .neon-glow-violet {
-  box-shadow: 0 0 25px -5px rgba(168, 85, 247, 0.35);
+  box-shadow: 0 0 25px -5px rgba(168, 85, 247, 0.4);
+}
+
+.neon-glow-cyan {
+  box-shadow: 0 0 25px -5px rgba(0, 245, 212, 0.4);
 }
 
 /* Shimmer animation for card skeletons */
@@ -82,8 +354,8 @@
   background-image: linear-gradient(
     90deg,
     rgba(255, 255, 255, 0) 0,
-    rgba(255, 255, 255, 0.04) 20%,
-    rgba(255, 255, 255, 0.08) 60%,
+    rgba(0, 245, 212, 0.05) 20%,
+    rgba(244, 63, 94, 0.08) 60%,
     rgba(255, 255, 255, 0)
   );
   animation: shimmer 1.5s infinite;

@@ -76,15 +76,15 @@ export default function LibraryView({
 
   return (
     <div className="space-y-8 animate-fadeIn">
-      {/* Top Banner / Stats Header */}
-      <div className="relative overflow-hidden rounded-3xl glass-panel p-6 sm:p-8 border border-white/10 bg-gradient-to-r from-rose-950/20 via-slate-900/60 to-slate-950/80">
+      {/* Top Banner / Stats Header with HUD Corners & Holographic Gradient */}
+      <div className="relative overflow-hidden rounded-3xl glass-panel-elevated p-6 sm:p-8 border border-cyan-500/30 bg-gradient-to-r from-cyan-950/25 via-slate-900/70 to-slate-950/85 hud-corner holo-sheen shadow-2xl">
         <div className="flex flex-col md:flex-row items-start md:items-center justify-between gap-6">
           <div>
             <div className="flex items-center gap-2 mb-2">
-              <span className="p-2 rounded-xl bg-rose-600/20 text-rose-400 border border-rose-500/30">
-                <Bookmark className="w-5 h-5 fill-rose-500 text-rose-500" />
+              <span className="p-2 rounded-xl bg-cyan-600/20 text-cyan-400 border border-cyan-500/30">
+                <Bookmark className="w-5 h-5 fill-cyan-400 text-cyan-400" />
               </span>
-              <h1 className="text-2xl sm:text-3xl font-black text-white tracking-tight">
+              <h1 className="text-2xl sm:text-3xl font-black holo-text tracking-tight font-['Outfit']">
                 My Manga Sanctuary
               </h1>
             </div>
@@ -95,17 +95,17 @@ export default function LibraryView({
 
           {/* Quick Stats Pill */}
           <div className="grid grid-cols-2 sm:grid-cols-3 gap-3 w-full md:w-auto">
-            <div className="p-3.5 rounded-2xl bg-slate-900/80 border border-white/5 text-center">
+            <div className="p-3.5 rounded-2xl bg-slate-950/80 border border-cyan-500/30 text-center font-mono">
               <span className="text-[11px] text-slate-400 block font-medium">Saved Books</span>
               <span className="text-lg font-extrabold text-white">{bookmarkList.length}</span>
             </div>
-            <div className="p-3.5 rounded-2xl bg-slate-900/80 border border-white/5 text-center">
-              <span className="text-[11px] text-rose-400 block font-medium">Currently Reading</span>
+            <div className="p-3.5 rounded-2xl bg-slate-950/80 border border-rose-500/30 text-center font-mono">
+              <span className="text-[11px] text-rose-400 block font-medium">Reading</span>
               <span className="text-lg font-extrabold text-rose-400">{readingCount}</span>
             </div>
-            <div className="p-3.5 rounded-2xl bg-slate-900/80 border border-white/5 text-center col-span-2 sm:col-span-1">
-              <span className="text-[11px] text-emerald-400 block font-medium">Chapters Read</span>
-              <span className="text-lg font-extrabold text-emerald-400">{totalReadChapters}</span>
+            <div className="p-3.5 rounded-2xl bg-slate-950/80 border border-cyan-500/30 text-center col-span-2 sm:col-span-1 font-mono">
+              <span className="text-[11px] text-cyan-400 block font-medium">Chapters Read</span>
+              <span className="text-lg font-extrabold text-cyan-400">{totalReadChapters}</span>
             </div>
           </div>
         </div>
@@ -114,7 +114,7 @@ export default function LibraryView({
       {/* Filter Tabs & Search Bar */}
       <div className="flex flex-col lg:flex-row items-stretch lg:items-center justify-between gap-4">
         {/* Status Tabs */}
-        <div className="flex items-center gap-1.5 overflow-x-auto pb-2 lg:pb-0 scrollbar-none">
+        <div className="flex items-center gap-1.5 overflow-x-auto pb-2 lg:pb-0 scrollbar-none font-mono">
           {statusTabs.map((tab) => {
             const isActive = filterStatus === tab.id;
             return (
@@ -123,8 +123,8 @@ export default function LibraryView({
                 onClick={() => setFilterStatus(tab.id)}
                 className={`flex items-center gap-2 px-3.5 py-2 rounded-xl text-xs font-semibold whitespace-nowrap transition-all ${
                   isActive
-                    ? 'bg-rose-600 text-white shadow-md shadow-rose-600/30'
-                    : 'bg-slate-900/70 text-slate-400 hover:text-white hover:bg-slate-800 border border-white/5'
+                    ? 'btn-holo shadow-md text-white'
+                    : 'bg-slate-950/80 text-slate-400 hover:text-white hover:bg-slate-900 border border-white/10'
                 }`}
               >
                 <span>{tab.label}</span>

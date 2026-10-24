@@ -51,8 +51,14 @@ export default function HeroCarousel({
     <div 
       onTouchStart={handleTouchStart}
       onTouchEnd={handleTouchEnd}
-      className="relative w-full h-[380px] sm:h-[480px] md:h-[540px] rounded-2xl sm:rounded-3xl overflow-hidden shadow-2xl border border-white/10 group mb-6 sm:mb-10 select-none touch-pan-y"
+      className="relative w-full h-[380px] sm:h-[480px] md:h-[540px] rounded-2xl sm:rounded-3xl overflow-hidden shadow-2xl border border-cyan-500/30 group mb-6 sm:mb-10 select-none touch-pan-y glass-panel-elevated hud-corner holo-sheen"
     >
+      {/* Top-Right HUD Telemetry Header */}
+      <div className="absolute top-4 right-4 z-20 hidden sm:flex items-center gap-2 px-3 py-1 rounded-xl bg-black/60 backdrop-blur-md border border-cyan-500/30 text-[10px] font-mono text-cyan-300">
+        <span className="w-1.5 h-1.5 rounded-full bg-cyan-400 animate-ping" />
+        <span>STAGE::{(currentIndex + 1).toString().padStart(2, '0')}/{(items.length).toString().padStart(2, '0')}</span>
+      </div>
+
       {/* Background Banner with Layered Gradients */}
       <div className="absolute inset-0">
         <img
@@ -68,10 +74,10 @@ export default function HeroCarousel({
             }
           }}
         />
-        {/* Layered Vignettes */}
-        <div className="absolute inset-0 bg-gradient-to-t from-[#080a0f] via-[#080a0f]/60 to-transparent" />
-        <div className="absolute inset-0 bg-gradient-to-r from-[#080a0f] via-[#080a0f]/85 to-transparent w-full md:w-3/4" />
-        <div className="absolute inset-0 bg-radial-gradient from-transparent to-[#080a0f]/80 pointer-events-none" />
+        {/* Layered Vignettes & Holographic Scanlines */}
+        <div className="absolute inset-0 bg-gradient-to-t from-[#060810] via-[#060810]/70 to-transparent" />
+        <div className="absolute inset-0 bg-gradient-to-r from-[#060810] via-[#060810]/85 to-transparent w-full md:w-3/4" />
+        <div className="absolute inset-0 holo-scanlines pointer-events-none opacity-40" />
       </div>
 
       {/* Content Container */}
@@ -79,31 +85,31 @@ export default function HeroCarousel({
         
         {/* Top Badges */}
         <div className="flex flex-wrap items-center gap-2.5 mb-3">
-          <span className="flex items-center gap-1.5 px-3 py-1 rounded-xl text-xs font-black tracking-wider uppercase bg-gradient-to-r from-rose-600 to-rose-500 text-white shadow-lg shadow-rose-600/40">
+          <span className="flex items-center gap-1.5 px-3 py-1 rounded-xl text-xs font-black tracking-wider uppercase btn-holo text-white shadow-lg">
             <Sparkles className="w-3.5 h-3.5" />
             <span>{isManga ? 'Spotlight Manga' : 'Trending Anime'}</span>
           </span>
 
           {current.score && current.score !== 'N/A' && (
-            <span className="flex items-center gap-1 px-2.5 py-1 rounded-xl text-xs font-bold bg-amber-500/20 text-amber-300 border border-amber-500/30 backdrop-blur-md">
+            <span className="flex items-center gap-1 px-2.5 py-1 rounded-xl text-xs font-mono font-bold bg-amber-500/20 text-amber-300 border border-amber-500/30 backdrop-blur-md">
               <Star className="w-3.5 h-3.5 fill-amber-400 text-amber-400" />
-              <span>{current.score} / 10</span>
+              <span>SCORE::{current.score}</span>
             </span>
           )}
 
-          <span className="px-2.5 py-1 rounded-xl text-xs font-bold bg-slate-900/80 text-slate-300 border border-white/10 capitalize backdrop-blur-md">
-            {current.status?.toLowerCase() || 'Ongoing'}
+          <span className="px-2.5 py-1 rounded-xl text-xs font-mono font-bold bg-slate-900/80 text-cyan-300 border border-cyan-500/30 uppercase backdrop-blur-md">
+            STAT::{current.status?.toLowerCase() || 'Ongoing'}
           </span>
 
           {current.year && (
-            <span className="px-2.5 py-1 rounded-xl text-xs text-slate-300 bg-white/5 border border-white/5 backdrop-blur-md font-medium">
-              {current.year}
+            <span className="px-2.5 py-1 rounded-xl text-xs text-slate-300 bg-white/5 border border-white/10 backdrop-blur-md font-mono">
+              YEAR::{current.year}
             </span>
           )}
         </div>
 
-        {/* Title */}
-        <h1 className="text-2xl sm:text-4xl md:text-5xl lg:text-6xl font-black text-white tracking-tight mb-1.5 sm:mb-3 line-clamp-2 drop-shadow-lg font-['Outfit']">
+        {/* Title with Holographic Iridescent Shimmer */}
+        <h1 className="text-2xl sm:text-4xl md:text-5xl lg:text-6xl font-black holo-text tracking-tight mb-1.5 sm:mb-3 line-clamp-2 drop-shadow-2xl font-['Outfit']">
           {cleanTitle(current.englishTitle || current.title)}
         </h1>
 
@@ -119,7 +125,7 @@ export default function HeroCarousel({
           {(current.tags || current.genres || []).slice(0, 3).map((tag, idx) => (
             <span
               key={idx}
-              className="text-[11px] sm:text-xs text-slate-200 bg-white/10 px-2.5 sm:px-3 py-0.5 sm:py-1 rounded-full backdrop-blur-md font-medium border border-white/5"
+              className="text-[11px] sm:text-xs text-slate-200 bg-slate-900/70 px-2.5 sm:px-3 py-0.5 sm:py-1 rounded-full backdrop-blur-md font-medium border border-cyan-500/20 shadow-sm"
             >
               {tag}
             </span>
@@ -136,18 +142,18 @@ export default function HeroCarousel({
           {isManga ? (
             <button
               onClick={() => onSelectManga(current.id, current.coverUrl)}
-              className="px-4 sm:px-7 py-2.5 sm:py-3 rounded-xl sm:rounded-2xl text-xs sm:text-sm font-extrabold text-white bg-gradient-to-r from-rose-600 via-rose-500 to-amber-500 hover:from-rose-500 hover:to-amber-400 shadow-xl shadow-rose-600/35 hover:shadow-rose-600/50 hover:scale-102 transition-all flex items-center gap-1.5 sm:gap-2 group"
+              className="px-5 sm:px-8 py-2.5 sm:py-3.5 rounded-xl sm:rounded-2xl text-xs sm:text-sm font-extrabold text-white btn-holo shadow-xl hover:scale-102 transition-all flex items-center gap-2 group cursor-pointer"
             >
               <BookOpen className="w-4 h-4 group-hover:scale-110 transition-transform" />
-              <span>Read Manga Now</span>
+              <span>Read Manga [▶]</span>
             </button>
           ) : (
             <button
               onClick={() => onSelectAnime(current)}
-              className="px-4 sm:px-7 py-2.5 sm:py-3 rounded-xl sm:rounded-2xl text-xs sm:text-sm font-extrabold text-white bg-gradient-to-r from-rose-600 to-rose-500 hover:from-rose-500 hover:to-rose-400 shadow-xl shadow-rose-600/35 hover:shadow-rose-600/50 hover:scale-102 transition-all flex items-center gap-1.5 sm:gap-2 group"
+              className="px-5 sm:px-8 py-2.5 sm:py-3.5 rounded-xl sm:rounded-2xl text-xs sm:text-sm font-extrabold text-white btn-holo shadow-xl hover:scale-102 transition-all flex items-center gap-2 group cursor-pointer"
             >
               <Play className="w-4 h-4 fill-white group-hover:scale-110 transition-transform" />
-              <span>Watch Trailer & Details</span>
+              <span>Watch Transmission [▶]</span>
             </button>
           )}
 
@@ -155,10 +161,10 @@ export default function HeroCarousel({
           {onToggleBookmark && isManga && (
             <button
               onClick={() => onToggleBookmark(current)}
-              className={`px-3.5 sm:px-5 py-2.5 sm:py-3 rounded-xl sm:rounded-2xl text-xs sm:text-sm font-bold border transition-all flex items-center gap-1.5 sm:gap-2 backdrop-blur-md ${
+              className={`px-3.5 sm:px-5 py-2.5 sm:py-3.5 rounded-xl sm:rounded-2xl text-xs sm:text-sm font-bold border transition-all flex items-center gap-1.5 sm:gap-2 backdrop-blur-md cursor-pointer ${
                 isSaved
                   ? 'bg-rose-500/25 border-rose-500/50 text-rose-300 hover:bg-rose-500/35 shadow-lg shadow-rose-500/20'
-                  : 'bg-slate-900/80 border-white/15 text-slate-200 hover:bg-white/10'
+                  : 'bg-slate-900/80 border-cyan-500/30 text-cyan-200 hover:bg-cyan-500/10'
               }`}
             >
               <Bookmark className={`w-4 h-4 ${isSaved ? 'fill-rose-400 text-rose-400' : ''}`} />
@@ -169,10 +175,10 @@ export default function HeroCarousel({
           {/* View Details */}
           <button
             onClick={() => (isManga ? onSelectManga(current.id, current.coverUrl) : onSelectAnime(current))}
-            className="px-3.5 sm:px-5 py-2.5 sm:py-3 rounded-xl sm:rounded-2xl text-xs sm:text-sm font-semibold text-slate-300 hover:text-white bg-white/10 hover:bg-white/15 backdrop-blur-md border border-white/10 transition-all flex items-center gap-1.5 sm:gap-2"
+            className="px-3.5 sm:px-5 py-2.5 sm:py-3.5 rounded-xl sm:rounded-2xl text-xs sm:text-sm font-semibold text-slate-300 hover:text-white bg-white/10 hover:bg-white/15 backdrop-blur-md border border-white/15 transition-all flex items-center gap-1.5 sm:gap-2 cursor-pointer"
           >
             <Info className="w-4 h-4" />
-            <span className="hidden sm:inline">Chapter Guide</span>
+            <span className="hidden sm:inline">Chapter Console</span>
           </button>
         </div>
 

@@ -446,20 +446,20 @@ export default function App() {
                   />
                 )}
 
-                {/* Genre Filter Chips */}
-                <div className="flex items-center gap-2 overflow-x-auto pb-2 scrollbar-none">
-                  <div className="flex items-center gap-1.5 text-xs text-slate-400 font-semibold mr-1 flex-shrink-0">
-                    <Filter className="w-3.5 h-3.5 text-rose-500" />
-                    <span>Genres:</span>
+                {/* Genre Filter Chips with HUD Monospace & Holographic Active State */}
+                <div className="flex items-center gap-2 overflow-x-auto pb-2 scrollbar-none font-mono">
+                  <div className="flex items-center gap-1.5 text-xs text-cyan-400 font-semibold mr-1 flex-shrink-0">
+                    <Filter className="w-3.5 h-3.5 text-cyan-400" />
+                    <span>GENRE::</span>
                   </div>
                   {GENRES.map((genre) => (
                     <button
                       key={genre}
                       onClick={() => setSelectedGenre(genre)}
-                      className={`px-3.5 py-1.5 rounded-full text-xs font-semibold whitespace-nowrap transition-all ${
+                      className={`px-3.5 py-1.5 rounded-full text-xs font-semibold whitespace-nowrap transition-all cursor-pointer ${
                         selectedGenre === genre
-                          ? 'bg-rose-600 text-white shadow-md shadow-rose-600/30'
-                          : 'bg-slate-900/80 text-slate-400 hover:text-white hover:bg-slate-800 border border-white/5'
+                          ? 'btn-holo text-white shadow-md'
+                          : 'bg-slate-950/80 text-slate-400 hover:text-white hover:bg-slate-900 border border-white/10'
                       }`}
                     >
                       {genre}
@@ -963,9 +963,9 @@ export default function App() {
         </div>
       </footer>
 
-      {/* Mobile Bottom Navigation Bar (Phone-Optimized, Safe-Area aware) */}
+      {/* Mobile Bottom Navigation Bar (Phone-Optimized, Safe-Area aware, Glassmorphism + HUD) */}
       {!readerState.active && (
-        <nav className="md:hidden fixed bottom-0 left-0 right-0 z-40 bg-slate-950/95 backdrop-blur-2xl border-t border-white/10 px-2 py-1.5 pb-[calc(0.5rem+env(safe-area-inset-bottom))] shadow-[0_-10px_30px_rgba(0,0,0,0.8)]">
+        <nav className="md:hidden fixed bottom-0 left-0 right-0 z-40 bg-slate-950/90 backdrop-blur-3xl border-t border-cyan-500/25 px-2 py-1.5 pb-[calc(0.5rem+env(safe-area-inset-bottom))] shadow-[0_-10px_35px_rgba(0,0,0,0.9)]">
           <div className="grid grid-cols-4 items-center justify-around max-w-md mx-auto">
             {[
               { id: 'manga', label: 'Manga', icon: BookOpen },
@@ -984,19 +984,19 @@ export default function App() {
                   }}
                   className={`flex flex-col items-center justify-center py-1 px-2 rounded-xl transition-all relative ${
                     isActive
-                      ? 'text-rose-400 font-bold'
+                      ? 'text-cyan-300 font-bold'
                       : 'text-slate-400 hover:text-slate-200'
                   }`}
                 >
                   <div className="relative">
-                    <Icon className={`w-5 h-5 ${isActive ? 'text-rose-500' : ''}`} />
+                    <Icon className={`w-5 h-5 ${isActive ? 'text-cyan-400 drop-shadow-[0_0_10px_rgba(0,245,212,0.7)]' : ''}`} />
                     {tab.badge ? (
-                      <span className="absolute -top-1 -right-2 px-1 text-[9px] font-black rounded-full bg-rose-600 text-white min-w-[14px] text-center">
+                      <span className="absolute -top-1 -right-2 px-1 text-[9px] font-mono font-black rounded-full bg-rose-600 text-white min-w-[14px] text-center border border-white/20">
                         {tab.badge > 99 ? '99+' : tab.badge}
                       </span>
                     ) : null}
                   </div>
-                  <span className="text-[10px] mt-0.5 tracking-tight font-medium">
+                  <span className="text-[10px] mt-0.5 tracking-tight font-mono font-medium">
                     {tab.label}
                   </span>
                 </button>

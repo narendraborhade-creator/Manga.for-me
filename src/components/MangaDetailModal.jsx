@@ -152,7 +152,7 @@ export default function MangaDetailModal({
       onClick={onClose}
     >
       <div 
-        className="relative w-full max-w-4xl bg-[#0c1017] border-0 sm:border border-white/10 rounded-none sm:rounded-3xl shadow-2xl overflow-y-auto overscroll-contain my-auto max-h-full sm:max-h-[90vh] h-full sm:h-auto flex flex-col scrollbar-thin scrollbar-thumb-white/20 scrollbar-track-transparent"
+        className="relative w-full max-w-4xl bg-[#080d1a]/95 border-0 sm:border border-cyan-500/35 rounded-none sm:rounded-3xl shadow-2xl overflow-y-auto overscroll-contain my-auto max-h-full sm:max-h-[90vh] h-full sm:h-auto flex flex-col glass-panel-elevated hud-corner holo-sheen scrollbar-thin scrollbar-thumb-cyan-500/30 scrollbar-track-transparent"
         style={{ WebkitOverflowScrolling: 'touch' }}
         onClick={(e) => e.stopPropagation()}
       >
@@ -246,7 +246,7 @@ export default function MangaDetailModal({
                     })()}
                   </div>
 
-                  <h2 className="text-xl sm:text-2xl md:text-3xl font-extrabold text-white tracking-tight mb-1">
+                  <h2 className="text-xl sm:text-2xl md:text-3xl font-extrabold holo-text tracking-tight mb-1 font-['Outfit']">
                     {cleanTitle(manga.englishTitle || manga.title)}
                   </h2>
 
@@ -291,11 +291,11 @@ export default function MangaDetailModal({
                             manga.englishTitle || null
                           );
                         }}
-                        className="w-full sm:w-auto px-5 sm:px-6 py-2.5 rounded-xl text-xs sm:text-sm font-bold text-white bg-gradient-to-r from-rose-600 to-rose-500 hover:from-rose-500 hover:to-rose-400 shadow-lg shadow-rose-600/30 transition-all flex items-center justify-center gap-2"
+                        className="w-full sm:w-auto px-5 sm:px-6 py-2.5 rounded-xl text-xs sm:text-sm font-bold text-white btn-holo shadow-lg transition-all flex items-center justify-center gap-2 cursor-pointer"
                       >
                         <Play className="w-4 h-4 fill-white" />
                         <span>
-                          {resumeChapterObj ? `Resume Ch. ${resumeChapterObj.chapter}` : `Start Ch. ${targetStartChapter.chapter}`}
+                          {resumeChapterObj ? `Resume Ch. ${resumeChapterObj.chapter} [▶]` : `Start Ch. ${targetStartChapter.chapter} [▶]`}
                         </span>
                       </button>
                     )}

@@ -70,15 +70,15 @@ export default function HistoryView({
 
   return (
     <div className="space-y-6 sm:space-y-8 animate-fadeIn w-full max-w-full overflow-hidden">
-      {/* Top Banner / Stats Header (Grounded Glassmorphism) */}
-      <div className="relative overflow-hidden rounded-3xl glass-panel p-5 sm:p-7 border border-white/10 bg-gradient-to-r from-rose-950/25 via-slate-900/70 to-slate-950/85 shadow-xl">
+      {/* Top Banner / Stats Header (Grounded Glassmorphism + HUD + Holographic) */}
+      <div className="relative overflow-hidden rounded-3xl glass-panel-elevated p-5 sm:p-7 border border-cyan-500/30 bg-gradient-to-r from-cyan-950/25 via-slate-900/70 to-slate-950/85 shadow-xl hud-corner holo-sheen">
         <div className="flex flex-col md:flex-row items-start md:items-center justify-between gap-5">
           <div className="space-y-1">
             <div className="flex items-center gap-2.5">
-              <span className="p-2.5 rounded-2xl bg-rose-600/20 text-rose-400 border border-rose-500/30">
-                <History className="w-5 h-5 fill-rose-500 text-rose-500" />
+              <span className="p-2.5 rounded-2xl bg-cyan-600/20 text-cyan-400 border border-cyan-500/30">
+                <History className="w-5 h-5 fill-cyan-400 text-cyan-400" />
               </span>
-              <h1 className="text-2xl sm:text-3xl font-black text-white tracking-tight">
+              <h1 className="text-2xl sm:text-3xl font-black holo-text tracking-tight font-['Outfit']">
                 Reading History & Timeline
               </h1>
             </div>
@@ -88,14 +88,14 @@ export default function HistoryView({
           </div>
 
           {/* Quick Stats Pill */}
-          <div className="grid grid-cols-2 gap-3 w-full md:w-auto">
-            <div className="p-3 sm:p-3.5 rounded-2xl bg-slate-900/80 border border-white/5 text-center min-w-[120px]">
+          <div className="grid grid-cols-2 gap-3 w-full md:w-auto font-mono">
+            <div className="p-3 sm:p-3.5 rounded-2xl bg-slate-950/80 border border-cyan-500/30 text-center min-w-[120px]">
               <span className="text-[11px] text-slate-400 block font-medium">Titles Read</span>
               <span className="text-lg font-extrabold text-white">{history.length}</span>
             </div>
-            <div className="p-3 sm:p-3.5 rounded-2xl bg-slate-900/80 border border-white/5 text-center min-w-[120px]">
-              <span className="text-[11px] text-emerald-400 block font-medium">Chapters Read</span>
-              <span className="text-lg font-extrabold text-emerald-400">{totalReadChapters}</span>
+            <div className="p-3 sm:p-3.5 rounded-2xl bg-slate-950/80 border border-cyan-500/30 text-center min-w-[120px]">
+              <span className="text-[11px] text-cyan-400 block font-medium">Chapters Read</span>
+              <span className="text-lg font-extrabold text-cyan-400">{totalReadChapters}</span>
             </div>
           </div>
         </div>
@@ -105,24 +105,24 @@ export default function HistoryView({
       <div className="flex flex-col sm:flex-row items-stretch sm:items-center justify-between gap-3 sm:gap-4 w-full">
         {/* Search Bar */}
         <div className="relative flex-1 max-w-md">
-          <Search className="w-4 h-4 text-slate-500 absolute left-3 top-1/2 -translate-y-1/2" />
+          <Search className="w-4 h-4 text-cyan-400/80 absolute left-3 top-1/2 -translate-y-1/2" />
           <input
             type="text"
             placeholder="Search reading history..."
             value={searchQuery}
             onChange={(e) => setSearchQuery(e.target.value)}
-            className="w-full bg-slate-900/80 border border-white/10 rounded-xl pl-9 pr-4 py-2.5 text-xs text-slate-200 placeholder:text-slate-500 focus:outline-none focus:border-rose-500 transition-colors"
+            className="w-full bg-slate-950/80 border border-white/10 rounded-xl pl-9 pr-4 py-2.5 text-xs text-slate-200 placeholder:text-slate-500 focus:outline-none focus:border-cyan-400/60 focus:ring-2 focus:ring-cyan-500/20 transition-all font-sans"
           />
         </div>
 
         {/* View Mode Toggle & Clear All */}
-        <div className="flex items-center gap-2 justify-between sm:justify-end">
-          <div className="flex items-center p-1 rounded-xl bg-slate-900/80 border border-white/10">
+        <div className="flex items-center gap-2 justify-between sm:justify-end font-mono">
+          <div className="flex items-center p-1 rounded-xl bg-slate-950/80 border border-white/10">
             <button
               onClick={() => setViewMode('grid')}
               className={`p-1.5 sm:px-3 sm:py-1.5 rounded-lg text-xs font-semibold flex items-center gap-1.5 transition-all ${
                 viewMode === 'grid'
-                  ? 'bg-rose-600 text-white shadow-sm'
+                  ? 'btn-holo text-white shadow-sm'
                   : 'text-slate-400 hover:text-white'
               }`}
               title="Grid View"
@@ -134,7 +134,7 @@ export default function HistoryView({
               onClick={() => setViewMode('list')}
               className={`p-1.5 sm:px-3 sm:py-1.5 rounded-lg text-xs font-semibold flex items-center gap-1.5 transition-all ${
                 viewMode === 'list'
-                  ? 'bg-rose-600 text-white shadow-sm'
+                  ? 'btn-holo text-white shadow-sm'
                   : 'text-slate-400 hover:text-white'
               }`}
               title="List View"

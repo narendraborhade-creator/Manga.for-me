@@ -51,17 +51,17 @@ export default function ReaderBottomHud({
         controlsVisible && !isAutoScrolling ? 'translate-y-0 opacity-100' : 'translate-y-36 opacity-0 pointer-events-none'
       }`}
     >
-      <div className="glass-panel border border-white/15 bg-slate-950/95 backdrop-blur-2xl rounded-2xl sm:rounded-3xl p-2.5 sm:p-3 pb-[calc(0.5rem+env(safe-area-inset-bottom))] shadow-[0_12px_45px_rgba(0,0,0,0.85)] flex flex-col gap-2 text-xs font-semibold">
+      <div className="glass-panel-elevated border border-cyan-500/35 bg-slate-950/92 backdrop-blur-3xl rounded-2xl sm:rounded-3xl p-2.5 sm:p-3 pb-[calc(0.5rem+env(safe-area-inset-bottom))] shadow-[0_16px_50px_rgba(0,0,0,0.9)] flex flex-col gap-2 text-xs font-semibold hud-corner holo-sheen">
 
         {/* Header Row: Manga Title, Chapter, Clock & Battery, Settings, Bookmark, Close */}
-        <div className="flex items-center justify-between text-[11px] text-slate-300 px-1 border-b border-white/10 pb-1.5 gap-2">
+        <div className="flex items-center justify-between text-[11px] text-slate-300 px-1 border-b border-white/10 pb-1.5 gap-2 font-mono">
           <div className="min-w-0 flex items-center gap-1.5 truncate">
-            <span className="font-bold text-white truncate max-w-[130px] xs:max-w-[200px] sm:max-w-xs" title={cleanTitle(mangaEnglishTitle || mangaTitle)}>
+            <span className="font-bold text-white truncate max-w-[130px] xs:max-w-[200px] sm:max-w-xs font-sans" title={cleanTitle(mangaEnglishTitle || mangaTitle)}>
               {cleanTitle(mangaEnglishTitle || mangaTitle)}
             </span>
-            <span className="text-slate-500">•</span>
-            <span className="text-rose-400 font-semibold font-mono whitespace-nowrap">
-              Ch. {activeChapterNumber}
+            <span className="text-cyan-500/60">•</span>
+            <span className="text-cyan-400 font-semibold font-mono whitespace-nowrap">
+              CH::{activeChapterNumber}
             </span>
             {handleReloadChapter && (
               <button
@@ -70,23 +70,23 @@ export default function ReaderBottomHud({
                   e.stopPropagation();
                   handleReloadChapter();
                 }}
-                className="p-1 rounded-md text-slate-400 hover:text-rose-400 hover:bg-white/10 transition-colors"
+                className="p-1 rounded-md text-slate-400 hover:text-cyan-300 hover:bg-cyan-500/10 transition-colors"
                 title="Reload Chapter Pages"
               >
-                <RotateCw className={`w-3 h-3 ${isReloadingChapter ? 'animate-spin text-rose-400' : ''}`} />
+                <RotateCw className={`w-3 h-3 ${isReloadingChapter ? 'animate-spin text-cyan-400' : ''}`} />
               </button>
             )}
             {settings.continuousScroll && settings.readingMode === 'webtoon' && (
-              <span className="hidden sm:inline-flex items-center gap-1 px-1.5 py-0.2 text-[9px] bg-rose-500/10 text-rose-400 border border-rose-500/20 rounded-md font-mono">
-                <InfinityIcon className="w-2.5 h-2.5" /> Continuous
+              <span className="hidden sm:inline-flex items-center gap-1 px-1.5 py-0.2 text-[9px] bg-cyan-500/10 text-cyan-400 border border-cyan-500/30 rounded-md font-mono">
+                <InfinityIcon className="w-2.5 h-2.5" /> STREAM
               </span>
             )}
           </div>
 
           <div className="flex items-center gap-1.5 flex-shrink-0">
             {/* Clock & Battery */}
-            <div className="hidden xs:flex items-center gap-1.5 text-[10px] font-mono text-slate-400 px-1.5 py-0.5 rounded-lg bg-white/5 select-none">
-              <Clock className="w-3 h-3 text-rose-400" />
+            <div className="hidden xs:flex items-center gap-1.5 text-[10px] font-mono text-slate-400 px-1.5 py-0.5 rounded-lg bg-white/5 border border-white/10 select-none">
+              <Clock className="w-3 h-3 text-cyan-400" />
               <span>{clockTime}</span>
               {batteryLevel !== null && (
                 <>
@@ -102,8 +102,8 @@ export default function ReaderBottomHud({
               onClick={toggleBookmark}
               className={`p-1.5 rounded-lg border transition-all ${
                 bookmarked
-                  ? 'bg-rose-500/20 border-rose-500/50 text-rose-400'
-                  : 'bg-white/5 border-white/5 text-slate-400 hover:text-white'
+                  ? 'bg-rose-500/20 border-rose-500/50 text-rose-400 shadow-sm shadow-rose-500/30'
+                  : 'bg-white/5 border-white/10 text-slate-400 hover:text-white'
               }`}
               title={bookmarked ? 'Saved in Library' : 'Save to Library'}
             >
@@ -115,8 +115,8 @@ export default function ReaderBottomHud({
               onClick={() => setShowSettingsMenu((prev) => !prev)}
               className={`p-1.5 rounded-lg border transition-all ${
                 showSettingsMenu
-                  ? 'bg-rose-600 border-rose-500 text-white'
-                  : 'bg-white/5 border-white/5 text-slate-400 hover:text-white'
+                  ? 'btn-holo text-white'
+                  : 'bg-white/5 border-white/10 text-slate-400 hover:text-white'
               }`}
               title="Reader Settings"
             >
@@ -126,7 +126,7 @@ export default function ReaderBottomHud({
             {/* Hide Bar */}
             <button
               onClick={() => setControlsVisible(false)}
-              className="p-1.5 rounded-lg bg-white/5 border border-white/5 text-slate-400 hover:text-white transition-all"
+              className="p-1.5 rounded-lg bg-white/5 border border-white/10 text-slate-400 hover:text-white transition-all"
               title="Hide Bar"
             >
               <X className="w-3.5 h-3.5" />
@@ -141,11 +141,11 @@ export default function ReaderBottomHud({
             <button
               onClick={handlePrevPage}
               disabled={activePageNumber <= 1 && !prevChapter}
-              className="px-2.5 py-1.5 rounded-xl bg-white/10 hover:bg-white/20 active:scale-95 text-slate-200 hover:text-white disabled:opacity-30 disabled:cursor-not-allowed transition-all flex items-center gap-1 text-[11px] font-bold flex-shrink-0"
+              className="px-2.5 py-1.5 rounded-xl bg-slate-900/90 border border-cyan-500/30 hover:border-cyan-400 text-slate-200 hover:text-white disabled:opacity-30 disabled:cursor-not-allowed transition-all flex items-center gap-1 text-[11px] font-mono font-bold flex-shrink-0"
               title="Go Back (Previous Page)"
             >
-              <ChevronLeft className="w-3.5 h-3.5 text-rose-400" />
-              <span>Go Back</span>
+              <ChevronLeft className="w-3.5 h-3.5 text-cyan-400" />
+              <span>PREV</span>
             </button>
 
             {/* Page Indicator ("On What Page I Am") & Scrubber Slider */}
@@ -156,10 +156,10 @@ export default function ReaderBottomHud({
                 max={activeTotalPages || 1}
                 value={activePageNumber}
                 onChange={(e) => scrollToPage(parseInt(e.target.value, 10))}
-                className="w-full h-1.5 bg-slate-800 rounded-lg appearance-none cursor-pointer accent-rose-500 hover:accent-rose-400"
+                className="w-full h-1.5 bg-slate-800 rounded-lg appearance-none cursor-pointer accent-cyan-400 hover:accent-cyan-300"
               />
-              <span className="text-[11px] font-mono text-rose-400 font-bold whitespace-nowrap bg-rose-500/10 px-2.5 py-1 rounded-lg border border-rose-500/20 flex-shrink-0 shadow-sm">
-                Page {activePageNumber} / {activeTotalPages}
+              <span className="text-[11px] font-mono text-cyan-300 font-bold whitespace-nowrap bg-cyan-950/40 px-2.5 py-1 rounded-lg border border-cyan-500/35 flex-shrink-0 shadow-sm">
+                P::{activePageNumber}/{activeTotalPages}
               </span>
             </div>
 
@@ -167,11 +167,11 @@ export default function ReaderBottomHud({
             <button
               onClick={handleNextPage}
               disabled={activePageNumber >= activeTotalPages && !nextChapter}
-              className="px-2.5 py-1.5 rounded-xl bg-white/10 hover:bg-white/20 active:scale-95 text-slate-200 hover:text-white disabled:opacity-30 disabled:cursor-not-allowed transition-all flex items-center gap-1 text-[11px] font-bold flex-shrink-0"
+              className="px-2.5 py-1.5 rounded-xl bg-slate-900/90 border border-cyan-500/30 hover:border-cyan-400 text-slate-200 hover:text-white disabled:opacity-30 disabled:cursor-not-allowed transition-all flex items-center gap-1 text-[11px] font-mono font-bold flex-shrink-0"
               title="Go Front (Next Page)"
             >
-              <span>Go Front</span>
-              <ChevronRight className="w-3.5 h-3.5 text-rose-400" />
+              <span>NEXT</span>
+              <ChevronRight className="w-3.5 h-3.5 text-cyan-400" />
             </button>
           </div>
         )}
