@@ -401,7 +401,7 @@ export default function App() {
   }, [handleOpenMangaDetails, historyMap]);
 
   return (
-    <div className="min-h-screen bg-[#080a0f] text-slate-100 flex flex-col font-['Plus_Jakarta_Sans',sans-serif]">
+    <div className="min-h-screen w-full max-w-full overflow-x-hidden bg-[#080a0f] text-slate-100 flex flex-col font-['Plus_Jakarta_Sans',sans-serif]">
       {/* Navbar */}
       <Navbar
         activeTab={activeTab}
