@@ -159,6 +159,7 @@ export default function HistoryView({
                 </button>
 
                 <button
+                  aria-label="Remove from history"
                   onClick={(e) => handleRemoveItem(e, item.mangaId)}
                   className="p-2 rounded-xl text-slate-500 hover:text-rose-400 hover:bg-white/5 transition-all"
                   title="Remove from history"

@@ -180,6 +180,7 @@ export default function HeroCarousel({
 
       {/* Slide Navigation Arrows */}
       <button
+        aria-label="Previous slide"
         onClick={() => setCurrentIndex((prev) => (prev - 1 + items.length) % items.length)}
         className="absolute left-4 top-1/2 -translate-y-1/2 p-3 rounded-full bg-black/50 hover:bg-black/80 text-white backdrop-blur-md opacity-0 group-hover:opacity-100 transition-all border border-white/10 hover:scale-110 hidden sm:block"
         title="Previous"
@@ -188,6 +189,7 @@ export default function HeroCarousel({
       </button>
 
       <button
+        aria-label="Next slide"
         onClick={() => setCurrentIndex((prev) => (prev + 1) % items.length)}
         className="absolute right-4 top-1/2 -translate-y-1/2 p-3 rounded-full bg-black/50 hover:bg-black/80 text-white backdrop-blur-md opacity-0 group-hover:opacity-100 transition-all border border-white/10 hover:scale-110 hidden sm:block"
         title="Next"
