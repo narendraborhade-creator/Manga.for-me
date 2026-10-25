@@ -5,3 +5,6 @@
 ## 2024-10-22 - Optimize N+1 Query in Update Service
 **Learning:** Sequential async API requests in loops cause an O(N) network waterfall delay which is easily parallelizable. When refactoring loops with `Promise.all`, separating the async data fetch from the synchronous state manipulation preserves safety against race conditions.
 **Action:** Always identify sequential `await` calls in array iterations as a target for parallel execution via `Promise.all` or `Promise.allSettled`, taking care to process UI state changes or database mutations synchronously afterward.
+## 2026-10-25 - React Prop Memoization Cascade
+**Learning:** Found a case where `HeroCarousel` was continuously recreating its internal `setInterval` due to unmemoized inline props (`spotlightItems` array recreation, inline `isBookmarkedFn` function) being passed down from `App.jsx` on every state change (like typing in the search bar).
+**Action:** When implementing heavy carousel/interval components, thoroughly check the parent (`App.jsx`) to ensure array and function props are correctly memoized (`useMemo` / `useCallback`) to avoid cascading rendering bugs.

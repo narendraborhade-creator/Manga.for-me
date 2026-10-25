@@ -1,8 +1,8 @@
-import React, { useState, useEffect, useRef } from 'react';
+import React, { useState, useEffect, useRef, memo } from 'react';
 import { Play, BookOpen, Star, Bookmark, ChevronLeft, ChevronRight, Info, Sparkles } from 'lucide-react';
 import { getFallbackCover, cleanTitle } from '../services/mangaApi';
 
-export default function HeroCarousel({
+function HeroCarousel({
   items = [],
   onSelectManga,
   onSelectAnime,
@@ -216,3 +216,5 @@ export default function HeroCarousel({
     </div>
   );
 }
+
+export default memo(HeroCarousel);

@@ -273,13 +273,14 @@ export default function App() {
 
   // Bookmarking handlers
   const handleToggleBookmark = useCallback((manga) => {
-    if (bookmarks[manga.id]) {
+    const currentBookmarks = getBookmarks();
+    if (currentBookmarks[manga.id]) {
       removeBookmark(manga.id);
     } else {
       setBookmark(manga.id, manga, 'reading');
     }
     refreshStorageData();
-  }, [bookmarks, refreshStorageData]);
+  }, [refreshStorageData]);
 
   const handleSetBookmark = useCallback((mangaId, mangaData, status) => {
     setBookmark(mangaId, mangaData, status);
@@ -380,10 +381,11 @@ export default function App() {
   }, [handleGoHome]);
 
   // Featured Spotlight Items for Hero Carousel (Manga & Anime mix)
-  const spotlightItems = [
+  const spotlightItems = useMemo(() => [
     ...(popularManga.slice(0, 3)),
     ...(trendingAnime.slice(0, 2)),
-  ];
+  ], [popularManga, trendingAnime]);
+
   // Memoized O(1) lookups for performance
   const historyMap = useMemo(() => {
     const map = {};
@@ -399,6 +401,8 @@ export default function App() {
     const item = historyMap[id];
     handleOpenMangaDetails(id, item?.coverUrl);
   }, [handleOpenMangaDetails, historyMap]);
+
+  const checkIsBookmarked = useCallback((id) => !!bookmarks[id], [bookmarks]);
 
   return (
     <div className="min-h-screen w-full max-w-full overflow-x-hidden bg-[#080a0f] text-slate-100 flex flex-col font-['Plus_Jakarta_Sans',sans-serif]">
@@ -441,7 +445,7 @@ export default function App() {
                     items={spotlightItems}
                     onSelectManga={handleOpenMangaDetails}
                     onSelectAnime={handleSelectAnime}
-                    isBookmarkedFn={(id) => !!bookmarks[id]}
+                    isBookmarkedFn={checkIsBookmarked}
                     onToggleBookmark={handleToggleBookmark}
                   />
                 )}
