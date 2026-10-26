@@ -10,8 +10,8 @@ export default function AutoScrollHud({
   if (!isAutoScrolling) return null;
 
   return (
-    <div className="fixed bottom-20 sm:bottom-24 left-1/2 -translate-x-1/2 z-50 animate-fadeIn select-none pointer-events-auto">
-      <div className="glass-panel px-3 sm:px-4 py-2 rounded-2xl border border-rose-500/40 shadow-2xl shadow-rose-950/60 backdrop-blur-xl flex items-center gap-2 sm:gap-3 bg-slate-900/95 text-white">
+    <div className="fixed bottom-20 sm:bottom-24 left-1/2 -translate-x-1/2 z-50 animate-fadeIn select-none pointer-events-auto w-[calc(100vw-16px)] sm:w-auto max-w-sm flex justify-center">
+      <div className="glass-panel px-2.5 sm:px-4 py-2 rounded-2xl border border-rose-500/40 shadow-2xl shadow-rose-950/60 backdrop-blur-xl flex items-center justify-between sm:justify-start gap-1.5 sm:gap-3 bg-slate-900/95 text-white max-w-full">
         {/* Pulsing indicator */}
         <div className="flex items-center gap-1.5 px-2 py-1 rounded-xl bg-rose-500/15 text-rose-400 border border-rose-500/30 text-[11px] font-bold">
           <span className="w-2 h-2 rounded-full bg-rose-500 animate-ping" />

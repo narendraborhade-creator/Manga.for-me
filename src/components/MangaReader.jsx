@@ -168,6 +168,17 @@ export default function MangaReader({
   const [isFullscreen, setIsFullscreen] = useState(false);
   const [isAutoScrolling, setIsAutoScrolling] = useState(false);
 
+  // Sync menu state refs inside effect to satisfy react compiler
+  const showSettingsMenuRef = useRef(showSettingsMenu);
+  const showChapterMenuRef = useRef(showChapterMenu);
+  const showHelpModalRef = useRef(showHelpModal);
+
+  useEffect(() => {
+    showSettingsMenuRef.current = showSettingsMenu;
+    showChapterMenuRef.current = showChapterMenu;
+    showHelpModalRef.current = showHelpModal;
+  }, [showSettingsMenu, showChapterMenu, showHelpModal]);
+
   // DOM References
   const containerRef = useRef(null);
   const bottomSentinelRef = useRef(null);
@@ -175,25 +186,27 @@ export default function MangaReader({
   const autoScrollRef = useRef(null);
 
   // Auto-hide controls after idle
-  const rescheduleControls = useCallback((duration = 5500) => {
+  const rescheduleControls = useCallback((duration = 5000) => {
     setControlsVisible(true);
     if (controlsTimeoutRef.current) {
       clearTimeout(controlsTimeoutRef.current);
     }
     controlsTimeoutRef.current = setTimeout(() => {
-      if (!showSettingsMenu && !showChapterMenu && !showHelpModal) {
+      if (!showSettingsMenuRef.current && !showChapterMenuRef.current && !showHelpModalRef.current) {
         setControlsVisible(false);
       }
     }, duration);
-  }, [showSettingsMenu, showChapterMenu, showHelpModal]);
+  }, []);
 
+  // Show controls briefly on initial chapter load so user sees title/chapter, then auto-hide
   useEffect(() => {
-    rescheduleControls(6000);
+    rescheduleControls(3500);
     return () => {
       if (controlsTimeoutRef.current) clearTimeout(controlsTimeoutRef.current);
     };
   }, [rescheduleControls]);
 
+  // Handle click/tap on canvas: toggle controls on/off
   const handleReaderTap = (e) => {
     if (e.target.closest('button, input, select, a, .glass-panel, [role="dialog"], .glass-nav, .slider-thumb')) {
       return;
@@ -201,7 +214,18 @@ export default function MangaReader({
     if (isAutoScrolling) {
       setIsAutoScrolling(false);
     }
-    rescheduleControls(6000);
+    setControlsVisible((prev) => {
+      if (prev) {
+        if (controlsTimeoutRef.current) {
+          clearTimeout(controlsTimeoutRef.current);
+          controlsTimeoutRef.current = null;
+        }
+        return false;
+      } else {
+        rescheduleControls(5000);
+        return true;
+      }
+    });
   };
 
   const updateSetting = (key, value) => {
@@ -540,9 +564,19 @@ export default function MangaReader({
     }
   }, [chapterId, isReloadingChapter]);
 
-  // Track scroll position in Webtoon mode
+  // Track scroll position in Webtoon mode & auto-hide controls on scroll
   const handleScroll = useCallback(() => {
-    rescheduleControls(5000);
+    // Auto-hide HUD controls immediately when scrolling/reading
+    if (controlsTimeoutRef.current) {
+      clearTimeout(controlsTimeoutRef.current);
+      controlsTimeoutRef.current = null;
+    }
+    setControlsVisible((prev) => {
+      if (prev && !showSettingsMenuRef.current && !showChapterMenuRef.current && !showHelpModalRef.current) {
+        return false;
+      }
+      return prev;
+    });
 
     const container = containerRef.current;
     if (!container) return;
@@ -594,20 +628,17 @@ export default function MangaReader({
         }
       }
     }
-  }, [settings.readingMode, settings.continuousScroll, loadNextChapter, mangaId, mangaTitle, mangaEnglishTitle, coverUrl, onChangeChapter, chapterId, rescheduleControls]);
+  }, [settings.readingMode, settings.continuousScroll, loadNextChapter, mangaId, mangaTitle, mangaEnglishTitle, coverUrl, onChangeChapter, chapterId]);
 
-  // Attach scroll & touch listeners
+  // Attach scroll listeners to auto-hide controls while reading/scrolling
   useEffect(() => {
     const container = containerRef.current;
     if (!container) return;
-    const onTouch = () => rescheduleControls(5000);
     container.addEventListener('scroll', handleScroll, { passive: true });
-    container.addEventListener('touchmove', onTouch, { passive: true });
     return () => {
       container.removeEventListener('scroll', handleScroll);
-      container.removeEventListener('touchmove', onTouch);
     };
-  }, [handleScroll, rescheduleControls]);
+  }, [handleScroll]);
 
   // IntersectionObserver for Bottom Sentinel
   useEffect(() => {
@@ -886,8 +917,6 @@ export default function MangaReader({
       {/* Scrollable Canvas for Manga Pages */}
       <div 
         ref={containerRef}
-        onMouseMove={() => rescheduleControls(4500)}
-        onTouchStart={() => rescheduleControls(5000)}
         onClick={handleReaderTap}
         className={`absolute inset-0 overflow-y-auto overscroll-y-contain selection:bg-rose-500 selection:text-white transition-colors duration-300 w-full h-full ${
           settings.visualFilter === 'oled' ? 'reader-filter-oled' :

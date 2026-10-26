@@ -105,7 +105,8 @@ export function cleanTitle(raw) {
 
 /**
  * Deduplicate chapter lists by normalized chapter number and ID
- * Prevents "double chapters" from multi-group scanlations or re-releases
+ * Filters out non-story half-chapters (promos, teasers, hiatuses, delay notices)
+ * Prevents "double chapters" and guarantees only full story chapters sorted descending
  */
 export function deduplicateChapters(chapters) {
   if (!Array.isArray(chapters)) return [];
@@ -113,8 +114,21 @@ export function deduplicateChapters(chapters) {
   const seenIds = new Set();
   const result = [];
 
+  const NON_STORY_PATTERN = /\b(recap|promo|teaser|preview|announcement|notice|delay|author's note|hiatus|special notice)\b/i;
+
   for (const ch of chapters) {
     if (!ch || (!ch.id && !ch.chapter)) continue;
+
+    // Filter out non-story half-chapters and notices (e.g. "Chapter 10.5 - Hiatus Notice", "Promo")
+    const titleLower = String(ch.title || '').toLowerCase();
+    const chStr = String(ch.chapter || '').toLowerCase();
+    if (NON_STORY_PATTERN.test(titleLower) || NON_STORY_PATTERN.test(chStr)) {
+      // If it has no valid number or is a fractional/teaser filler, exclude it
+      const parsedNum = parseFloat(ch.chapter);
+      if (isNaN(parsedNum) || parsedNum === 0 || chStr.includes('.') || titleLower.includes('notice') || titleLower.includes('hiatus')) {
+        continue;
+      }
+    }
 
     // Check unique ID
     if (ch.id && seenIds.has(ch.id)) continue;
@@ -133,18 +147,18 @@ export function deduplicateChapters(chapters) {
 
     if (normKey) {
       if (seenNumbers.has(normKey)) {
-        // Double chapter found! Pick the one with richer title if available
+        // Double chapter found! Pick the latest or highest quality release
         const existingIdx = seenNumbers.get(normKey);
         const existing = result[existingIdx];
         const existingTitle = (existing.title || '').toLowerCase();
         const curTitle = (ch.title || '').toLowerCase();
         const genericTitle = `chapter ${ch.chapter}`.toLowerCase();
 
-        if (
-          (existingTitle === genericTitle || !existingTitle) &&
-          curTitle &&
-          curTitle !== genericTitle
-        ) {
+        // If current has a newer published date or a richer title, replace existing
+        const curTime = ch.publishedAt ? new Date(ch.publishedAt).getTime() : 0;
+        const existTime = existing.publishedAt ? new Date(existing.publishedAt).getTime() : 0;
+
+        if (curTime > existTime || (existTime === 0 && (existingTitle === genericTitle || !existingTitle) && curTitle && curTitle !== genericTitle)) {
           result[existingIdx] = ch;
         }
         continue;
@@ -155,7 +169,7 @@ export function deduplicateChapters(chapters) {
     result.push(ch);
   }
 
-  // Sort descending by chapter number
+  // Sort descending by chapter number: latest release at the top
   result.sort((a, b) => {
     const numA = parseFloat(a.chapter);
     const numB = parseFloat(b.chapter);

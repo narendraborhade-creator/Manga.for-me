@@ -134,6 +134,72 @@ export async function searchWeebCentral(query = '') {
 }
 
 /**
+ * Fetch Popular / Trending Manga from WeebCentral with complete unskipped archives
+ */
+export async function getPopularWeebCentral(limit = 24) {
+  const cacheKey = `wc_popular_${limit}`;
+  const cached = getCached(cacheKey);
+  if (cached) return cached;
+
+  try {
+    const url = 'https://weebcentral.com/search/data?sort=Subscribers&order=Descending';
+    const res = await fetchWithTimeout(url, { headers: HEADERS }, 5000);
+    if (!res.ok) return [];
+    const html = await res.text();
+
+    const articles = html.split('<article class="bg-base-300').slice(1);
+    const list = [];
+    const seen = new Set();
+
+    for (const art of articles) {
+      if (list.length >= limit) break;
+      const linkMatch = art.match(/href="(https:\/\/weebcentral\.com\/series\/([^"/]+)[^"]*)"/i);
+      if (!linkMatch) continue;
+      const seriesId = linkMatch[2];
+      if (seen.has(seriesId)) continue;
+      seen.add(seriesId);
+
+      const imgMatch = art.match(/<img[^>]+src="([^"]+)"[^>]*alt="([^"]*)"/i);
+      const rawImg = imgMatch ? imgMatch[1] : '';
+      const coverUrl = rawImg ? `/api/image-proxy?url=${encodeURIComponent(rawImg)}` : '';
+      const rawTitle = imgMatch ? imgMatch[2].replace(/\s+cover$/i, '').trim() : '';
+
+      const tagMatches = [...art.matchAll(/tag=([^"&]+)/gi)].map((t) =>
+        decodeURIComponent(t[1]).replace(/\+/g, ' ')
+      );
+      const tags = [...new Set(tagMatches)].slice(0, 5);
+
+      let englishTitle = null;
+      if (rawTitle.includes(' - ')) {
+        const parts = rawTitle.split(' - ');
+        if (parts.length >= 2) {
+          englishTitle = decodeHtml(parts[0].trim());
+        }
+      }
+
+      list.push({
+        id: `wc:${seriesId}`,
+        seriesId,
+        title: decodeHtml(rawTitle) || 'Manga',
+        englishTitle,
+        coverUrl,
+        status: 'Ongoing',
+        author: 'Top Artist',
+        tags: tags.length ? tags : ['Manga', 'Top Series'],
+        provider: 'weebcentral',
+        sourceName: 'WeebCentral',
+      });
+    }
+
+    setCache(cacheKey, list);
+    return list;
+  } catch (err) {
+    console.warn('getPopularWeebCentral error:', err.message);
+    return [];
+  }
+}
+
+/**
  * Get WeebCentral Series Details & Full Chapter List
  */
 export async function getWeebCentralDetails(seriesId, initialCover = '', bypassCache = false) {

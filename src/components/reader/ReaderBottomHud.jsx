@@ -56,16 +56,16 @@ export default function ReaderBottomHud({
         controlsVisible && !isAutoScrolling ? 'translate-y-0 opacity-100' : 'translate-y-36 opacity-0 pointer-events-none'
       }`}
     >
-      <div className="glass-panel-elevated border border-cyan-500/35 bg-slate-950/92 backdrop-blur-3xl rounded-2xl sm:rounded-3xl p-2.5 sm:p-3 pb-[calc(0.5rem+env(safe-area-inset-bottom))] shadow-[0_16px_50px_rgba(0,0,0,0.9)] flex flex-col gap-2 text-xs font-semibold hud-corner holo-sheen">
+      <div className="glass-panel-elevated border border-cyan-500/35 bg-slate-950/92 backdrop-blur-3xl rounded-2xl sm:rounded-3xl p-2 sm:p-3 pb-[calc(0.5rem+env(safe-area-inset-bottom))] shadow-[0_16px_50px_rgba(0,0,0,0.9)] flex flex-col gap-1.5 sm:gap-2 text-xs font-semibold hud-corner holo-sheen w-full box-border overflow-hidden">
 
         {/* Header Row: Manga Title, Chapter, Clock & Battery, Settings, Bookmark, Close */}
-        <div className="flex items-center justify-between text-[11px] text-slate-300 px-1 border-b border-white/10 pb-1.5 gap-2 font-mono">
+        <div className="flex items-center justify-between text-[11px] text-slate-300 px-0.5 sm:px-1 border-b border-white/10 pb-1.5 gap-1.5 font-mono">
           <div className="min-w-0 flex items-center gap-1.5 truncate">
-            <span className="font-bold text-white truncate max-w-[130px] xs:max-w-[200px] sm:max-w-xs font-sans" title={cleanTitle(mangaEnglishTitle || mangaTitle)}>
+            <span className="font-bold text-white truncate max-w-[85px] xs:max-w-[140px] sm:max-w-xs font-sans text-xs sm:text-sm" title={cleanTitle(mangaEnglishTitle || mangaTitle)}>
               {cleanTitle(mangaEnglishTitle || mangaTitle)}
             </span>
             <span className="text-cyan-500/60">•</span>
-            <span className="text-cyan-400 font-semibold font-mono whitespace-nowrap">
+            <span className="text-cyan-400 font-semibold font-mono whitespace-nowrap text-[10px] sm:text-[11px]">
               CH::{activeChapterNumber}
             </span>
             {handleReloadChapter && (
@@ -75,29 +75,29 @@ export default function ReaderBottomHud({
                   e.stopPropagation();
                   handleReloadChapter();
                 }}
-                className="p-1 rounded-md text-slate-400 hover:text-cyan-300 hover:bg-cyan-500/10 transition-colors"
+                className="p-1 rounded-md text-slate-400 hover:text-cyan-300 hover:bg-cyan-500/10 transition-colors flex-shrink-0"
                 title="Reload Chapter Pages"
               >
                 <RotateCw className={`w-3 h-3 ${isReloadingChapter ? 'animate-spin text-cyan-400' : ''}`} />
               </button>
             )}
             {settings.continuousScroll && settings.readingMode === 'webtoon' && (
-              <span className="hidden sm:inline-flex items-center gap-1 px-1.5 py-0.2 text-[9px] bg-cyan-500/10 text-cyan-400 border border-cyan-500/30 rounded-md font-mono">
+              <span className="hidden md:inline-flex items-center gap-1 px-1.5 py-0.2 text-[9px] bg-cyan-500/10 text-cyan-400 border border-cyan-500/30 rounded-md font-mono">
                 <InfinityIcon className="w-2.5 h-2.5" /> STREAM
               </span>
             )}
           </div>
 
-          <div className="flex items-center gap-1.5 flex-shrink-0">
+          <div className="flex items-center gap-1 sm:gap-1.5 flex-shrink-0">
             {/* Reading Telemetry (Time & Pace) */}
-            <div className="hidden sm:flex items-center gap-1.5 text-[10px] font-mono text-cyan-300 px-1.5 py-0.5 rounded-lg bg-cyan-950/40 border border-cyan-500/30 select-none">
+            <div className="hidden lg:flex items-center gap-1.5 text-[10px] font-mono text-cyan-300 px-1.5 py-0.5 rounded-lg bg-cyan-950/40 border border-cyan-500/30 select-none">
               <span>TIME: {readDurationMins}m</span>
               <span className="text-cyan-500/50">•</span>
               <span>{readingPace} p/m</span>
             </div>
 
             {/* Clock & Battery */}
-            <div className="hidden xs:flex items-center gap-1.5 text-[10px] font-mono text-slate-400 px-1.5 py-0.5 rounded-lg bg-white/5 border border-white/10 select-none">
+            <div className="hidden sm:flex items-center gap-1.5 text-[10px] font-mono text-slate-400 px-1.5 py-0.5 rounded-lg bg-white/5 border border-white/10 select-none">
               <Clock className="w-3 h-3 text-cyan-400" />
               <span>{clockTime}</span>
               {batteryLevel !== null && (
@@ -175,20 +175,20 @@ export default function ReaderBottomHud({
 
         {/* Row 1: Interactive Page Scrubber with "Go Back", "Page X of Y", and "Go Front" */}
         {activeTotalPages > 0 && (
-          <div className="flex items-center gap-2 sm:gap-3 px-1 py-0.5">
+          <div className="flex items-center gap-1.5 sm:gap-2.5 px-0.5 py-0.5 w-full">
             {/* Go Back Button (Previous Page) */}
             <button
               onClick={handlePrevPage}
               disabled={activePageNumber <= 1 && !prevChapter}
-              className="px-2.5 py-1.5 rounded-xl bg-slate-900/90 border border-cyan-500/30 hover:border-cyan-400 text-slate-200 hover:text-white disabled:opacity-30 disabled:cursor-not-allowed transition-all flex items-center gap-1 text-[11px] font-mono font-bold flex-shrink-0"
+              className="px-2 sm:px-2.5 py-1 sm:py-1.5 rounded-xl bg-slate-900/90 border border-cyan-500/30 hover:border-cyan-400 text-slate-200 hover:text-white disabled:opacity-30 disabled:cursor-not-allowed transition-all flex items-center gap-1 text-[10px] sm:text-[11px] font-mono font-bold flex-shrink-0"
               title="Go Back (Previous Page)"
             >
               <ChevronLeft className="w-3.5 h-3.5 text-cyan-400" />
-              <span>PREV</span>
+              <span className="hidden xs:inline">PREV</span>
             </button>
 
             {/* Page Indicator ("On What Page I Am") & Scrubber Slider */}
-            <div className="flex-1 flex items-center gap-2 min-w-[120px]">
+            <div className="flex-1 flex items-center gap-1.5 sm:gap-2 min-w-0">
               <input
                 type="range"
                 min="1"
@@ -215,7 +215,7 @@ export default function ReaderBottomHud({
                 onChange={(e) => scrollToPage(parseInt(e.target.value, 10))}
                 className="w-full h-1.5 bg-slate-800 rounded-lg appearance-none cursor-pointer accent-cyan-400 hover:accent-cyan-300"
               />
-              <span className="text-[11px] font-mono text-cyan-300 font-bold whitespace-nowrap bg-cyan-950/40 px-2.5 py-1 rounded-lg border border-cyan-500/35 flex-shrink-0 shadow-sm">
+              <span className="text-[10px] sm:text-[11px] font-mono text-cyan-300 font-bold whitespace-nowrap bg-cyan-950/40 px-1.5 sm:px-2.5 py-0.5 sm:py-1 rounded-lg border border-cyan-500/35 flex-shrink-0 shadow-sm">
                 P::{activePageNumber}/{activeTotalPages}
               </span>
             </div>
@@ -224,77 +224,77 @@ export default function ReaderBottomHud({
             <button
               onClick={handleNextPage}
               disabled={activePageNumber >= activeTotalPages && !nextChapter}
-              className="px-2.5 py-1.5 rounded-xl bg-slate-900/90 border border-cyan-500/30 hover:border-cyan-400 text-slate-200 hover:text-white disabled:opacity-30 disabled:cursor-not-allowed transition-all flex items-center gap-1 text-[11px] font-mono font-bold flex-shrink-0"
+              className="px-2 sm:px-2.5 py-1 sm:py-1.5 rounded-xl bg-slate-900/90 border border-cyan-500/30 hover:border-cyan-400 text-slate-200 hover:text-white disabled:opacity-30 disabled:cursor-not-allowed transition-all flex items-center gap-1 text-[10px] sm:text-[11px] font-mono font-bold flex-shrink-0"
               title="Go Front (Next Page)"
             >
-              <span>NEXT</span>
+              <span className="hidden xs:inline">NEXT</span>
               <ChevronRight className="w-3.5 h-3.5 text-cyan-400" />
             </button>
           </div>
         )}
 
-        {/* Row 2: Fast Navigation Actions Dock (Home Screen, Details, Prev Chapter, Chapter Menu, Next Chapter) */}
-        <div className="flex items-center justify-between sm:justify-center gap-1.5 sm:gap-2.5 pt-1.5 border-t border-white/10">
+        {/* Row 2: Fast Navigation Actions Dock (Home Screen, Details, Prev Chapter, Chapter Menu, Next Chapter, Top) */}
+        <div className="flex items-center justify-between gap-1 sm:gap-2 pt-1 border-t border-white/10 w-full overflow-hidden">
           {/* Go to Home Screen Button */}
           <button
             onClick={handleHome}
-            className="px-3 py-1.5 rounded-xl bg-slate-900 border border-white/10 hover:border-rose-500/40 text-slate-200 hover:text-white font-bold flex items-center gap-1.5 transition-all text-[11px] sm:text-xs"
+            className="p-1.5 sm:px-3 sm:py-1.5 rounded-xl bg-slate-900 border border-white/10 hover:border-rose-500/40 text-slate-200 hover:text-white font-bold flex items-center justify-center gap-1.5 transition-all text-[11px] sm:text-xs flex-shrink-0"
             title="Go to Home Screen"
           >
             <Home className="w-3.5 h-3.5 text-rose-400" />
-            <span>Home Screen</span>
+            <span className="hidden sm:inline">Home Screen</span>
           </button>
 
           {/* Go Back Button */}
           <button
             onClick={onClose}
-            className="px-2 sm:px-2.5 py-1.5 rounded-xl bg-slate-900 border border-white/10 hover:border-white/20 text-slate-300 hover:text-white font-bold flex items-center gap-1 transition-all text-[11px] sm:text-xs"
+            className="p-1.5 sm:px-2.5 sm:py-1.5 rounded-xl bg-slate-900 border border-white/10 hover:border-white/20 text-slate-300 hover:text-white font-bold flex items-center justify-center gap-1 transition-all text-[11px] sm:text-xs flex-shrink-0"
             title="Back to Details / Previous View"
           >
             <ChevronLeft className="w-3.5 h-3.5" />
-            <span>Back</span>
+            <span className="hidden sm:inline">Back</span>
           </button>
 
           {/* Previous Chapter Button */}
           <button
             disabled={!prevChapter}
             onClick={() => prevChapter && jumpToChapter(prevChapter.id, prevChapter.chapter)}
-            className="px-2 sm:px-2.5 py-1.5 rounded-xl bg-slate-900 border border-white/10 text-slate-300 hover:text-white disabled:opacity-30 disabled:cursor-not-allowed transition-all flex items-center gap-1 text-[11px] sm:text-xs font-semibold"
+            className="px-1.5 sm:px-2.5 py-1.5 rounded-xl bg-slate-900 border border-white/10 text-slate-300 hover:text-white disabled:opacity-30 disabled:cursor-not-allowed transition-all flex items-center justify-center gap-0.5 sm:gap-1 text-[10px] sm:text-xs font-semibold flex-shrink-1 min-w-0"
             title="Previous Chapter"
           >
-            <ChevronLeft className="w-3.5 h-3.5 text-rose-400" />
-            <span className="truncate max-w-[55px] xs:max-w-none">
-              Ch. {prevChapter?.chapter || '—'}
+            <ChevronLeft className="w-3.5 h-3.5 text-rose-400 flex-shrink-0" />
+            <span className="truncate max-w-[42px] sm:max-w-none">
+              Ch.{prevChapter?.chapter || '—'}
             </span>
           </button>
 
           {/* Chapter Picker Trigger */}
           <button
             onClick={() => setShowChapterMenu(!showChapterMenu)}
-            className="px-2.5 sm:px-3 py-1.5 rounded-xl bg-slate-900 border border-white/10 hover:border-rose-500/40 text-slate-200 font-bold flex items-center gap-1.5 transition-all text-[11px] sm:text-xs"
+            className="px-2 sm:px-3 py-1.5 rounded-xl bg-slate-900 border border-white/10 hover:border-rose-500/40 text-slate-200 font-bold flex items-center justify-center gap-1 sm:gap-1.5 transition-all text-[10px] sm:text-xs flex-shrink-1 min-w-0"
             title="Open Chapter List"
           >
-            <Layers className="w-3.5 h-3.5 text-rose-400" />
-            <span>Ch. {activeChapterNumber}</span>
+            <Layers className="w-3.5 h-3.5 text-rose-400 flex-shrink-0" />
+            <span className="truncate">Ch.{activeChapterNumber}</span>
           </button>
 
           {/* Move to Next Chapter (Highlighted Gradient) */}
           <button
             disabled={!nextChapter}
             onClick={() => nextChapter && jumpToChapter(nextChapter.id, nextChapter.chapter)}
-            className="px-3 sm:px-4 py-1.5 rounded-xl bg-gradient-to-r from-rose-600 to-rose-500 hover:from-rose-500 hover:to-rose-400 text-white font-bold disabled:opacity-30 disabled:cursor-not-allowed shadow-md shadow-rose-600/30 transition-all flex items-center gap-1 text-[11px] sm:text-xs"
+            className="px-2 sm:px-4 py-1.5 rounded-xl bg-gradient-to-r from-rose-600 to-rose-500 hover:from-rose-500 hover:to-rose-400 text-white font-bold disabled:opacity-30 disabled:cursor-not-allowed shadow-md shadow-rose-600/30 transition-all flex items-center justify-center gap-0.5 sm:gap-1 text-[10px] sm:text-xs flex-shrink-1 min-w-0"
             title="Move to Next Chapter"
           >
-            <span className="truncate max-w-[70px] xs:max-w-none">
-              Next Ch. {nextChapter?.chapter || ''}
+            <span className="truncate max-w-[50px] sm:max-w-none">
+              Next{nextChapter ? ` ${nextChapter.chapter}` : ''}
             </span>
-            <ChevronRight className="w-3.5 h-3.5" />
+            <ChevronRight className="w-3.5 h-3.5 flex-shrink-0" />
           </button>
 
           {/* Scroll to Top */}
           <button
             onClick={scrollToTop}
-            className="p-1.5 rounded-xl bg-slate-900 border border-white/10 hover:bg-white/10 text-slate-400 hover:text-white transition-colors"
+            className="p-1.5 rounded-xl bg-slate-900 border border-white/10 hover:bg-white/10 text-slate-400 hover:text-white transition-colors flex-shrink-0"
             title="Scroll to Top"
           >
             <ArrowUp className="w-3.5 h-3.5" />
