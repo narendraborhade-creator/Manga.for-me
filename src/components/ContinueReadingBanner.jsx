@@ -127,8 +127,9 @@ export default function ContinueReadingBanner({
 
           {onDismiss && (
             <button
+              aria-label="Dismiss banner"
               onClick={onDismiss}
-              className="p-1.5 text-slate-500 hover:text-slate-300 rounded-lg hover:bg-white/5 transition-all ml-1"
+              className="p-1.5 text-slate-500 hover:text-slate-300 rounded-lg hover:bg-white/5 transition-all ml-1 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-emerald-500"
               title="Dismiss"
             >
               <X className="w-4 h-4" />

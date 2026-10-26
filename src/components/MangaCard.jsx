@@ -77,8 +77,9 @@ function MangaCard({
 
           {/* Bookmark Button */}
           <button
+            aria-label={isBookmarked ? 'Remove Bookmark' : 'Add Bookmark'}
             onClick={handleBookmarkClick}
-            className={`pointer-events-auto p-1.5 rounded-xl backdrop-blur-md transition-all ${
+            className={`pointer-events-auto p-1.5 rounded-xl backdrop-blur-md transition-all focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-rose-500 ${
               isBookmarked
                 ? 'bg-rose-600 text-white shadow-lg shadow-rose-600/50 scale-105'
                 : 'bg-black/60 text-slate-300 hover:text-white hover:bg-rose-600 hover:scale-105 border border-white/10'

@@ -186,16 +186,18 @@ export default function HeroCarousel({
 
       {/* Slide Navigation Arrows */}
       <button
+        aria-label="Previous slide"
         onClick={() => setCurrentIndex((prev) => (prev - 1 + items.length) % items.length)}
-        className="absolute left-4 top-1/2 -translate-y-1/2 p-3 rounded-full bg-black/50 hover:bg-black/80 text-white backdrop-blur-md opacity-0 group-hover:opacity-100 transition-all border border-white/10 hover:scale-110 hidden sm:block"
+        className="absolute left-4 top-1/2 -translate-y-1/2 p-3 rounded-full bg-black/50 hover:bg-black/80 text-white backdrop-blur-md opacity-0 group-hover:opacity-100 transition-all border border-white/10 hover:scale-110 hidden sm:block focus-visible:opacity-100 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-cyan-500"
         title="Previous"
       >
         <ChevronLeft className="w-5 h-5" />
       </button>
 
       <button
+        aria-label="Next slide"
         onClick={() => setCurrentIndex((prev) => (prev + 1) % items.length)}
-        className="absolute right-4 top-1/2 -translate-y-1/2 p-3 rounded-full bg-black/50 hover:bg-black/80 text-white backdrop-blur-md opacity-0 group-hover:opacity-100 transition-all border border-white/10 hover:scale-110 hidden sm:block"
+        className="absolute right-4 top-1/2 -translate-y-1/2 p-3 rounded-full bg-black/50 hover:bg-black/80 text-white backdrop-blur-md opacity-0 group-hover:opacity-100 transition-all border border-white/10 hover:scale-110 hidden sm:block focus-visible:opacity-100 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-cyan-500"
         title="Next"
       >
         <ChevronRight className="w-5 h-5" />
@@ -205,9 +207,10 @@ export default function HeroCarousel({
       <div className="absolute bottom-3 sm:bottom-5 right-4 sm:right-8 flex items-center gap-1.5 sm:gap-2 z-20">
         {items.map((_, idx) => (
           <button
+            aria-label={`Go to slide ${idx + 1}`}
             key={idx}
             onClick={() => setCurrentIndex(idx)}
-            className={`h-1.5 sm:h-2 rounded-full transition-all duration-300 ${
+            className={`h-1.5 sm:h-2 rounded-full transition-all duration-300 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-cyan-500 focus-visible:ring-offset-2 focus-visible:ring-offset-black ${
               idx === currentIndex ? 'w-6 sm:w-8 bg-rose-500 shadow-md shadow-rose-500/50' : 'w-1.5 sm:w-2 bg-white/30 hover:bg-white/60'
             }`}
           />

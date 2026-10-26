@@ -119,8 +119,9 @@ export default function HistoryView({
         <div className="flex items-center gap-2 justify-between sm:justify-end font-mono">
           <div className="flex items-center p-1 rounded-xl bg-slate-950/80 border border-white/10">
             <button
+              aria-label="Grid View"
               onClick={() => setViewMode('grid')}
-              className={`p-1.5 sm:px-3 sm:py-1.5 rounded-lg text-xs font-semibold flex items-center gap-1.5 transition-all ${
+              className={`p-1.5 sm:px-3 sm:py-1.5 rounded-lg text-xs font-semibold flex items-center gap-1.5 transition-all focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-cyan-500 ${
                 viewMode === 'grid'
                   ? 'btn-holo text-white shadow-sm'
                   : 'text-slate-400 hover:text-white'
@@ -131,8 +132,9 @@ export default function HistoryView({
               <span className="hidden sm:inline">Grid</span>
             </button>
             <button
+              aria-label="List View"
               onClick={() => setViewMode('list')}
-              className={`p-1.5 sm:px-3 sm:py-1.5 rounded-lg text-xs font-semibold flex items-center gap-1.5 transition-all ${
+              className={`p-1.5 sm:px-3 sm:py-1.5 rounded-lg text-xs font-semibold flex items-center gap-1.5 transition-all focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-cyan-500 ${
                 viewMode === 'list'
                   ? 'btn-holo text-white shadow-sm'
                   : 'text-slate-400 hover:text-white'
@@ -209,8 +211,9 @@ export default function HistoryView({
 
                   {/* Quick Delete from History */}
                   <button
+                    aria-label="Remove from history"
                     onClick={(e) => handleRemoveItem(e, item.mangaId)}
-                    className="absolute top-2.5 right-2.5 p-1.5 rounded-lg bg-black/70 hover:bg-rose-600 text-slate-300 hover:text-white backdrop-blur-md border border-white/10 transition-all opacity-80 sm:opacity-0 group-hover:opacity-100 shadow-sm"
+                    className="absolute top-2.5 right-2.5 p-1.5 rounded-lg bg-black/70 hover:bg-rose-600 text-slate-300 hover:text-white backdrop-blur-md border border-white/10 transition-all opacity-80 sm:opacity-0 group-hover:opacity-100 shadow-sm focus-visible:opacity-100 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-rose-500"
                     title="Remove from history"
                   >
                     <Trash2 className="w-3.5 h-3.5" />
@@ -357,9 +360,10 @@ export default function HistoryView({
                 </button>
 
                 <button
+                  aria-label="Remove from history"
                   type="button"
                   onClick={(e) => handleRemoveItem(e, item.mangaId)}
-                  className="p-2 rounded-xl text-slate-500 hover:text-rose-400 hover:bg-white/5 transition-all cursor-pointer"
+                  className="p-2 rounded-xl text-slate-500 hover:text-rose-400 hover:bg-white/5 transition-all cursor-pointer focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-rose-500"
                   title="Remove from history"
                 >
                   <Trash2 className="w-4 h-4" />
