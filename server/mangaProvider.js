@@ -499,6 +499,116 @@ async function resolveAvailableSources(title, currentId, currentSourceName, curr
 }
 
 /**
+ * Detect gaps or missing early chapters in a manga chapter archive
+ */
+function detectChapterArchiveGaps(chapters) {
+  if (!chapters || chapters.length === 0) return { hasGap: true, reason: 'empty' };
+  
+  const nums = chapters
+    .map(c => parseFloat(c.chapter))
+    .filter(n => !isNaN(n))
+    .sort((a, b) => a - b);
+  
+  if (nums.length === 0) return { hasGap: false };
+
+  const minCh = nums[0];
+  const maxCh = nums[nums.length - 1];
+
+  // 1. Missing early chapters: if min chapter is > 3 and max is >= 8
+  // (e.g. starts at chapter 20 or 99 instead of 1)
+  if (minCh > 3 && maxCh >= 8) {
+    return { hasGap: true, reason: 'missing_early', minCh, maxCh };
+  }
+
+  // 2. Large gap between consecutive chapters (e.g. chapter 1 then jumps to 33)
+  for (let i = 0; i < nums.length - 1; i++) {
+    if (nums[i + 1] - nums[i] > 3) {
+      return { hasGap: true, reason: 'consecutive_gap', from: nums[i], to: nums[i + 1] };
+    }
+  }
+
+  // 3. Archive sparsity check: if max chapter >= 20 and total count is less than 40% of span
+  if (maxCh >= 20 && (maxCh - minCh + 1) / nums.length > 2.5) {
+    return { hasGap: true, reason: 'sparse_archive', span: maxCh - minCh, count: nums.length };
+  }
+
+  return { hasGap: false };
+}
+
+/**
+ * Intelligent Multi-Source Archive Harmonizer:
+ * Backfills any missing chapters (e.g. chapters 1-19, 1-98, or intermediate gaps)
+ * by pulling full sequential chapters from comprehensive aggregators (WeebCentral / MangaKakalot).
+ */
+async function backfillMissingChapters(details) {
+  if (!details || !Array.isArray(details.chapters)) return details;
+
+  const gapInfo = detectChapterArchiveGaps(details.chapters);
+  if (!gapInfo.hasGap) return details;
+
+  const queryTitle = cleanTitle(details.englishTitle || details.title || '');
+  if (!queryTitle || queryTitle.length < 2) return details;
+
+  try {
+    let fallbackChapters = null;
+
+    // 1. Try WeebCentral first (primary comprehensive archive from Chapter 1 to latest)
+    const wcMatches = await searchWeebCentral(queryTitle).catch(() => []);
+    if (wcMatches && wcMatches.length > 0 && wcMatches[0].seriesId) {
+      const wcDetails = await getWeebCentralDetails(wcMatches[0].seriesId, '', false).catch(() => null);
+      if (wcDetails && Array.isArray(wcDetails.chapters) && wcDetails.chapters.length > 0) {
+        fallbackChapters = wcDetails.chapters;
+      }
+    }
+
+    // 2. If WeebCentral had no chapters or wasn't found, try MangaKakalot
+    if (!fallbackChapters || fallbackChapters.length === 0) {
+      const mkMatches = await searchMangaKakalot(queryTitle).catch(() => []);
+      if (mkMatches && mkMatches.length > 0 && mkMatches[0].id) {
+        const mkDetails = await getMangaKakalotDetails(mkMatches[0].id, false).catch(() => null);
+        if (mkDetails && Array.isArray(mkDetails.chapters) && mkDetails.chapters.length > 0) {
+          fallbackChapters = mkDetails.chapters;
+        }
+      }
+    }
+
+    if (!fallbackChapters || fallbackChapters.length === 0) return details;
+
+    // Build map of existing chapters by numeric value
+    const existingNumMap = new Set(
+      details.chapters.map(c => {
+        const parsed = parseFloat(c.chapter);
+        return isNaN(parsed) ? String(c.chapter).trim() : String(parsed);
+      })
+    );
+
+    // Collect missing chapters to backfill
+    const backfilled = [];
+    for (const fbCh of fallbackChapters) {
+      const parsed = parseFloat(fbCh.chapter);
+      const key = isNaN(parsed) ? String(fbCh.chapter).trim() : String(parsed);
+      if (!existingNumMap.has(key)) {
+        existingNumMap.add(key);
+        backfilled.push({
+          ...fbCh,
+          source: fbCh.source || 'Archive Backup',
+        });
+      }
+    }
+
+    if (backfilled.length > 0) {
+      const combined = [...details.chapters, ...backfilled];
+      details.chapters = deduplicateChapters(combined);
+      details.totalChapters = details.chapters.length;
+    }
+  } catch (err) {
+    console.warn('backfillMissingChapters warning:', err.message);
+  }
+
+  return details;
+}
+
+/**
  * Get Manga Details & Complete Chapters List
  */
 export async function getMangaDetails(mangaId, bypassCache = false) {
@@ -540,21 +650,26 @@ export async function getMangaDetails(mangaId, bypassCache = false) {
 
   let resolvedDetails = null;
 
-  if (lookupId.startsWith('md:') || lookupId.startsWith('mangadex:')) {
-    resolvedDetails = await getMangaDexDetails(lookupId, bypassCache);
-  } else if (lookupId.startsWith('asura:')) {
-    resolvedDetails = await getAsuraDetails(lookupId);
-  } else if (lookupId.startsWith('vortex:')) {
-    resolvedDetails = await getVortexDetails(lookupId);
-  } else if (lookupId.startsWith('webtoon:')) {
-    resolvedDetails = await getWebtoonDetails(lookupId, bypassCache);
-  } else if (lookupId.startsWith('wc:')) {
-    resolvedDetails = await getWeebCentralDetails(lookupId.replace('wc:', ''), '', bypassCache);
-  } else if (lookupId.startsWith('mk:')) {
-    resolvedDetails = await getMangaKakalotDetails(lookupId, bypassCache);
+  try {
+    if (lookupId.startsWith('md:') || lookupId.startsWith('mangadex:')) {
+      resolvedDetails = await getMangaDexDetails(lookupId, bypassCache);
+    } else if (lookupId.startsWith('asura:')) {
+      resolvedDetails = await getAsuraDetails(lookupId);
+    } else if (lookupId.startsWith('vortex:')) {
+      resolvedDetails = await getVortexDetails(lookupId);
+    } else if (lookupId.startsWith('webtoon:')) {
+      resolvedDetails = await getWebtoonDetails(lookupId, bypassCache);
+    } else if (lookupId.startsWith('wc:')) {
+      resolvedDetails = await getWeebCentralDetails(lookupId.replace('wc:', ''), '', bypassCache);
+    } else if (lookupId.startsWith('mk:')) {
+      resolvedDetails = await getMangaKakalotDetails(lookupId, bypassCache);
+    }
+  } catch (providerErr) {
+    console.warn(`Upstream error resolving ${lookupId}:`, providerErr.message);
   }
 
   if (resolvedDetails) {
+    resolvedDetails = await backfillMissingChapters(resolvedDetails);
     if (Array.isArray(resolvedDetails.chapters)) {
       resolvedDetails.chapters = deduplicateChapters(resolvedDetails.chapters);
       resolvedDetails.totalChapters = resolvedDetails.chapters.length;
@@ -643,7 +758,7 @@ export async function getMangaDetails(mangaId, bypassCache = false) {
 
     const sources = await resolveAvailableSources(englishTitle || title, mangaId, 'MangaPill', dedupedChapters.length);
 
-    const result = {
+    let result = {
       id: mangaId,
       title,
       englishTitle,
@@ -657,6 +772,8 @@ export async function getMangaDetails(mangaId, bypassCache = false) {
       totalChapters: dedupedChapters.length,
       availableSources: sources,
     };
+
+    result = await backfillMissingChapters(result);
 
     setCache(cacheKey, result);
     return result;

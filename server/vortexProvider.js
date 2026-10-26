@@ -212,11 +212,50 @@ export async function getVortexDetails(slug) {
     const genreMatches = [...html.matchAll(/href="\/genre\/[^"]+"[^>]*>([^<]+)<\/a>/gi)].map(m => decodeHtml(m[1].trim()));
     const tags = genreMatches.length > 0 ? genreMatches.slice(0, 6) : ['Manhwa', 'Action', 'Fantasy'];
 
-    // Extract chapters
-    const chMatches = [...html.matchAll(/href="(\/series\/[^"/]+\/chapter-([0-9.]+))"/gi)];
+    // Extract chapters - extract from both TanStack Router hydrated stream (full archive) and HTML anchors
     const chapters = [];
     const seenCh = new Set();
 
+    // 1. TanStack Router hydrated data (contains the full sequential chapter archive without pagination omission)
+    const tsrMatches = [...html.matchAll(/<script[^>]*data-tsr-stream-part[^>]*>([\s\S]*?)<\/script>/gi)];
+    for (const match of tsrMatches) {
+      const text = match[1];
+      const slugMatches = [...text.matchAll(/slug:"chapter-([0-9.]+)"/gi)];
+      for (const sm of slugMatches) {
+        const chNum = sm[1];
+        if (seenCh.has(chNum)) continue;
+        seenCh.add(chNum);
+        chapters.push({
+          id: `vortex_ch:${cleanSlug}:${chNum}`,
+          chapter: chNum,
+          title: `Chapter ${chNum}`,
+          sourceUrl: `${BASE_URL}/series/${cleanSlug}/chapter-${chNum}`,
+        });
+      }
+    }
+
+    // 2. Scan all script tags for slug:"chapter-..." if TSR stream tag wasn't marked
+    if (chapters.length < 5) {
+      const allScripts = [...html.matchAll(/<script[^>]*>([\s\S]*?)<\/script>/gi)];
+      for (const s of allScripts) {
+        if (!s[1].includes('chapter-')) continue;
+        const slugMatches = [...s[1].matchAll(/slug:"chapter-([0-9.]+)"/gi)];
+        for (const sm of slugMatches) {
+          const chNum = sm[1];
+          if (seenCh.has(chNum)) continue;
+          seenCh.add(chNum);
+          chapters.push({
+            id: `vortex_ch:${cleanSlug}:${chNum}`,
+            chapter: chNum,
+            title: `Chapter ${chNum}`,
+            sourceUrl: `${BASE_URL}/series/${cleanSlug}/chapter-${chNum}`,
+          });
+        }
+      }
+    }
+
+    // 3. Fallback / union with SSR rendered HTML anchor links
+    const chMatches = [...html.matchAll(/href="(\/series\/[^"/]+\/chapter-([0-9.]+))"/gi)];
     for (const cm of chMatches) {
       const chNum = cm[2];
       if (seenCh.has(chNum)) continue;
@@ -274,12 +313,31 @@ export async function getVortexChapterPages(chapterId) {
     const html = await res.text();
 
     const allImgs = [...html.matchAll(/<img[^>]+(?:src|data-src)="([^"]+)"/gi)].map(m => m[1]);
-    const chapterImages = allImgs
-      .map(u => u.replace(/&amp;/g, '&'))
+    let chapterImages = allImgs
+      .map(u => u.replace(/&amp;/g, '&').replace('storage.vortexscans.org//', 'storage.vortexscans.org/'))
       .filter(u =>
-        u.includes('storage.vortexscans.org/upload/series') ||
-        (u.includes('chapter_') && !u.includes('banner'))
+        (u.includes('storage.vortexscans.org/upload/series') || u.includes('/upload/series/')) &&
+        !u.includes('/featured/') &&
+        !u.includes('nocover') &&
+        !u.includes('/logo/')
       );
+
+    // If no images found in img tags, inspect the TSR stream script
+    if (chapterImages.length === 0) {
+      const tsrImgs = [...html.matchAll(/https?:\/\/[^"'\s]+\.(?:jpg|jpeg|png|webp)/gi)].map(m => m[0]);
+      for (const u of tsrImgs) {
+        const cleaned = u.replace(/&amp;/g, '&').replace('storage.vortexscans.org//', 'storage.vortexscans.org/');
+        if (
+          (cleaned.includes('storage.vortexscans.org/upload/series') || cleaned.includes('/upload/series/')) &&
+          !cleaned.includes('/featured/') &&
+          !cleaned.includes('nocover') &&
+          !cleaned.includes('/logo/') &&
+          !chapterImages.includes(cleaned)
+        ) {
+          chapterImages.push(cleaned);
+        }
+      }
+    }
 
     const pages = chapterImages.map((imgUrl, idx) => ({
       pageNumber: idx + 1,
