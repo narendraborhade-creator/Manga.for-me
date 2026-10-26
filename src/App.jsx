@@ -821,6 +821,8 @@ export default function App() {
         {activeTab === 'library' && (
           <LibraryView
             bookmarks={bookmarks}
+            history={history}
+            updates={updates}
             onSelectManga={(id, cover) => handleOpenMangaDetails(id, cover || bookmarks[id]?.coverUrl)}
             onOpenReader={handleOpenReader}
             onRemoveBookmark={handleRemoveBookmark}
