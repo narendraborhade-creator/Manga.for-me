@@ -57,16 +57,21 @@ function MangaCard({
             </span>
             {(() => {
               const src = manga.sourceName || (
-                manga.id?.startsWith('asura:') ? 'Asura' :
-                manga.id?.startsWith('vortex:') ? 'Vortex' :
+                manga.id?.startsWith('asura:') ? 'Asura Scans' :
+                manga.id?.startsWith('vortex:') ? 'Vortex Scans' :
                 manga.id?.startsWith('wc:') ? 'WeebCentral' :
+                manga.id?.startsWith('md:') ? 'MangaDex' :
+                manga.id?.startsWith('mk:') ? 'MangaKakalot' :
                 manga.id?.startsWith('webtoon:') ? 'Webtoon' : 'MangaPill'
               );
               const colorClass = 
-                src === 'Asura' ? 'bg-violet-600/80 text-violet-100 border-violet-500/40' :
-                src === 'Vortex' ? 'bg-indigo-600/80 text-indigo-100 border-indigo-500/40' :
+                src === 'Asura Scans' || src === 'Asura' ? 'bg-violet-600/80 text-violet-100 border-violet-500/40' :
+                src === 'Vortex Scans' || src === 'Vortex' ? 'bg-indigo-600/80 text-indigo-100 border-indigo-500/40' :
+                src === 'MangaDex' ? 'bg-amber-600/80 text-amber-100 border-amber-500/40' :
+                src === 'MangaKakalot' ? 'bg-sky-600/80 text-sky-100 border-sky-500/40' :
                 src === 'Webtoon' ? 'bg-emerald-600/80 text-emerald-100 border-emerald-500/40' :
-                'bg-cyan-600/80 text-cyan-100 border-cyan-500/40';
+                src === 'WeebCentral' ? 'bg-cyan-600/80 text-cyan-100 border-cyan-500/40' :
+                'bg-rose-600/80 text-rose-100 border-rose-500/40';
               return (
                 <span className={`px-1.5 py-0.5 rounded-md text-[9px] font-mono font-bold tracking-wider backdrop-blur-md border ${colorClass}`}>
                   {src}

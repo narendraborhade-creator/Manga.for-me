@@ -420,6 +420,7 @@ async function fetchMangaPillSearch(query = '') {
       author: 'Manga Artist',
       tags: ['Manga'],
       provider: 'mangapill',
+      sourceName: 'MangaPill',
     });
   }
 
@@ -459,10 +460,13 @@ async function resolveAvailableSources(title, currentId, currentSourceName, curr
     const clean = title.replace(/[^\w\s]/gi, ' ').trim();
     if (!clean || clean.length < 2) return sources;
 
-    const [wc, md, mk] = await Promise.all([
+    const [wc, md, mk, asura, vortex, pill] = await Promise.all([
       searchWeebCentral(clean).catch(() => []),
       searchMangaDex(clean, 4).catch(() => []),
       searchMangaKakalot(clean).catch(() => []),
+      searchAsura(clean).catch(() => []),
+      searchVortex(clean).catch(() => []),
+      fetchMangaPillSearch(clean).catch(() => []),
     ]);
 
     const targetLower = clean.toLowerCase();
@@ -470,7 +474,15 @@ async function resolveAvailableSources(title, currentId, currentSourceName, curr
 
     const addIfMatch = (item) => {
       if (!item || !item.id || item.id === currentId) return;
-      if (seenSources.has(item.sourceName)) return;
+      const srcName = item.sourceName || (
+        item.id?.startsWith('wc:') ? 'WeebCentral' :
+        item.id?.startsWith('md:') ? 'MangaDex' :
+        item.id?.startsWith('asura:') ? 'Asura Scans' :
+        item.id?.startsWith('vortex:') ? 'Vortex Scans' :
+        item.id?.startsWith('mk:') ? 'MangaKakalot' :
+        item.id?.startsWith('webtoon:') ? 'Webtoon' : 'MangaPill'
+      );
+      if (seenSources.has(srcName)) return;
       const tLower = (item.title || '').toLowerCase();
       const engLower = (item.englishTitle || '').toLowerCase();
       if (
@@ -478,10 +490,10 @@ async function resolveAvailableSources(title, currentId, currentSourceName, curr
         targetLower.includes(tLower) ||
         (engLower && (engLower.includes(targetLower) || targetLower.includes(engLower)))
       ) {
-        seenSources.add(item.sourceName);
+        seenSources.add(srcName);
         sources.push({
           id: item.id,
-          sourceName: item.sourceName,
+          sourceName: srcName,
           totalChapters: item.totalChapters || null,
           isCurrent: false,
         });
@@ -491,6 +503,9 @@ async function resolveAvailableSources(title, currentId, currentSourceName, curr
     wc.slice(0, 3).forEach(addIfMatch);
     md.slice(0, 3).forEach(addIfMatch);
     mk.slice(0, 3).forEach(addIfMatch);
+    asura.slice(0, 3).forEach(addIfMatch);
+    vortex.slice(0, 3).forEach(addIfMatch);
+    pill.slice(0, 3).forEach(addIfMatch);
 
     setCache(cacheKey, sources);
   } catch {}
@@ -499,82 +514,100 @@ async function resolveAvailableSources(title, currentId, currentSourceName, curr
 }
 
 /**
- * Detect gaps or missing early chapters in a manga chapter archive
+ * Detect gaps, missing early chapters, or lagging chapter archives
  */
 function detectChapterArchiveGaps(chapters) {
-  if (!chapters || chapters.length === 0) return { hasGap: true, reason: 'empty' };
+  if (!chapters || chapters.length === 0) return { hasGap: true, reason: 'empty', minCh: 0, maxCh: 0 };
   
   const nums = chapters
     .map(c => parseFloat(c.chapter))
     .filter(n => !isNaN(n))
     .sort((a, b) => a - b);
   
-  if (nums.length === 0) return { hasGap: false };
+  if (nums.length === 0) return { hasGap: false, minCh: 0, maxCh: 0 };
 
   const minCh = nums[0];
   const maxCh = nums[nums.length - 1];
 
-  // 1. Missing early chapters: if min chapter is > 3 and max is >= 8
-  // (e.g. starts at chapter 20 or 99 instead of 1)
-  if (minCh > 3 && maxCh >= 8) {
+  // 1. Missing early chapters: if min chapter is > 2 and max is >= 6
+  if (minCh > 2 && maxCh >= 6) {
     return { hasGap: true, reason: 'missing_early', minCh, maxCh };
   }
 
-  // 2. Large gap between consecutive chapters (e.g. chapter 1 then jumps to 33)
+  // 2. Large gap between consecutive chapters
   for (let i = 0; i < nums.length - 1; i++) {
-    if (nums[i + 1] - nums[i] > 3) {
-      return { hasGap: true, reason: 'consecutive_gap', from: nums[i], to: nums[i + 1] };
+    if (nums[i + 1] - nums[i] > 2.5) {
+      return { hasGap: true, reason: 'consecutive_gap', from: nums[i], to: nums[i + 1], minCh, maxCh };
     }
   }
 
-  // 3. Archive sparsity check: if max chapter >= 20 and total count is less than 40% of span
-  if (maxCh >= 20 && (maxCh - minCh + 1) / nums.length > 2.5) {
-    return { hasGap: true, reason: 'sparse_archive', span: maxCh - minCh, count: nums.length };
+  // 3. Archive sparsity check
+  if (maxCh >= 20 && (maxCh - minCh + 1) / nums.length > 2.2) {
+    return { hasGap: true, reason: 'sparse_archive', span: maxCh - minCh, count: nums.length, minCh, maxCh };
   }
 
-  return { hasGap: false };
+  return { hasGap: false, minCh, maxCh };
 }
 
 /**
  * Intelligent Multi-Source Archive Harmonizer:
  * Backfills any missing chapters (e.g. chapters 1-19, 1-98, or intermediate gaps)
- * by pulling full sequential chapters from comprehensive aggregators (WeebCentral / MangaKakalot).
+ * AND pulls in the newest chapters if another source is more up-to-date.
  */
 async function backfillMissingChapters(details) {
   if (!details || !Array.isArray(details.chapters)) return details;
 
   const gapInfo = detectChapterArchiveGaps(details.chapters);
-  if (!gapInfo.hasGap) return details;
-
+  const currentMax = gapInfo.maxCh || 0;
+  const currentMin = gapInfo.minCh || 0;
   const queryTitle = cleanTitle(details.englishTitle || details.title || '');
   if (!queryTitle || queryTitle.length < 2) return details;
 
   try {
-    let fallbackChapters = null;
+    // 1. Concurrently query top aggregator and scanlation sources
+    const [wcMatches, mkMatches, asuraMatches, vortexMatches] = await Promise.all([
+      searchWeebCentral(queryTitle).catch(() => []),
+      searchMangaKakalot(queryTitle).catch(() => []),
+      searchAsura(queryTitle).catch(() => []),
+      searchVortex(queryTitle).catch(() => []),
+    ]);
 
-    // 1. Try WeebCentral first (primary comprehensive archive from Chapter 1 to latest)
-    const wcMatches = await searchWeebCentral(queryTitle).catch(() => []);
+    const candidateDetailsList = [];
+
+    // Prioritize WeebCentral (complete full chapter archives from Ch. 1)
     if (wcMatches && wcMatches.length > 0 && wcMatches[0].seriesId) {
-      const wcDetails = await getWeebCentralDetails(wcMatches[0].seriesId, '', false).catch(() => null);
-      if (wcDetails && Array.isArray(wcDetails.chapters) && wcDetails.chapters.length > 0) {
-        fallbackChapters = wcDetails.chapters;
+      const wcDet = await getWeebCentralDetails(wcMatches[0].seriesId, '', false).catch(() => null);
+      if (wcDet && Array.isArray(wcDet.chapters) && wcDet.chapters.length > 0) {
+        candidateDetailsList.push(wcDet);
       }
     }
 
-    // 2. If WeebCentral had no chapters or wasn't found, try MangaKakalot
-    if (!fallbackChapters || fallbackChapters.length === 0) {
-      const mkMatches = await searchMangaKakalot(queryTitle).catch(() => []);
-      if (mkMatches && mkMatches.length > 0 && mkMatches[0].id) {
-        const mkDetails = await getMangaKakalotDetails(mkMatches[0].id, false).catch(() => null);
-        if (mkDetails && Array.isArray(mkDetails.chapters) && mkDetails.chapters.length > 0) {
-          fallbackChapters = mkDetails.chapters;
-        }
+    // MangaKakalot (backup full-length archive)
+    if (mkMatches && mkMatches.length > 0 && mkMatches[0].id) {
+      const mkDet = await getMangaKakalotDetails(mkMatches[0].id, false).catch(() => null);
+      if (mkDet && Array.isArray(mkDet.chapters) && mkDet.chapters.length > 0) {
+        candidateDetailsList.push(mkDet);
       }
     }
 
-    if (!fallbackChapters || fallbackChapters.length === 0) return details;
+    // Asura Scans (for newest manhwa chapters)
+    if (asuraMatches && asuraMatches.length > 0 && asuraMatches[0].id) {
+      const asuraDet = await getAsuraDetails(asuraMatches[0].id).catch(() => null);
+      if (asuraDet && Array.isArray(asuraDet.chapters) && asuraDet.chapters.length > 0) {
+        candidateDetailsList.push(asuraDet);
+      }
+    }
 
-    // Build map of existing chapters by numeric value
+    // Vortex Scans (for newest manhwa chapters)
+    if (vortexMatches && vortexMatches.length > 0 && vortexMatches[0].id) {
+      const vortexDet = await getVortexDetails(vortexMatches[0].id).catch(() => null);
+      if (vortexDet && Array.isArray(vortexDet.chapters) && vortexDet.chapters.length > 0) {
+        candidateDetailsList.push(vortexDet);
+      }
+    }
+
+    if (candidateDetailsList.length === 0) return details;
+
     const existingNumMap = new Set(
       details.chapters.map(c => {
         const parsed = parseFloat(c.chapter);
@@ -582,23 +615,39 @@ async function backfillMissingChapters(details) {
       })
     );
 
-    // Collect missing chapters to backfill
-    const backfilled = [];
-    for (const fbCh of fallbackChapters) {
-      const parsed = parseFloat(fbCh.chapter);
-      const key = isNaN(parsed) ? String(fbCh.chapter).trim() : String(parsed);
-      if (!existingNumMap.has(key)) {
-        existingNumMap.add(key);
-        backfilled.push({
-          ...fbCh,
-          source: fbCh.source || 'Archive Backup',
-        });
+    let chaptersAdded = false;
+
+    for (const cand of candidateDetailsList) {
+      const candNums = cand.chapters.map(c => parseFloat(c.chapter)).filter(n => !isNaN(n));
+      const candMax = candNums.length > 0 ? Math.max(...candNums) : 0;
+      const candMin = candNums.length > 0 ? Math.min(...candNums) : 0;
+
+      // Merge if candidate fills gaps, has earlier chapters (candMin < currentMin),
+      // has newer chapters (candMax > currentMax), or has more chapters overall
+      const shouldMerge =
+        gapInfo.hasGap ||
+        candMax > currentMax ||
+        (currentMin > 2 && candMin <= 2) ||
+        cand.chapters.length > details.chapters.length;
+
+      if (shouldMerge) {
+        for (const ch of cand.chapters) {
+          const parsed = parseFloat(ch.chapter);
+          const key = isNaN(parsed) ? String(ch.chapter).trim() : String(parsed);
+          if (!existingNumMap.has(key)) {
+            existingNumMap.add(key);
+            details.chapters.push({
+              ...ch,
+              source: ch.source || cand.sourceName || 'Backup Archive',
+            });
+            chaptersAdded = true;
+          }
+        }
       }
     }
 
-    if (backfilled.length > 0) {
-      const combined = [...details.chapters, ...backfilled];
-      details.chapters = deduplicateChapters(combined);
+    if (chaptersAdded) {
+      details.chapters = deduplicateChapters(details.chapters);
       details.totalChapters = details.chapters.length;
     }
   } catch (err) {

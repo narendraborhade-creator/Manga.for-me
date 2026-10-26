@@ -280,13 +280,18 @@ export default function MangaDetailModal({
                           manga.id?.startsWith('asura:') ? 'Asura Scans' :
                           manga.id?.startsWith('vortex:') ? 'Vortex Scans' :
                           manga.id?.startsWith('wc:') ? 'WeebCentral' :
+                          manga.id?.startsWith('md:') ? 'MangaDex' :
+                          manga.id?.startsWith('mk:') ? 'MangaKakalot' :
                           manga.id?.startsWith('webtoon:') ? 'Webtoon' : 'MangaPill'
                         );
                         const colorClass = 
-                          src === 'Asura Scans' ? 'text-violet-400 bg-violet-500/10 border-violet-500/30' :
-                          src === 'Vortex Scans' ? 'text-indigo-400 bg-indigo-500/10 border-indigo-500/30' :
+                          src === 'Asura Scans' || src === 'Asura' ? 'text-violet-400 bg-violet-500/10 border-violet-500/30' :
+                          src === 'Vortex Scans' || src === 'Vortex' ? 'text-indigo-400 bg-indigo-500/10 border-indigo-500/30' :
+                          src === 'MangaDex' ? 'text-amber-400 bg-amber-500/10 border-amber-500/30' :
+                          src === 'MangaKakalot' ? 'text-sky-400 bg-sky-500/10 border-sky-500/30' :
                           src === 'Webtoon' ? 'text-emerald-400 bg-emerald-500/10 border-emerald-500/30' :
-                          'text-sky-400 bg-sky-500/10 border-sky-500/30';
+                          src === 'WeebCentral' ? 'text-cyan-400 bg-cyan-500/10 border-cyan-500/30' :
+                          'text-rose-400 bg-rose-500/10 border-rose-500/30';
                         return (
                           <span className={`px-2 py-0.5 rounded-md text-[11px] font-bold border ${colorClass}`}>
                             {src}

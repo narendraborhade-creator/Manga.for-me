@@ -49,7 +49,8 @@ import {
   Filter,
   Play,
   Bookmark,
-  History
+  History,
+  Radio
 } from 'lucide-react';
 
 const GENRES = [
@@ -66,6 +67,33 @@ const GENRES = [
   'Slice of Life',
   'Supernatural',
 ];
+
+const SOURCES = [
+  { id: 'All', label: 'All Sources', badge: 'Multi-Feed' },
+  { id: 'WeebCentral', label: 'WeebCentral', badge: '15k+ Ch.1' },
+  { id: 'MangaDex', label: 'MangaDex', badge: 'Official/Scans' },
+  { id: 'Asura', label: 'Asura Scans', badge: 'Weekly Action' },
+  { id: 'Vortex', label: 'Vortex Scans', badge: 'High-Speed' },
+  { id: 'MangaKakalot', label: 'MangaKakalot', badge: 'Classic Archive' },
+  { id: 'Webtoon', label: 'Webtoons', badge: 'Full-Color' },
+  { id: 'MangaPill', label: 'MangaPill', badge: 'Mirror CDN' },
+];
+
+function matchesSource(manga, filterSource) {
+  if (!filterSource || filterSource === 'All') return true;
+  const src = (
+    manga.sourceName || (
+      manga.id?.startsWith('asura:') ? 'Asura Scans' :
+      manga.id?.startsWith('vortex:') ? 'Vortex Scans' :
+      manga.id?.startsWith('wc:') ? 'WeebCentral' :
+      manga.id?.startsWith('md:') ? 'MangaDex' :
+      manga.id?.startsWith('mk:') ? 'MangaKakalot' :
+      manga.id?.startsWith('webtoon:') ? 'Webtoon' : 'MangaPill'
+    )
+  ).toLowerCase();
+  const target = filterSource.toLowerCase();
+  return src.includes(target) || target.includes(src);
+}
 
 export default function App() {
   // Navigation & Search
@@ -482,6 +510,37 @@ export default function App() {
                   ))}
                 </div>
 
+                {/* Source Selection Bar (8 High-Speed & Comprehensive Feeds) */}
+                <div className="flex items-center gap-2 overflow-x-auto pb-2 scrollbar-none font-mono">
+                  <div className="flex items-center gap-1.5 text-xs text-rose-400 font-semibold mr-1 flex-shrink-0">
+                    <Radio className="w-3.5 h-3.5 text-rose-400 animate-pulse" />
+                    <span>SOURCE::</span>
+                  </div>
+                  {SOURCES.map((s) => {
+                    const isSelected = selectedSource === s.id;
+                    return (
+                      <button
+                        key={s.id}
+                        onClick={() => setSelectedSource(s.id)}
+                        className={`px-3 py-1.5 rounded-xl text-xs font-semibold whitespace-nowrap transition-all cursor-pointer flex items-center gap-1.5 ${
+                          isSelected
+                            ? 'btn-holo text-white shadow-md shadow-rose-500/20 ring-1 ring-white/30'
+                            : 'bg-slate-950/80 text-slate-400 hover:text-white hover:bg-slate-900 border border-white/10'
+                        }`}
+                      >
+                        <span>{s.label}</span>
+                        {s.badge && (
+                          <span className={`text-[9px] px-1 py-0.2 rounded font-mono ${
+                            isSelected ? 'bg-black/30 text-white font-bold' : 'bg-white/5 text-cyan-400'
+                          }`}>
+                            {s.badge}
+                          </span>
+                        )}
+                      </button>
+                    );
+                  })}
+                </div>
+
                 {/* Section 1: Most Popular / Trending Manga */}
                 <section className="space-y-4">
                   <div className="flex items-center justify-between">
@@ -494,7 +553,7 @@ export default function App() {
                           Most Popular Manga
                         </h2>
                         <p className="text-xs text-slate-400">
-                          Fan favorites and trending masterworks
+                          Fan favorites and trending masterworks {selectedSource !== 'All' ? `• Filtered by ${selectedSource}` : ''}
                         </p>
                       </div>
                     </div>
@@ -508,19 +567,21 @@ export default function App() {
                     </div>
                   ) : (
                     <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 xl:grid-cols-6 gap-4 sm:gap-5">
-                      {popularManga.map((manga) => {
-                        const hist = historyMap[manga.id];
-                        return (
-                          <MangaCard
-                            key={manga.id}
-                            manga={manga}
-                            onSelect={handleOpenMangaDetails}
-                            isBookmarked={!!bookmarks[manga.id]}
-                            onToggleBookmark={handleToggleBookmark}
-                            lastReadChapter={hist?.chapterNumber || null}
-                          />
-                        );
-                      })}
+                      {popularManga
+                        .filter((m) => matchesSource(m, selectedSource))
+                        .map((manga) => {
+                          const hist = historyMap[manga.id];
+                          return (
+                            <MangaCard
+                              key={manga.id}
+                              manga={manga}
+                              onSelect={handleOpenMangaDetails}
+                              isBookmarked={!!bookmarks[manga.id]}
+                              onToggleBookmark={handleToggleBookmark}
+                              lastReadChapter={hist?.chapterNumber || null}
+                            />
+                          );
+                        })}
                     </div>
                   )}
                 </section>
@@ -537,26 +598,28 @@ export default function App() {
                           Latest Chapter Updates
                         </h2>
                         <p className="text-xs text-slate-400">
-                          Freshly scanned chapters ready to read right now
+                          Freshly scanned chapters ready to read right now {selectedSource !== 'All' ? `• Filtered by ${selectedSource}` : ''}
                         </p>
                       </div>
                     </div>
                   </div>
 
                   <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 xl:grid-cols-6 gap-4 sm:gap-5">
-                    {latestManga.map((manga) => {
-                      const hist = historyMap[manga.id];
-                      return (
-                        <MangaCard
-                          key={manga.id}
-                          manga={manga}
-                          onSelect={handleOpenMangaDetails}
-                          isBookmarked={!!bookmarks[manga.id]}
-                          onToggleBookmark={handleToggleBookmark}
-                          lastReadChapter={hist?.chapterNumber || null}
-                        />
-                      );
-                    })}
+                    {latestManga
+                      .filter((m) => matchesSource(m, selectedSource))
+                      .map((manga) => {
+                        const hist = historyMap[manga.id];
+                        return (
+                          <MangaCard
+                            key={manga.id}
+                            manga={manga}
+                            onSelect={handleOpenMangaDetails}
+                            isBookmarked={!!bookmarks[manga.id]}
+                            onToggleBookmark={handleToggleBookmark}
+                            lastReadChapter={hist?.chapterNumber || null}
+                          />
+                        );
+                      })}
                   </div>
                 </section>
 
@@ -572,26 +635,28 @@ export default function App() {
                           Top Rated of All Time
                         </h2>
                         <p className="text-xs text-slate-400">
-                          Critically acclaimed manga sagas
+                          Critically acclaimed manga sagas {selectedSource !== 'All' ? `• Filtered by ${selectedSource}` : ''}
                         </p>
                       </div>
                     </div>
                   </div>
 
                   <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 xl:grid-cols-6 gap-4 sm:gap-5">
-                    {topRatedManga.map((manga) => {
-                      const hist = historyMap[manga.id];
-                      return (
-                        <MangaCard
-                          key={manga.id}
-                          manga={manga}
-                          onSelect={handleOpenMangaDetails}
-                          isBookmarked={!!bookmarks[manga.id]}
-                          onToggleBookmark={handleToggleBookmark}
-                          lastReadChapter={hist?.chapterNumber || null}
-                        />
-                      );
-                    })}
+                    {topRatedManga
+                      .filter((m) => matchesSource(m, selectedSource))
+                      .map((manga) => {
+                        const hist = historyMap[manga.id];
+                        return (
+                          <MangaCard
+                            key={manga.id}
+                            manga={manga}
+                            onSelect={handleOpenMangaDetails}
+                            isBookmarked={!!bookmarks[manga.id]}
+                            onToggleBookmark={handleToggleBookmark}
+                            lastReadChapter={hist?.chapterNumber || null}
+                          />
+                        );
+                      })}
                   </div>
                 </section>
               </>
@@ -609,18 +674,13 @@ export default function App() {
                   </div>
 
                   <div className="flex items-center gap-2 flex-wrap">
-                    {/* Source Filter Pills */}
-                    <div className="flex items-center gap-1.5 p-1 rounded-xl bg-slate-900/90 border border-white/5">
-                      {[
-                        { id: 'All', label: 'All Sources' },
-                        { id: 'WeebCentral', label: 'WeebCentral' },
-                        { id: 'Webtoon', label: 'Webtoons' },
-                        { id: 'MangaPill', label: 'MangaPill' },
-                      ].map((s) => (
+                    {/* Source Filter Pills (All 8 Sources Available) */}
+                    <div className="flex items-center gap-1.5 p-1 rounded-xl bg-slate-900/90 border border-white/5 overflow-x-auto max-w-full">
+                      {SOURCES.map((s) => (
                         <button
                           key={s.id}
                           onClick={() => setSelectedSource(s.id)}
-                          className={`px-2.5 py-1 rounded-lg text-xs font-bold transition-all ${
+                          className={`px-2.5 py-1 rounded-lg text-xs font-bold whitespace-nowrap transition-all ${
                             selectedSource === s.id
                               ? 'bg-rose-600 text-white shadow-sm'
                               : 'text-slate-400 hover:text-white hover:bg-white/5'
@@ -656,11 +716,7 @@ export default function App() {
                 ) : (
                   <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 xl:grid-cols-6 gap-4 sm:gap-5">
                     {searchMangaList
-                      .filter((manga) => {
-                        if (selectedSource === 'All') return true;
-                        const src = manga.sourceName || (manga.id?.startsWith('wc:') ? 'WeebCentral' : manga.id?.startsWith('webtoon:') ? 'Webtoon' : 'MangaPill');
-                        return src.toLowerCase().includes(selectedSource.toLowerCase());
-                      })
+                      .filter((manga) => matchesSource(manga, selectedSource))
                       .map((manga) => (
                         <MangaCard
                           key={manga.id}
