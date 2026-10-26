@@ -69,7 +69,7 @@ export default function HistoryView({
   }, [history, searchQuery]);
 
   return (
-    <div className="space-y-6 sm:space-y-8 animate-fadeIn w-full max-w-full overflow-hidden">
+    <div className="space-y-6 sm:space-y-8 animate-fadeIn w-full max-w-full overflow-x-clip">
       {/* Top Banner / Stats Header (Grounded Glassmorphism + HUD + Holographic) */}
       <div className="relative overflow-hidden rounded-3xl glass-panel-elevated p-5 sm:p-7 border border-cyan-500/30 bg-gradient-to-r from-cyan-950/25 via-slate-900/70 to-slate-950/85 shadow-xl hud-corner holo-sheen">
         <div className="flex flex-col md:flex-row items-start md:items-center justify-between gap-5">

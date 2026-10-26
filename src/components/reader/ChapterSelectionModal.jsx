@@ -74,7 +74,10 @@ export default function ChapterSelectionModal({
         </div>
 
         {/* Chapters List */}
-        <div className="overflow-y-auto max-h-[50vh] space-y-1 pr-1">
+        <div 
+          className="overflow-y-auto overscroll-contain max-h-[50vh] space-y-1 pr-1"
+          style={{ WebkitOverflowScrolling: 'touch', touchAction: 'pan-y' }}
+        >
           {sortedDropdownChapters.map((ch) => {
             const isRead = readChapterIds.includes(ch.id);
             const isCurrent = String(ch.id) === String(activeChapterId);

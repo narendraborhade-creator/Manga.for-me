@@ -118,6 +118,7 @@ export default function BackupModal({ isOpen, onClose, onRefreshData }) {
     <div className="fixed inset-0 z-50 flex items-center justify-center p-3 sm:p-4 bg-black/80 backdrop-blur-md animate-fadeIn">
       <div 
         className="relative w-full max-w-lg bg-[#0c1017] border border-white/10 rounded-2xl sm:rounded-3xl shadow-2xl overflow-y-auto max-h-[90vh] p-5 sm:p-7 space-y-5 sm:space-y-6"
+        style={{ WebkitOverflowScrolling: 'touch', touchAction: 'pan-y' }}
         onClick={(e) => e.stopPropagation()}
       >
         {/* Header */}

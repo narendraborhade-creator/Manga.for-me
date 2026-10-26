@@ -5,10 +5,11 @@ export default function AnimeDetailModal({ anime, onClose }) {
   if (!anime) return null;
 
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center p-0 sm:p-4 md:p-6 bg-black/85 backdrop-blur-md overflow-y-auto animate-fadeIn">
+    <div className="fixed inset-0 z-50 flex items-center justify-center p-0 sm:p-4 md:p-6 bg-black/85 backdrop-blur-md overflow-hidden animate-fadeIn" onClick={onClose}>
       <div 
         className="relative w-full max-w-3xl bg-[#0c1017] border-0 sm:border border-white/10 rounded-none sm:rounded-3xl shadow-2xl overflow-hidden my-auto max-h-full sm:max-h-[92vh] h-full sm:h-auto flex flex-col"
         onClick={(e) => e.stopPropagation()}
+        style={{ WebkitOverflowScrolling: 'touch', touchAction: 'pan-y' }}
       >
         {/* Close Button */}
         <button

@@ -184,6 +184,22 @@ export default function MangaReader({
   const bottomSentinelRef = useRef(null);
   const controlsTimeoutRef = useRef(null);
   const autoScrollRef = useRef(null);
+  const scrollRafRef = useRef(null);
+  const lastScrollTimestampRef = useRef(0);
+  const touchStartPosRef = useRef({ x: 0, y: 0, time: 0 });
+
+  // Lock body scroll while reading so gestures only scroll manga pages and never the background website
+  useEffect(() => {
+    const originalOverflow = document.body.style.overflow;
+    const originalTouchAction = document.body.style.touchAction;
+    document.body.style.overflow = 'hidden';
+    document.body.style.touchAction = 'none';
+
+    return () => {
+      document.body.style.overflow = originalOverflow;
+      document.body.style.touchAction = originalTouchAction;
+    };
+  }, []);
 
   // Auto-hide controls after idle
   const rescheduleControls = useCallback((duration = 5000) => {
@@ -206,7 +222,17 @@ export default function MangaReader({
     };
   }, [rescheduleControls]);
 
-  // Handle click/tap on canvas: toggle controls on/off
+  const handleTouchStart = (e) => {
+    if (isAutoScrolling) {
+      setIsAutoScrolling(false);
+    }
+    const touch = e.touches?.[0];
+    if (touch) {
+      touchStartPosRef.current = { x: touch.clientX, y: touch.clientY, time: Date.now() };
+    }
+  };
+
+  // Handle click/tap on canvas: toggle controls on/off (ignoring scroll releases & drags)
   const handleReaderTap = (e) => {
     if (e.target.closest('button, input, select, a, .glass-panel, [role="dialog"], .glass-nav, .slider-thumb')) {
       return;
@@ -214,6 +240,22 @@ export default function MangaReader({
     if (isAutoScrolling) {
       setIsAutoScrolling(false);
     }
+    // If user was just scrolling within the last 280ms, ignore (it was a scroll release, not an intentional tap)
+    if (Date.now() - lastScrollTimestampRef.current < 280) {
+      return;
+    }
+    // If touch moved more than 8px, it was a drag gesture
+    if (touchStartPosRef.current.time && Date.now() - touchStartPosRef.current.time < 600) {
+      const touch = e.touches?.[0] || e.changedTouches?.[0];
+      if (touch) {
+        const dx = touch.clientX - touchStartPosRef.current.x;
+        const dy = touch.clientY - touchStartPosRef.current.y;
+        if (Math.hypot(dx, dy) > 8) {
+          return;
+        }
+      }
+    }
+
     setControlsVisible((prev) => {
       if (prev) {
         if (controlsTimeoutRef.current) {
@@ -475,8 +517,11 @@ export default function MangaReader({
     setShowChapterMenu(false);
 
     const existingEl = document.getElementById(`chapter-${targetChapterId}`);
-    if (existingEl) {
-      existingEl.scrollIntoView({ behavior: 'smooth', block: 'start' });
+    if (existingEl && containerRef.current) {
+      const containerRect = containerRef.current.getBoundingClientRect();
+      const elRect = existingEl.getBoundingClientRect();
+      const offsetTop = elRect.top - containerRect.top + containerRef.current.scrollTop;
+      containerRef.current.scrollTo({ top: offsetTop, behavior: 'smooth' });
       currentHandledChapterIdRef.current = targetChapterId;
       setActiveChapterId(targetChapterId);
       setActiveChapterNumber(targetChapterNumber);
@@ -566,6 +611,8 @@ export default function MangaReader({
 
   // Track scroll position in Webtoon mode & auto-hide controls on scroll
   const handleScroll = useCallback(() => {
+    lastScrollTimestampRef.current = Date.now();
+
     // Auto-hide HUD controls immediately when scrolling/reading
     if (controlsTimeoutRef.current) {
       clearTimeout(controlsTimeoutRef.current);
@@ -583,50 +630,58 @@ export default function MangaReader({
 
     if (settings.readingMode === 'webtoon') {
       const remaining = container.scrollHeight - (container.scrollTop + container.clientHeight);
-      if (remaining < 1800 && settings.continuousScroll) {
+      if (remaining < 1800 && settings.continuousScroll && !isLoadingNextRef.current) {
         loadNextChapter();
       }
 
-      const midY = container.clientHeight / 2;
-      const pageEls = container.querySelectorAll('.manga-page');
-      for (let i = 0; i < pageEls.length; i++) {
-        const el = pageEls[i];
-        const rect = el.getBoundingClientRect();
-        if (rect.top <= midY && rect.bottom >= midY) {
-          const chId = el.getAttribute('data-chapter-id');
-          const chNum = el.getAttribute('data-chapter-number');
-          const pNum = Number(el.getAttribute('data-page-number'));
-          const tot = Number(el.getAttribute('data-total-pages'));
+      // Throttle page element calculations via requestAnimationFrame to prevent layout thrashing and maintain 60/120fps
+      if (scrollRafRef.current) return;
+      scrollRafRef.current = requestAnimationFrame(() => {
+        scrollRafRef.current = null;
+        if (!containerRef.current) return;
 
-          if (chId && chNum && pNum) {
-            if (activeChapterIdRef.current !== chId || activePageNumberRef.current !== pNum) {
-              activeChapterIdRef.current = chId;
-              activePageNumberRef.current = pNum;
-              currentHandledChapterIdRef.current = chId;
-              setActiveChapterId(chId);
-              setActiveChapterNumber(chNum);
-              setActivePageNumber(pNum);
-              if (tot) setActiveTotalPages(tot);
+        const cont = containerRef.current;
+        const midY = cont.clientHeight / 2;
+        const pageEls = cont.querySelectorAll('.manga-page');
+        for (let i = 0; i < pageEls.length; i++) {
+          const el = pageEls[i];
+          const rect = el.getBoundingClientRect();
+          if (rect.top <= midY && rect.bottom >= midY) {
+            const chId = el.getAttribute('data-chapter-id');
+            const chNum = el.getAttribute('data-chapter-number');
+            const pNum = Number(el.getAttribute('data-page-number'));
+            const tot = Number(el.getAttribute('data-total-pages'));
 
-              recordReadingProgress({
-                mangaId,
-                mangaTitle,
-                mangaEnglishTitle,
-                coverUrl,
-                chapterId: chId,
-                chapterNumber: chNum,
-                currentPage: pNum,
-                totalPages: tot || 1,
-              });
+            if (chId && chNum && pNum) {
+              if (activeChapterIdRef.current !== chId || activePageNumberRef.current !== pNum) {
+                activeChapterIdRef.current = chId;
+                activePageNumberRef.current = pNum;
+                currentHandledChapterIdRef.current = chId;
+                setActiveChapterId(chId);
+                setActiveChapterNumber(chNum);
+                setActivePageNumber(pNum);
+                if (tot) setActiveTotalPages(tot);
 
-              if (onChangeChapter && chId !== chapterId) {
-                onChangeChapter(chId, chNum);
+                recordReadingProgress({
+                  mangaId,
+                  mangaTitle,
+                  mangaEnglishTitle,
+                  coverUrl,
+                  chapterId: chId,
+                  chapterNumber: chNum,
+                  currentPage: pNum,
+                  totalPages: tot || 1,
+                });
+
+                if (onChangeChapter && chId !== chapterId) {
+                  onChangeChapter(chId, chNum);
+                }
               }
             }
+            break;
           }
-          break;
         }
-      }
+      });
     }
   }, [settings.readingMode, settings.continuousScroll, loadNextChapter, mangaId, mangaTitle, mangaEnglishTitle, coverUrl, onChangeChapter, chapterId]);
 
@@ -783,12 +838,16 @@ export default function MangaReader({
     const pageEl = document.getElementById(`page-${activeChapterId}-${targetPage}`)
       || document.querySelector(`[data-page-number="${targetPage}"][data-chapter-id="${activeChapterId}"]`);
 
-    if (pageEl) {
-      pageEl.scrollIntoView({ behavior: 'smooth', block: 'start' });
-    } else if (containerRef.current) {
+    const container = containerRef.current;
+    if (pageEl && container) {
+      const containerRect = container.getBoundingClientRect();
+      const elRect = pageEl.getBoundingClientRect();
+      const offsetTop = elRect.top - containerRect.top + container.scrollTop;
+      container.scrollTo({ top: offsetTop, behavior: 'smooth' });
+    } else if (container) {
       const ratio = (targetPage - 1) / Math.max(1, (activeTotalPages - 1));
-      containerRef.current.scrollTo({
-        top: containerRef.current.scrollHeight * ratio,
+      container.scrollTo({
+        top: container.scrollHeight * ratio,
         behavior: 'smooth',
       });
     }
@@ -918,7 +977,8 @@ export default function MangaReader({
       <div 
         ref={containerRef}
         onClick={handleReaderTap}
-        className={`absolute inset-0 overflow-y-auto overscroll-y-contain selection:bg-rose-500 selection:text-white transition-colors duration-300 w-full h-full ${
+        onTouchStart={handleTouchStart}
+        className={`absolute inset-0 overflow-y-scroll overscroll-y-contain selection:bg-rose-500 selection:text-white transition-colors duration-300 w-full h-full ${
           settings.visualFilter === 'oled' ? 'reader-filter-oled' :
           settings.visualFilter === 'sepia' ? 'reader-filter-sepia' :
           settings.visualFilter === 'invert' ? 'reader-filter-invert' :
@@ -926,6 +986,7 @@ export default function MangaReader({
         }`}
         style={{ 
           WebkitOverflowScrolling: 'touch',
+          touchAction: 'pan-y',
           filter: `brightness(${settings.brightness ?? 100}%)`
         }}
       >

@@ -159,12 +159,12 @@ export default function MangaDetailModal({
 
   return (
     <div 
-      className="fixed inset-0 z-50 flex items-center justify-center p-0 sm:p-4 md:p-6 bg-black/85 backdrop-blur-md overflow-y-auto animate-fadeIn"
+      className="fixed inset-0 z-50 flex items-center justify-center p-0 sm:p-4 md:p-6 bg-black/85 backdrop-blur-md overflow-hidden animate-fadeIn"
       onClick={onClose}
     >
       <div 
         className="relative w-full max-w-4xl bg-[#080d1a]/95 border-0 sm:border border-cyan-500/35 rounded-none sm:rounded-3xl shadow-2xl overflow-y-auto overscroll-contain my-auto max-h-full sm:max-h-[90vh] h-full sm:h-auto flex flex-col glass-panel-elevated hud-corner holo-sheen holo-modal-project scrollbar-thin scrollbar-thumb-cyan-500/30 scrollbar-track-transparent"
-        style={{ WebkitOverflowScrolling: 'touch' }}
+        style={{ WebkitOverflowScrolling: 'touch', touchAction: 'pan-y' }}
         onClick={(e) => e.stopPropagation()}
       >
         {/* Holographic Projector Emitter Laser Lines */}

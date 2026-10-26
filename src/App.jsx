@@ -400,8 +400,20 @@ export default function App() {
     handleOpenMangaDetails(id, item?.coverUrl);
   }, [handleOpenMangaDetails, historyMap]);
 
+  // Centralized body scroll lock when modal or reader is active to prevent scroll fighting
+  useEffect(() => {
+    const isOverlayOpen = readerState.active || Boolean(selectedMangaId) || Boolean(selectedAnime) || isBackupOpen;
+    if (isOverlayOpen) {
+      const prevOverflow = document.body.style.overflow;
+      document.body.style.overflow = 'hidden';
+      return () => {
+        document.body.style.overflow = prevOverflow;
+      };
+    }
+  }, [readerState.active, selectedMangaId, selectedAnime, isBackupOpen]);
+
   return (
-    <div className="min-h-screen w-full max-w-full overflow-x-hidden bg-[#080a0f] text-slate-100 flex flex-col font-['Plus_Jakarta_Sans',sans-serif]">
+    <div className="min-h-screen w-full max-w-full overflow-x-clip bg-[#080a0f] text-slate-100 flex flex-col font-['Plus_Jakarta_Sans',sans-serif]">
       {/* Navbar */}
       <Navbar
         activeTab={activeTab}

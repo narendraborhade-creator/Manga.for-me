@@ -32,7 +32,8 @@ export default function ReaderSettingsModal({
       onClick={onClose}
     >
       <div
-        className="w-full sm:w-96 max-h-[80vh] overflow-y-auto bg-slate-900 border border-white/10 rounded-3xl shadow-2xl p-4 sm:p-5 space-y-4"
+        className="w-full sm:w-96 max-h-[80vh] overflow-y-auto overscroll-contain bg-slate-900 border border-white/10 rounded-3xl shadow-2xl p-4 sm:p-5 space-y-4"
+        style={{ WebkitOverflowScrolling: 'touch', touchAction: 'pan-y' }}
         onClick={(e) => e.stopPropagation()}
       >
         <div className="flex items-center justify-between border-b border-white/10 pb-2.5">
