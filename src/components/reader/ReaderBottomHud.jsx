@@ -1,4 +1,4 @@
-import React from 'react';
+import React, { useState } from 'react';
 import { cleanTitle } from '../../services/mangaApi';
 import {
   Infinity as InfinityIcon,
@@ -43,8 +43,13 @@ export default function ReaderBottomHud({
   setShowChapterMenu,
   scrollToTop,
   handleReloadChapter,
-  isReloadingChapter
+  isReloadingChapter,
+  readPages = [],
+  readDurationMins = 1,
+  readingPace = '1.0'
 }) {
+  const [hoverPage, setHoverPage] = useState(null);
+  const [hoverX, setHoverX] = useState(0);
   return (
     <div
       className={`fixed bottom-2 sm:bottom-4 left-1/2 -translate-x-1/2 z-50 w-[calc(100vw-16px)] sm:w-auto max-w-xl transition-all duration-300 select-none pointer-events-auto pb-[env(safe-area-inset-bottom)] ${
@@ -84,6 +89,13 @@ export default function ReaderBottomHud({
           </div>
 
           <div className="flex items-center gap-1.5 flex-shrink-0">
+            {/* Reading Telemetry (Time & Pace) */}
+            <div className="hidden sm:flex items-center gap-1.5 text-[10px] font-mono text-cyan-300 px-1.5 py-0.5 rounded-lg bg-cyan-950/40 border border-cyan-500/30 select-none">
+              <span>TIME: {readDurationMins}m</span>
+              <span className="text-cyan-500/50">•</span>
+              <span>{readingPace} p/m</span>
+            </div>
+
             {/* Clock & Battery */}
             <div className="hidden xs:flex items-center gap-1.5 text-[10px] font-mono text-slate-400 px-1.5 py-0.5 rounded-lg bg-white/5 border border-white/10 select-none">
               <Clock className="w-3 h-3 text-cyan-400" />
@@ -134,6 +146,33 @@ export default function ReaderBottomHud({
           </div>
         </div>
 
+        {/* Floating Holographic Scrubber Page Preview Pop-up */}
+        {hoverPage && (
+          <div 
+            className="fixed bottom-24 -translate-x-1/2 z-[70] holo-popup-card rounded-2xl p-2 w-32 text-center pointer-events-none shadow-2xl border border-cyan-400/70 animate-fadeIn"
+            style={{ left: Math.min(window.innerWidth - 80, Math.max(80, hoverX)) }}
+          >
+            <div className="text-[9px] font-mono font-bold text-cyan-300 border-b border-cyan-500/30 pb-0.5 mb-1.5 flex items-center justify-between">
+              <span>PAGE {hoverPage}</span>
+              <span className="text-rose-400">HOLO</span>
+            </div>
+            {readPages && readPages[hoverPage - 1]?.url ? (
+              <img
+                src={readPages[hoverPage - 1].url}
+                alt={`Preview page ${hoverPage}`}
+                className="w-full h-28 object-contain rounded-lg bg-black/60 border border-white/10"
+              />
+            ) : (
+              <div className="w-full h-24 flex items-center justify-center bg-black/50 rounded-lg text-[10px] text-cyan-400 font-mono">
+                P::{hoverPage}
+              </div>
+            )}
+            <div className="text-[9px] font-mono text-cyan-400 mt-1">
+              SCRUB TO JUMP
+            </div>
+          </div>
+        )}
+
         {/* Row 1: Interactive Page Scrubber with "Go Back", "Page X of Y", and "Go Front" */}
         {activeTotalPages > 0 && (
           <div className="flex items-center gap-2 sm:gap-3 px-1 py-0.5">
@@ -155,6 +194,24 @@ export default function ReaderBottomHud({
                 min="1"
                 max={activeTotalPages || 1}
                 value={activePageNumber}
+                onMouseMove={(e) => {
+                  const rect = e.currentTarget.getBoundingClientRect();
+                  const ratio = Math.max(0, Math.min(1, (e.clientX - rect.left) / rect.width));
+                  const page = Math.max(1, Math.min(activeTotalPages, Math.round(ratio * (activeTotalPages - 1)) + 1));
+                  setHoverPage(page);
+                  setHoverX(e.clientX);
+                }}
+                onMouseLeave={() => setHoverPage(null)}
+                onTouchMove={(e) => {
+                  const touch = e.touches[0];
+                  if (!touch) return;
+                  const rect = e.currentTarget.getBoundingClientRect();
+                  const ratio = Math.max(0, Math.min(1, (touch.clientX - rect.left) / rect.width));
+                  const page = Math.max(1, Math.min(activeTotalPages, Math.round(ratio * (activeTotalPages - 1)) + 1));
+                  setHoverPage(page);
+                  setHoverX(touch.clientX);
+                }}
+                onTouchEnd={() => setHoverPage(null)}
                 onChange={(e) => scrollToPage(parseInt(e.target.value, 10))}
                 className="w-full h-1.5 bg-slate-800 rounded-lg appearance-none cursor-pointer accent-cyan-400 hover:accent-cyan-300"
               />

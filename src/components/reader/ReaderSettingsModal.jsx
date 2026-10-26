@@ -54,7 +54,7 @@ export default function ReaderSettingsModal({
             <Compass className="w-3.5 h-3.5 text-rose-400" />
             <span>Reading Mode</span>
           </label>
-          <div className="grid grid-cols-2 gap-1.5">
+          <div className="grid grid-cols-3 gap-1.5">
             <button
               onClick={() => updateSetting('readingMode', 'webtoon')}
               className={`py-2 rounded-xl text-xs font-semibold border transition-all ${
@@ -63,7 +63,7 @@ export default function ReaderSettingsModal({
                   : 'bg-slate-800 border-white/5 text-slate-400 hover:text-white'
               }`}
             >
-              Webtoon (Strip)
+              Webtoon
             </button>
             <button
               onClick={() => updateSetting('readingMode', 'single')}
@@ -74,6 +74,17 @@ export default function ReaderSettingsModal({
               }`}
             >
               Single Page
+            </button>
+            <button
+              onClick={() => updateSetting('readingMode', 'spread')}
+              className={`py-2 rounded-xl text-xs font-semibold border transition-all ${
+                settings.readingMode === 'spread'
+                  ? 'bg-rose-600 border-rose-500 text-white'
+                  : 'bg-slate-800 border-white/5 text-slate-400 hover:text-white'
+              }`}
+              title="Double Page Tankōbon spread for laptops and desktops"
+            >
+              Double Spread
             </button>
           </div>
         </div>
@@ -221,6 +232,41 @@ export default function ReaderSettingsModal({
               >
                 <span className="w-2.5 h-2.5 rounded-full border border-white/20" style={{ backgroundColor: th.color }} />
                 <span>{th.label}</span>
+              </button>
+            ))}
+          </div>
+        </div>
+
+        {/* Visual Color Filter Presets */}
+        <div>
+          <label className="text-xs text-slate-300 block mb-1.5 font-medium flex items-center justify-between">
+            <span className="flex items-center gap-1.5">
+              <Sun className="w-3.5 h-3.5 text-cyan-400" />
+              <span>Visual Filter</span>
+            </span>
+            <span className="text-[10px] text-cyan-400 font-mono font-bold uppercase">
+              {settings.visualFilter || 'normal'}
+            </span>
+          </label>
+          <div className="grid grid-cols-5 gap-1 text-[11px]">
+            {[
+              { id: 'normal', label: 'Normal' },
+              { id: 'oled', label: 'OLED' },
+              { id: 'sepia', label: 'Amber' },
+              { id: 'invert', label: 'Invert' },
+              { id: 'night', label: 'Night' },
+            ].map((flt) => (
+              <button
+                key={flt.id}
+                type="button"
+                onClick={() => updateSetting('visualFilter', flt.id)}
+                className={`py-1 rounded-lg font-semibold border transition-all text-center ${
+                  (settings.visualFilter || 'normal') === flt.id
+                    ? 'bg-cyan-600 border-cyan-500 text-white shadow-sm'
+                    : 'bg-slate-800 border-white/5 text-slate-400 hover:text-white'
+                }`}
+              >
+                {flt.label}
               </button>
             ))}
           </div>

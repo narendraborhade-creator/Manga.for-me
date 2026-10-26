@@ -361,3 +361,107 @@
   animation: shimmer 1.5s infinite;
   content: '';
 }
+
+/* ==========================================================================
+   4. HOLOGRAPHIC PROJECTION & POP-UP FX
+   ========================================================================== */
+@keyframes holoProjectAnim {
+  0% {
+    opacity: 0;
+    transform: scale(0.92) translateY(20px);
+    filter: blur(8px) brightness(1.7) hue-rotate(45deg);
+  }
+  40% {
+    opacity: 0.85;
+    transform: scale(1.015) translateY(-3px);
+    filter: blur(1.5px) brightness(1.2) hue-rotate(-10deg);
+  }
+  75% {
+    opacity: 0.95;
+    transform: scale(0.995) translateY(1px);
+    filter: blur(0px) brightness(1.05);
+  }
+  100% {
+    opacity: 1;
+    transform: scale(1) translateY(0);
+    filter: blur(0px) brightness(1);
+  }
+}
+
+.holo-modal-project {
+  animation: holoProjectAnim 0.38s cubic-bezier(0.16, 1, 0.3, 1) forwards;
+  transform-origin: center center;
+}
+
+/* Holographic Projector Laser Emitter Beams */
+.holo-emitter-top {
+  position: absolute;
+  top: 0;
+  left: 3%;
+  right: 3%;
+  height: 2.5px;
+  background: linear-gradient(90deg, transparent, #00f5d4 20%, #f43f5e 50%, #8b5cf6 80%, transparent);
+  box-shadow: 0 0 16px 2px #00f5d4, 0 0 28px 4px rgba(244, 63, 94, 0.6);
+  z-index: 40;
+  pointer-events: none;
+}
+
+.holo-emitter-bottom {
+  position: absolute;
+  bottom: 0;
+  left: 3%;
+  right: 3%;
+  height: 2.5px;
+  background: linear-gradient(90deg, transparent, #8b5cf6 20%, #f43f5e 50%, #00f5d4 80%, transparent);
+  box-shadow: 0 0 16px 2px #f43f5e, 0 0 28px 4px rgba(0, 245, 212, 0.6);
+  z-index: 40;
+  pointer-events: none;
+}
+
+/* Holographic Beam Sweep Overlay */
+@keyframes holoBeamSweep {
+  0% {
+    transform: translateY(-100%);
+    opacity: 0;
+  }
+  50% {
+    opacity: 0.35;
+  }
+  100% {
+    transform: translateY(100%);
+    opacity: 0;
+  }
+}
+
+.holo-beam-sweep {
+  position: absolute;
+  inset: 0;
+  pointer-events: none;
+  background: linear-gradient(to bottom, transparent, rgba(0, 245, 212, 0.05) 50%, transparent);
+  animation: holoBeamSweep 4.5s linear infinite;
+  z-index: 2;
+}
+
+/* Holographic Pop-up Floating Card */
+.holo-popup-card {
+  background: rgba(8, 12, 26, 0.95);
+  backdrop-filter: blur(28px) saturate(200%);
+  -webkit-backdrop-filter: blur(28px) saturate(200%);
+  border: 1px solid rgba(0, 245, 212, 0.45);
+  box-shadow: 0 24px 60px rgba(0, 0, 0, 0.9), 0 0 30px rgba(0, 245, 212, 0.25);
+}
+
+/* Reader Color Filters */
+.reader-filter-oled {
+  filter: contrast(108%) brightness(96%);
+}
+.reader-filter-sepia {
+  filter: sepia(0.38) contrast(98%) brightness(92%);
+}
+.reader-filter-invert {
+  filter: invert(1) hue-rotate(180deg);
+}
+.reader-filter-night {
+  filter: contrast(104%) brightness(82%) hue-rotate(-12deg);
+}
+

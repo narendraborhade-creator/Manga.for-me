@@ -9,7 +9,9 @@ import {
   Layers,
   Sparkles,
   Loader2,
-  RefreshCw
+  RefreshCw,
+  Eye,
+  Radio
 } from 'lucide-react';
 import { getFallbackCover, fetchMangaDetails, fetchMangaRecommendations, cleanTitle, decodeHtml, deduplicateChapters } from '../services/mangaApi';
 import { getReadChaptersForManga } from '../services/storage';
@@ -26,6 +28,7 @@ export default function MangaDetailModal({
   onRemoveBookmark,
   lastReadChapter
 }) {
+  const [activeMangaId, setActiveMangaId] = useState(mangaId);
   const [manga, setManga] = useState(null);
   const [chapters, setChapters] = useState([]);
   const [recommendations, setRecommendations] = useState([]);
@@ -36,10 +39,18 @@ export default function MangaDetailModal({
   const [chapterSort, setChapterSort] = useState('desc'); // 'asc' | 'desc'
   const [chapterSearch, setChapterSearch] = useState('');
   const [readChapterIds, setReadChapterIds] = useState([]);
+  
+  // Holographic chapter preview state
+  const [previewChapter, setPreviewChapter] = useState(null);
+  const [previewPos, setPreviewPos] = useState({ x: 0, y: 0 });
+
+  useEffect(() => {
+    setActiveMangaId(mangaId);
+  }, [mangaId]);
 
   // Fetch manga details and chapters
   const loadMangaData = useCallback((forceRefresh = false) => {
-    if (!mangaId) return;
+    if (!activeMangaId) return;
     if (forceRefresh) {
       setIsRefreshing(true);
     } else {
@@ -48,10 +59,10 @@ export default function MangaDetailModal({
     }
 
     // Load read chapters from history
-    const readList = getReadChaptersForManga(mangaId);
+    const readList = getReadChaptersForManga(activeMangaId);
     setReadChapterIds(readList);
 
-    fetchMangaDetails(mangaId, forceRefresh)
+    fetchMangaDetails(activeMangaId, forceRefresh)
       .then((data) => {
         if (data) {
           if (initialCoverUrl) {
@@ -70,7 +81,7 @@ export default function MangaDetailModal({
 
           // Fetch suggestions & recommendations for this manga
           setLoadingRecs(true);
-          fetchMangaRecommendations(mangaId, data.tags || [])
+          fetchMangaRecommendations(activeMangaId, data.tags || [])
             .then(recs => setRecommendations(recs || []))
             .catch(() => setRecommendations([]))
             .finally(() => setLoadingRecs(false));
@@ -84,7 +95,7 @@ export default function MangaDetailModal({
         setLoadingChapters(false);
         setIsRefreshing(false);
       });
-  }, [mangaId, initialCoverUrl, chapterSort]);
+  }, [activeMangaId, initialCoverUrl, chapterSort]);
 
   useEffect(() => {
     loadMangaData(false);
@@ -148,14 +159,31 @@ export default function MangaDetailModal({
 
   return (
     <div 
-      className="fixed inset-0 z-50 flex items-center justify-center p-0 sm:p-4 md:p-6 bg-black/80 backdrop-blur-md overflow-y-auto animate-fadeIn"
+      className="fixed inset-0 z-50 flex items-center justify-center p-0 sm:p-4 md:p-6 bg-black/85 backdrop-blur-md overflow-y-auto animate-fadeIn"
       onClick={onClose}
     >
       <div 
-        className="relative w-full max-w-4xl bg-[#080d1a]/95 border-0 sm:border border-cyan-500/35 rounded-none sm:rounded-3xl shadow-2xl overflow-y-auto overscroll-contain my-auto max-h-full sm:max-h-[90vh] h-full sm:h-auto flex flex-col glass-panel-elevated hud-corner holo-sheen scrollbar-thin scrollbar-thumb-cyan-500/30 scrollbar-track-transparent"
+        className="relative w-full max-w-4xl bg-[#080d1a]/95 border-0 sm:border border-cyan-500/35 rounded-none sm:rounded-3xl shadow-2xl overflow-y-auto overscroll-contain my-auto max-h-full sm:max-h-[90vh] h-full sm:h-auto flex flex-col glass-panel-elevated hud-corner holo-sheen holo-modal-project scrollbar-thin scrollbar-thumb-cyan-500/30 scrollbar-track-transparent"
         style={{ WebkitOverflowScrolling: 'touch' }}
         onClick={(e) => e.stopPropagation()}
       >
+        {/* Holographic Projector Emitter Laser Lines */}
+        <div className="holo-emitter-top" />
+        <div className="holo-emitter-bottom" />
+        <div className="holo-beam-sweep" />
+
+        {/* HUD Top Coordinates & Telemetry */}
+        <div className="absolute top-2.5 left-4 hidden sm:flex items-center gap-2 text-[10px] font-mono text-cyan-400/80 tracking-widest pointer-events-none z-20">
+          <span className="flex items-center gap-1">
+            <span className="w-1.5 h-1.5 rounded-full bg-cyan-400 animate-pulse" />
+            SYS_ID // 0x8F9C
+          </span>
+          <span className="text-slate-600">•</span>
+          <span>HOLO_STREAM // 60FPS</span>
+          <span className="text-slate-600">•</span>
+          <span className="text-rose-400">ENCRYPTED // TLS_v1.3</span>
+        </div>
+
         {/* Sticky Close Button */}
         <button
           aria-label="Close details"
@@ -268,13 +296,47 @@ export default function MangaDetailModal({
                   )}
 
                   {/* Tags */}
-                  <div className="flex flex-wrap justify-center sm:justify-start gap-1.5 mb-4">
+                  <div className="flex flex-wrap justify-center sm:justify-start gap-1.5 mb-3">
                     {(manga.tags || []).map((t, i) => (
                       <span key={i} className="text-[11px] text-slate-300 bg-white/5 border border-white/5 px-2 py-0.5 rounded-md">
                         {t}
                       </span>
                     ))}
                   </div>
+
+                  {/* Multi-Source Stream Switcher */}
+                  {manga.availableSources && manga.availableSources.length > 1 && (
+                    <div className="flex items-center justify-center sm:justify-start gap-1.5 flex-wrap mb-3.5 p-2 rounded-xl bg-slate-950/80 border border-cyan-500/25">
+                      <span className="text-[10px] font-mono font-bold uppercase text-cyan-400 flex items-center gap-1 mr-1">
+                        <Radio className="w-3 h-3 text-cyan-400 animate-pulse" /> Source Stream:
+                      </span>
+                      {manga.availableSources.map((src) => {
+                        const isSelected = src.id === activeMangaId;
+                        return (
+                          <button
+                            key={src.id}
+                            type="button"
+                            onClick={() => {
+                              if (src.id !== activeMangaId) {
+                                setActiveMangaId(src.id);
+                              }
+                            }}
+                            className={`px-2.5 py-1 rounded-lg text-xs font-semibold font-mono transition-all flex items-center gap-1.5 cursor-pointer ${
+                              isSelected
+                                ? 'btn-holo text-white shadow-md shadow-cyan-500/30 ring-1 ring-white/30'
+                                : 'bg-white/5 hover:bg-white/10 text-slate-300 border border-white/10 hover:border-cyan-500/30'
+                            }`}
+                            title={`Switch to ${src.sourceName} chapter feed`}
+                          >
+                            <span>{src.sourceName}</span>
+                            {src.totalChapters ? (
+                              <span className="text-[10px] opacity-80">({src.totalChapters} Ch)</span>
+                            ) : null}
+                          </button>
+                        );
+                      })}
+                    </div>
+                  )}
 
                   {/* Action Buttons: Read Now, Read Latest & Bookmark status selector */}
                   <div className="flex flex-col sm:flex-row items-stretch sm:items-center gap-2.5 sm:gap-3 w-full sm:w-auto">
@@ -430,6 +492,12 @@ export default function MangaDetailModal({
                     return (
                       <div
                         key={chap.id}
+                        onMouseEnter={(e) => {
+                          const rect = e.currentTarget.getBoundingClientRect();
+                          setPreviewPos({ x: rect.right, y: rect.top });
+                          setPreviewChapter(chap);
+                        }}
+                        onMouseLeave={() => setPreviewChapter(null)}
                         onClick={() => {
                           onClose();
                           onOpenReader(
@@ -495,6 +563,20 @@ export default function MangaDetailModal({
                         </div>
 
                         <div className="flex items-center gap-2">
+                          <button
+                            type="button"
+                            aria-label="Preview chapter"
+                            onClick={(e) => {
+                              e.stopPropagation();
+                              const rect = e.currentTarget.getBoundingClientRect();
+                              setPreviewPos({ x: rect.left, y: rect.top });
+                              setPreviewChapter(previewChapter?.id === chap.id ? null : chap);
+                            }}
+                            className="p-1 rounded-md text-slate-400 hover:text-cyan-300 hover:bg-cyan-500/10 transition-colors"
+                            title="Holographic Preview"
+                          >
+                            <Eye className="w-3.5 h-3.5" />
+                          </button>
                           <span className="opacity-0 group-hover:opacity-100 text-xs font-bold text-rose-400 flex items-center gap-1 transition-opacity">
                             Read
                             <Play className="w-3 h-3 fill-rose-400" />
@@ -555,6 +637,65 @@ export default function MangaDetailModal({
               </div>
             </div>
           </>
+        )}
+
+        {/* Floating Holographic Chapter Preview Pop-up */}
+        {previewChapter && (
+          <div 
+            className="fixed z-[60] holo-popup-card rounded-2xl p-3.5 max-w-xs text-left animate-fadeIn shadow-2xl border border-cyan-400/60 pointer-events-auto"
+            style={{
+              left: Math.min(window.innerWidth - 320, Math.max(16, previewPos.x - 300)),
+              top: Math.max(16, Math.min(window.innerHeight - 220, previewPos.y - 20)),
+            }}
+          >
+            <div className="flex items-center justify-between text-[10px] font-mono text-cyan-300 font-bold border-b border-cyan-500/30 pb-1.5 mb-2">
+              <span className="flex items-center gap-1">
+                <span className="w-1.5 h-1.5 rounded-full bg-cyan-400 animate-ping" />
+                HOLO_TELEMETRY // CH.{previewChapter.chapter}
+              </span>
+              <button 
+                type="button"
+                onClick={() => setPreviewChapter(null)}
+                className="text-slate-400 hover:text-white p-0.5 rounded cursor-pointer"
+              >
+                ✕
+              </button>
+            </div>
+            <div className="space-y-1.5">
+              <h5 className="text-xs font-bold text-white line-clamp-2 font-['Outfit']">
+                {previewChapter.title || `Chapter ${previewChapter.chapter}`}
+              </h5>
+              <div className="flex items-center gap-2 text-[10px] font-mono text-slate-300">
+                <span className="px-1.5 py-0.5 rounded bg-cyan-950/60 border border-cyan-500/30 text-cyan-300 font-semibold">
+                  {manga.sourceName || 'Manga'}
+                </span>
+                {previewChapter.publishedAt && (
+                  <span>• {formatDate(previewChapter.publishedAt)}</span>
+                )}
+              </div>
+            </div>
+            <div className="mt-3 pt-2 border-t border-white/10 flex items-center justify-between gap-2">
+              <span className="text-[10px] font-mono text-slate-400">STATUS: READY</span>
+              <button
+                type="button"
+                onClick={() => {
+                  onClose();
+                  onOpenReader(
+                    manga.id,
+                    previewChapter.id,
+                    previewChapter.chapter,
+                    manga.title,
+                    initialCoverUrl || manga.coverUrl,
+                    manga.englishTitle || null
+                  );
+                }}
+                className="px-3 py-1 rounded-lg btn-holo text-white text-[11px] font-bold flex items-center gap-1 shadow-sm cursor-pointer"
+              >
+                <span>Read</span>
+                <Play className="w-3 h-3 fill-white" />
+              </button>
+            </div>
+          </div>
         )}
       </div>
     </div>

@@ -178,16 +178,41 @@ export async function getMangaDexDetails(rawId, bypassCache = false) {
 
     const formatted = formatMangaDexItem(item);
 
-    // 2. Fetch Chapters (English, sorted descending, up to 100, hosted only)
+    // 2. Fetch Chapters (English, sorted descending, up to 500 per batch, paginating if total > 500)
     let chapters = [];
     try {
-      const feedUrl = `${BASE_URL}/manga/${cleanId}/feed?translatedLanguage[]=en&order[chapter]=desc&limit=100&includeExternalUrl=0&contentRating[]=safe&contentRating[]=suggestive`;
-      const feedRes = await fetchWithTimeout(feedUrl, {}, 8000);
-      if (feedRes.ok) {
-        const feedData = await feedRes.json();
-        const seenChapters = new Set();
+      const initialFeedUrl = `${BASE_URL}/manga/${cleanId}/feed?translatedLanguage[]=en&order[chapter]=desc&limit=500&offset=0&includeExternalUrl=0&contentRating[]=safe&contentRating[]=suggestive`;
+      const initialRes = await fetchWithTimeout(initialFeedUrl, {}, 8000);
+      if (initialRes.ok) {
+        const feedData = await initialRes.json();
+        let rawFeedChapters = feedData.data || [];
+        const totalChaptersCount = feedData.total || 0;
 
-        chapters = (feedData.data || [])
+        // If total chapters exceed 500, fetch additional batches in parallel (up to 1500 chapters)
+        if (totalChaptersCount > 500) {
+          const remainingBatches = [];
+          const maxToFetch = Math.min(totalChaptersCount, 1500);
+          for (let offset = 500; offset < maxToFetch; offset += 500) {
+            const nextUrl = `${BASE_URL}/manga/${cleanId}/feed?translatedLanguage[]=en&order[chapter]=desc&limit=500&offset=${offset}&includeExternalUrl=0&contentRating[]=safe&contentRating[]=suggestive`;
+            remainingBatches.push(
+              fetchWithTimeout(nextUrl, {}, 8000)
+                .then(r => r.ok ? r.json() : null)
+                .then(json => json?.data || [])
+                .catch(() => [])
+            );
+          }
+          if (remainingBatches.length > 0) {
+            const extraBatches = await Promise.all(remainingBatches);
+            for (const batch of extraBatches) {
+              if (Array.isArray(batch)) {
+                rawFeedChapters = rawFeedChapters.concat(batch);
+              }
+            }
+          }
+        }
+
+        const seenChapters = new Set();
+        chapters = rawFeedChapters
           .map(ch => {
             if (ch.attributes?.externalUrl) return null;
             if (ch.attributes?.pages === 0) return null;
@@ -205,6 +230,7 @@ export async function getMangaDexDetails(rawId, bypassCache = false) {
               chapter: chNum,
               title: chTitle ? `Ch. ${chNum} - ${chTitle}` : `Chapter ${chNum}`,
               date: publishAt ? publishAt.slice(0, 10) : 'Recent',
+              publishedAt: publishAt || null,
               source: 'MangaDex',
             };
           })

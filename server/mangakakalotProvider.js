@@ -267,3 +267,71 @@ export async function getMangaKakalotChapterPages(rawChapterId) {
     throw err;
   }
 }
+
+/**
+ * Search Manga on MangaKakalot / KakaManga
+ */
+export async function searchMangaKakalot(query = '') {
+  if (!query || !query.trim()) return [];
+  const q = query.trim();
+  const cacheKey = `mk_search_${q.toLowerCase()}`;
+  const cached = getCached(cacheKey);
+  if (cached) return cached;
+
+  try {
+    const searchUrl = `${BASE_URL}/search?q=${encodeURIComponent(q)}`;
+    const res = await fetchWithTimeout(searchUrl, { headers: HEADERS }, 6000);
+    if (!res.ok) return [];
+    const html = await res.text();
+
+    const list = [];
+    const parts = html.split(/<div class="itemupdate/i);
+    for (let i = 1; i < parts.length; i++) {
+      const block = parts[i];
+      const linkMatch = block.match(/href="https:\/\/www\.kakamanga\.com\/manga\/([^"/]+)"/i) || block.match(/href="\/manga\/([^"/]+)"/i);
+      const imgMatch = block.match(/<img[^>]+(?:data-src|src)="([^"]+)"[^>]*alt="([^"]*)"/i) || block.match(/<img[^>]*alt="([^"]*)"[^>]+(?:data-src|src)="([^"]+)"/i);
+
+      if (linkMatch) {
+        const slug = linkMatch[1];
+        let rawTitle = slug.replace(/-/g, ' ');
+        let rawCover = '';
+
+        if (imgMatch) {
+          if (imgMatch[1]?.startsWith('http')) {
+            rawCover = imgMatch[1];
+            if (imgMatch[2]) rawTitle = imgMatch[2];
+          } else if (imgMatch[2]?.startsWith('http')) {
+            rawCover = imgMatch[2];
+            if (imgMatch[1]) rawTitle = imgMatch[1];
+          }
+        }
+
+        if (!rawCover) {
+          rawCover = `https://img-r1.2xstorage.com/thumb/${slug}.webp`;
+        }
+
+        list.push({
+          id: `mk:${slug}`,
+          slug,
+          title: cleanTitle(rawTitle),
+          englishTitle: cleanTitle(rawTitle),
+          coverUrl: rawCover,
+          status: 'Ongoing',
+          author: 'MangaKakalot',
+          tags: ['Manga', 'Action'],
+          sourceName: 'MangaKakalot',
+          provider: 'mangakakalot',
+        });
+      }
+    }
+
+    if (list.length > 0) {
+      setCache(cacheKey, list);
+    }
+    return list;
+  } catch (err) {
+    console.warn('searchMangaKakalot error:', err.message);
+    return [];
+  }
+}
+

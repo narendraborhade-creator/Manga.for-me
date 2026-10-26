@@ -10,14 +10,19 @@ export default function SinglePageView({
   handleSinglePageNext,
   handleReaderTap,
   prevChapter,
-  nextChapter
+  nextChapter,
+  settings = {}
 }) {
   const [hasError, setHasError] = useState(false);
   const [isReloading, setIsReloading] = useState(false);
   const [currentSrc, setCurrentSrc] = useState('');
   const retriedCountRef = useRef(0);
 
+  const isSpread = settings?.readingMode === 'spread';
+  const totalPages = loadedChapters[0]?.pages?.length || 0;
+
   const curPage = loadedChapters[0]?.pages?.[singlePageNum - 1];
+  const secondPage = isSpread && singlePageNum < totalPages ? loadedChapters[0]?.pages?.[singlePageNum] : null;
   const chapterId = loadedChapters[0]?.id;
 
   useEffect(() => {
@@ -64,7 +69,7 @@ export default function SinglePageView({
   if (!loadedChapters[0]?.pages?.length) return null;
 
   return (
-    <div className="flex flex-col items-center justify-center w-full max-w-4xl px-0 sm:px-4 select-none my-auto">
+    <div className={`flex flex-col items-center justify-center w-full ${isSpread ? 'max-w-6xl' : 'max-w-4xl'} px-0 sm:px-4 select-none my-auto`}>
       <div
         className="relative w-full flex items-center justify-center bg-black/40 sm:rounded-2xl overflow-hidden shadow-2xl cursor-pointer"
         onClick={handleReaderTap}
@@ -91,6 +96,25 @@ export default function SinglePageView({
               <RotateCw className={`w-3.5 h-3.5 ${isReloading ? 'animate-spin' : ''}`} />
               <span>{isReloading ? 'Reloading...' : 'Tap to Reload Page'}</span>
             </button>
+          </div>
+        ) : isSpread && secondPage ? (
+          <div className={`flex flex-row items-center justify-center gap-1 sm:gap-3 w-full max-h-[88vh] ${settings?.readingDirection === 'rtl' ? 'flex-row-reverse' : ''}`}>
+            {/* Page 1 */}
+            <img
+              src={currentSrc}
+              alt={`Page ${singlePageNum}`}
+              referrerPolicy="no-referrer"
+              onError={handleImageError}
+              onLoad={handleImageLoad}
+              className="w-1/2 max-h-[88vh] object-contain"
+            />
+            {/* Page 2 */}
+            <img
+              src={secondPage.url}
+              alt={`Page ${singlePageNum + 1}`}
+              referrerPolicy="no-referrer"
+              className="w-1/2 max-h-[88vh] object-contain"
+            />
           </div>
         ) : (
           <img
@@ -124,7 +148,7 @@ export default function SinglePageView({
         <button
           disabled={singlePageNum <= 1 && !prevChapter}
           onClick={handleSinglePagePrev}
-          className="p-2 rounded-xl bg-slate-900 border border-white/10 disabled:opacity-30"
+          className="p-2 rounded-xl bg-slate-900 border border-white/10 disabled:opacity-30 cursor-pointer"
         >
           <ChevronLeft className="w-4 h-4" />
         </button>
@@ -132,23 +156,29 @@ export default function SinglePageView({
         <input
           type="range"
           min={1}
-          max={loadedChapters[0].pages.length}
+          max={totalPages}
           value={singlePageNum}
           onChange={(e) => {
             const p = Number(e.target.value);
             setSinglePageNum(p);
             setActivePageNumber(p);
           }}
-          className="flex-1 accent-rose-500 cursor-pointer"
+          className="flex-1 accent-cyan-400 cursor-pointer"
         />
 
         <button
-          disabled={singlePageNum >= loadedChapters[0].pages.length && !nextChapter}
+          disabled={singlePageNum >= totalPages && !nextChapter}
           onClick={handleSinglePageNext}
-          className="p-2 rounded-xl bg-slate-900 border border-white/10 disabled:opacity-30"
+          className="p-2 rounded-xl bg-slate-900 border border-white/10 disabled:opacity-30 cursor-pointer"
         >
           <ChevronRight className="w-4 h-4" />
         </button>
+      </div>
+
+      <div className="text-xs font-mono text-cyan-300 font-bold mt-2">
+        {isSpread && secondPage
+          ? `Pages ${singlePageNum} - ${singlePageNum + 1} of ${totalPages}`
+          : `Page ${singlePageNum} of ${totalPages}`}
       </div>
     </div>
   );

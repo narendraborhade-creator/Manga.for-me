@@ -30,6 +30,7 @@ import {
 } from './mangadexProvider.js';
 import {
   getPopularMangaKakalot,
+  searchMangaKakalot,
   getMangaKakalotDetails,
   getMangaKakalotChapterPages
 } from './mangakakalotProvider.js';
@@ -242,40 +243,59 @@ export async function getPopularManga() {
 }
 
 /**
- * Search Manga & Webtoons across multiple sources
+ * Search Manga & Webtoons across prioritized sources
+ * Ranked strictly by chapter completeness:
+ * 1. WeebCentral (complete scanlation archives from Ch. 1, 15,000+ titles)
+ * 2. MangaDex (official & community scanlations with full chapters)
+ * 3. MangaKakalot / KakaManga (deep back-catalog for classic/completed series)
+ * 4. Asura Scans (fastest manhwa/manhua weekly chapters)
+ * 5. Vortex Scans (high-speed manhwa/manhua scanlations)
+ * 6. Webtoon (high-res verified color catalog)
+ * 7. MangaPill (clean mirror fallback)
  */
 export async function searchManga(query = '') {
   if (!query || !query.trim()) return getPopularManga();
 
-  const cacheKey = `search_v6_${query.trim().toLowerCase()}`;
+  const cacheKey = `search_v7_${query.trim().toLowerCase()}`;
   const cached = getCached(cacheKey);
   if (cached) return cached;
 
   try {
-    // Run MangaDex, Webtoon provider, Asura Scans, Vortex Scans, WeebCentral, and MangaPill in parallel
-    const [dexMatches, webtoonMatches, asuraMatches, vortexMatches, weebCentralMatches, mangapillMatches] = await Promise.all([
-      searchMangaDex(query, 12).catch((e) => {
-        console.error('searchMangaDex error:', e);
+    const [
+      weebCentralMatches,
+      dexMatches,
+      mkMatches,
+      asuraMatches,
+      vortexMatches,
+      webtoonMatches,
+      mangapillMatches
+    ] = await Promise.all([
+      searchWeebCentral(query).catch((e) => {
+        console.error('searchWeebCentral error:', e.message);
         return [];
       }),
-      searchWebtoons(query).catch((e) => {
-        console.error('searchWebtoons error:', e);
+      searchMangaDex(query, 12).catch((e) => {
+        console.error('searchMangaDex error:', e.message);
+        return [];
+      }),
+      searchMangaKakalot(query).catch((e) => {
+        console.error('searchMangaKakalot error:', e.message);
         return [];
       }),
       searchAsura(query).catch((e) => {
-        console.error('searchAsura error:', e);
+        console.error('searchAsura error:', e.message);
         return [];
       }),
       searchVortex(query).catch((e) => {
-        console.error('searchVortex error:', e);
+        console.error('searchVortex error:', e.message);
         return [];
       }),
-      searchWeebCentral(query).catch((e) => {
-        console.error('searchWeebCentral error:', e);
+      searchWebtoons(query).catch((e) => {
+        console.error('searchWebtoons error:', e.message);
         return [];
       }),
       fetchMangaPillSearch(query).catch((e) => {
-        console.error('fetchMangaPillSearch error:', e);
+        console.error('fetchMangaPillSearch error:', e.message);
         return [];
       }),
     ]);
@@ -283,39 +303,7 @@ export async function searchManga(query = '') {
     const seen = new Set();
     const combined = [];
 
-    // 1. MangaDex matches (flagship Keiyoushi source)
-    dexMatches.forEach((item) => {
-      if (!seen.has(item.id)) {
-        combined.push({ ...item, sourceName: 'MangaDex' });
-        seen.add(item.id);
-      }
-    });
-
-    // 2. Webtoon curated catalog matches (Stepmother, Solo Leveling, ORV)
-    webtoonMatches.forEach((item) => {
-      if (!seen.has(item.id)) {
-        combined.push({ ...item, sourceName: item.sourceName || 'Webtoon' });
-        seen.add(item.id);
-      }
-    });
-
-    // 3. Asura Scans matches (hundreds of top manhwa)
-    asuraMatches.forEach((item) => {
-      if (!seen.has(item.id)) {
-        combined.push({ ...item, sourceName: 'Asura Scans' });
-        seen.add(item.id);
-      }
-    });
-
-    // 4. Vortex Scans matches (high-demand action/fantasy manhwa)
-    vortexMatches.forEach((item) => {
-      if (!seen.has(item.id)) {
-        combined.push({ ...item, sourceName: 'Vortex Scans' });
-        seen.add(item.id);
-      }
-    });
-
-    // 5. WeebCentral matches
+    // 1. WeebCentral matches (Ranked #1 for complete chapter scanlations)
     weebCentralMatches.forEach((item) => {
       if (!seen.has(item.id)) {
         combined.push({ ...item, sourceName: 'WeebCentral' });
@@ -323,7 +311,47 @@ export async function searchManga(query = '') {
       }
     });
 
-    // 6. MangaPill matches
+    // 2. MangaDex matches (Ranked #2 for official & high-quality scanlations)
+    dexMatches.forEach((item) => {
+      if (!seen.has(item.id)) {
+        combined.push({ ...item, sourceName: 'MangaDex' });
+        seen.add(item.id);
+      }
+    });
+
+    // 3. MangaKakalot matches (Ranked #3 for extensive catalog)
+    mkMatches.forEach((item) => {
+      if (!seen.has(item.id)) {
+        combined.push({ ...item, sourceName: 'MangaKakalot' });
+        seen.add(item.id);
+      }
+    });
+
+    // 4. Asura Scans matches (Ranked #4 for weekly manhwa)
+    asuraMatches.forEach((item) => {
+      if (!seen.has(item.id)) {
+        combined.push({ ...item, sourceName: 'Asura Scans' });
+        seen.add(item.id);
+      }
+    });
+
+    // 5. Vortex Scans matches (Ranked #5 for manhwa/manhua)
+    vortexMatches.forEach((item) => {
+      if (!seen.has(item.id)) {
+        combined.push({ ...item, sourceName: 'Vortex Scans' });
+        seen.add(item.id);
+      }
+    });
+
+    // 6. Webtoon curated catalog matches (Stepmother, Solo Leveling, ORV)
+    webtoonMatches.forEach((item) => {
+      if (!seen.has(item.id)) {
+        combined.push({ ...item, sourceName: item.sourceName || 'Webtoon' });
+        seen.add(item.id);
+      }
+    });
+
+    // 7. MangaPill matches (Ranked #7 for fallback)
     mangapillMatches.forEach((item) => {
       if (!seen.has(item.id)) {
         combined.push({ ...item, sourceName: 'MangaPill' });
@@ -395,6 +423,67 @@ async function fetchMangaPillSearch(query = '') {
   return list;
 }
 
+async function resolveAvailableSources(title, currentId, currentSourceName, currentTotalChapters) {
+  const sources = [
+    {
+      id: currentId,
+      sourceName: currentSourceName || 'Primary',
+      totalChapters: currentTotalChapters || 0,
+      isCurrent: true,
+    }
+  ];
+
+  if (!title) return sources;
+
+  const cacheKey = `avail_src_${title.toLowerCase().replace(/[^a-z0-9]/g, '')}`;
+  const cached = getCached(cacheKey);
+  if (cached && Array.isArray(cached) && cached.length > 0) {
+    return cached.map(s => ({ ...s, isCurrent: s.id === currentId }));
+  }
+
+  try {
+    const clean = title.replace(/[^\w\s]/gi, ' ').trim();
+    if (!clean || clean.length < 2) return sources;
+
+    const [wc, md, mk] = await Promise.all([
+      searchWeebCentral(clean).catch(() => []),
+      searchMangaDex(clean, 4).catch(() => []),
+      searchMangaKakalot(clean).catch(() => []),
+    ]);
+
+    const targetLower = clean.toLowerCase();
+    const seenSources = new Set([sources[0].sourceName]);
+
+    const addIfMatch = (item) => {
+      if (!item || !item.id || item.id === currentId) return;
+      if (seenSources.has(item.sourceName)) return;
+      const tLower = (item.title || '').toLowerCase();
+      const engLower = (item.englishTitle || '').toLowerCase();
+      if (
+        tLower.includes(targetLower) ||
+        targetLower.includes(tLower) ||
+        (engLower && (engLower.includes(targetLower) || targetLower.includes(engLower)))
+      ) {
+        seenSources.add(item.sourceName);
+        sources.push({
+          id: item.id,
+          sourceName: item.sourceName,
+          totalChapters: item.totalChapters || null,
+          isCurrent: false,
+        });
+      }
+    };
+
+    wc.slice(0, 3).forEach(addIfMatch);
+    md.slice(0, 3).forEach(addIfMatch);
+    mk.slice(0, 3).forEach(addIfMatch);
+
+    setCache(cacheKey, sources);
+  } catch {}
+
+  return sources;
+}
+
 /**
  * Get Manga Details & Complete Chapters List
  */
@@ -410,43 +499,47 @@ export async function getMangaDetails(mangaId, bypassCache = false) {
   ) {
     const details = await getWebtoonDetails('webtoon:stepmother-second-life', bypassCache);
     if (details) {
+      const uniqueChapters = deduplicateChapters(details.chapters || []);
+      const sources = await resolveAvailableSources(details.englishTitle || details.title, mangaId, 'Webtoon', uniqueChapters.length);
       return {
         ...details,
         id: mangaId,
         aliasId: 'webtoon:stepmother-second-life',
+        chapters: uniqueChapters,
+        totalChapters: uniqueChapters.length,
+        availableSources: sources,
       };
     }
   }
 
+  let resolvedDetails = null;
+
   if (mangaId.startsWith('md:') || mangaId.startsWith('mangadex:')) {
-    const d = await getMangaDexDetails(mangaId, bypassCache);
-    if (d && Array.isArray(d.chapters)) d.chapters = deduplicateChapters(d.chapters);
-    return d;
+    resolvedDetails = await getMangaDexDetails(mangaId, bypassCache);
+  } else if (mangaId.startsWith('asura:')) {
+    resolvedDetails = await getAsuraDetails(mangaId);
+  } else if (mangaId.startsWith('vortex:')) {
+    resolvedDetails = await getVortexDetails(mangaId);
+  } else if (mangaId.startsWith('webtoon:')) {
+    resolvedDetails = await getWebtoonDetails(mangaId, bypassCache);
+  } else if (mangaId.startsWith('wc:')) {
+    resolvedDetails = await getWeebCentralDetails(mangaId.replace('wc:', ''), '', bypassCache);
+  } else if (mangaId.startsWith('mk:')) {
+    resolvedDetails = await getMangaKakalotDetails(mangaId, bypassCache);
   }
-  if (mangaId.startsWith('asura:')) {
-    const d = await getAsuraDetails(mangaId);
-    if (d && Array.isArray(d.chapters)) d.chapters = deduplicateChapters(d.chapters);
-    return d;
-  }
-  if (mangaId.startsWith('vortex:')) {
-    const d = await getVortexDetails(mangaId);
-    if (d && Array.isArray(d.chapters)) d.chapters = deduplicateChapters(d.chapters);
-    return d;
-  }
-  if (mangaId.startsWith('webtoon:')) {
-    const d = await getWebtoonDetails(mangaId, bypassCache);
-    if (d && Array.isArray(d.chapters)) d.chapters = deduplicateChapters(d.chapters);
-    return d;
-  }
-  if (mangaId.startsWith('wc:')) {
-    const d = await getWeebCentralDetails(mangaId.replace('wc:', ''), '', bypassCache);
-    if (d && Array.isArray(d.chapters)) d.chapters = deduplicateChapters(d.chapters);
-    return d;
-  }
-  if (mangaId.startsWith('mk:')) {
-    const d = await getMangaKakalotDetails(mangaId, bypassCache);
-    if (d && Array.isArray(d.chapters)) d.chapters = deduplicateChapters(d.chapters);
-    return d;
+
+  if (resolvedDetails) {
+    if (Array.isArray(resolvedDetails.chapters)) {
+      resolvedDetails.chapters = deduplicateChapters(resolvedDetails.chapters);
+      resolvedDetails.totalChapters = resolvedDetails.chapters.length;
+    }
+    resolvedDetails.availableSources = await resolveAvailableSources(
+      resolvedDetails.englishTitle || resolvedDetails.title,
+      resolvedDetails.id,
+      resolvedDetails.sourceName,
+      resolvedDetails.totalChapters
+    );
+    return resolvedDetails;
   }
 
   const cacheKey = `details_v4_${mangaId}`;
@@ -518,6 +611,8 @@ export async function getMangaDetails(mangaId, bypassCache = false) {
     // Ensure chapters are unique and sorted descending
     const dedupedChapters = deduplicateChapters(chapters);
 
+    const sources = await resolveAvailableSources(englishTitle || title, mangaId, 'MangaPill', dedupedChapters.length);
+
     const result = {
       id: mangaId,
       title,
@@ -530,6 +625,7 @@ export async function getMangaDetails(mangaId, bypassCache = false) {
       tags: genres.length > 0 ? genres : ['Manga', 'Action'],
       chapters: dedupedChapters,
       totalChapters: dedupedChapters.length,
+      availableSources: sources,
     };
 
     setCache(cacheKey, result);
@@ -659,13 +755,133 @@ const FALLBACK_PAGE_SVG = `<svg xmlns="http://www.w3.org/2000/svg" width="800" h
 </svg>`;
 
 /**
+ * Strict SSRF & Pentest-proof URL Validator
+ * Blocks loopback, RFC1918 private subnets, cloud metadata (169.254.169.254),
+ * local domains, non-HTTP/S protocols, non-standard ports, and credential embedding.
+ */
+export function isValidProxyTarget(rawUrl) {
+  if (!rawUrl || typeof rawUrl !== 'string') return false;
+  if (rawUrl.length > 2048) return false;
+  // Reject null-bytes, newlines, or control characters safely
+  for (let i = 0; i < rawUrl.length; i++) {
+    const code = rawUrl.charCodeAt(i);
+    if ((code >= 0 && code <= 31) || code === 127) return false;
+  }
+
+  let parsed;
+  try {
+    parsed = new URL(rawUrl);
+  } catch {
+    return false;
+  }
+
+  // Protocol must strictly be http: or https:
+  if (parsed.protocol !== 'http:' && parsed.protocol !== 'https:') {
+    return false;
+  }
+
+  // Reject credentials in URL
+  if (parsed.username || parsed.password) {
+    return false;
+  }
+
+  // Reject non-standard ports (only 80, 443, or empty allowed)
+  if (parsed.port && parsed.port !== '80' && parsed.port !== '443') {
+    return false;
+  }
+
+  const hostname = parsed.hostname.toLowerCase().trim();
+
+  // Reject empty or local hostnames without domain
+  if (!hostname || !hostname.includes('.')) {
+    return false;
+  }
+
+  // Block localhost, .local, .internal, .lan, .corp, etc.
+  if (
+    hostname === 'localhost' ||
+    hostname.endsWith('.localhost') ||
+    hostname.endsWith('.local') ||
+    hostname.endsWith('.internal') ||
+    hostname.endsWith('.lan') ||
+    hostname.endsWith('.corp') ||
+    hostname.endsWith('.home') ||
+    hostname.endsWith('.onion')
+  ) {
+    return false;
+  }
+
+  // IPv6 checks
+  if (hostname.startsWith('[') || hostname.includes(':')) {
+    const cleanIpv6 = hostname.replace(/[[\]]/g, '').toLowerCase();
+    if (
+      cleanIpv6 === '::1' ||
+      cleanIpv6 === '::' ||
+      cleanIpv6.startsWith('fe80:') ||
+      cleanIpv6.startsWith('fc00:') ||
+      cleanIpv6.startsWith('fd00:')
+    ) {
+      return false;
+    }
+  }
+
+  // IPv4 & numeric checks (including octal, hex, decimal integer bypasses)
+  if (/^\d+$/.test(hostname) || /^0x[0-9a-f]+$/i.test(hostname)) {
+    return false;
+  }
+
+  const ipv4Regex = /^(\d+)\.(\d+)\.(\d+)\.(\d+)$/;
+  const ipMatch = hostname.match(ipv4Regex);
+
+  if (ipMatch) {
+    const octets = [
+      parseInt(ipMatch[1], 10),
+      parseInt(ipMatch[2], 10),
+      parseInt(ipMatch[3], 10),
+      parseInt(ipMatch[4], 10),
+    ];
+
+    // 127.0.0.0/8 - Loopback
+    if (octets[0] === 127) return false;
+    // 0.0.0.0/8 - Current network
+    if (octets[0] === 0) return false;
+    // 10.0.0.0/8 - RFC 1918 Private
+    if (octets[0] === 10) return false;
+    // 172.16.0.0/12 - RFC 1918 Private (172.16.0.0 - 172.31.255.255)
+    if (octets[0] === 172 && octets[1] >= 16 && octets[1] <= 31) return false;
+    // 192.168.0.0/16 - RFC 1918 Private
+    if (octets[0] === 192 && octets[1] === 168) return false;
+    // 169.254.0.0/16 - Link-local & Cloud Metadata (169.254.169.254)
+    if (octets[0] === 169 && octets[1] === 254) return false;
+    // 100.64.0.0/10 - Shared Address Space (Carrier-grade NAT)
+    if (octets[0] === 100 && octets[1] >= 64 && octets[1] <= 127) return false;
+    // Documentation / TEST-NET
+    if (octets[0] === 192 && octets[1] === 0 && (octets[2] === 0 || octets[2] === 2)) return false;
+    if (octets[0] === 198 && (octets[1] === 18 || octets[1] === 19 || octets[1] === 51)) return false;
+    if (octets[0] === 203 && octets[1] === 0 && octets[2] === 113) return false;
+    // 224.0.0.0/4 - Multicast
+    if (octets[0] >= 224 && octets[0] <= 239) return false;
+    // 240.0.0.0/4 - Reserved
+    if (octets[0] >= 240) return false;
+  }
+
+  return true;
+}
+
+const MAX_IMAGE_SIZE_BYTES = 15 * 1024 * 1024; // 15MB DoS memory exhaustion cap
+
+/**
  * Proxy Image with proper Referer to bypass CDN hotlink protection
+ * Hardened with SSRF prevention, size caps, and security response headers
  */
 export async function proxyImage(imageUrl, res) {
-  if (!imageUrl) {
+  if (!imageUrl || !isValidProxyTarget(imageUrl)) {
     if (!res.headersSent) {
       res.setHeader('Content-Type', 'image/svg+xml');
       res.setHeader('Cache-Control', 'public, max-age=60');
+      res.setHeader('X-Content-Type-Options', 'nosniff');
+      res.setHeader('X-Frame-Options', 'DENY');
+      res.setHeader('Content-Security-Policy', "default-src 'none'; img-src 'self' data:; style-src 'unsafe-inline'");
       res.end(FALLBACK_PAGE_SVG);
     }
     return;
@@ -734,9 +950,15 @@ export async function proxyImage(imageUrl, res) {
             'Accept': 'image/avif,image/webp,image/apng,image/svg+xml,image/*,*/*;q=0.8',
             ...(ref ? { 'Referer': ref } : {}),
           },
-        }, 5500);
+        }, 6500);
 
         if (testRes.ok) {
+          // Check content-length header to prevent memory exhaustion DoS
+          const cl = parseInt(testRes.headers.get('content-length') || '0', 10);
+          if (cl > MAX_IMAGE_SIZE_BYTES) {
+            console.warn(`proxyImage rejected: size ${cl} exceeds ${MAX_IMAGE_SIZE_BYTES}`);
+            break;
+          }
           finalRes = testRes;
           break;
         }
@@ -747,22 +969,55 @@ export async function proxyImage(imageUrl, res) {
       if (!res.headersSent) {
         res.setHeader('Content-Type', 'image/svg+xml');
         res.setHeader('Cache-Control', 'public, max-age=60');
+        res.setHeader('X-Content-Type-Options', 'nosniff');
+        res.setHeader('X-Frame-Options', 'DENY');
+        res.setHeader('Content-Security-Policy', "default-src 'none'; img-src 'self' data:; style-src 'unsafe-inline'");
         res.end(FALLBACK_PAGE_SVG);
       }
       return;
     }
 
-    const contentType = finalRes.headers.get('content-type') || 'image/jpeg';
+    const rawContentType = finalRes.headers.get('content-type') || 'image/jpeg';
+    // Reject non-image responses (e.g. text/html or scripts)
+    const lowerCt = rawContentType.toLowerCase();
+    if (
+      lowerCt.includes('text/html') || 
+      lowerCt.includes('javascript') || 
+      lowerCt.includes('application/json')
+    ) {
+      if (!res.headersSent) {
+        res.setHeader('Content-Type', 'image/svg+xml');
+        res.setHeader('Cache-Control', 'public, max-age=60');
+        res.setHeader('X-Content-Type-Options', 'nosniff');
+        res.end(FALLBACK_PAGE_SVG);
+      }
+      return;
+    }
+
+    const contentType = lowerCt.startsWith('image/') ? rawContentType : 'image/jpeg';
     res.setHeader('Content-Type', contentType);
     res.setHeader('Cache-Control', 'public, max-age=86400, immutable');
+    res.setHeader('X-Content-Type-Options', 'nosniff');
+    res.setHeader('X-Frame-Options', 'DENY');
+    res.setHeader('Referrer-Policy', 'no-referrer');
+    res.setHeader('Content-Security-Policy', "default-src 'none'; img-src 'self' data:; style-src 'unsafe-inline'");
 
     const buffer = await finalRes.arrayBuffer();
+    if (buffer.byteLength > MAX_IMAGE_SIZE_BYTES) {
+      if (!res.headersSent) {
+        res.setHeader('Content-Type', 'image/svg+xml');
+        res.end(FALLBACK_PAGE_SVG);
+      }
+      return;
+    }
+
     res.end(Buffer.from(buffer));
   } catch (err) {
     console.warn('proxyImage fetch warning:', err.message);
     if (!res.headersSent) {
       res.setHeader('Content-Type', 'image/svg+xml');
       res.setHeader('Cache-Control', 'public, max-age=60');
+      res.setHeader('X-Content-Type-Options', 'nosniff');
       res.end(FALLBACK_PAGE_SVG);
     }
   }

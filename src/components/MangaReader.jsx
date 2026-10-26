@@ -142,8 +142,25 @@ export default function MangaReader({
       brightness: saved.brightness ?? 100,
       continuousScroll: saved.continuousScroll !== undefined ? saved.continuousScroll : true,
       tapZones: saved.tapZones !== undefined ? saved.tapZones : true,
+      visualFilter: saved.visualFilter || 'normal',
     };
   });
+
+  const readStartTimeRef = useRef(0);
+  const [readDurationMins, setReadDurationMins] = useState(1);
+
+  useEffect(() => {
+    if (!readStartTimeRef.current) {
+      readStartTimeRef.current = Date.now();
+    }
+    const paceTimer = setInterval(() => {
+      const elapsed = Math.max(1, Math.round((Date.now() - (readStartTimeRef.current || Date.now())) / 60000));
+      setReadDurationMins(elapsed);
+    }, 20000);
+    return () => clearInterval(paceTimer);
+  }, []);
+
+  const readingPace = (activePageNumber / Math.max(1, readDurationMins)).toFixed(1);
 
   const [showSettingsMenu, setShowSettingsMenu] = useState(false);
   const [showChapterMenu, setShowChapterMenu] = useState(false);
@@ -872,7 +889,12 @@ export default function MangaReader({
         onMouseMove={() => rescheduleControls(4500)}
         onTouchStart={() => rescheduleControls(5000)}
         onClick={handleReaderTap}
-        className="absolute inset-0 overflow-y-auto overscroll-y-contain selection:bg-rose-500 selection:text-white transition-colors duration-300 w-full h-full"
+        className={`absolute inset-0 overflow-y-auto overscroll-y-contain selection:bg-rose-500 selection:text-white transition-colors duration-300 w-full h-full ${
+          settings.visualFilter === 'oled' ? 'reader-filter-oled' :
+          settings.visualFilter === 'sepia' ? 'reader-filter-sepia' :
+          settings.visualFilter === 'invert' ? 'reader-filter-invert' :
+          settings.visualFilter === 'night' ? 'reader-filter-night' : ''
+        }`}
         style={{ 
           WebkitOverflowScrolling: 'touch',
           filter: `brightness(${settings.brightness ?? 100}%)`
@@ -933,8 +955,8 @@ export default function MangaReader({
                 />
               )}
 
-              {/* 2. Single Page Mode */}
-              {settings.readingMode === 'single' && (
+              {/* 2. Single Page & Double Page Spread Mode */}
+              {(settings.readingMode === 'single' || settings.readingMode === 'spread') && (
                 <SinglePageView
                   loadedChapters={loadedChapters}
                   singlePageNum={singlePageNum}
@@ -945,6 +967,7 @@ export default function MangaReader({
                   handleReaderTap={handleReaderTap}
                   prevChapter={prevChapter}
                   nextChapter={nextChapter}
+                  settings={settings}
                 />
               )}
             </>
@@ -990,6 +1013,9 @@ export default function MangaReader({
         scrollToTop={scrollToTop}
         handleReloadChapter={handleReloadCurrentChapter}
         isReloadingChapter={isReloadingChapter}
+        readPages={loadedChapters[0]?.pages || []}
+        readDurationMins={readDurationMins}
+        readingPace={readingPace}
       />
     </div>
   );
