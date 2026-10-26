@@ -1,54 +1,85 @@
-import React from 'react';
-import { X, Star } from 'lucide-react';
+import React, { useEffect } from 'react';
+import { X, Star, Film, Sparkles } from 'lucide-react';
 
 export default function AnimeDetailModal({ anime, onClose }) {
+  // Close modal on Escape key press
+  useEffect(() => {
+    const handleKeyDown = (e) => {
+      if (e.key === 'Escape') {
+        onClose();
+      }
+    };
+    window.addEventListener('keydown', handleKeyDown);
+    return () => {
+      window.removeEventListener('keydown', handleKeyDown);
+    };
+  }, [onClose]);
+
   if (!anime) return null;
 
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center p-0 sm:p-4 md:p-6 bg-black/85 backdrop-blur-md overflow-hidden animate-fadeIn" onClick={onClose}>
+    <div 
+      className="fixed inset-0 z-50 flex items-center justify-center p-2 sm:p-4 md:p-6 bg-black/85 backdrop-blur-md overflow-y-auto animate-fadeIn" 
+      onClick={onClose}
+    >
       <div 
-        className="relative w-full max-w-3xl bg-[#0c1017] border-0 sm:border border-white/10 rounded-none sm:rounded-3xl shadow-2xl overflow-hidden my-auto max-h-full sm:max-h-[92vh] h-full sm:h-auto flex flex-col"
+        className="relative w-full max-w-3xl h-[94vh] max-h-[94vh] sm:h-[88vh] sm:max-h-[88vh] bg-[#0c1017] border border-cyan-500/30 rounded-2xl sm:rounded-3xl shadow-2xl flex flex-col glass-panel-elevated hud-corner holo-sheen overflow-hidden"
         onClick={(e) => e.stopPropagation()}
-        style={{ WebkitOverflowScrolling: 'touch', touchAction: 'pan-y' }}
       >
-        {/* Close Button */}
-        <button
-          aria-label="Close details"
-          onClick={onClose}
-          className="absolute top-3.5 right-3.5 sm:top-4 sm:right-4 z-20 p-2 rounded-full bg-black/70 hover:bg-black/90 text-slate-300 hover:text-white border border-white/10 backdrop-blur-md transition-all"
+        {/* Pinned Top HUD Navigation Bar */}
+        <header className="relative z-30 flex items-center justify-between px-4 sm:px-6 py-2.5 sm:py-3 border-b border-cyan-500/20 bg-slate-950/90 backdrop-blur-md flex-shrink-0">
+          <div className="flex items-center gap-2 text-[10px] font-mono text-cyan-400/90 tracking-widest select-none">
+            <span className="flex items-center gap-1.5 font-bold">
+              <Film className="w-3.5 h-3.5 text-cyan-400" />
+              ANIME_STREAM // ARCHIVE
+            </span>
+            <span className="text-slate-600 hidden xs:inline">•</span>
+            <span className="text-slate-400 hidden xs:inline">STATUS: {anime.status || 'READY'}</span>
+          </div>
+
+          <button
+            type="button"
+            aria-label="Close details"
+            onClick={onClose}
+            className="p-1.5 sm:p-2 rounded-xl bg-white/5 hover:bg-rose-600 text-slate-300 hover:text-white border border-white/10 hover:border-rose-500/40 backdrop-blur-md transition-all shadow-md cursor-pointer flex items-center gap-1.5 flex-shrink-0"
+            title="Close modal (Esc)"
+          >
+            <X className="w-4 h-4 sm:w-4.5 sm:h-4.5" />
+            <span className="text-[10px] sm:text-xs font-mono font-bold">CLOSE</span>
+          </button>
+        </header>
+
+        {/* Unified Scrollable Body */}
+        <div 
+          className="flex-1 min-h-0 overflow-y-auto overscroll-contain scrollbar-thin scrollbar-thumb-cyan-500/40 scrollbar-track-transparent space-y-5 p-4 sm:p-6 md:p-8 pb-14 sm:pb-16"
+          style={{ WebkitOverflowScrolling: 'touch', touchAction: 'pan-y' }}
         >
-          <X className="w-5 h-5" />
-        </button>
-
-        {/* Video / Trailer or Banner Section */}
-        <div className="relative aspect-video w-full bg-black overflow-hidden">
-          {anime.trailerUrl ? (
-            <iframe
-              src={anime.trailerUrl}
-              title={anime.title}
-              className="w-full h-full border-0"
-              allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
-              allowFullScreen
-            />
-          ) : (
-            <div className="relative w-full h-full">
-              <img
-                src={anime.bannerUrl || anime.coverUrl}
-                alt={anime.title}
-                referrerPolicy="no-referrer"
-                className="w-full h-full object-cover"
+          {/* Video / Trailer or Banner Section */}
+          <div className="relative aspect-video w-full bg-black rounded-2xl overflow-hidden border border-white/10 shadow-2xl">
+            {anime.trailerUrl ? (
+              <iframe
+                src={anime.trailerUrl}
+                title={anime.title}
+                className="w-full h-full border-0"
+                allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
+                allowFullScreen
               />
-              <div className="absolute inset-0 bg-gradient-to-t from-[#0c1017] via-transparent to-black/40" />
-              <div className="absolute inset-0 flex items-center justify-center text-slate-400 text-xs bg-black/30 backdrop-blur-[2px]">
-                <span>No official trailer preview available for this title</span>
+            ) : (
+              <div className="relative w-full h-full">
+                <img
+                  src={anime.bannerUrl || anime.coverUrl}
+                  alt={anime.title}
+                  referrerPolicy="no-referrer"
+                  className="w-full h-full object-cover"
+                />
+                <div className="absolute inset-0 bg-gradient-to-t from-[#0c1017] via-transparent to-black/40" />
+                <div className="absolute inset-0 flex items-center justify-center text-slate-400 text-xs bg-black/30 backdrop-blur-[2px]">
+                  <span>No official trailer preview available for this title</span>
+                </div>
               </div>
-            </div>
-          )}
-        </div>
+            )}
+          </div>
 
-        {/* Anime Information Content */}
-        <div className="p-5 sm:p-8 pb-[calc(1.5rem+env(safe-area-inset-bottom))] overflow-y-auto space-y-5 bg-[#0c1017]">
-          
           {/* Header Title & Badges */}
           <div>
             <div className="flex flex-wrap items-center gap-2 mb-2">
@@ -74,7 +105,7 @@ export default function AnimeDetailModal({ anime, onClose }) {
               )}
             </div>
 
-            <h2 className="text-xl sm:text-2xl md:text-3xl font-extrabold text-white tracking-tight">
+            <h2 className="text-xl sm:text-2xl md:text-3xl font-extrabold text-white tracking-tight font-['Outfit']">
               {anime.title}
             </h2>
             {anime.romajiTitle && anime.romajiTitle !== anime.title && (
@@ -85,7 +116,7 @@ export default function AnimeDetailModal({ anime, onClose }) {
           </div>
 
           {/* Quick Info Grid */}
-          <div className="grid grid-cols-2 sm:grid-cols-4 gap-3 p-3.5 rounded-2xl bg-slate-900/60 border border-white/5 text-xs">
+          <div className="grid grid-cols-2 sm:grid-cols-4 gap-3 p-3.5 rounded-2xl bg-slate-900/60 border border-white/5 text-xs font-mono">
             <div>
               <span className="text-slate-500 block">Episodes</span>
               <span className="font-semibold text-slate-200">{anime.episodes || 'TBA'}</span>
@@ -96,11 +127,11 @@ export default function AnimeDetailModal({ anime, onClose }) {
             </div>
             <div>
               <span className="text-slate-500 block">Studio</span>
-              <span className="font-semibold text-slate-200 truncate block">{anime.studio}</span>
+              <span className="font-semibold text-slate-200 truncate block">{anime.studio || 'N/A'}</span>
             </div>
             <div>
               <span className="text-slate-500 block">Popularity</span>
-              <span className="font-semibold text-slate-200">#{anime.popularity?.toLocaleString()}</span>
+              <span className="font-semibold text-slate-200">#{anime.popularity?.toLocaleString() || 'N/A'}</span>
             </div>
           </div>
 
@@ -109,7 +140,7 @@ export default function AnimeDetailModal({ anime, onClose }) {
             {(anime.genres || []).map((genre, idx) => (
               <span
                 key={idx}
-                className="text-xs text-slate-300 bg-white/5 border border-white/10 px-3 py-1 rounded-full"
+                className="text-xs text-slate-300 bg-white/5 border border-white/10 px-3 py-1 rounded-full font-medium"
               >
                 {genre}
               </span>
@@ -118,14 +149,14 @@ export default function AnimeDetailModal({ anime, onClose }) {
 
           {/* Synopsis */}
           <div>
-            <h4 className="text-xs font-bold uppercase tracking-wider text-slate-400 mb-2">
-              Synopsis
+            <h4 className="text-xs font-bold uppercase tracking-wider text-slate-400 mb-2 font-mono flex items-center gap-1.5">
+              <Sparkles className="w-3.5 h-3.5 text-rose-400" />
+              <span>Synopsis</span>
             </h4>
-            <p className="text-sm text-slate-300 leading-relaxed whitespace-pre-line">
-              {anime.description}
+            <p className="text-sm text-slate-300 leading-relaxed whitespace-pre-line font-normal">
+              {anime.description || 'No detailed synopsis available.'}
             </p>
           </div>
-
         </div>
       </div>
     </div>

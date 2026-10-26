@@ -190,14 +190,11 @@ export default function MangaReader({
 
   // Lock body scroll while reading so gestures only scroll manga pages and never the background website
   useEffect(() => {
-    const originalOverflow = document.body.style.overflow;
-    const originalTouchAction = document.body.style.touchAction;
     document.body.style.overflow = 'hidden';
-    document.body.style.touchAction = 'none';
 
     return () => {
-      document.body.style.overflow = originalOverflow;
-      document.body.style.touchAction = originalTouchAction;
+      document.body.style.overflow = '';
+      document.body.style.touchAction = '';
     };
   }, []);
 
