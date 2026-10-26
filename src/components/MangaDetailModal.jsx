@@ -10,7 +10,6 @@ import {
   Sparkles,
   Loader2,
   RefreshCw,
-  Eye,
   Radio,
   ChevronDown,
   ChevronUp
@@ -43,10 +42,6 @@ export default function MangaDetailModal({
   const [readChapterIds, setReadChapterIds] = useState([]);
   const [visibleChapterCount, setVisibleChapterCount] = useState(100);
   const [isExpandedSynopsis, setIsExpandedSynopsis] = useState(false);
-  
-  // Holographic chapter preview state
-  const [previewChapter, setPreviewChapter] = useState(null);
-  const [previewPos, setPreviewPos] = useState({ x: 0, y: 0 });
 
   useEffect(() => {
     setActiveMangaId(mangaId);
@@ -215,9 +210,6 @@ export default function MangaDetailModal({
         <div 
           className="flex-1 min-h-0 overflow-y-auto overscroll-contain scrollbar-thin scrollbar-thumb-cyan-500/40 scrollbar-track-transparent divide-y divide-white/5"
           style={{ WebkitOverflowScrolling: 'touch', touchAction: 'pan-y' }}
-          onScroll={() => {
-            if (previewChapter) setPreviewChapter(null);
-          }}
         >
           {loading ? (
             <div className="flex flex-col items-center justify-center py-28 gap-3">
@@ -547,12 +539,6 @@ export default function MangaDetailModal({
                         return (
                           <div
                             key={chap.id}
-                            onMouseEnter={(e) => {
-                              const rect = e.currentTarget.getBoundingClientRect();
-                              setPreviewPos({ x: rect.right, y: rect.top });
-                              setPreviewChapter(chap);
-                            }}
-                            onMouseLeave={() => setPreviewChapter(null)}
                             onClick={() => {
                               onClose();
                               onOpenReader(
@@ -617,22 +603,8 @@ export default function MangaDetailModal({
                               </div>
                             </div>
 
-                            <div className="flex items-center gap-2">
-                              <button
-                                type="button"
-                                aria-label="Preview chapter"
-                                onClick={(e) => {
-                                  e.stopPropagation();
-                                  const rect = e.currentTarget.getBoundingClientRect();
-                                  setPreviewPos({ x: rect.left, y: rect.top });
-                                  setPreviewChapter(previewChapter?.id === chap.id ? null : chap);
-                                }}
-                                className="p-1 rounded-md text-slate-400 hover:text-cyan-300 hover:bg-cyan-500/10 transition-colors"
-                                title="Holographic Preview"
-                              >
-                                <Eye className="w-3.5 h-3.5" />
-                              </button>
-                              <span className="opacity-0 group-hover:opacity-100 text-xs font-bold text-rose-400 flex items-center gap-1 transition-opacity">
+                            <div className="flex items-center gap-2 flex-shrink-0">
+                              <span className="opacity-80 group-hover:opacity-100 text-xs font-bold text-rose-400 flex items-center gap-1 transition-opacity">
                                 Read
                                 <Play className="w-3 h-3 fill-rose-400" />
                               </span>
@@ -666,7 +638,7 @@ export default function MangaDetailModal({
               </section>
 
               {/* Recommendations / Suggestions Section */}
-              <section className="p-4 sm:p-6 sm:px-8 bg-[#080a0f] space-y-4 pb-14 sm:pb-16">
+              <section className="p-4 sm:p-6 sm:px-8 bg-[#080a0f] space-y-4 pb-20 sm:pb-24">
                 <div className="flex items-center justify-between border-t border-white/5 pt-6">
                   <div className="flex items-center gap-2">
                     <Sparkles className="w-4 h-4 text-rose-400" />
@@ -684,7 +656,7 @@ export default function MangaDetailModal({
                   </div>
                 ) : recommendations.length > 0 ? (
                   <div className="grid grid-cols-2 xs:grid-cols-3 sm:grid-cols-4 md:grid-cols-6 gap-3">
-                    {recommendations.map((rec) => (
+                    {recommendations.slice(0, 6).map((rec) => (
                       <div
                         key={rec.id}
                         onClick={() => {
@@ -698,7 +670,11 @@ export default function MangaDetailModal({
                           <img
                             src={rec.coverUrl}
                             alt={rec.title}
+                            referrerPolicy="no-referrer"
                             className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-300"
+                            onError={(e) => {
+                              e.target.src = getFallbackCover(rec.title);
+                            }}
                           />
                           <span className="absolute bottom-1.5 left-1.5 text-[9px] px-1.5 py-0.2 rounded-md bg-black/80 backdrop-blur-md text-rose-400 font-semibold border border-white/10">
                             {rec.sourceName || 'Manga'}
@@ -715,65 +691,6 @@ export default function MangaDetailModal({
             </>
           )}
         </div>
-
-        {/* Floating Holographic Chapter Preview Pop-up */}
-        {previewChapter && (
-          <div 
-            className="fixed z-[60] holo-popup-card rounded-2xl p-3.5 max-w-xs text-left animate-fadeIn shadow-2xl border border-cyan-400/60 pointer-events-auto"
-            style={{
-              left: Math.min(window.innerWidth - 320, Math.max(16, previewPos.x - 300)),
-              top: Math.max(16, Math.min(window.innerHeight - 220, previewPos.y - 20)),
-            }}
-          >
-            <div className="flex items-center justify-between text-[10px] font-mono text-cyan-300 font-bold border-b border-cyan-500/30 pb-1.5 mb-2">
-              <span className="flex items-center gap-1">
-                <span className="w-1.5 h-1.5 rounded-full bg-cyan-400 animate-ping" />
-                HOLO_TELEMETRY // CH.{previewChapter.chapter}
-              </span>
-              <button 
-                type="button"
-                onClick={() => setPreviewChapter(null)}
-                className="text-slate-400 hover:text-white p-0.5 rounded cursor-pointer"
-              >
-                ✕
-              </button>
-            </div>
-            <div className="space-y-1.5">
-              <h5 className="text-xs font-bold text-white line-clamp-2 font-['Outfit']">
-                {previewChapter.title || `Chapter ${previewChapter.chapter}`}
-              </h5>
-              <div className="flex items-center gap-2 text-[10px] font-mono text-slate-300">
-                <span className="px-1.5 py-0.5 rounded bg-cyan-950/60 border border-cyan-500/30 text-cyan-300 font-semibold">
-                  {manga?.sourceName || 'Manga'}
-                </span>
-                {previewChapter.publishedAt && (
-                  <span>• {formatDate(previewChapter.publishedAt)}</span>
-                )}
-              </div>
-            </div>
-            <div className="mt-3 pt-2 border-t border-white/10 flex items-center justify-between gap-2">
-              <span className="text-[10px] font-mono text-slate-400">STATUS: READY</span>
-              <button
-                type="button"
-                onClick={() => {
-                  onClose();
-                  onOpenReader(
-                    manga.id,
-                    previewChapter.id,
-                    previewChapter.chapter,
-                    manga.title,
-                    initialCoverUrl || manga.coverUrl,
-                    manga.englishTitle || null
-                  );
-                }}
-                className="px-3 py-1 rounded-lg btn-holo text-white text-[11px] font-bold flex items-center gap-1 shadow-sm cursor-pointer"
-              >
-                <span>Read</span>
-                <Play className="w-3 h-3 fill-white" />
-              </button>
-            </div>
-          </div>
-        )}
       </div>
     </div>
   );

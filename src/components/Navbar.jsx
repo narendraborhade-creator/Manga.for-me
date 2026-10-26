@@ -14,7 +14,7 @@ import {
   Loader2
 } from 'lucide-react';
 import NotificationsDropdown from './NotificationsDropdown';
-import { searchManga } from '../services/mangaApi';
+import { searchManga, getFallbackCover } from '../services/mangaApi';
 
 export default function Navbar({
   activeTab,
@@ -210,7 +210,7 @@ export default function Navbar({
 
               {/* Suggestions Popover Card with HUD Corner & Glassmorphism */}
               {showSuggestions && (
-                <div className="absolute left-0 right-0 top-full mt-2 bg-slate-950/95 border border-cyan-500/30 rounded-2xl shadow-2xl backdrop-blur-2xl p-2 z-50 animate-fadeIn space-y-1 max-h-[80vh] overflow-y-auto glass-panel-elevated">
+                <div className="absolute left-0 right-0 top-full mt-2 bg-slate-950/95 border border-cyan-500/30 rounded-2xl shadow-2xl backdrop-blur-2xl p-2 z-50 animate-fadeIn space-y-1 max-h-[60vh] overflow-y-auto overflow-x-hidden glass-panel-elevated">
                   {searchQuery.trim().length >= 2 ? (
                     suggestions.length > 0 ? (
                       <div>
@@ -227,7 +227,15 @@ export default function Navbar({
                             <img
                               src={manga.coverUrl}
                               alt={manga.title}
+                              referrerPolicy="no-referrer"
                               className="w-8 h-11 rounded-lg object-cover bg-slate-950 flex-shrink-0 border border-white/10"
+                              onError={(e) => {
+                                if (manga.rawCoverUrl && e.target.src !== manga.rawCoverUrl && !manga.rawCoverUrl.includes('nocover.jpg')) {
+                                  e.target.src = manga.rawCoverUrl;
+                                } else {
+                                  e.target.src = getFallbackCover(manga.title);
+                                }
+                              }}
                             />
                             <div className="min-w-0 flex-1">
                               <h4 className="text-xs font-bold text-white truncate group-hover:text-rose-400 transition-colors">
@@ -400,7 +408,15 @@ export default function Navbar({
                         <img
                           src={manga.coverUrl}
                           alt={manga.title}
+                          referrerPolicy="no-referrer"
                           className="w-8 h-11 rounded-lg object-cover bg-slate-950 flex-shrink-0 border border-white/10"
+                          onError={(e) => {
+                            if (manga.rawCoverUrl && e.target.src !== manga.rawCoverUrl && !manga.rawCoverUrl.includes('nocover.jpg')) {
+                              e.target.src = manga.rawCoverUrl;
+                            } else {
+                              e.target.src = getFallbackCover(manga.title);
+                            }
+                          }}
                         />
                         <div className="min-w-0 flex-1">
                           <h4 className="text-xs font-bold text-white truncate">

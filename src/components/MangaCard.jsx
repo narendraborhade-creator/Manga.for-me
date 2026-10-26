@@ -33,7 +33,7 @@ function MangaCard({
           referrerPolicy="no-referrer"
           className="w-full h-full object-cover object-center group-hover:scale-108 transition-transform duration-700 ease-out"
           onError={(e) => {
-            if (manga.rawCoverUrl && e.target.src !== manga.rawCoverUrl) {
+            if (manga.rawCoverUrl && e.target.src !== manga.rawCoverUrl && !manga.rawCoverUrl.includes('nocover.jpg')) {
               e.target.src = manga.rawCoverUrl;
             } else {
               e.target.src = getFallbackCover(manga.title);

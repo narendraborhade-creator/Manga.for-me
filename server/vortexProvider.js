@@ -57,6 +57,24 @@ function cleanSlugTitle(slug) {
 }
 
 /**
+ * Extract clean, absolute cover image URL from HTML snippet
+ */
+function extractVortexCover(htmlSnippet) {
+  if (!htmlSnippet) return '';
+  // Avoid data-fallback-src by requiring whitespace before src
+  const srcMatch = htmlSnippet.match(/(?:\s|^)src="([^"]+)"/i);
+  let raw = srcMatch ? decodeHtml(srcMatch[1]) : '';
+  if (!raw || raw.includes('nocover.jpg')) {
+    const altMatch = htmlSnippet.match(/(https?:\/\/[^"\s]*(?:storage\.vortexscans|upload\/series)[^"\s]*)/i);
+    if (altMatch) raw = altMatch[1];
+  }
+  if (!raw || raw.includes('nocover.jpg')) return '';
+  if (raw.startsWith('//')) raw = 'https:' + raw;
+  else if (raw.startsWith('/')) raw = `${BASE_URL}${raw}`;
+  return raw;
+}
+
+/**
  * Search Vortex Scans
  */
 export async function searchVortex(query) {
@@ -83,8 +101,7 @@ export async function searchVortex(query) {
       seen.add(slug);
 
       const inner = m[2];
-      const imgMatch = inner.match(/src="([^"]+)"/i);
-      const coverUrl = imgMatch ? decodeHtml(imgMatch[1]) : '';
+      const rawCover = extractVortexCover(inner);
       const titleAttr = m[0].match(/title="([^"]+)"/i) || inner.match(/alt="([^"]+)"/i);
       const title = titleAttr ? cleanTitle(titleAttr[1]) : cleanSlugTitle(slug);
 
@@ -92,8 +109,8 @@ export async function searchVortex(query) {
         id: `vortex:${slug}`,
         title,
         englishTitle: title,
-        coverUrl: coverUrl ? `/api/image-proxy?url=${encodeURIComponent(coverUrl)}` : '',
-        rawCoverUrl: coverUrl,
+        coverUrl: rawCover ? `/api/image-proxy?url=${encodeURIComponent(rawCover)}` : '',
+        rawCoverUrl: rawCover,
         status: 'Ongoing',
         author: 'Vortex Scans',
         tags: ['Manhwa', 'Webtoon'],
@@ -135,8 +152,7 @@ export async function getPopularVortex() {
       seen.add(slug);
 
       const inner = m[2];
-      const imgMatch = inner.match(/src="([^"]+)"/i);
-      const coverUrl = imgMatch ? decodeHtml(imgMatch[1]) : '';
+      const rawCover = extractVortexCover(inner);
       const titleAttr = m[0].match(/title="([^"]+)"/i) || inner.match(/alt="([^"]+)"/i);
       const title = titleAttr ? cleanTitle(titleAttr[1]) : cleanSlugTitle(slug);
 
@@ -144,8 +160,8 @@ export async function getPopularVortex() {
         id: `vortex:${slug}`,
         title,
         englishTitle: title,
-        coverUrl: coverUrl ? `/api/image-proxy?url=${encodeURIComponent(coverUrl)}` : '',
-        rawCoverUrl: coverUrl,
+        coverUrl: rawCover ? `/api/image-proxy?url=${encodeURIComponent(rawCover)}` : '',
+        rawCoverUrl: rawCover,
         status: 'Ongoing',
         author: 'Vortex Scans',
         tags: ['Manhwa', 'Popular'],
@@ -189,10 +205,8 @@ export async function getVortexDetails(slug) {
       ? decodeHtml(descMatch[1].replace(/<[^>]+>/g, '').trim())
       : 'Read this hot series directly from Vortex Scans.';
 
-    const coverMatch =
-      html.match(/<img[^>]+src="([^"]*upload\/series[^"]+)"/i) ||
-      html.match(/<img[^>]+src="([^"]*storage\.vortexscans[^"]+)"/i);
-    const coverUrl = coverMatch ? decodeHtml(coverMatch[1]) : '';
+    const rawCover = extractVortexCover(html);
+    const coverUrl = rawCover ? `/api/image-proxy?url=${encodeURIComponent(rawCover)}` : '';
 
     // Extract tags
     const genreMatches = [...html.matchAll(/href="\/genre\/[^"]+"[^>]*>([^<]+)<\/a>/gi)].map(m => decodeHtml(m[1].trim()));
@@ -221,8 +235,8 @@ export async function getVortexDetails(slug) {
       id: `vortex:${cleanSlug}`,
       title,
       englishTitle: title,
-      coverUrl: coverUrl ? `/api/image-proxy?url=${encodeURIComponent(coverUrl)}` : '',
-      rawCoverUrl: coverUrl,
+      coverUrl,
+      rawCoverUrl: rawCover,
       description,
       status: 'Ongoing',
       author: 'Vortex Scans',
