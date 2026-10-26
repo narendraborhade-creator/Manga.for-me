@@ -7,11 +7,12 @@ import {
   FolderHeart,
   Download
 } from 'lucide-react';
-import { getHistory, getUpdates } from '../services/storage';
 import { getFallbackCover } from '../services/mangaApi';
 
 export default function LibraryView({
   bookmarks = {},
+  history = [],
+  updates = [],
   onSelectManga,
   onOpenReader,
   onRemoveBookmark,
@@ -22,19 +23,19 @@ export default function LibraryView({
   const [searchQuery, setSearchQuery] = useState('');
 
   // Deduplicate library items by normalized key to ensure 0 duplicates in library
-  const seenLibraryKeys = new Set();
-  const bookmarkList = Object.values(bookmarks).filter((item) => {
-    if (!item) return false;
-    const norm = (item.englishTitle || item.title || item.id || '')
-      .toLowerCase()
-      .replace(/^(vortex|asura|webtoon|weebcentral|mangadex|mangakakalot|kakamanga|mangapill|wc|mk|md)\s*:\s*/i, '')
-      .replace(/[^a-z0-9]+/g, '');
-    if (norm && seenLibraryKeys.has(norm)) return false;
-    if (norm) seenLibraryKeys.add(norm);
-    return true;
-  });
-  const history = getHistory();
-  const updates = getUpdates();
+  const bookmarkList = React.useMemo(() => {
+    const seenLibraryKeys = new Set();
+    return Object.values(bookmarks).filter((item) => {
+      if (!item) return false;
+      const norm = (item.englishTitle || item.title || item.id || '')
+        .toLowerCase()
+        .replace(/^(vortex|asura|webtoon|weebcentral|mangadex|mangakakalot|kakamanga|mangapill|wc|mk|md)\s*:\s*/i, '')
+        .replace(/[^a-z0-9]+/g, '');
+      if (norm && seenLibraryKeys.has(norm)) return false;
+      if (norm) seenLibraryKeys.add(norm);
+      return true;
+    });
+  }, [bookmarks]);
 
   const updatesByManga = new Map();
   updates.forEach((u) => {
