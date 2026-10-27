@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useMemo } from 'react';
 import { 
   Bookmark, 
   Search, 
@@ -7,11 +7,12 @@ import {
   FolderHeart,
   Download
 } from 'lucide-react';
-import { getHistory, getUpdates } from '../services/storage';
 import { getFallbackCover } from '../services/mangaApi';
 
 export default function LibraryView({
   bookmarks = {},
+  history = [],
+  updates = [],
   onSelectManga,
   onOpenReader,
   onRemoveBookmark,
@@ -22,57 +23,80 @@ export default function LibraryView({
   const [searchQuery, setSearchQuery] = useState('');
 
   // Deduplicate library items by normalized key to ensure 0 duplicates in library
-  const seenLibraryKeys = new Set();
-  const bookmarkList = Object.values(bookmarks).filter((item) => {
-    if (!item) return false;
-    const norm = (item.englishTitle || item.title || item.id || '')
-      .toLowerCase()
-      .replace(/^(vortex|asura|webtoon|weebcentral|mangadex|mangakakalot|kakamanga|mangapill|wc|mk|md)\s*:\s*/i, '')
-      .replace(/[^a-z0-9]+/g, '');
-    if (norm && seenLibraryKeys.has(norm)) return false;
-    if (norm) seenLibraryKeys.add(norm);
-    return true;
-  });
-  const history = getHistory();
-  const updates = getUpdates();
+  const bookmarkList = useMemo(() => {
+    const seenLibraryKeys = new Set();
+    return Object.values(bookmarks).filter((item) => {
+      if (!item) return false;
+      const norm = (item.englishTitle || item.title || item.id || '')
+        .toLowerCase()
+        .replace(/^(vortex|asura|webtoon|weebcentral|mangadex|mangakakalot|kakamanga|mangapill|wc|mk|md)\s*:\s*/i, '')
+        .replace(/[^a-z0-9]+/g, '');
+      if (norm && seenLibraryKeys.has(norm)) return false;
+      if (norm) seenLibraryKeys.add(norm);
+      return true;
+    });
+  }, [bookmarks]);
 
-  const updatesByManga = new Map();
-  updates.forEach((u) => {
-    if (!u.read) {
-      updatesByManga.set(u.mangaId, u);
-    }
-  });
+  const updatesByManga = useMemo(() => {
+    const map = new Map();
+    updates.forEach((u) => {
+      if (!u.read) {
+        map.set(u.mangaId, u);
+      }
+    });
+    return map;
+  }, [updates]);
 
   // Calculate statistics
-  const totalReadChapters = history.reduce((acc, cur) => acc + (cur.readChapters?.length || 1), 0);
-  const readingCount = bookmarkList.filter((b) => b.status === 'reading').length;
-  const completedCount = bookmarkList.filter((b) => b.status === 'completed').length;
-  const planCount = bookmarkList.filter((b) => b.status === 'plan_to_read').length;
-  const favCount = bookmarkList.filter((b) => b.status === 'favorite').length;
-  const hasUpdatesCount = bookmarkList.filter((b) => updatesByManga.has(b.id)).length;
+  const totalReadChapters = useMemo(() => {
+    return history.reduce((acc, cur) => acc + (cur.readChapters?.length || 1), 0);
+  }, [history]);
 
-  const statusTabs = [
+  const stats = useMemo(() => {
+    let reading = 0;
+    let completed = 0;
+    let plan = 0;
+    let fav = 0;
+    let onHold = 0;
+    let hasUpdates = 0;
+
+    bookmarkList.forEach((b) => {
+      if (b.status === 'reading') reading++;
+      else if (b.status === 'completed') completed++;
+      else if (b.status === 'plan_to_read') plan++;
+      else if (b.status === 'favorite') fav++;
+      else if (b.status === 'on_hold') onHold++;
+
+      if (updatesByManga.has(b.id)) hasUpdates++;
+    });
+
+    return { reading, completed, plan, fav, onHold, hasUpdates };
+  }, [bookmarkList, updatesByManga]);
+
+  const statusTabs = useMemo(() => [
     { id: 'all', label: 'All Titles', count: bookmarkList.length },
-    ...(hasUpdatesCount > 0 ? [{ id: 'updates', label: '⚡ New Releases', count: hasUpdatesCount }] : []),
-    { id: 'reading', label: 'Reading', count: readingCount },
-    { id: 'plan_to_read', label: 'Plan to Read', count: planCount },
-    { id: 'completed', label: 'Completed', count: completedCount },
-    { id: 'favorite', label: 'Favorites', count: favCount },
-    { id: 'on_hold', label: 'On Hold', count: bookmarkList.filter((b) => b.status === 'on_hold').length },
-  ];
+    ...(stats.hasUpdates > 0 ? [{ id: 'updates', label: '⚡ New Releases', count: stats.hasUpdates }] : []),
+    { id: 'reading', label: 'Reading', count: stats.reading },
+    { id: 'plan_to_read', label: 'Plan to Read', count: stats.plan },
+    { id: 'completed', label: 'Completed', count: stats.completed },
+    { id: 'favorite', label: 'Favorites', count: stats.fav },
+    { id: 'on_hold', label: 'On Hold', count: stats.onHold },
+  ], [bookmarkList.length, stats]);
 
-  const filteredList = bookmarkList.filter((item) => {
-    const matchesStatus = filterStatus === 'all'
-      ? true
-      : filterStatus === 'updates'
-      ? updatesByManga.has(item.id)
-      : item.status === filterStatus;
+  const filteredList = useMemo(() => {
     const q = searchQuery.toLowerCase();
-    const matchesSearch = !searchQuery || 
-      item.title?.toLowerCase().includes(q) || 
-      item.englishTitle?.toLowerCase().includes(q);
-    return matchesStatus && matchesSearch;
-  });
+    return bookmarkList.filter((item) => {
+      const matchesStatus = filterStatus === 'all'
+        ? true
+        : filterStatus === 'updates'
+        ? updatesByManga.has(item.id)
+        : item.status === filterStatus;
+      const matchesSearch = !searchQuery ||
+        item.title?.toLowerCase().includes(q) ||
+        item.englishTitle?.toLowerCase().includes(q);
+      return matchesStatus && matchesSearch;
+    });
+  }, [bookmarkList, filterStatus, searchQuery, updatesByManga]);
 
   return (
     <div className="space-y-8 animate-fadeIn">
@@ -101,7 +125,7 @@ export default function LibraryView({
             </div>
             <div className="p-3.5 rounded-2xl bg-slate-950/80 border border-rose-500/30 text-center font-mono">
               <span className="text-[11px] text-rose-400 block font-medium">Reading</span>
-              <span className="text-lg font-extrabold text-rose-400">{readingCount}</span>
+              <span className="text-lg font-extrabold text-rose-400">{stats.reading}</span>
             </div>
             <div className="p-3.5 rounded-2xl bg-slate-950/80 border border-cyan-500/30 text-center col-span-2 sm:col-span-1 font-mono">
               <span className="text-[11px] text-cyan-400 block font-medium">Chapters Read</span>
