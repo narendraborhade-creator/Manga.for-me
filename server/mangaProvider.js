@@ -583,7 +583,7 @@ async function resolveAvailableSources(title, currentId, currentSourceName, curr
       fetchMangaPillSearch(clean).catch(() => []),
     ]);
 
-    const targetLower = clean.toLowerCase();
+    const targetNorm = normalizeTitleKey(title);
     const seenSources = new Set([sources[0].sourceName]);
 
     const addIfMatch = (item) => {
@@ -597,13 +597,10 @@ async function resolveAvailableSources(title, currentId, currentSourceName, curr
         item.id?.startsWith('webtoon:') ? 'Webtoon' : 'MangaPill'
       );
       if (seenSources.has(srcName)) return;
-      const tLower = (item.title || '').toLowerCase();
-      const engLower = (item.englishTitle || '').toLowerCase();
-      if (
-        tLower.includes(targetLower) ||
-        targetLower.includes(tLower) ||
-        (engLower && (engLower.includes(targetLower) || targetLower.includes(engLower)))
-      ) {
+      const titleNorm = normalizeTitleKey(item.title);
+      const engNorm = normalizeTitleKey(item.englishTitle);
+      // Strictly match identical series to prevent mixing different mangas
+      if (targetNorm && (titleNorm === targetNorm || engNorm === targetNorm)) {
         seenSources.add(srcName);
         sources.push({
           id: item.id,
@@ -628,189 +625,17 @@ async function resolveAvailableSources(title, currentId, currentSourceName, curr
 }
 
 /**
- * Detect gaps, missing early chapters, or lagging chapter archives
- */
-function detectChapterArchiveGaps(chapters) {
-  if (!chapters || chapters.length === 0) return { hasGap: true, reason: 'empty', minCh: 0, maxCh: 0 };
-  
-  const nums = chapters
-    .map(c => parseFloat(c.chapter))
-    .filter(n => !isNaN(n))
-    .sort((a, b) => a - b);
-  
-  if (nums.length === 0) return { hasGap: false, minCh: 0, maxCh: 0 };
-
-  const minCh = nums[0];
-  const maxCh = nums[nums.length - 1];
-
-  // 1. Missing early chapters: if min chapter is > 2 and max is >= 6
-  if (minCh > 2 && maxCh >= 6) {
-    return { hasGap: true, reason: 'missing_early', minCh, maxCh };
-  }
-
-  // 2. Large gap between consecutive chapters
-  for (let i = 0; i < nums.length - 1; i++) {
-    if (nums[i + 1] - nums[i] > 2.5) {
-      return { hasGap: true, reason: 'consecutive_gap', from: nums[i], to: nums[i + 1], minCh, maxCh };
-    }
-  }
-
-  // 3. Archive sparsity check
-  if (maxCh >= 20 && (maxCh - minCh + 1) / nums.length > 2.2) {
-    return { hasGap: true, reason: 'sparse_archive', span: maxCh - minCh, count: nums.length, minCh, maxCh };
-  }
-
-  return { hasGap: false, minCh, maxCh };
-}
-
-/**
- * Intelligent Multi-Source Archive Harmonizer:
- * Backfills any missing chapters (e.g. chapters 1-19, 1-98, or intermediate gaps)
- * AND pulls in the newest chapters if another source is more up-to-date (e.g. 32+ chapters instead of 20).
- */
-async function backfillMissingChapters(details) {
-  if (!details || !Array.isArray(details.chapters)) return details;
-
-  const gapInfo = detectChapterArchiveGaps(details.chapters);
-  const currentNums = details.chapters
-    .map(c => parseFloat(c.chapter))
-    .filter(n => !isNaN(n))
-    .sort((a, b) => a - b);
-  const currentMax = currentNums.length > 0 ? currentNums[currentNums.length - 1] : 0;
-  const currentMin = currentNums.length > 0 ? currentNums[0] : 0;
-  const currentCount = details.chapters.length;
-
-  const rawTitle = details.englishTitle || details.title || '';
-  const variants = getQueryVariants(rawTitle);
-  if (variants.length === 0) return details;
-
-  try {
-    const candidateDetailsList = [];
-
-    // Helper to query provider across search variants until matches are found
-    const findMatches = async (searchFn) => {
-      for (const v of variants) {
-        try {
-          const res = await searchFn(v);
-          if (Array.isArray(res) && res.length > 0) return res;
-        } catch {}
-      }
-      return [];
-    };
-
-    // Concurrently search top providers
-    const [wcMatches, mkMatches, asuraMatches, vortexMatches, mdMatches] = await Promise.all([
-      findMatches(searchWeebCentral),
-      findMatches(searchMangaKakalot),
-      findMatches(searchAsura),
-      findMatches(searchVortex),
-      findMatches((v) => searchMangaDex(v, 4)),
-    ]);
-
-    // 1. WeebCentral (prioritized for complete unskipped archives from Ch. 1)
-    if (wcMatches.length > 0 && wcMatches[0].seriesId) {
-      const wcDet = await getWeebCentralDetails(wcMatches[0].seriesId, '', false).catch(() => null);
-      if (wcDet && Array.isArray(wcDet.chapters) && wcDet.chapters.length > 0) {
-        candidateDetailsList.push(wcDet);
-      }
-    }
-
-    // 2. Asura Scans (for newest manhwa chapters)
-    if (asuraMatches.length > 0 && asuraMatches[0].id) {
-      const asuraDet = await getAsuraDetails(asuraMatches[0].id).catch(() => null);
-      if (asuraDet && Array.isArray(asuraDet.chapters) && asuraDet.chapters.length > 0) {
-        candidateDetailsList.push(asuraDet);
-      }
-    }
-
-    // 3. Vortex Scans (for newest manhwa chapters)
-    if (vortexMatches.length > 0 && vortexMatches[0].id) {
-      const vortexDet = await getVortexDetails(vortexMatches[0].id).catch(() => null);
-      if (vortexDet && Array.isArray(vortexDet.chapters) && vortexDet.chapters.length > 0) {
-        candidateDetailsList.push(vortexDet);
-      }
-    }
-
-    // 4. MangaKakalot (backup deep catalog)
-    if (mkMatches.length > 0 && mkMatches[0].id) {
-      const mkDet = await getMangaKakalotDetails(mkMatches[0].id, false).catch(() => null);
-      if (mkDet && Array.isArray(mkDet.chapters) && mkDet.chapters.length > 0) {
-        candidateDetailsList.push(mkDet);
-      }
-    }
-
-    // 5. MangaDex (official scanlations)
-    if (mdMatches.length > 0 && mdMatches[0].id) {
-      const mdDet = await getMangaDexDetails(mdMatches[0].id, false).catch(() => null);
-      if (mdDet && Array.isArray(mdDet.chapters) && mdDet.chapters.length > 0) {
-        candidateDetailsList.push(mdDet);
-      }
-    }
-
-    if (candidateDetailsList.length === 0) return details;
-
-    const existingNumMap = new Set(
-      details.chapters.map(c => {
-        const parsed = parseFloat(c.chapter);
-        return isNaN(parsed) ? String(c.chapter).trim().toLowerCase() : String(parsed);
-      })
-    );
-
-    let chaptersAdded = false;
-
-    for (const cand of candidateDetailsList) {
-      const candNums = cand.chapters.map(c => parseFloat(c.chapter)).filter(n => !isNaN(n));
-      const candMax = candNums.length > 0 ? Math.max(...candNums) : 0;
-      const candMin = candNums.length > 0 ? Math.min(...candNums) : 0;
-      const candCount = cand.chapters.length;
-
-      // Merge if candidate fills gaps, has earlier chapters (candMin < currentMin),
-      // has newer chapters (candMax > currentMax), or candidate has more chapters
-      const shouldMerge =
-        gapInfo.hasGap ||
-        candMax > currentMax ||
-        (currentMin > 2 && candMin <= 2) ||
-        candCount > currentCount;
-
-      if (shouldMerge) {
-        for (const ch of cand.chapters) {
-          const parsed = parseFloat(ch.chapter);
-          const key = isNaN(parsed) ? String(ch.chapter).trim().toLowerCase() : String(parsed);
-          if (!existingNumMap.has(key)) {
-            existingNumMap.add(key);
-            details.chapters.push({
-              ...ch,
-              source: ch.source || cand.sourceName || 'Unified Source',
-            });
-            chaptersAdded = true;
-          }
-        }
-      }
-    }
-
-    if (chaptersAdded) {
-      details.chapters = deduplicateChapters(details.chapters);
-      details.totalChapters = details.chapters.length;
-    }
-  } catch (err) {
-    console.warn('backfillMissingChapters warning:', err.message);
-  }
-
-  return details;
-}
-
-/**
  * Get Manga Details & Complete Chapters List
+ * Guarantees 100% authentic chapter continuity from the selected source.
+ * Never scrapes or intermixes chapters from other mangas.
  */
 export async function getMangaDetails(mangaId, bypassCache = false) {
   if (!mangaId) return null;
 
-  // Direct alias resolution for Stepmother Second Life across all source prefixes
+  // Exact ID resolution for Stepmother Second Life webtoon
   if (
     mangaId === 'webtoon:stepmother-second-life' ||
-    mangaId === 'webtoon:the-step-mothers-began-her-second-life' ||
-    mangaId.includes('step-mother') ||
-    mangaId.includes('stepmother')
+    mangaId === 'webtoon:the-step-mothers-began-her-second-life'
   ) {
     const details = await getWebtoonDetails('webtoon:stepmother-second-life', bypassCache);
     if (details) {
@@ -860,7 +685,6 @@ export async function getMangaDetails(mangaId, bypassCache = false) {
   }
 
   if (resolvedDetails) {
-    resolvedDetails = await backfillMissingChapters(resolvedDetails);
     if (Array.isArray(resolvedDetails.chapters)) {
       resolvedDetails.chapters = deduplicateChapters(resolvedDetails.chapters);
       resolvedDetails.totalChapters = resolvedDetails.chapters.length;
@@ -964,25 +788,25 @@ export async function getMangaDetails(mangaId, bypassCache = false) {
       availableSources: sources,
     };
 
-    result = await backfillMissingChapters(result);
-
     setCache(cacheKey, result);
     return result;
   } catch (error) {
     console.warn('getMangaDetails upstream warning:', error.message);
     
-    // Proactively attempt fallback search on WeebCentral by title to retrieve full unskipped chapter archive
+    // Proactively attempt fallback search on WeebCentral by title ONLY if title strictly matches
     try {
       const cleanIdTitle = cleanTitle(mangaId.split('/')[1] || mangaId);
+      const targetNorm = normalizeTitleKey(cleanIdTitle);
       const wcMatches = await searchWeebCentral(cleanIdTitle);
-      if (wcMatches && wcMatches.length > 0 && wcMatches[0].seriesId) {
-        const wcDetails = await getWeebCentralDetails(wcMatches[0].seriesId, '', true);
+      const exactMatch = wcMatches.find(m => normalizeTitleKey(m.title) === targetNorm);
+      if (exactMatch && exactMatch.seriesId) {
+        const wcDetails = await getWeebCentralDetails(exactMatch.seriesId, '', true);
         if (wcDetails && wcDetails.chapters && wcDetails.chapters.length > 0) {
           const deduped = deduplicateChapters(wcDetails.chapters);
           return {
             ...wcDetails,
             id: mangaId,
-            aliasId: `wc:${wcMatches[0].seriesId}`,
+            aliasId: `wc:${exactMatch.seriesId}`,
             chapters: deduped,
             totalChapters: deduped.length,
           };
@@ -1015,11 +839,7 @@ export async function getMangaDetails(mangaId, bypassCache = false) {
 export async function getChapterPages(chapterId) {
   if (!chapterId) return { chapterId: '', totalPages: 0, pages: [] };
 
-  if (
-    chapterId.startsWith('webtoon:stepmother:') ||
-    chapterId.includes('stepmother') ||
-    chapterId.includes('step-mother')
-  ) {
+  if (chapterId.startsWith('webtoon:stepmother:')) {
     const num = chapterId.match(/([0-9.]+)/)?.[1] || '1';
     return getWebtoonChapterPages(`webtoon:stepmother:${num}`);
   }

@@ -86,9 +86,14 @@ export default function MangaDetailModal({
           if (data.chapters && Array.isArray(data.chapters)) {
             const uniqueChapters = deduplicateChapters(data.chapters);
             const sorted = uniqueChapters.sort((a, b) => {
-              const numA = parseFloat(a.chapter) || 0;
-              const numB = parseFloat(b.chapter) || 0;
-              return chapterSort === 'asc' ? numA - numB : numB - numA;
+              const numA = parseFloat(a.chapter);
+              const numB = parseFloat(b.chapter);
+              if (!isNaN(numA) && !isNaN(numB)) {
+                if (numA !== numB) {
+                  return chapterSort === 'asc' ? numA - numB : numB - numA;
+                }
+              }
+              return 0;
             });
             setChapters(sorted);
           }
@@ -120,9 +125,14 @@ export default function MangaDetailModal({
     const newSort = chapterSort === 'asc' ? 'desc' : 'asc';
     setChapterSort(newSort);
     const sorted = [...chapters].sort((a, b) => {
-      const numA = parseFloat(a.chapter) || 0;
-      const numB = parseFloat(b.chapter) || 0;
-      return newSort === 'asc' ? numA - numB : numB - numA;
+      const numA = parseFloat(a.chapter);
+      const numB = parseFloat(b.chapter);
+      if (!isNaN(numA) && !isNaN(numB)) {
+        if (numA !== numB) {
+          return newSort === 'asc' ? numA - numB : numB - numA;
+        }
+      }
+      return 0;
     });
     setChapters(sorted);
   };

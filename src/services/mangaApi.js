@@ -588,9 +588,14 @@ export async function fetchMangaChapters(mangaId, order = 'desc', refresh = fals
 
     const chapters = [...details.chapters];
     chapters.sort((a, b) => {
-      const numA = parseFloat(a.chapter) || 0;
-      const numB = parseFloat(b.chapter) || 0;
-      return order === 'asc' ? numA - numB : numB - numA;
+      const numA = parseFloat(a.chapter);
+      const numB = parseFloat(b.chapter);
+      if (!isNaN(numA) && !isNaN(numB)) {
+        if (numA !== numB) {
+          return order === 'asc' ? numA - numB : numB - numA;
+        }
+      }
+      return 0;
     });
 
     return chapters;
