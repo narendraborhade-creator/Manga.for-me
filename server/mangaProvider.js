@@ -158,6 +158,117 @@ async function fetchWithTimeout(url, options = {}, timeoutMs = 4000) {
   }
 }
 
+// Quality ranking weights for providers (higher is better for complete unskipped chapters)
+export const PROVIDER_QUALITY_SCORE = {
+  weebcentral: 100,
+  asura: 90,
+  vortex: 85,
+  mangakakalot: 80,
+  mangadex: 70,
+  webtoon: 65,
+  mangapill: 50,
+};
+
+/**
+ * Robust title normalization key to deduplicate identical series across different sources.
+ * Strips bracketed tags, season annotations, trailing suffixes, and leading articles.
+ */
+export function normalizeTitleKey(str) {
+  if (!str) return '';
+  return str
+    .toLowerCase()
+    .replace(/\s*[\(\[\{](?:official|fan colored|colored|webtoon|manhwa|manhua|novel|scanlation|book version|pre-serialization)[\)\]\}]/gi, '')
+    .replace(/\s*-\s*(?:official|fan colored|colored|webtoon|manhwa|manhua|novel|scanlation).*$/gi, '')
+    .replace(/^(the|a|an)\s+/i, '')
+    .replace(/na honjaman level[\s-]*up/i, 'solo leveling')
+    .replace(/omniscient reader['’]?s?(\s+viewpoint)?/i, 'omniscient reader')
+    .replace(/reincarnation of the suicidal battle god/i, 'doom breaker')
+    .replace(/[^\w\s]/g, '')
+    .replace(/\s+/g, ' ')
+    .trim();
+}
+
+/**
+ * Compute composite quality and completeness score for a manga card
+ */
+export function computeSourceScore(item) {
+  if (!item) return 0;
+  const prov = item.provider || (
+    item.id?.startsWith('wc:') ? 'weebcentral' :
+    item.id?.startsWith('md:') ? 'mangadex' :
+    item.id?.startsWith('asura:') ? 'asura' :
+    item.id?.startsWith('vortex:') ? 'vortex' :
+    item.id?.startsWith('mk:') ? 'mangakakalot' :
+    item.id?.startsWith('webtoon:') ? 'webtoon' : 'mangapill'
+  );
+  let score = PROVIDER_QUALITY_SCORE[prov] || 50;
+  if (item.totalChapters && !isNaN(item.totalChapters)) {
+    score += item.totalChapters * 5;
+  }
+  if (item.coverUrl && !item.coverUrl.includes('nocover') && !item.coverUrl.includes('placeholder')) {
+    score += 15;
+  }
+  return score;
+}
+
+/**
+ * Deduplicate manga titles across multiple sources and select the single BEST source entry.
+ * Attaches alternative sources into `alternativeSources` so the user knows they exist without card duplication.
+ */
+export function groupAndSelectBestManga(list) {
+  if (!list || !Array.isArray(list) || list.length === 0) return [];
+  const groups = new Map();
+
+  for (const item of list) {
+    if (!item) continue;
+    const key = normalizeTitleKey(item.englishTitle || item.title);
+    if (!key) continue;
+
+    if (!groups.has(key)) {
+      groups.set(key, {
+        best: item,
+        alternatives: [],
+      });
+    } else {
+      const entry = groups.get(key);
+      const currentScore = computeSourceScore(entry.best);
+      const newScore = computeSourceScore(item);
+
+      if (newScore > currentScore) {
+        entry.alternatives.push(entry.best);
+        entry.best = item;
+      } else {
+        entry.alternatives.push(item);
+      }
+    }
+  }
+
+  return Array.from(groups.values()).map(g => ({
+    ...g.best,
+    alternativeSourcesCount: g.alternatives.length,
+    alternativeSources: g.alternatives.map(a => a.sourceName || a.provider || 'Alternative')
+  }));
+}
+
+/**
+ * Generate sanitized search query variants for reliable cross-provider lookups
+ */
+export function getQueryVariants(title) {
+  if (!title) return [];
+  const base = title
+    .replace(/\s*[\(\[\{][^\)\]\}]+[\)\]\}]/g, '')
+    .replace(/\s*-\s*(?:official|fan colored|colored|webtoon|manhwa|manhua|novel|scanlation).*$/i, '')
+    .trim();
+  const variants = new Set([base]);
+  const noPunct = base.replace(/[^\w\s]/g, ' ').replace(/\s+/g, ' ').trim();
+  variants.add(noPunct);
+  const noArticle = base.replace(/^(the|a|an)\s+/i, '').trim();
+  variants.add(noArticle);
+  const shortened = base.replace(/['’]s\s+viewpoint/i, '').replace(/\s+viewpoint/i, '').trim();
+  variants.add(shortened);
+  return Array.from(variants).filter(v => v && v.length >= 2);
+}
+
 /**
  * Fetch Popular / Trending Manga with resilient catalog fallback
  */
@@ -247,12 +358,14 @@ export async function getPopularManga() {
     ]);
 
     const merged = [...baseList, ...wcList.slice(0, 16), ...dexList.slice(0, 10), ...asuraList.slice(0, 8), ...vortexList.slice(0, 8), ...mkList.slice(0, 10), ...scrapedList];
-    setCache('popular_manga_v5', merged);
-    return merged;
+    const deduplicated = groupAndSelectBestManga(merged);
+    setCache('popular_manga_v5', deduplicated);
+    return deduplicated;
   } catch (error) {
     console.warn('getPopularManga upstream warning, returning instant catalog:', error.message);
-    setCache('popular_manga_v5', baseList);
-    return baseList;
+    const deduplicated = groupAndSelectBestManga(baseList);
+    setCache('popular_manga_v5', deduplicated);
+    return deduplicated;
   }
 }
 
@@ -373,8 +486,9 @@ export async function searchManga(query = '') {
       }
     });
 
-    setCache(cacheKey, combined);
-    return combined;
+    const deduplicated = groupAndSelectBestManga(combined);
+    setCache(cacheKey, deduplicated);
+    return deduplicated;
   } catch (error) {
     console.error('searchManga error:', error);
     return [];
@@ -552,57 +666,84 @@ function detectChapterArchiveGaps(chapters) {
 /**
  * Intelligent Multi-Source Archive Harmonizer:
  * Backfills any missing chapters (e.g. chapters 1-19, 1-98, or intermediate gaps)
- * AND pulls in the newest chapters if another source is more up-to-date.
+ * AND pulls in the newest chapters if another source is more up-to-date (e.g. 32+ chapters instead of 20).
  */
 async function backfillMissingChapters(details) {
   if (!details || !Array.isArray(details.chapters)) return details;
 
   const gapInfo = detectChapterArchiveGaps(details.chapters);
-  const currentMax = gapInfo.maxCh || 0;
-  const currentMin = gapInfo.minCh || 0;
-  const queryTitle = cleanTitle(details.englishTitle || details.title || '');
-  if (!queryTitle || queryTitle.length < 2) return details;
+  const currentNums = details.chapters
+    .map(c => parseFloat(c.chapter))
+    .filter(n => !isNaN(n))
+    .sort((a, b) => a - b);
+  const currentMax = currentNums.length > 0 ? currentNums[currentNums.length - 1] : 0;
+  const currentMin = currentNums.length > 0 ? currentNums[0] : 0;
+  const currentCount = details.chapters.length;
+
+  const rawTitle = details.englishTitle || details.title || '';
+  const variants = getQueryVariants(rawTitle);
+  if (variants.length === 0) return details;
 
   try {
-    // 1. Concurrently query top aggregator and scanlation sources
-    const [wcMatches, mkMatches, asuraMatches, vortexMatches] = await Promise.all([
-      searchWeebCentral(queryTitle).catch(() => []),
-      searchMangaKakalot(queryTitle).catch(() => []),
-      searchAsura(queryTitle).catch(() => []),
-      searchVortex(queryTitle).catch(() => []),
-    ]);
-
     const candidateDetailsList = [];
 
-    // Prioritize WeebCentral (complete full chapter archives from Ch. 1)
-    if (wcMatches && wcMatches.length > 0 && wcMatches[0].seriesId) {
+    // Helper to query provider across search variants until matches are found
+    const findMatches = async (searchFn) => {
+      for (const v of variants) {
+        try {
+          const res = await searchFn(v);
+          if (Array.isArray(res) && res.length > 0) return res;
+        } catch {}
+      }
+      return [];
+    };
+
+    // Concurrently search top providers
+    const [wcMatches, mkMatches, asuraMatches, vortexMatches, mdMatches] = await Promise.all([
+      findMatches(searchWeebCentral),
+      findMatches(searchMangaKakalot),
+      findMatches(searchAsura),
+      findMatches(searchVortex),
+      findMatches((v) => searchMangaDex(v, 4)),
+    ]);
+
+    // 1. WeebCentral (prioritized for complete unskipped archives from Ch. 1)
+    if (wcMatches.length > 0 && wcMatches[0].seriesId) {
       const wcDet = await getWeebCentralDetails(wcMatches[0].seriesId, '', false).catch(() => null);
       if (wcDet && Array.isArray(wcDet.chapters) && wcDet.chapters.length > 0) {
         candidateDetailsList.push(wcDet);
       }
     }
 
-    // MangaKakalot (backup full-length archive)
-    if (mkMatches && mkMatches.length > 0 && mkMatches[0].id) {
-      const mkDet = await getMangaKakalotDetails(mkMatches[0].id, false).catch(() => null);
-      if (mkDet && Array.isArray(mkDet.chapters) && mkDet.chapters.length > 0) {
-        candidateDetailsList.push(mkDet);
-      }
-    }
-
-    // Asura Scans (for newest manhwa chapters)
-    if (asuraMatches && asuraMatches.length > 0 && asuraMatches[0].id) {
+    // 2. Asura Scans (for newest manhwa chapters)
+    if (asuraMatches.length > 0 && asuraMatches[0].id) {
       const asuraDet = await getAsuraDetails(asuraMatches[0].id).catch(() => null);
       if (asuraDet && Array.isArray(asuraDet.chapters) && asuraDet.chapters.length > 0) {
         candidateDetailsList.push(asuraDet);
       }
     }
 
-    // Vortex Scans (for newest manhwa chapters)
-    if (vortexMatches && vortexMatches.length > 0 && vortexMatches[0].id) {
+    // 3. Vortex Scans (for newest manhwa chapters)
+    if (vortexMatches.length > 0 && vortexMatches[0].id) {
       const vortexDet = await getVortexDetails(vortexMatches[0].id).catch(() => null);
       if (vortexDet && Array.isArray(vortexDet.chapters) && vortexDet.chapters.length > 0) {
         candidateDetailsList.push(vortexDet);
+      }
+    }
+
+    // 4. MangaKakalot (backup deep catalog)
+    if (mkMatches.length > 0 && mkMatches[0].id) {
+      const mkDet = await getMangaKakalotDetails(mkMatches[0].id, false).catch(() => null);
+      if (mkDet && Array.isArray(mkDet.chapters) && mkDet.chapters.length > 0) {
+        candidateDetailsList.push(mkDet);
+      }
+    }
+
+    // 5. MangaDex (official scanlations)
+    if (mdMatches.length > 0 && mdMatches[0].id) {
+      const mdDet = await getMangaDexDetails(mdMatches[0].id, false).catch(() => null);
+      if (mdDet && Array.isArray(mdDet.chapters) && mdDet.chapters.length > 0) {
+        candidateDetailsList.push(mdDet);
       }
     }
 
@@ -611,7 +752,7 @@ async function backfillMissingChapters(details) {
     const existingNumMap = new Set(
       details.chapters.map(c => {
         const parsed = parseFloat(c.chapter);
-        return isNaN(parsed) ? String(c.chapter).trim() : String(parsed);
+        return isNaN(parsed) ? String(c.chapter).trim().toLowerCase() : String(parsed);
       })
     );
 
@@ -621,24 +762,25 @@ async function backfillMissingChapters(details) {
       const candNums = cand.chapters.map(c => parseFloat(c.chapter)).filter(n => !isNaN(n));
       const candMax = candNums.length > 0 ? Math.max(...candNums) : 0;
       const candMin = candNums.length > 0 ? Math.min(...candNums) : 0;
+      const candCount = cand.chapters.length;
 
       // Merge if candidate fills gaps, has earlier chapters (candMin < currentMin),
-      // has newer chapters (candMax > currentMax), or has more chapters overall
+      // has newer chapters (candMax > currentMax), or candidate has more chapters
       const shouldMerge =
         gapInfo.hasGap ||
         candMax > currentMax ||
         (currentMin > 2 && candMin <= 2) ||
-        cand.chapters.length > details.chapters.length;
+        candCount > currentCount;
 
       if (shouldMerge) {
         for (const ch of cand.chapters) {
           const parsed = parseFloat(ch.chapter);
-          const key = isNaN(parsed) ? String(ch.chapter).trim() : String(parsed);
+          const key = isNaN(parsed) ? String(ch.chapter).trim().toLowerCase() : String(parsed);
           if (!existingNumMap.has(key)) {
             existingNumMap.add(key);
             details.chapters.push({
               ...ch,
-              source: ch.source || cand.sourceName || 'Backup Archive',
+              source: ch.source || cand.sourceName || 'Unified Source',
             });
             chaptersAdded = true;
           }
