@@ -42,6 +42,7 @@ export default function ReaderSettingsModal({
             <span>Reader Settings</span>
           </span>
           <button
+            aria-label="Close"
             onClick={onClose}
             className="text-slate-400 hover:text-white text-xs p-1 rounded-lg hover:bg-white/10"
           >

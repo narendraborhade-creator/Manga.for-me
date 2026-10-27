@@ -12,7 +12,7 @@ export default function KeyboardHelpModal({ isOpen, onClose }) {
             <HelpCircle className="w-5 h-5 text-rose-500" />
             <h3 className="font-bold text-base font-['Outfit']">Keyboard Shortcuts</h3>
           </div>
-          <button onClick={onClose} className="text-slate-400 hover:text-white">✕</button>
+          <button aria-label="Close" onClick={onClose} className="text-slate-400 hover:text-white">✕</button>
         </div>
 
         <div className="space-y-2 text-xs">

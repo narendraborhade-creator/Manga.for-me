@@ -146,6 +146,7 @@ export default function SinglePageView({
       {/* Single Page Slider */}
       <div className="flex items-center gap-4 mt-6 w-full max-w-md px-4">
         <button
+          aria-label="Previous page"
           disabled={singlePageNum <= 1 && !prevChapter}
           onClick={handleSinglePagePrev}
           className="p-2 rounded-xl bg-slate-900 border border-white/10 disabled:opacity-30 cursor-pointer"
@@ -167,6 +168,7 @@ export default function SinglePageView({
         />
 
         <button
+          aria-label="Next page"
           disabled={singlePageNum >= totalPages && !nextChapter}
           onClick={handleSinglePageNext}
           className="p-2 rounded-xl bg-slate-900 border border-white/10 disabled:opacity-30 cursor-pointer"

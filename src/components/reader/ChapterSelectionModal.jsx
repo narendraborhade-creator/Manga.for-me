@@ -53,6 +53,7 @@ export default function ChapterSelectionModal({
               <span>{chapterSortAsc ? '1 → N' : 'N → 1'}</span>
             </button>
             <button
+              aria-label="Close"
               onClick={onClose}
               className="text-slate-400 hover:text-white text-xs p-1 rounded-lg hover:bg-white/10"
             >
