@@ -509,6 +509,7 @@ export default function App() {
                       <Search className="w-3 h-3 text-cyan-400" />
                       <span>QUERY: "{searchQuery.trim()}"</span>
                       <button
+                        aria-label="Remove search query"
                         onClick={() => setSearchQuery('')}
                         className="ml-1 p-0.5 rounded-full hover:bg-cyan-500/20 text-cyan-400 hover:text-white transition-colors cursor-pointer"
                         title="Remove search query"
@@ -523,6 +524,7 @@ export default function App() {
                       <Filter className="w-3 h-3 text-purple-400" />
                       <span>GENRE: {selectedGenre}</span>
                       <button
+                        aria-label="Remove genre filter"
                         onClick={() => setSelectedGenre('All')}
                         className="ml-1 p-0.5 rounded-full hover:bg-purple-500/20 text-purple-400 hover:text-white transition-colors cursor-pointer"
                         title="Remove genre filter"
@@ -537,6 +539,7 @@ export default function App() {
                       <Radio className="w-3 h-3 text-rose-400" />
                       <span>SOURCE: {SOURCES.find((s) => s.id === selectedSource)?.label || selectedSource}</span>
                       <button
+                        aria-label="Remove source filter"
                         onClick={() => setSelectedSource('All')}
                         className="ml-1 p-0.5 rounded-full hover:bg-rose-500/20 text-rose-400 hover:text-white transition-colors cursor-pointer"
                         title="Remove source filter"

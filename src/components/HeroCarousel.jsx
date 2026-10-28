@@ -186,16 +186,18 @@ export default function HeroCarousel({
 
       {/* Slide Navigation Arrows */}
       <button
+        aria-label="Previous"
         onClick={() => setCurrentIndex((prev) => (prev - 1 + items.length) % items.length)}
-        className="absolute left-4 top-1/2 -translate-y-1/2 p-3 rounded-full bg-black/50 hover:bg-black/80 text-white backdrop-blur-md opacity-0 group-hover:opacity-100 transition-all border border-white/10 hover:scale-110 hidden sm:block"
+        className="absolute left-4 top-1/2 -translate-y-1/2 p-3 rounded-full bg-black/50 hover:bg-black/80 text-white backdrop-blur-md opacity-0 group-hover:opacity-100 focus-visible:opacity-100 transition-all border border-white/10 hover:scale-110 hidden sm:block"
         title="Previous"
       >
         <ChevronLeft className="w-5 h-5" />
       </button>
 
       <button
+        aria-label="Next"
         onClick={() => setCurrentIndex((prev) => (prev + 1) % items.length)}
-        className="absolute right-4 top-1/2 -translate-y-1/2 p-3 rounded-full bg-black/50 hover:bg-black/80 text-white backdrop-blur-md opacity-0 group-hover:opacity-100 transition-all border border-white/10 hover:scale-110 hidden sm:block"
+        className="absolute right-4 top-1/2 -translate-y-1/2 p-3 rounded-full bg-black/50 hover:bg-black/80 text-white backdrop-blur-md opacity-0 group-hover:opacity-100 focus-visible:opacity-100 transition-all border border-white/10 hover:scale-110 hidden sm:block"
         title="Next"
       >
         <ChevronRight className="w-5 h-5" />
