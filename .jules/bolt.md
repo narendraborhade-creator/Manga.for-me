@@ -5,3 +5,7 @@
 ## 2024-10-22 - Optimize N+1 Query in Update Service
 **Learning:** Sequential async API requests in loops cause an O(N) network waterfall delay which is easily parallelizable. When refactoring loops with `Promise.all`, separating the async data fetch from the synchronous state manipulation preserves safety against race conditions.
 **Action:** Always identify sequential `await` calls in array iterations as a target for parallel execution via `Promise.all` or `Promise.allSettled`, taking care to process UI state changes or database mutations synchronously afterward.
+
+## 2024-10-28 - Optimize Synchronous Storage Reads in UI Components
+**Learning:** The application relies heavily on synchronous `localStorage` reads (e.g., `getHistory`, `getUpdates`) for data that changes dynamically. Doing these inside the render function without memoization blocks the main thread on every parent state update, causing significant UI jank.
+**Action:** Always wrap heavy synchronous data processing and storage calls in `useMemo`. When these calls depend on external storage state changing, avoid lifting the storage read to the parent because it can cause stale data. Instead, pass top-level context (like `bookmarks`) as a proxy dependency to force the `useMemo` block to re-evaluate when storage updates occur.

@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useMemo } from 'react';
 import { 
   Bookmark, 
   Search, 
@@ -21,35 +21,52 @@ export default function LibraryView({
   const [filterStatus, setFilterStatus] = useState('all');
   const [searchQuery, setSearchQuery] = useState('');
 
-  // Deduplicate library items by normalized key to ensure 0 duplicates in library
-  const seenLibraryKeys = new Set();
-  const bookmarkList = Object.values(bookmarks).filter((item) => {
-    if (!item) return false;
-    const norm = (item.englishTitle || item.title || item.id || '')
-      .toLowerCase()
-      .replace(/^(vortex|asura|webtoon|weebcentral|mangadex|mangakakalot|kakamanga|mangapill|wc|mk|md)\s*:\s*/i, '')
-      .replace(/[^a-z0-9]+/g, '');
-    if (norm && seenLibraryKeys.has(norm)) return false;
-    if (norm) seenLibraryKeys.add(norm);
-    return true;
-  });
-  const history = getHistory();
-  const updates = getUpdates();
+  // Memoize heavy deduplication and storage reads using bookmarks as a proxy dependency
+  const {
+    bookmarkList,
+    history,
+    updatesByManga,
+    totalReadChapters,
+    readingCount,
+    completedCount,
+    planCount,
+    favCount,
+    hasUpdatesCount
+  } = useMemo(() => {
+    const seenLibraryKeys = new Set();
+    const bList = Object.values(bookmarks).filter((item) => {
+      if (!item) return false;
+      const norm = (item.englishTitle || item.title || item.id || '')
+        .toLowerCase()
+        .replace(/^(vortex|asura|webtoon|weebcentral|mangadex|mangakakalot|kakamanga|mangapill|wc|mk|md)\s*:\s*/i, '')
+        .replace(/[^a-z0-9]+/g, '');
+      if (norm && seenLibraryKeys.has(norm)) return false;
+      if (norm) seenLibraryKeys.add(norm);
+      return true;
+    });
 
-  const updatesByManga = new Map();
-  updates.forEach((u) => {
-    if (!u.read) {
-      updatesByManga.set(u.mangaId, u);
-    }
-  });
+    const h = getHistory();
+    const u = getUpdates();
 
-  // Calculate statistics
-  const totalReadChapters = history.reduce((acc, cur) => acc + (cur.readChapters?.length || 1), 0);
-  const readingCount = bookmarkList.filter((b) => b.status === 'reading').length;
-  const completedCount = bookmarkList.filter((b) => b.status === 'completed').length;
-  const planCount = bookmarkList.filter((b) => b.status === 'plan_to_read').length;
-  const favCount = bookmarkList.filter((b) => b.status === 'favorite').length;
-  const hasUpdatesCount = bookmarkList.filter((b) => updatesByManga.has(b.id)).length;
+    const uByManga = new Map();
+    u.forEach((update) => {
+      if (!update.read) {
+        uByManga.set(update.mangaId, update);
+      }
+    });
+
+    return {
+      bookmarkList: bList,
+      history: h,
+      updatesByManga: uByManga,
+      totalReadChapters: h.reduce((acc, cur) => acc + (cur.readChapters?.length || 1), 0),
+      readingCount: bList.filter((b) => b.status === 'reading').length,
+      completedCount: bList.filter((b) => b.status === 'completed').length,
+      planCount: bList.filter((b) => b.status === 'plan_to_read').length,
+      favCount: bList.filter((b) => b.status === 'favorite').length,
+      hasUpdatesCount: bList.filter((b) => uByManga.has(b.id)).length
+    };
+  }, [bookmarks]);
 
   const statusTabs = [
     { id: 'all', label: 'All Titles', count: bookmarkList.length },
@@ -61,18 +78,20 @@ export default function LibraryView({
     { id: 'on_hold', label: 'On Hold', count: bookmarkList.filter((b) => b.status === 'on_hold').length },
   ];
 
-  const filteredList = bookmarkList.filter((item) => {
-    const matchesStatus = filterStatus === 'all'
-      ? true
-      : filterStatus === 'updates'
-      ? updatesByManga.has(item.id)
-      : item.status === filterStatus;
-    const q = searchQuery.toLowerCase();
-    const matchesSearch = !searchQuery || 
-      item.title?.toLowerCase().includes(q) || 
-      item.englishTitle?.toLowerCase().includes(q);
-    return matchesStatus && matchesSearch;
-  });
+  const filteredList = useMemo(() => {
+    return bookmarkList.filter((item) => {
+      const matchesStatus = filterStatus === 'all'
+        ? true
+        : filterStatus === 'updates'
+        ? updatesByManga.has(item.id)
+        : item.status === filterStatus;
+      const q = searchQuery.toLowerCase();
+      const matchesSearch = !searchQuery ||
+        item.title?.toLowerCase().includes(q) ||
+        item.englishTitle?.toLowerCase().includes(q);
+      return matchesStatus && matchesSearch;
+    });
+  }, [bookmarkList, filterStatus, searchQuery, updatesByManga]);
 
   return (
     <div className="space-y-8 animate-fadeIn">
