@@ -102,6 +102,8 @@ function formatMangaDexItem(item) {
     rating: '4.8',
     source: 'MangaDex',
     sourceName: 'MangaDex',
+    latestChapter: attrs.lastChapter || null,
+    lastUpdated: attrs.updatedAt || attrs.createdAt || null,
   };
 }
 
@@ -131,7 +133,57 @@ export async function getPopularMangaDex(limit = 20) {
 }
 
 /**
- * Search MangaDex
+ * Fetch Fresh Manga with Latest Uploaded Chapters (Real-time updates)
+ */
+export async function getLatestMangaDex(limit = 24) {
+  const cacheKey = `md_latest_uploaded_${limit}`;
+  const cached = getCached(cacheKey);
+  if (cached) return cached;
+
+  try {
+    const url = `${BASE_URL}/manga?limit=${limit}&order[latestUploadedChapter]=desc&contentRating[]=safe&contentRating[]=suggestive&includes[]=cover_art`;
+    const res = await fetchWithTimeout(url);
+    if (!res.ok) throw new Error(`HTTP ${res.status}`);
+    const data = await res.json();
+
+    const items = (data.data || []).map(formatMangaDexItem).filter(Boolean);
+    if (items.length > 0) {
+      setCache(cacheKey, items);
+    }
+    return items;
+  } catch (err) {
+    console.warn('MangaDex getLatest error:', err.message);
+    return [];
+  }
+}
+
+/**
+ * Fetch Brand New Manga Titles Added to MangaDex
+ */
+export async function getNewlyAddedMangaDex(limit = 24) {
+  const cacheKey = `md_newly_created_${limit}`;
+  const cached = getCached(cacheKey);
+  if (cached) return cached;
+
+  try {
+    const url = `${BASE_URL}/manga?limit=${limit}&order[createdAt]=desc&contentRating[]=safe&contentRating[]=suggestive&includes[]=cover_art`;
+    const res = await fetchWithTimeout(url);
+    if (!res.ok) throw new Error(`HTTP ${res.status}`);
+    const data = await res.json();
+
+    const items = (data.data || []).map(formatMangaDexItem).filter(Boolean);
+    if (items.length > 0) {
+      setCache(cacheKey, items);
+    }
+    return items;
+  } catch (err) {
+    console.warn('MangaDex getNewlyAdded error:', err.message);
+    return [];
+  }
+}
+
+/**
+ * Search MangaDex with Relevance and Follower Count Ranking
  */
 export async function searchMangaDex(query, limit = 15) {
   if (!query || !query.trim()) return [];
@@ -141,7 +193,8 @@ export async function searchMangaDex(query, limit = 15) {
   if (cached) return cached;
 
   try {
-    const url = `${BASE_URL}/manga?title=${encodeURIComponent(cleanQ)}&limit=${limit}&contentRating[]=safe&contentRating[]=suggestive&includes[]=cover_art`;
+    // Order by relevance and popularity so official and prominent releases appear first
+    const url = `${BASE_URL}/manga?title=${encodeURIComponent(cleanQ)}&limit=${limit}&order[relevance]=desc&order[followedCount]=desc&contentRating[]=safe&contentRating[]=suggestive&includes[]=cover_art`;
     const res = await fetchWithTimeout(url);
     if (!res.ok) throw new Error(`HTTP ${res.status}`);
     const data = await res.json();

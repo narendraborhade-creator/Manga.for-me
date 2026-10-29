@@ -57,6 +57,7 @@ function MangaCard({
             </span>
             {(() => {
               const src = manga.sourceName || (
+                manga.id?.startsWith('flame:') ? 'Flame Comics' :
                 manga.id?.startsWith('asura:') ? 'Asura Scans' :
                 manga.id?.startsWith('vortex:') ? 'Vortex Scans' :
                 manga.id?.startsWith('wc:') ? 'WeebCentral' :
@@ -65,6 +66,7 @@ function MangaCard({
                 manga.id?.startsWith('webtoon:') ? 'Webtoon' : 'MangaPill'
               );
               const colorClass = 
+                src === 'Flame Comics' || src === 'Flame' ? 'bg-orange-600/80 text-orange-100 border-orange-500/40' :
                 src === 'Asura Scans' || src === 'Asura' ? 'bg-violet-600/80 text-violet-100 border-violet-500/40' :
                 src === 'Vortex Scans' || src === 'Vortex' ? 'bg-indigo-600/80 text-indigo-100 border-indigo-500/40' :
                 src === 'MangaDex' ? 'bg-amber-600/80 text-amber-100 border-amber-500/40' :
@@ -140,13 +142,24 @@ function MangaCard({
         </div>
 
         <div className="mt-2.5 pt-2 border-t border-white/5 flex items-center justify-between text-[11px] text-slate-400">
-          <div className="flex items-center gap-1 truncate max-w-[120px]">
-            <span className="px-1.5 py-0.5 rounded bg-white/5 text-[10px] text-slate-300 font-medium font-mono">
-              {manga.tags && manga.tags[0] ? manga.tags[0] : 'Manga'}
-            </span>
+          <div className="flex items-center gap-1.5 truncate max-w-[140px]">
+            {manga.latestChapter ? (
+              <span className="px-1.5 py-0.5 rounded bg-amber-500/15 border border-amber-500/30 text-[10px] text-amber-300 font-bold font-mono truncate flex items-center gap-1" title={`Latest: Chapter ${manga.latestChapter}`}>
+                <span className="w-1.5 h-1.5 rounded-full bg-amber-400 animate-pulse flex-shrink-0" />
+                Ch. {manga.latestChapter}
+              </span>
+            ) : manga.totalChapters ? (
+              <span className="px-1.5 py-0.5 rounded bg-cyan-950/60 border border-cyan-500/30 text-[10px] text-cyan-300 font-medium font-mono">
+                {manga.totalChapters} Ch
+              </span>
+            ) : (
+              <span className="px-1.5 py-0.5 rounded bg-white/5 text-[10px] text-slate-300 font-medium font-mono">
+                {manga.tags && manga.tags[0] ? manga.tags[0] : 'Manga'}
+              </span>
+            )}
           </div>
           {manga.score && (
-            <span className="flex items-center gap-0.5 text-amber-400 font-mono font-bold text-xs">
+            <span className="flex items-center gap-0.5 text-amber-400 font-mono font-bold text-xs flex-shrink-0">
               <Star className="w-3 h-3 fill-amber-400" />
               <span>{manga.score}</span>
             </span>

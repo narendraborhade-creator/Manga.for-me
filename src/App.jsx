@@ -14,6 +14,7 @@ import BackupModal from './components/BackupModal';
 import { 
   fetchPopularManga, 
   searchManga,
+  fetchMangaNews,
   getFallbackCover
 } from './services/mangaApi';
 
@@ -53,7 +54,9 @@ import {
   Radio,
   X,
   SlidersHorizontal,
-  Search
+  Search,
+  Newspaper,
+  ExternalLink
 } from 'lucide-react';
 
 const GENRES = [
@@ -74,8 +77,9 @@ const GENRES = [
 const SOURCES = [
   { id: 'All', label: 'All Sources', badge: 'Multi-Feed' },
   { id: 'WeebCentral', label: 'WeebCentral', badge: '15k+ Ch.1' },
+  { id: 'Flame', label: 'Flame Comics', badge: 'Weekly Action' },
   { id: 'MangaDex', label: 'MangaDex', badge: 'Official/Scans' },
-  { id: 'Asura', label: 'Asura Scans', badge: 'Weekly Action' },
+  { id: 'Asura', label: 'Asura Scans', badge: 'Fast Manhwa' },
   { id: 'Vortex', label: 'Vortex Scans', badge: 'High-Speed' },
   { id: 'MangaKakalot', label: 'MangaKakalot', badge: 'Classic Archive' },
   { id: 'Webtoon', label: 'Webtoons', badge: 'Full-Color' },
@@ -87,6 +91,7 @@ function matchesSource(manga, filterSource) {
   const target = filterSource.toLowerCase();
   const src = (
     manga.sourceName || (
+      manga.id?.startsWith('flame:') ? 'Flame Comics' :
       manga.id?.startsWith('asura:') ? 'Asura Scans' :
       manga.id?.startsWith('vortex:') ? 'Vortex Scans' :
       manga.id?.startsWith('wc:') ? 'WeebCentral' :
@@ -146,6 +151,7 @@ export default function App() {
   const [latestManga, setLatestManga] = useState([]);
   const [topRatedManga, setTopRatedManga] = useState([]);
   const [searchMangaList, setSearchMangaList] = useState([]);
+  const [mangaNews, setMangaNews] = useState([]);
   const [loadingManga, setLoadingManga] = useState(true);
   const [searchingManga, setSearchingManga] = useState(false);
 
@@ -245,6 +251,15 @@ export default function App() {
         console.error('Failed to load initial manga:', err);
         if (isMounted) setLoadingManga(false);
       });
+
+    fetchMangaNews('', 6)
+      .then((news) => {
+        if (!isMounted) return;
+        if (Array.isArray(news)) {
+          setMangaNews(news);
+        }
+      })
+      .catch(() => {});
 
     return () => {
       isMounted = false;
@@ -680,6 +695,56 @@ export default function App() {
                       </div>
                     )}
                   </section>
+
+                  {/* Real-Time Manga News & Release Announcements */}
+                  {mangaNews.length > 0 && (
+                    <section className="space-y-3 pt-2">
+                      <div className="flex items-center justify-between">
+                        <div className="flex items-center gap-2">
+                          <div className="p-1.5 rounded-lg bg-amber-500/20 text-amber-400 border border-amber-500/30">
+                            <Newspaper className="w-4 h-4 text-amber-400" />
+                          </div>
+                          <div>
+                            <h2 className="text-base sm:text-lg font-bold text-white tracking-tight flex items-center gap-2 font-['Outfit']">
+                              <span>Latest Manga News & Industry Updates</span>
+                              <span className="w-2 h-2 rounded-full bg-amber-400 animate-pulse" />
+                            </h2>
+                            <p className="text-[11px] text-slate-400">
+                              Real-time breaking news, chapter release dates, and anime adaptation announcements
+                            </p>
+                          </div>
+                        </div>
+                      </div>
+
+                      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3">
+                        {mangaNews.slice(0, 3).map((item) => (
+                          <a
+                            key={item.id}
+                            href={item.link}
+                            target="_blank"
+                            rel="noopener noreferrer"
+                            className="group p-3.5 rounded-2xl bg-slate-900/60 hover:bg-slate-900 border border-white/10 hover:border-amber-400/40 transition-all flex flex-col justify-between cursor-pointer"
+                          >
+                            <div>
+                              <div className="flex items-center justify-between text-[10px] font-mono text-slate-400 mb-1.5">
+                                <span className="px-1.5 py-0.5 rounded-md bg-amber-500/15 text-amber-300 font-semibold border border-amber-500/30">
+                                  {item.source}
+                                </span>
+                                <span>{item.pubDate}</span>
+                              </div>
+                              <h3 className="text-xs sm:text-sm font-bold text-slate-200 group-hover:text-amber-300 line-clamp-2 leading-snug transition-colors">
+                                {item.title}
+                              </h3>
+                            </div>
+                            <div className="mt-2.5 pt-2 border-t border-white/5 flex items-center justify-between text-[11px] text-slate-400 group-hover:text-amber-300 font-mono">
+                              <span>READ_ARTICLE</span>
+                              <ExternalLink className="w-3 h-3" />
+                            </div>
+                          </a>
+                        ))}
+                      </div>
+                    </section>
+                  )}
 
                   {/* Section 2: Latest Chapter Releases */}
                   <section className="space-y-4 pt-4">

@@ -7,9 +7,17 @@ import {
 import {
   searchWeebCentral,
   getPopularWeebCentral,
+  getLatestUpdatesWeebCentral,
+  getRecentlyAddedWeebCentral,
   getWeebCentralDetails,
   getWeebCentralChapterPages
 } from './weebcentralProvider.js';
+import {
+  searchFlame,
+  getPopularFlame,
+  getFlameDetails,
+  getFlameChapterPages
+} from './flameProvider.js';
 import {
   searchAsura,
   getPopularAsura,
@@ -25,6 +33,8 @@ import {
 import {
   searchMangaDex,
   getPopularMangaDex,
+  getLatestMangaDex,
+  getNewlyAddedMangaDex,
   getMangaDexDetails,
   getMangaDexChapterPages,
   getMangaDexRecommendations
@@ -35,6 +45,7 @@ import {
   getMangaKakalotDetails,
   getMangaKakalotChapterPages
 } from './mangakakalotProvider.js';
+import { getMangaNews } from './newsProvider.js';
 import { decodeHtml, cleanTitle, getFallbackCover, deduplicateChapters } from './htmlUtils.js';
 
 // Server-side provider for complete manga chapters and pages
@@ -161,10 +172,11 @@ async function fetchWithTimeout(url, options = {}, timeoutMs = 4000) {
 // Quality ranking weights for providers (higher is better for complete unskipped chapters)
 export const PROVIDER_QUALITY_SCORE = {
   weebcentral: 100,
+  flame: 95,
   asura: 90,
   vortex: 85,
   mangakakalot: 80,
-  mangadex: 70,
+  mangadex: 75,
   webtoon: 65,
   mangapill: 50,
 };
@@ -195,6 +207,7 @@ export function computeSourceScore(item) {
   if (!item) return 0;
   const prov = item.provider || (
     item.id?.startsWith('wc:') ? 'weebcentral' :
+    item.id?.startsWith('flame:') ? 'flame' :
     item.id?.startsWith('md:') ? 'mangadex' :
     item.id?.startsWith('asura:') ? 'asura' :
     item.id?.startsWith('vortex:') ? 'vortex' :
@@ -315,9 +328,10 @@ export async function getPopularManga() {
   });
 
   try {
-    const [wcList, dexList, asuraList, vortexList, mkList, scrapedList] = await Promise.all([
+    const [wcList, dexList, flameList, asuraList, vortexList, mkList, scrapedList] = await Promise.all([
       getPopularWeebCentral(16).catch(() => []),
       getPopularMangaDex(12).catch(() => []),
+      getPopularFlame(12).catch(() => []),
       getPopularAsura().catch(() => []),
       getPopularVortex().catch(() => []),
       getPopularMangaKakalot().catch(() => []),
@@ -357,7 +371,7 @@ export async function getPopularManga() {
       })(),
     ]);
 
-    const merged = [...baseList, ...wcList.slice(0, 16), ...dexList.slice(0, 10), ...asuraList.slice(0, 8), ...vortexList.slice(0, 8), ...mkList.slice(0, 10), ...scrapedList];
+    const merged = [...baseList, ...wcList.slice(0, 16), ...flameList.slice(0, 10), ...dexList.slice(0, 10), ...asuraList.slice(0, 8), ...vortexList.slice(0, 8), ...mkList.slice(0, 10), ...scrapedList];
     const deduplicated = groupAndSelectBestManga(merged);
     setCache('popular_manga_v5', deduplicated);
     return deduplicated;
@@ -373,23 +387,72 @@ export async function getPopularManga() {
  * Search Manga & Webtoons across prioritized sources
  * Ranked strictly by chapter completeness:
  * 1. WeebCentral (complete scanlation archives from Ch. 1, 15,000+ titles)
- * 2. MangaDex (official & community scanlations with full chapters)
- * 3. MangaKakalot / KakaManga (deep back-catalog for classic/completed series)
- * 4. Asura Scans (fastest manhwa/manhua weekly chapters)
- * 5. Vortex Scans (high-speed manhwa/manhua scanlations)
- * 6. Webtoon (high-res verified color catalog)
- * 7. MangaPill (clean mirror fallback)
+ * 2. Flame Comics (high-speed official scanlator for top weekly action manhwa)
+ * 3. MangaDex (official & community scanlations with full chapters)
+ * 4. MangaKakalot / KakaManga (deep back-catalog for classic/completed series)
+ * 5. Asura Scans (fastest manhwa/manhua weekly chapters)
+ * 6. Vortex Scans (high-speed manhwa/manhua scanlations)
+ * 7. Webtoon (high-res verified color catalog)
+ * 8. MangaPill (clean mirror fallback)
  */
 export async function searchManga(query = '') {
   if (!query || !query.trim()) return getPopularManga();
 
-  const cacheKey = `search_v7_${query.trim().toLowerCase()}`;
+  const trimmed = query.trim();
+  const cacheKey = `search_v8_${trimmed.toLowerCase()}`;
   const cached = getCached(cacheKey);
   if (cached) return cached;
+
+  // Handle "new manga", "latest", "new", "recent" intent to return the freshest released chapters and titles
+  const isNewQuery = /^(new|new\s*manga|latest|latest\s*manga|new\s*releases?|recent|fresh|trending)$/i.test(trimmed);
+
+  if (isNewQuery) {
+    try {
+      const [wcLatest, wcAdded, dexLatest, dexAdded, flamePopular, asuraPop, vortexPop] = await Promise.all([
+        getLatestUpdatesWeebCentral(20).catch(() => []),
+        getRecentlyAddedWeebCentral(16).catch(() => []),
+        getLatestMangaDex(20).catch(() => []),
+        getNewlyAddedMangaDex(16).catch(() => []),
+        getPopularFlame(16).catch(() => []),
+        getPopularAsura().catch(() => []),
+        getPopularVortex().catch(() => []),
+      ]);
+
+      const seen = new Set();
+      const freshList = [];
+      const addFresh = (list, srcName) => {
+        (list || []).forEach(item => {
+          if (item && item.id && !seen.has(item.id)) {
+            seen.add(item.id);
+            freshList.push({
+              ...item,
+              sourceName: item.sourceName || srcName,
+              tags: item.tags?.length ? item.tags : ['New Release'],
+            });
+          }
+        });
+      };
+
+      addFresh(wcLatest, 'WeebCentral');
+      addFresh(dexLatest, 'MangaDex');
+      addFresh(flamePopular, 'Flame Comics');
+      addFresh(asuraPop, 'Asura Scans');
+      addFresh(wcAdded, 'WeebCentral');
+      addFresh(dexAdded, 'MangaDex');
+      addFresh(vortexPop, 'Vortex Scans');
+
+      const deduplicated = groupAndSelectBestManga(freshList);
+      setCache(cacheKey, deduplicated);
+      return deduplicated;
+    } catch (e) {
+      console.warn('New manga search fallback:', e.message);
+    }
+  }
 
   try {
     const [
       weebCentralMatches,
+      flameMatches,
       dexMatches,
       mkMatches,
       asuraMatches,
@@ -401,7 +464,11 @@ export async function searchManga(query = '') {
         console.error('searchWeebCentral error:', e.message);
         return [];
       }),
-      searchMangaDex(query, 12).catch((e) => {
+      searchFlame(query).catch((e) => {
+        console.error('searchFlame error:', e.message);
+        return [];
+      }),
+      searchMangaDex(query, 14).catch((e) => {
         console.error('searchMangaDex error:', e.message);
         return [];
       }),
@@ -438,7 +505,15 @@ export async function searchManga(query = '') {
       }
     });
 
-    // 2. MangaDex matches (Ranked #2 for official & high-quality scanlations)
+    // 2. Flame Comics matches (Ranked #2 for official weekly manhwa releases)
+    flameMatches.forEach((item) => {
+      if (!seen.has(item.id)) {
+        combined.push({ ...item, sourceName: 'Flame Comics' });
+        seen.add(item.id);
+      }
+    });
+
+    // 3. MangaDex matches (Ranked #3 for official & high-quality scanlations)
     dexMatches.forEach((item) => {
       if (!seen.has(item.id)) {
         combined.push({ ...item, sourceName: 'MangaDex' });
@@ -446,7 +521,7 @@ export async function searchManga(query = '') {
       }
     });
 
-    // 3. MangaKakalot matches (Ranked #3 for extensive catalog)
+    // 4. MangaKakalot matches (Ranked #4 for extensive catalog)
     mkMatches.forEach((item) => {
       if (!seen.has(item.id)) {
         combined.push({ ...item, sourceName: 'MangaKakalot' });
@@ -454,7 +529,7 @@ export async function searchManga(query = '') {
       }
     });
 
-    // 4. Asura Scans matches (Ranked #4 for weekly manhwa)
+    // 5. Asura Scans matches (Ranked #5 for weekly manhwa)
     asuraMatches.forEach((item) => {
       if (!seen.has(item.id)) {
         combined.push({ ...item, sourceName: 'Asura Scans' });
@@ -462,7 +537,7 @@ export async function searchManga(query = '') {
       }
     });
 
-    // 5. Vortex Scans matches (Ranked #5 for manhwa/manhua)
+    // 6. Vortex Scans matches (Ranked #6 for manhwa/manhua)
     vortexMatches.forEach((item) => {
       if (!seen.has(item.id)) {
         combined.push({ ...item, sourceName: 'Vortex Scans' });
@@ -470,7 +545,7 @@ export async function searchManga(query = '') {
       }
     });
 
-    // 6. Webtoon curated catalog matches (Stepmother, Solo Leveling, ORV)
+    // 7. Webtoon curated catalog matches (Stepmother, Solo Leveling, ORV)
     webtoonMatches.forEach((item) => {
       if (!seen.has(item.id)) {
         combined.push({ ...item, sourceName: item.sourceName || 'Webtoon' });
@@ -478,7 +553,7 @@ export async function searchManga(query = '') {
       }
     });
 
-    // 7. MangaPill matches (Ranked #7 for fallback)
+    // 8. MangaPill matches (Ranked #8 for fallback)
     mangapillMatches.forEach((item) => {
       if (!seen.has(item.id)) {
         combined.push({ ...item, sourceName: 'MangaPill' });
@@ -574,8 +649,9 @@ async function resolveAvailableSources(title, currentId, currentSourceName, curr
     const clean = title.replace(/[^\w\s]/gi, ' ').trim();
     if (!clean || clean.length < 2) return sources;
 
-    const [wc, md, mk, asura, vortex, pill] = await Promise.all([
+    const [wc, flame, md, mk, asura, vortex, pill] = await Promise.all([
       searchWeebCentral(clean).catch(() => []),
+      searchFlame(clean).catch(() => []),
       searchMangaDex(clean, 4).catch(() => []),
       searchMangaKakalot(clean).catch(() => []),
       searchAsura(clean).catch(() => []),
@@ -590,6 +666,7 @@ async function resolveAvailableSources(title, currentId, currentSourceName, curr
       if (!item || !item.id || item.id === currentId) return;
       const srcName = item.sourceName || (
         item.id?.startsWith('wc:') ? 'WeebCentral' :
+        item.id?.startsWith('flame:') ? 'Flame Comics' :
         item.id?.startsWith('md:') ? 'MangaDex' :
         item.id?.startsWith('asura:') ? 'Asura Scans' :
         item.id?.startsWith('vortex:') ? 'Vortex Scans' :
@@ -612,6 +689,7 @@ async function resolveAvailableSources(title, currentId, currentSourceName, curr
     };
 
     wc.slice(0, 3).forEach(addIfMatch);
+    flame.slice(0, 3).forEach(addIfMatch);
     md.slice(0, 3).forEach(addIfMatch);
     mk.slice(0, 3).forEach(addIfMatch);
     asura.slice(0, 3).forEach(addIfMatch);
@@ -669,6 +747,8 @@ export async function getMangaDetails(mangaId, bypassCache = false) {
   try {
     if (lookupId.startsWith('md:') || lookupId.startsWith('mangadex:')) {
       resolvedDetails = await getMangaDexDetails(lookupId, bypassCache);
+    } else if (lookupId.startsWith('flame:')) {
+      resolvedDetails = await getFlameDetails(lookupId);
     } else if (lookupId.startsWith('asura:')) {
       resolvedDetails = await getAsuraDetails(lookupId);
     } else if (lookupId.startsWith('vortex:')) {
@@ -846,6 +926,9 @@ export async function getChapterPages(chapterId) {
 
   if (chapterId.startsWith('md_ch:') || chapterId.startsWith('md:')) {
     return getMangaDexChapterPages(chapterId);
+  }
+  if (chapterId.startsWith('flame_ch:') || chapterId.startsWith('flame:')) {
+    return getFlameChapterPages(chapterId);
   }
   if (chapterId.startsWith('asura_ch:') || chapterId.startsWith('asura:')) {
     return getAsuraChapterPages(chapterId);
@@ -1244,3 +1327,5 @@ export async function getMangaRecommendations(currentId = '', genres = [], limit
     return FEATURED_MANGA.slice(0, limit);
   }
 }
+
+export { getMangaNews };

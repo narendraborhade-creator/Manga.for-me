@@ -12,9 +12,12 @@ import {
   RefreshCw,
   Radio,
   ChevronDown,
-  ChevronUp
+  ChevronUp,
+  Newspaper,
+  ExternalLink,
+  Flame
 } from 'lucide-react';
-import { getFallbackCover, fetchMangaDetails, fetchMangaRecommendations, cleanTitle, decodeHtml, deduplicateChapters } from '../services/mangaApi';
+import { getFallbackCover, fetchMangaDetails, fetchMangaRecommendations, fetchMangaNews, cleanTitle, decodeHtml, deduplicateChapters } from '../services/mangaApi';
 import { getReadChaptersForManga } from '../services/storage';
 
 export default function MangaDetailModal({
@@ -33,9 +36,12 @@ export default function MangaDetailModal({
   const [manga, setManga] = useState(null);
   const [chapters, setChapters] = useState([]);
   const [recommendations, setRecommendations] = useState([]);
+  const [mangaNews, setMangaNews] = useState([]);
   const [loading, setLoading] = useState(true);
   const [loadingChapters, setLoadingChapters] = useState(true);
   const [loadingRecs, setLoadingRecs] = useState(false);
+  const [loadingNews, setLoadingNews] = useState(false);
+  const [modalTab, setModalTab] = useState('chapters'); // 'chapters' | 'news'
   const [isRefreshing, setIsRefreshing] = useState(false);
   const [chapterSort, setChapterSort] = useState('desc'); // 'asc' | 'desc'
   const [chapterSearch, setChapterSearch] = useState('');
@@ -104,6 +110,13 @@ export default function MangaDetailModal({
             .then(recs => setRecommendations(recs || []))
             .catch(() => setRecommendations([]))
             .finally(() => setLoadingRecs(false));
+
+          // Fetch latest industry news & release updates for this manga
+          setLoadingNews(true);
+          fetchMangaNews(data.englishTitle || data.title, 8)
+            .then(news => setMangaNews(news || []))
+            .catch(() => setMangaNews([]))
+            .finally(() => setLoadingNews(false));
         }
       })
       .catch((err) => {
@@ -287,6 +300,7 @@ export default function MangaDetailModal({
 
                       {(() => {
                         const src = manga.sourceName || (
+                          manga.id?.startsWith('flame:') ? 'Flame Comics' :
                           manga.id?.startsWith('asura:') ? 'Asura Scans' :
                           manga.id?.startsWith('vortex:') ? 'Vortex Scans' :
                           manga.id?.startsWith('wc:') ? 'WeebCentral' :
@@ -295,6 +309,7 @@ export default function MangaDetailModal({
                           manga.id?.startsWith('webtoon:') ? 'Webtoon' : 'MangaPill'
                         );
                         const colorClass = 
+                          src === 'Flame Comics' || src === 'Flame' ? 'text-orange-400 bg-orange-500/10 border-orange-500/30' :
                           src === 'Asura Scans' || src === 'Asura' ? 'text-violet-400 bg-violet-500/10 border-violet-500/30' :
                           src === 'Vortex Scans' || src === 'Vortex' ? 'text-indigo-400 bg-indigo-500/10 border-indigo-500/30' :
                           src === 'MangaDex' ? 'text-amber-400 bg-amber-500/10 border-amber-500/30' :
@@ -478,7 +493,40 @@ export default function MangaDetailModal({
                 )}
               </section>
 
+              {/* Tabs: Chapters vs Latest News & Updates */}
+              <div className="flex items-center gap-2 border-b border-white/10 px-4 sm:px-8 bg-[#080a0f] pt-4 font-mono">
+                <button
+                  type="button"
+                  onClick={() => setModalTab('chapters')}
+                  className={`pb-3 px-4 text-xs sm:text-sm font-bold flex items-center gap-2 border-b-2 transition-all cursor-pointer ${
+                    modalTab === 'chapters'
+                      ? 'border-cyan-400 text-cyan-300'
+                      : 'border-transparent text-slate-400 hover:text-slate-200'
+                  }`}
+                >
+                  <Layers className="w-4 h-4" />
+                  <span>CHAPTERS ({filteredChapters.length})</span>
+                </button>
+
+                <button
+                  type="button"
+                  onClick={() => setModalTab('news')}
+                  className={`pb-3 px-4 text-xs sm:text-sm font-bold flex items-center gap-2 border-b-2 transition-all cursor-pointer ${
+                    modalTab === 'news'
+                      ? 'border-amber-400 text-amber-300'
+                      : 'border-transparent text-slate-400 hover:text-slate-200'
+                  }`}
+                >
+                  <Newspaper className="w-4 h-4" />
+                  <span>LATEST_NEWS ({mangaNews.length})</span>
+                  {mangaNews.length > 0 && (
+                    <span className="w-2 h-2 rounded-full bg-amber-400 animate-pulse" />
+                  )}
+                </button>
+              </div>
+
               {/* Chapters Section */}
+              {modalTab === 'chapters' && (
               <section className="p-4 sm:p-6 sm:px-8 bg-[#080a0f] space-y-4">
                 <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3">
                   <div className="flex items-center gap-2 flex-wrap">
@@ -651,6 +699,70 @@ export default function MangaDetailModal({
                   )}
                 </div>
               </section>
+              )}
+
+              {/* Latest News & Updates Tab */}
+              {modalTab === 'news' && (
+                <section className="p-4 sm:p-6 sm:px-8 bg-[#080a0f] space-y-4">
+                  <div className="flex items-center justify-between">
+                    <div className="flex items-center gap-2">
+                      <Newspaper className="w-4 h-4 text-amber-400" />
+                      <h3 className="text-base font-bold text-white font-['Outfit']">
+                        Real-Time Manga News & Announcements
+                      </h3>
+                    </div>
+                    <span className="text-xs text-slate-400 font-mono">
+                      LIVE_WIRE
+                    </span>
+                  </div>
+
+                  {loadingNews ? (
+                    <div className="py-12 flex flex-col items-center justify-center gap-2 text-slate-400">
+                      <Loader2 className="w-6 h-6 animate-spin text-amber-400" />
+                      <span className="text-xs">Fetching verified industry news & release schedules...</span>
+                    </div>
+                  ) : mangaNews.length === 0 ? (
+                    <div className="py-12 text-center text-slate-500 text-xs">
+                      No recent news or announcements found for this title. Check back shortly for new updates.
+                    </div>
+                  ) : (
+                    <div className="grid grid-cols-1 md:grid-cols-2 gap-3.5">
+                      {mangaNews.map((newsItem) => (
+                        <a
+                          key={newsItem.id}
+                          href={newsItem.link}
+                          target="_blank"
+                          rel="noopener noreferrer"
+                          className="group flex flex-col justify-between p-4 rounded-2xl bg-slate-900/60 hover:bg-slate-900 border border-white/10 hover:border-amber-400/50 transition-all hover:shadow-xl hover:shadow-amber-950/20 cursor-pointer"
+                        >
+                          <div>
+                            <div className="flex items-center justify-between gap-2 mb-2">
+                              <span className="px-2 py-0.5 rounded-md text-[10px] font-mono font-bold bg-amber-500/15 text-amber-300 border border-amber-500/30">
+                                {newsItem.source}
+                              </span>
+                              <span className="text-[11px] text-slate-400 font-mono">
+                                {newsItem.pubDate}
+                              </span>
+                            </div>
+                            <h4 className="text-sm font-bold text-slate-100 group-hover:text-amber-300 transition-colors line-clamp-2 mb-1.5 leading-snug">
+                              {newsItem.title}
+                            </h4>
+                            {newsItem.snippet && (
+                              <p className="text-xs text-slate-400 line-clamp-2 leading-relaxed">
+                                {newsItem.snippet}
+                              </p>
+                            )}
+                          </div>
+                          <div className="mt-3.5 pt-2.5 border-t border-white/5 flex items-center justify-between text-xs text-slate-400 group-hover:text-amber-300 font-mono">
+                            <span className="text-[11px] font-semibold">READ_SOURCE_ARTICLE</span>
+                            <ExternalLink className="w-3.5 h-3.5" />
+                          </div>
+                        </a>
+                      ))}
+                    </div>
+                  )}
+                </section>
+              )}
 
               {/* Recommendations / Suggestions Section */}
               <section className="p-4 sm:p-6 sm:px-8 bg-[#080a0f] space-y-4 pb-20 sm:pb-24">

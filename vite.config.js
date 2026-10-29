@@ -8,7 +8,8 @@ import {
   getChapterPages, 
   proxyImage,
   isValidProxyTarget,
-  getMangaRecommendations
+  getMangaRecommendations,
+  getMangaNews
 } from './server/mangaProvider.js'
 
 // In-memory sliding window rate limiter (120 requests per 10 seconds per IP)
@@ -74,6 +75,15 @@ function mangaApiPlugin() {
         const list = await searchManga(q);
         res.setHeader('Content-Type', 'application/json');
         res.end(JSON.stringify(list));
+        return;
+      }
+
+      if (pathname === '/api/manga/news') {
+        const title = (urlObj.searchParams.get('title') || '').slice(0, 200);
+        const limit = Math.min(parseInt(urlObj.searchParams.get('limit') || '12', 10), 30);
+        const news = await getMangaNews(title, limit);
+        res.setHeader('Content-Type', 'application/json');
+        res.end(JSON.stringify(news));
         return;
       }
 

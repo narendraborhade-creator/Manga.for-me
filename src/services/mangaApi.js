@@ -666,6 +666,7 @@ function formatMangaItem(item) {
     tags: (item.tags || ['Manga', 'Action']).map(decodeHtml),
     year: item.year || null,
     sourceName: item.sourceName || (
+      item.id?.startsWith('flame:') ? 'Flame Comics' :
       item.id?.startsWith('md:') ? 'MangaDex' :
       item.id?.startsWith('asura:') ? 'Asura Scans' :
       item.id?.startsWith('vortex:') ? 'Vortex Scans' :
@@ -674,6 +675,7 @@ function formatMangaItem(item) {
       item.id?.startsWith('webtoon:') ? 'Webtoon' : 'MangaPill'
     ),
     provider: item.provider || (
+      item.id?.startsWith('flame:') ? 'flame' :
       item.id?.startsWith('md:') ? 'mangadex' :
       item.id?.startsWith('asura:') ? 'asura' :
       item.id?.startsWith('vortex:') ? 'vortex' :
@@ -681,5 +683,24 @@ function formatMangaItem(item) {
       item.id?.startsWith('mk:') ? 'mangakakalot' :
       item.id?.startsWith('webtoon:') ? 'webtoon' : 'mangapill'
     ),
+    latestChapter: item.latestChapter || (item.totalChapters ? String(item.totalChapters) : null),
+    totalChapters: item.totalChapters || null,
+    lastUpdated: item.lastUpdated || null,
   };
+}
+
+/**
+ * Fetch Real-time Manga News & Updates
+ */
+export async function fetchMangaNews(title = '', limit = 10) {
+  try {
+    const q = title ? `?title=${encodeURIComponent(title)}&limit=${limit}` : `?limit=${limit}`;
+    const res = await fetch(`/api/manga/news${q}`);
+    if (!res.ok) throw new Error(`HTTP ${res.status}`);
+    const data = await res.json();
+    return Array.isArray(data) ? data : [];
+  } catch (err) {
+    console.warn('fetchMangaNews error:', err.message);
+    return [];
+  }
 }
