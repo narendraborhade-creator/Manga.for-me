@@ -1,0 +1,3 @@
+## 2024-10-29 - Keyboard Navigation and Hover-only Elements
+**Learning:** Icon-only action buttons (like Trash icons in cards/lists) that rely purely on `opacity-0 group-hover:opacity-100` classes remain hidden and inaccessible to keyboard-only users who navigate via Tab. They also frequently lack ARIA labels, making them invisible to screen readers.
+**Action:** When adding hover-only action buttons, always ensure they have an `aria-label`, and always pair hover visibility classes with `focus-visible:opacity-100 focus-visible:ring-2` so they reveal themselves and show a focus ring when accessed via keyboard navigation.
