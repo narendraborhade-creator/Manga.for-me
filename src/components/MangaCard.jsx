@@ -58,6 +58,7 @@ function MangaCard({
             {(() => {
               const src = manga.sourceName || (
                 manga.id?.startsWith('flame:') ? 'Flame Comics' :
+                manga.id?.startsWith('thunder:') ? 'Thunder Scans' :
                 manga.id?.startsWith('asura:') ? 'Asura Scans' :
                 manga.id?.startsWith('vortex:') ? 'Vortex Scans' :
                 manga.id?.startsWith('wc:') ? 'WeebCentral' :
@@ -67,6 +68,7 @@ function MangaCard({
               );
               const colorClass = 
                 src === 'Flame Comics' || src === 'Flame' ? 'bg-orange-600/80 text-orange-100 border-orange-500/40' :
+                src === 'Thunder Scans' || src === 'Thunder' ? 'bg-yellow-600/80 text-yellow-100 border-yellow-500/40' :
                 src === 'Asura Scans' || src === 'Asura' ? 'bg-violet-600/80 text-violet-100 border-violet-500/40' :
                 src === 'Vortex Scans' || src === 'Vortex' ? 'bg-indigo-600/80 text-indigo-100 border-indigo-500/40' :
                 src === 'MangaDex' ? 'bg-amber-600/80 text-amber-100 border-amber-500/40' :

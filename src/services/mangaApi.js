@@ -667,6 +667,7 @@ function formatMangaItem(item) {
     year: item.year || null,
     sourceName: item.sourceName || (
       item.id?.startsWith('flame:') ? 'Flame Comics' :
+      item.id?.startsWith('thunder:') ? 'Thunder Scans' :
       item.id?.startsWith('md:') ? 'MangaDex' :
       item.id?.startsWith('asura:') ? 'Asura Scans' :
       item.id?.startsWith('vortex:') ? 'Vortex Scans' :
@@ -676,6 +677,7 @@ function formatMangaItem(item) {
     ),
     provider: item.provider || (
       item.id?.startsWith('flame:') ? 'flame' :
+      item.id?.startsWith('thunder:') ? 'thunder' :
       item.id?.startsWith('md:') ? 'mangadex' :
       item.id?.startsWith('asura:') ? 'asura' :
       item.id?.startsWith('vortex:') ? 'vortex' :

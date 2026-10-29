@@ -78,6 +78,7 @@ const SOURCES = [
   { id: 'All', label: 'All Sources', badge: 'Multi-Feed' },
   { id: 'WeebCentral', label: 'WeebCentral', badge: '15k+ Ch.1' },
   { id: 'Flame', label: 'Flame Comics', badge: 'Weekly Action' },
+  { id: 'Thunder', label: 'Thunder Scans', badge: 'New Releases' },
   { id: 'MangaDex', label: 'MangaDex', badge: 'Official/Scans' },
   { id: 'Asura', label: 'Asura Scans', badge: 'Fast Manhwa' },
   { id: 'Vortex', label: 'Vortex Scans', badge: 'High-Speed' },
@@ -92,6 +93,7 @@ function matchesSource(manga, filterSource) {
   const src = (
     manga.sourceName || (
       manga.id?.startsWith('flame:') ? 'Flame Comics' :
+      manga.id?.startsWith('thunder:') ? 'Thunder Scans' :
       manga.id?.startsWith('asura:') ? 'Asura Scans' :
       manga.id?.startsWith('vortex:') ? 'Vortex Scans' :
       manga.id?.startsWith('wc:') ? 'WeebCentral' :

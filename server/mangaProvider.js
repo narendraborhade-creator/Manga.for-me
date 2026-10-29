@@ -19,6 +19,12 @@ import {
   getFlameChapterPages
 } from './flameProvider.js';
 import {
+  searchThunder,
+  getPopularThunder,
+  getThunderDetails,
+  getThunderChapterPages
+} from './thunderProvider.js';
+import {
   searchAsura,
   getPopularAsura,
   getAsuraDetails,
@@ -173,6 +179,7 @@ async function fetchWithTimeout(url, options = {}, timeoutMs = 4000) {
 export const PROVIDER_QUALITY_SCORE = {
   weebcentral: 100,
   flame: 95,
+  thunder: 92,
   asura: 90,
   vortex: 85,
   mangakakalot: 80,
@@ -195,7 +202,7 @@ export function normalizeTitleKey(str) {
     .replace(/na honjaman level[\s-]*up/i, 'solo leveling')
     .replace(/omniscient reader['’]?s?(\s+viewpoint)?/i, 'omniscient reader')
     .replace(/reincarnation of the suicidal battle god/i, 'doom breaker')
-    .replace(/[^\w\s]/g, '')
+    .replace(/[^\p{L}\p{N}\s]/gu, '')
     .replace(/\s+/g, ' ')
     .trim();
 }
@@ -208,6 +215,7 @@ export function computeSourceScore(item) {
   const prov = item.provider || (
     item.id?.startsWith('wc:') ? 'weebcentral' :
     item.id?.startsWith('flame:') ? 'flame' :
+    item.id?.startsWith('thunder:') ? 'thunder' :
     item.id?.startsWith('md:') ? 'mangadex' :
     item.id?.startsWith('asura:') ? 'asura' :
     item.id?.startsWith('vortex:') ? 'vortex' :
@@ -328,10 +336,11 @@ export async function getPopularManga() {
   });
 
   try {
-    const [wcList, dexList, flameList, asuraList, vortexList, mkList, scrapedList] = await Promise.all([
+    const [wcList, dexList, flameList, thunderList, asuraList, vortexList, mkList, scrapedList] = await Promise.all([
       getPopularWeebCentral(16).catch(() => []),
       getPopularMangaDex(12).catch(() => []),
       getPopularFlame(12).catch(() => []),
+      getPopularThunder(12).catch(() => []),
       getPopularAsura().catch(() => []),
       getPopularVortex().catch(() => []),
       getPopularMangaKakalot().catch(() => []),
@@ -371,7 +380,17 @@ export async function getPopularManga() {
       })(),
     ]);
 
-    const merged = [...baseList, ...wcList.slice(0, 16), ...flameList.slice(0, 10), ...dexList.slice(0, 10), ...asuraList.slice(0, 8), ...vortexList.slice(0, 8), ...mkList.slice(0, 10), ...scrapedList];
+    const merged = [
+      ...baseList,
+      ...wcList.slice(0, 16),
+      ...flameList.slice(0, 10),
+      ...thunderList.slice(0, 10),
+      ...dexList.slice(0, 10),
+      ...asuraList.slice(0, 8),
+      ...vortexList.slice(0, 8),
+      ...mkList.slice(0, 10),
+      ...scrapedList
+    ];
     const deduplicated = groupAndSelectBestManga(merged);
     setCache('popular_manga_v5', deduplicated);
     return deduplicated;
@@ -408,12 +427,13 @@ export async function searchManga(query = '') {
 
   if (isNewQuery) {
     try {
-      const [wcLatest, wcAdded, dexLatest, dexAdded, flamePopular, asuraPop, vortexPop] = await Promise.all([
+      const [wcLatest, wcAdded, dexLatest, dexAdded, flamePopular, thunderPop, asuraPop, vortexPop] = await Promise.all([
         getLatestUpdatesWeebCentral(20).catch(() => []),
         getRecentlyAddedWeebCentral(16).catch(() => []),
         getLatestMangaDex(20).catch(() => []),
         getNewlyAddedMangaDex(16).catch(() => []),
         getPopularFlame(16).catch(() => []),
+        getPopularThunder(16).catch(() => []),
         getPopularAsura().catch(() => []),
         getPopularVortex().catch(() => []),
       ]);
@@ -436,6 +456,7 @@ export async function searchManga(query = '') {
       addFresh(wcLatest, 'WeebCentral');
       addFresh(dexLatest, 'MangaDex');
       addFresh(flamePopular, 'Flame Comics');
+      addFresh(thunderPop, 'Thunder Scans');
       addFresh(asuraPop, 'Asura Scans');
       addFresh(wcAdded, 'WeebCentral');
       addFresh(dexAdded, 'MangaDex');
@@ -453,6 +474,7 @@ export async function searchManga(query = '') {
     const [
       weebCentralMatches,
       flameMatches,
+      thunderMatches,
       dexMatches,
       mkMatches,
       asuraMatches,
@@ -466,6 +488,10 @@ export async function searchManga(query = '') {
       }),
       searchFlame(query).catch((e) => {
         console.error('searchFlame error:', e.message);
+        return [];
+      }),
+      searchThunder(query).catch((e) => {
+        console.error('searchThunder error:', e.message);
         return [];
       }),
       searchMangaDex(query, 14).catch((e) => {
@@ -513,7 +539,15 @@ export async function searchManga(query = '') {
       }
     });
 
-    // 3. MangaDex matches (Ranked #3 for official & high-quality scanlations)
+    // 3. Thunder Scans matches (Ranked for premium manhwa & fantasy chapters)
+    thunderMatches.forEach((item) => {
+      if (!seen.has(item.id)) {
+        combined.push({ ...item, sourceName: 'Thunder Scans' });
+        seen.add(item.id);
+      }
+    });
+
+    // 4. MangaDex matches (Ranked for official & high-quality scanlations)
     dexMatches.forEach((item) => {
       if (!seen.has(item.id)) {
         combined.push({ ...item, sourceName: 'MangaDex' });
@@ -521,7 +555,7 @@ export async function searchManga(query = '') {
       }
     });
 
-    // 4. MangaKakalot matches (Ranked #4 for extensive catalog)
+    // 5. MangaKakalot matches (Ranked for extensive catalog)
     mkMatches.forEach((item) => {
       if (!seen.has(item.id)) {
         combined.push({ ...item, sourceName: 'MangaKakalot' });
@@ -529,7 +563,7 @@ export async function searchManga(query = '') {
       }
     });
 
-    // 5. Asura Scans matches (Ranked #5 for weekly manhwa)
+    // 6. Asura Scans matches (Ranked for weekly manhwa)
     asuraMatches.forEach((item) => {
       if (!seen.has(item.id)) {
         combined.push({ ...item, sourceName: 'Asura Scans' });
@@ -537,7 +571,7 @@ export async function searchManga(query = '') {
       }
     });
 
-    // 6. Vortex Scans matches (Ranked #6 for manhwa/manhua)
+    // 7. Vortex Scans matches (Ranked for manhwa/manhua)
     vortexMatches.forEach((item) => {
       if (!seen.has(item.id)) {
         combined.push({ ...item, sourceName: 'Vortex Scans' });
@@ -545,7 +579,7 @@ export async function searchManga(query = '') {
       }
     });
 
-    // 7. Webtoon curated catalog matches (Stepmother, Solo Leveling, ORV)
+    // 8. Webtoon curated catalog matches (Stepmother, Solo Leveling, ORV)
     webtoonMatches.forEach((item) => {
       if (!seen.has(item.id)) {
         combined.push({ ...item, sourceName: item.sourceName || 'Webtoon' });
@@ -553,7 +587,7 @@ export async function searchManga(query = '') {
       }
     });
 
-    // 8. MangaPill matches (Ranked #8 for fallback)
+    // 9. MangaPill matches (Ranked for fallback)
     mangapillMatches.forEach((item) => {
       if (!seen.has(item.id)) {
         combined.push({ ...item, sourceName: 'MangaPill' });
@@ -649,9 +683,10 @@ async function resolveAvailableSources(title, currentId, currentSourceName, curr
     const clean = title.replace(/[^\w\s]/gi, ' ').trim();
     if (!clean || clean.length < 2) return sources;
 
-    const [wc, flame, md, mk, asura, vortex, pill] = await Promise.all([
+    const [wc, flame, thunder, md, mk, asura, vortex, pill] = await Promise.all([
       searchWeebCentral(clean).catch(() => []),
       searchFlame(clean).catch(() => []),
+      searchThunder(clean).catch(() => []),
       searchMangaDex(clean, 4).catch(() => []),
       searchMangaKakalot(clean).catch(() => []),
       searchAsura(clean).catch(() => []),
@@ -667,6 +702,7 @@ async function resolveAvailableSources(title, currentId, currentSourceName, curr
       const srcName = item.sourceName || (
         item.id?.startsWith('wc:') ? 'WeebCentral' :
         item.id?.startsWith('flame:') ? 'Flame Comics' :
+        item.id?.startsWith('thunder:') ? 'Thunder Scans' :
         item.id?.startsWith('md:') ? 'MangaDex' :
         item.id?.startsWith('asura:') ? 'Asura Scans' :
         item.id?.startsWith('vortex:') ? 'Vortex Scans' :
@@ -690,6 +726,7 @@ async function resolveAvailableSources(title, currentId, currentSourceName, curr
 
     wc.slice(0, 3).forEach(addIfMatch);
     flame.slice(0, 3).forEach(addIfMatch);
+    thunder.slice(0, 3).forEach(addIfMatch);
     md.slice(0, 3).forEach(addIfMatch);
     mk.slice(0, 3).forEach(addIfMatch);
     asura.slice(0, 3).forEach(addIfMatch);
@@ -700,6 +737,152 @@ async function resolveAvailableSources(title, currentId, currentSourceName, curr
   } catch {}
 
   return sources;
+}
+
+/**
+ * Verify that a candidate match from another provider actually represents the exact same series
+ * (matches title, englishTitle, or any of the altTitles in Korean, Japanese, or English).
+ * Strictly prevents intermixing or scraping chapters from unrelated series.
+ */
+export function isAuthenticSeriesMatch(details, match, matchDetails) {
+  if (!details || !match) return false;
+
+  const validTargets = new Set();
+  const addTarget = (t) => {
+    if (!t || typeof t !== 'string') return;
+    const norm = normalizeTitleKey(t);
+    if (norm) validTargets.add(norm);
+    const rawClean = t.trim().toLowerCase();
+    if (rawClean) validTargets.add(rawClean);
+  };
+
+  addTarget(details.title);
+  addTarget(details.englishTitle);
+  if (Array.isArray(details.altTitles)) {
+    details.altTitles.forEach(addTarget);
+  }
+
+  const matchTitles = [];
+  if (match.title) matchTitles.push(match.title);
+  if (match.englishTitle) matchTitles.push(match.englishTitle);
+  if (matchDetails?.title) matchTitles.push(matchDetails.title);
+  if (matchDetails?.englishTitle) matchTitles.push(matchDetails.englishTitle);
+  if (Array.isArray(matchDetails?.altTitles)) {
+    matchDetails.altTitles.forEach(t => matchTitles.push(t));
+  }
+
+  for (const mt of matchTitles) {
+    if (!mt || typeof mt !== 'string') continue;
+    const norm = normalizeTitleKey(mt);
+    const rawClean = mt.trim().toLowerCase();
+    if (validTargets.has(norm) || validTargets.has(rawClean)) {
+      return true;
+    }
+    // Substring match for lengthy titles (e.g., romanized vs localized)
+    for (const vt of validTargets) {
+      if (vt.length >= 8 && norm.length >= 8) {
+        if (norm.includes(vt) || vt.includes(norm)) {
+          return true;
+        }
+      }
+    }
+  }
+
+  return false;
+}
+
+/**
+ * Automatically heal manga with missing or 0 chapters by cross-querying alternative titles
+ * across top-tier scanlation providers (Thunder Scans, WeebCentral, Flame Comics, Asura Scans, Vortex Scans).
+ */
+export async function autoHealMissingChapters(details, bypassCache = false) {
+  if (!details || (Array.isArray(details.chapters) && details.chapters.length > 0)) {
+    return details;
+  }
+
+  const candidates = new Set();
+  if (details.title) candidates.add(details.title);
+  if (details.englishTitle) candidates.add(details.englishTitle);
+  if (Array.isArray(details.altTitles)) {
+    details.altTitles.forEach(t => {
+      if (t && typeof t === 'string' && t.trim().length > 1) {
+        candidates.add(t.trim());
+      }
+    });
+  }
+
+  // Also include base variants (e.g. without punctuation)
+  Array.from(candidates).forEach(t => {
+    const qVariants = getQueryVariants(t);
+    qVariants.forEach(v => candidates.add(v));
+  });
+
+  let bestHealed = null;
+
+  for (const query of candidates) {
+    if (!query || query.length < 2) continue;
+    try {
+      const [thunderResults, wcResults, flameResults, asuraResults, vortexResults] = await Promise.all([
+        searchThunder(query).catch(() => []),
+        searchWeebCentral(query).catch(() => []),
+        searchFlame(query).catch(() => []),
+        searchAsura(query).catch(() => []),
+        searchVortex(query).catch(() => []),
+      ]);
+
+      const foundMatches = [
+        ...thunderResults,
+        ...wcResults,
+        ...flameResults,
+        ...asuraResults,
+        ...vortexResults,
+      ];
+
+      for (const match of foundMatches) {
+        if (!match || !match.id) continue;
+        let matchDetails = null;
+        if (match.id.startsWith('thunder:')) {
+          matchDetails = await getThunderDetails(match.id);
+        } else if (match.id.startsWith('wc:')) {
+          matchDetails = await getWeebCentralDetails(match.id.replace('wc:', ''), '', bypassCache);
+        } else if (match.id.startsWith('flame:')) {
+          matchDetails = await getFlameDetails(match.id);
+        } else if (match.id.startsWith('asura:')) {
+          matchDetails = await getAsuraDetails(match.id);
+        } else if (match.id.startsWith('vortex:')) {
+          matchDetails = await getVortexDetails(match.id);
+        }
+
+        if (matchDetails && Array.isArray(matchDetails.chapters) && matchDetails.chapters.length > 0) {
+          if (!isAuthenticSeriesMatch(details, match, matchDetails)) {
+            continue;
+          }
+          if (!bestHealed || matchDetails.chapters.length > (bestHealed.chapters?.length || 0)) {
+            const uniqueChapters = deduplicateChapters(matchDetails.chapters);
+            bestHealed = {
+              ...details,
+              aliasId: matchDetails.id,
+              sourceName: matchDetails.sourceName || details.sourceName,
+              provider: matchDetails.provider || details.provider,
+              chapters: uniqueChapters,
+              totalChapters: uniqueChapters.length,
+              latestChapter: matchDetails.latestChapter || uniqueChapters[0]?.chapter || null,
+              coverUrl: details.coverUrl && !details.coverUrl.includes('placeholder') ? details.coverUrl : matchDetails.coverUrl,
+              description: details.description && details.description !== 'No synopsis available.' ? details.description : matchDetails.description,
+            };
+          }
+        }
+      }
+    } catch (err) {
+      console.warn('autoHealMissingChapters search step warning:', err.message);
+    }
+  }
+
+  if (bestHealed) {
+    return bestHealed;
+  }
+
+  return details;
 }
 
 /**
@@ -738,6 +921,8 @@ export async function getMangaDetails(mangaId, bypassCache = false) {
     '2085/jujutsu-kaisen': 'wc:01J76XYCERXE60T7FKXVCCAQ0H',
     '7486/boruto-two-blue-vortex': 'wc:01J76XYBNEJ5EGK9ZEP3YS0PMH',
     '7529/kagurabachi': 'wc:01J76XYGGM22WZP7T4TKA4ZFAF',
+    'md:eee25eb6-591b-40a4-a2aa-f4ab68169795': 'thunder:forget-about-the-succession-im-here-to-heal',
+    'eee25eb6-591b-40a4-a2aa-f4ab68169795': 'thunder:forget-about-the-succession-im-here-to-heal',
   };
 
   const lookupId = VERIFIED_COMPLETE_ALIASES[mangaId] || mangaId;
@@ -747,6 +932,8 @@ export async function getMangaDetails(mangaId, bypassCache = false) {
   try {
     if (lookupId.startsWith('md:') || lookupId.startsWith('mangadex:')) {
       resolvedDetails = await getMangaDexDetails(lookupId, bypassCache);
+    } else if (lookupId.startsWith('thunder:')) {
+      resolvedDetails = await getThunderDetails(lookupId);
     } else if (lookupId.startsWith('flame:')) {
       resolvedDetails = await getFlameDetails(lookupId);
     } else if (lookupId.startsWith('asura:')) {
@@ -765,6 +952,9 @@ export async function getMangaDetails(mangaId, bypassCache = false) {
   }
 
   if (resolvedDetails) {
+    if (!resolvedDetails.chapters || resolvedDetails.chapters.length === 0) {
+      resolvedDetails = await autoHealMissingChapters(resolvedDetails, bypassCache);
+    }
     if (Array.isArray(resolvedDetails.chapters)) {
       resolvedDetails.chapters = deduplicateChapters(resolvedDetails.chapters);
       resolvedDetails.totalChapters = resolvedDetails.chapters.length;
@@ -778,7 +968,7 @@ export async function getMangaDetails(mangaId, bypassCache = false) {
     return {
       ...resolvedDetails,
       id: mangaId, // preserve requested ID for frontend consistency
-      aliasId: lookupId !== mangaId ? lookupId : undefined,
+      aliasId: resolvedDetails.aliasId || (lookupId !== mangaId ? lookupId : undefined),
     };
   }
 
@@ -941,6 +1131,9 @@ export async function getChapterPages(chapterId) {
   }
   if (chapterId.startsWith('wc_ch:')) {
     return getWeebCentralChapterPages(chapterId.replace('wc_ch:', ''));
+  }
+  if (chapterId.startsWith('thunder_ch:') || chapterId.startsWith('thunder:')) {
+    return getThunderChapterPages(chapterId);
   }
   if (chapterId.startsWith('mk_ch:')) {
     return getMangaKakalotChapterPages(chapterId);
@@ -1155,6 +1348,8 @@ export async function proxyImage(imageUrl, res) {
         primaryReferer = 'https://weebcentral.com/';
       } else if (host.includes('asurascans') || host.includes('asuracomic')) {
         primaryReferer = 'https://asurascans.com/';
+      } else if (host.includes('thunderscans')) {
+        primaryReferer = 'https://en-thunderscans.com/';
       } else if (host.includes('vortexscans')) {
         primaryReferer = 'https://vortexscans.org/';
       } else if (

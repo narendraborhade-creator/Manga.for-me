@@ -301,6 +301,7 @@ export default function MangaDetailModal({
                       {(() => {
                         const src = manga.sourceName || (
                           manga.id?.startsWith('flame:') ? 'Flame Comics' :
+                          manga.id?.startsWith('thunder:') ? 'Thunder Scans' :
                           manga.id?.startsWith('asura:') ? 'Asura Scans' :
                           manga.id?.startsWith('vortex:') ? 'Vortex Scans' :
                           manga.id?.startsWith('wc:') ? 'WeebCentral' :
@@ -310,6 +311,7 @@ export default function MangaDetailModal({
                         );
                         const colorClass = 
                           src === 'Flame Comics' || src === 'Flame' ? 'text-orange-400 bg-orange-500/10 border-orange-500/30' :
+                          src === 'Thunder Scans' || src === 'Thunder' ? 'text-yellow-400 bg-yellow-500/10 border-yellow-500/30' :
                           src === 'Asura Scans' || src === 'Asura' ? 'text-violet-400 bg-violet-500/10 border-violet-500/30' :
                           src === 'Vortex Scans' || src === 'Vortex' ? 'text-indigo-400 bg-indigo-500/10 border-indigo-500/30' :
                           src === 'MangaDex' ? 'text-amber-400 bg-amber-500/10 border-amber-500/30' :

@@ -65,12 +65,27 @@ function formatMangaDexItem(item) {
 
   // Alt title resolution
   let englishTitle = null;
+  const allAltTitles = [];
   if (attrs.altTitles && Array.isArray(attrs.altTitles)) {
+    attrs.altTitles.forEach(t => {
+      Object.values(t).forEach(val => {
+        if (val && typeof val === 'string' && val.trim().length > 0) {
+          allAltTitles.push(cleanTitle(val.trim()));
+        }
+      });
+    });
     const enAlt = attrs.altTitles.find(t => t.en);
     if (enAlt) englishTitle = cleanTitle(enAlt.en);
   }
   if (!englishTitle && attrs.title?.en && attrs.title['ja-ro']) {
     englishTitle = cleanTitle(attrs.title.en);
+  }
+  if (attrs.title && typeof attrs.title === 'object') {
+    Object.values(attrs.title).forEach(val => {
+      if (val && typeof val === 'string' && !allAltTitles.includes(val)) {
+        allAltTitles.push(cleanTitle(val));
+      }
+    });
   }
 
   // Cover resolution
@@ -93,6 +108,7 @@ function formatMangaDexItem(item) {
     rawId: id,
     title,
     englishTitle,
+    altTitles: allAltTitles,
     coverUrl,
     description,
     status: attrs.status ? attrs.status.toUpperCase() : 'ONGOING',
