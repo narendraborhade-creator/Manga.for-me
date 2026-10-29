@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useMemo } from 'react';
 import { 
   Bookmark, 
   Search, 
@@ -7,11 +7,12 @@ import {
   FolderHeart,
   Download
 } from 'lucide-react';
-import { getHistory, getUpdates } from '../services/storage';
+import { getUpdates } from '../services/storage';
 import { getFallbackCover } from '../services/mangaApi';
 
 export default function LibraryView({
   bookmarks = {},
+  history = [],
   onSelectManga,
   onOpenReader,
   onRemoveBookmark,
@@ -33,8 +34,16 @@ export default function LibraryView({
     if (norm) seenLibraryKeys.add(norm);
     return true;
   });
-  const history = getHistory();
   const updates = getUpdates();
+
+  // O(N) map to avoid O(N*M) lookup inside the filteredList.map loop
+  const historyMap = useMemo(() => {
+    const map = {};
+    history.forEach((h) => {
+      map[h.mangaId] = h;
+    });
+    return map;
+  }, [history]);
 
   const updatesByManga = new Map();
   updates.forEach((u) => {
@@ -176,7 +185,7 @@ export default function LibraryView({
       ) : (
         <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 xl:grid-cols-6 gap-4 sm:gap-5">
           {filteredList.map((item) => {
-            const histEntry = history.find((h) => h.mangaId === item.id);
+            const histEntry = historyMap[item.id];
             const lastCh = histEntry?.chapterNumber;
             const updateObj = updatesByManga.get(item.id);
 
@@ -230,8 +239,8 @@ export default function LibraryView({
                       <div 
                         onClick={(e) => {
                           e.stopPropagation();
-                          if (onOpenReader && historyItem) {
-                            onOpenReader(item.id, historyItem.chapterId, lastCh, item.title, item.coverUrl, item.englishTitle);
+                          if (onOpenReader && histEntry) {
+                            onOpenReader(item.id, histEntry.chapterId, lastCh, item.title, item.coverUrl, item.englishTitle);
                           } else {
                             onSelectManga(item.id, item.coverUrl);
                           }
