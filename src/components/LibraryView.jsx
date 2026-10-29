@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useMemo } from 'react';
 import { 
   Bookmark, 
   Search, 
@@ -21,47 +21,72 @@ export default function LibraryView({
   const [filterStatus, setFilterStatus] = useState('all');
   const [searchQuery, setSearchQuery] = useState('');
 
-  // Deduplicate library items by normalized key to ensure 0 duplicates in library
-  const seenLibraryKeys = new Set();
-  const bookmarkList = Object.values(bookmarks).filter((item) => {
-    if (!item) return false;
-    const norm = (item.englishTitle || item.title || item.id || '')
-      .toLowerCase()
-      .replace(/^(vortex|asura|webtoon|weebcentral|mangadex|mangakakalot|kakamanga|mangapill|wc|mk|md)\s*:\s*/i, '')
-      .replace(/[^a-z0-9]+/g, '');
-    if (norm && seenLibraryKeys.has(norm)) return false;
-    if (norm) seenLibraryKeys.add(norm);
-    return true;
-  });
-  const history = getHistory();
-  const updates = getUpdates();
+  // ⚡ Bolt Optimization: Memoize bookmark deduplication logic to prevent redundant processing per render
+  const bookmarkList = useMemo(() => {
+    // Deduplicate library items by normalized key to ensure 0 duplicates in library
+    const seenLibraryKeys = new Set();
+    return Object.values(bookmarks).filter((item) => {
+      if (!item) return false;
+      const norm = (item.englishTitle || item.title || item.id || '')
+        .toLowerCase()
+        .replace(/^(vortex|asura|webtoon|weebcentral|mangadex|mangakakalot|kakamanga|mangapill|wc|mk|md)\s*:\s*/i, '')
+        .replace(/[^a-z0-9]+/g, '');
+      if (norm && seenLibraryKeys.has(norm)) return false;
+      if (norm) seenLibraryKeys.add(norm);
+      return true;
+    });
+  }, [bookmarks]);
 
-  const updatesByManga = new Map();
-  updates.forEach((u) => {
-    if (!u.read) {
-      updatesByManga.set(u.mangaId, u);
-    }
-  });
+  // ⚡ Bolt Optimization: Memoize storage fetching using proxy dependencies to prevent unneeded execution
+  const history = useMemo(() => getHistory(), [bookmarks]);
+  const updates = useMemo(() => getUpdates(), [bookmarks]);
 
-  // Calculate statistics
-  const totalReadChapters = history.reduce((acc, cur) => acc + (cur.readChapters?.length || 1), 0);
-  const readingCount = bookmarkList.filter((b) => b.status === 'reading').length;
-  const completedCount = bookmarkList.filter((b) => b.status === 'completed').length;
-  const planCount = bookmarkList.filter((b) => b.status === 'plan_to_read').length;
-  const favCount = bookmarkList.filter((b) => b.status === 'favorite').length;
-  const hasUpdatesCount = bookmarkList.filter((b) => updatesByManga.has(b.id)).length;
+  // ⚡ Bolt Optimization: Memoize O(N) Hash Map for History to eliminate O(N) nested loop lookups during render
+  const historyMap = useMemo(() => {
+    const map = new Map();
+    history.forEach(h => map.set(h.mangaId, h));
+    return map;
+  }, [history]);
 
-  const statusTabs = [
+  const updatesByManga = useMemo(() => {
+    const map = new Map();
+    updates.forEach((u) => {
+      if (!u.read) {
+        map.set(u.mangaId, u);
+      }
+    });
+    return map;
+  }, [updates]);
+
+  // ⚡ Bolt Optimization: Memoize statistics calculations
+  const { totalReadChapters, readingCount, completedCount, planCount, favCount, onHoldCount, hasUpdatesCount } = useMemo(() => {
+    const totalReadChapters = history.reduce((acc, cur) => acc + (cur.readChapters?.length || 1), 0);
+    let readingCount = 0, completedCount = 0, planCount = 0, favCount = 0, onHoldCount = 0;
+
+    bookmarkList.forEach((b) => {
+      if (b.status === 'reading') readingCount++;
+      else if (b.status === 'completed') completedCount++;
+      else if (b.status === 'plan_to_read') planCount++;
+      else if (b.status === 'favorite') favCount++;
+      else if (b.status === 'on_hold') onHoldCount++;
+    });
+
+    const hasUpdatesCount = bookmarkList.filter((b) => updatesByManga.has(b.id)).length;
+
+    return { totalReadChapters, readingCount, completedCount, planCount, favCount, onHoldCount, hasUpdatesCount };
+  }, [history, bookmarkList, updatesByManga]);
+
+  const statusTabs = useMemo(() => [
     { id: 'all', label: 'All Titles', count: bookmarkList.length },
     ...(hasUpdatesCount > 0 ? [{ id: 'updates', label: '⚡ New Releases', count: hasUpdatesCount }] : []),
     { id: 'reading', label: 'Reading', count: readingCount },
     { id: 'plan_to_read', label: 'Plan to Read', count: planCount },
     { id: 'completed', label: 'Completed', count: completedCount },
     { id: 'favorite', label: 'Favorites', count: favCount },
-    { id: 'on_hold', label: 'On Hold', count: bookmarkList.filter((b) => b.status === 'on_hold').length },
-  ];
+    { id: 'on_hold', label: 'On Hold', count: onHoldCount },
+  ], [bookmarkList.length, hasUpdatesCount, readingCount, planCount, completedCount, favCount, onHoldCount]);
 
-  const filteredList = bookmarkList.filter((item) => {
+  const filteredList = useMemo(() => bookmarkList.filter((item) => {
     const matchesStatus = filterStatus === 'all'
       ? true
       : filterStatus === 'updates'
@@ -72,7 +97,7 @@ export default function LibraryView({
       item.title?.toLowerCase().includes(q) || 
       item.englishTitle?.toLowerCase().includes(q);
     return matchesStatus && matchesSearch;
-  });
+  }), [bookmarkList, filterStatus, searchQuery, updatesByManga]);
 
   return (
     <div className="space-y-8 animate-fadeIn">
@@ -176,7 +201,8 @@ export default function LibraryView({
       ) : (
         <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 xl:grid-cols-6 gap-4 sm:gap-5">
           {filteredList.map((item) => {
-            const histEntry = history.find((h) => h.mangaId === item.id);
+            // ⚡ Bolt Optimization: Use O(1) hash map lookup instead of O(N) array find
+            const histEntry = historyMap.get(item.id);
             const lastCh = histEntry?.chapterNumber;
             const updateObj = updatesByManga.get(item.id);
 
@@ -230,8 +256,8 @@ export default function LibraryView({
                       <div 
                         onClick={(e) => {
                           e.stopPropagation();
-                          if (onOpenReader && historyItem) {
-                            onOpenReader(item.id, historyItem.chapterId, lastCh, item.title, item.coverUrl, item.englishTitle);
+                          if (onOpenReader && histEntry) {
+                            onOpenReader(item.id, histEntry.chapterId, lastCh, item.title, item.coverUrl, item.englishTitle);
                           } else {
                             onSelectManga(item.id, item.coverUrl);
                           }
