@@ -198,6 +198,7 @@ export async function getMangaKakalotDetails(slug, bypassCache = false) {
       sourceName: 'MangaKakalot',
       chapters,
       totalChapters: chapters.length,
+      latestChapter: chapters[0] ? chapters[0].chapter : null,
     };
 
     setCache(cacheKey, result);
@@ -310,6 +311,11 @@ export async function searchMangaKakalot(query = '') {
           rawCover = `https://img-r1.2xstorage.com/thumb/${slug}.webp`;
         }
 
+        // Extract latest chapter
+        const chMatch = block.match(/href="[^"]*\/chapter-([0-9.]+)"[^>]*title="([^"]+)"/i) || block.match(/<a[^>]*href="[^"]*\/chapter-([0-9.]+)"[^>]*>([^<]+)<\/a>/i);
+        const latestCh = chMatch ? chMatch[1] : null;
+        const totalChapters = latestCh && !isNaN(parseFloat(latestCh)) ? Math.floor(parseFloat(latestCh)) : null;
+
         list.push({
           id: `mk:${slug}`,
           slug,
@@ -318,6 +324,8 @@ export async function searchMangaKakalot(query = '') {
           coverUrl: rawCover,
           status: 'Ongoing',
           author: 'MangaKakalot',
+          latestChapter: latestCh,
+          totalChapters,
           tags: ['Manga', 'Action'],
           sourceName: 'MangaKakalot',
           provider: 'mangakakalot',

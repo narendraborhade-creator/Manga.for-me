@@ -94,6 +94,15 @@ export async function searchAsura(query) {
       const rawT = titleMatch ? titleMatch[1].trim() : (titleAttr ? titleAttr[1].trim() : cleanSlugTitle(slug));
       const title = cleanTitle(rawT);
 
+      // Extract chapter count from JSON state or card badge
+      const jsonRegex = new RegExp(`public_url&quot;:\\[0,&quot;\\/comics\\/${slug}&quot;\\][\\s\\S]*?latest_chapters&quot;:\\[1,\\[\\[0,\\{[^}]*?&quot;number&quot;:\\[0,([0-9.]+)`, 'i');
+      const jsonM = html.match(jsonRegex);
+      const htmlRegex = new RegExp(`href="\\/comics\\/${slug}"[\\s\\S]*?>([0-9.]+)(?:<!-- -->)?\\s*<span[^>]*>(?:Chs|Chapters)`, 'i');
+      const htmlM = html.match(htmlRegex);
+      const chStr = jsonM ? jsonM[1] : (htmlM ? htmlM[1] : null);
+      const totalChapters = chStr && !isNaN(parseFloat(chStr)) ? Math.floor(parseFloat(chStr)) : null;
+      const latestChapter = chStr ? String(chStr) : null;
+
       results.push({
         id: `asura:${slug}`,
         title,
@@ -103,6 +112,8 @@ export async function searchAsura(query) {
         status: 'Ongoing',
         author: 'Asura Scans',
         tags: ['Manhwa', 'Action'],
+        totalChapters,
+        latestChapter,
         sourceName: 'Asura Scans',
         provider: 'asura',
       });
@@ -147,6 +158,15 @@ export async function getPopularAsura() {
       const titleAttr = m[0].match(/title="([^"]+)"/i) || inner.match(/alt="([^"]+)"/i);
       const title = titleAttr ? cleanTitle(titleAttr[1]) : cleanSlugTitle(slug);
 
+      // Extract chapter count from JSON state or card badge
+      const jsonRegex = new RegExp(`public_url&quot;:\\[0,&quot;\\/comics\\/${slug}&quot;\\][\\s\\S]*?latest_chapters&quot;:\\[1,\\[\\[0,\\{[^}]*?&quot;number&quot;:\\[0,([0-9.]+)`, 'i');
+      const jsonM = html.match(jsonRegex);
+      const htmlRegex = new RegExp(`href="\\/comics\\/${slug}"[\\s\\S]*?>([0-9.]+)(?:<!-- -->)?\\s*<span[^>]*>(?:Chs|Chapters)`, 'i');
+      const htmlM = html.match(htmlRegex);
+      const chStr = jsonM ? jsonM[1] : (htmlM ? htmlM[1] : null);
+      const totalChapters = chStr && !isNaN(parseFloat(chStr)) ? Math.floor(parseFloat(chStr)) : null;
+      const latestChapter = chStr ? String(chStr) : null;
+
       results.push({
         id: `asura:${slug}`,
         title,
@@ -156,6 +176,8 @@ export async function getPopularAsura() {
         status: 'Ongoing',
         author: 'Asura Scans',
         tags: ['Manhwa', 'Popular'],
+        totalChapters,
+        latestChapter,
         sourceName: 'Asura Scans',
         provider: 'asura',
       });
@@ -236,6 +258,7 @@ export async function getAsuraDetails(slug) {
       tags,
       chapters,
       totalChapters: chapters.length,
+      latestChapter: chapters[0] ? chapters[0].chapter : null,
       sourceName: 'Asura Scans',
       provider: 'asura',
     };

@@ -103,6 +103,9 @@ function formatMangaDexItem(item) {
     .map(t => t.attributes?.name?.en)
     .filter(Boolean);
 
+  const lastCh = attrs.lastChapter;
+  const numCh = lastCh && !isNaN(parseFloat(lastCh)) ? Math.floor(parseFloat(lastCh)) : null;
+
   return {
     id: `md:${id}`,
     rawId: id,
@@ -118,7 +121,8 @@ function formatMangaDexItem(item) {
     rating: '4.8',
     source: 'MangaDex',
     sourceName: 'MangaDex',
-    latestChapter: attrs.lastChapter || null,
+    latestChapter: lastCh || (numCh ? String(numCh) : null),
+    totalChapters: numCh,
     lastUpdated: attrs.updatedAt || attrs.createdAt || null,
   };
 }
@@ -250,7 +254,7 @@ export async function getMangaDexDetails(rawId, bypassCache = false) {
     // 2. Fetch Chapters (English, sorted descending, up to 500 per batch, paginating if total > 500)
     let chapters = [];
     try {
-      const initialFeedUrl = `${BASE_URL}/manga/${cleanId}/feed?translatedLanguage[]=en&order[chapter]=desc&limit=500&offset=0&includeExternalUrl=0&contentRating[]=safe&contentRating[]=suggestive`;
+      const initialFeedUrl = `${BASE_URL}/manga/${cleanId}/feed?translatedLanguage[]=en&order[chapter]=desc&limit=500&offset=0&includeExternalUrl=0&contentRating[]=safe&contentRating[]=suggestive&contentRating[]=erotica`;
       const initialRes = await fetchWithTimeout(initialFeedUrl, {}, 8000);
       if (initialRes.ok) {
         const feedData = await initialRes.json();
@@ -262,7 +266,7 @@ export async function getMangaDexDetails(rawId, bypassCache = false) {
           const remainingBatches = [];
           const maxToFetch = Math.min(totalChaptersCount, 1500);
           for (let offset = 500; offset < maxToFetch; offset += 500) {
-            const nextUrl = `${BASE_URL}/manga/${cleanId}/feed?translatedLanguage[]=en&order[chapter]=desc&limit=500&offset=${offset}&includeExternalUrl=0&contentRating[]=safe&contentRating[]=suggestive`;
+            const nextUrl = `${BASE_URL}/manga/${cleanId}/feed?translatedLanguage[]=en&order[chapter]=desc&limit=500&offset=${offset}&includeExternalUrl=0&contentRating[]=safe&contentRating[]=suggestive&contentRating[]=erotica`;
             remainingBatches.push(
               fetchWithTimeout(nextUrl, {}, 8000)
                 .then(r => r.ok ? r.json() : null)

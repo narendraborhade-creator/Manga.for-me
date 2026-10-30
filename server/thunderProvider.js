@@ -60,15 +60,17 @@ export async function searchThunder(query = '') {
     if (!res.ok) throw new Error(`HTTP ${res.status}`);
     const html = await res.text();
 
-    const cardRegex = /<div class="bsx">[\s\S]*?<a\s+href="([^"]+)"\s+title="([^"]+)"[\s\S]*?<img[^>]+(?:data-src|src)="([^"]+)"/gi;
-    let m;
+    const cardBlocks = html.split('<div class="bsx">').slice(1);
     const results = [];
     const seen = new Set();
 
-    while ((m = cardRegex.exec(html)) !== null) {
-      const pageUrl = m[1];
-      const rawTitle = m[2];
-      const coverUrl = m[3];
+    for (const card of cardBlocks) {
+      const linkMatch = card.match(/<a\s+href="([^"]+)"\s+title="([^"]+)"[\s\S]*?<img[^>]+(?:data-src|src)="([^"]+)"/i);
+      if (!linkMatch) continue;
+
+      const pageUrl = linkMatch[1];
+      const rawTitle = linkMatch[2];
+      const coverUrl = linkMatch[3];
 
       // Extract slug from url: https://en-thunderscans.com/comics/{slug}/
       const slugMatch = pageUrl.match(/\/(?:comics|manga)\/([^/]+)/i);
@@ -78,6 +80,13 @@ export async function searchThunder(query = '') {
       seen.add(slug);
 
       const title = cleanTitle(decodeHtml(rawTitle));
+
+      // Extract chapter count from card badge or link
+      const chMatch = card.match(/(?:class="epxs"[^>]*>|epxs">\s*(?:Chapter\s*)?|Chapter\s+)([0-9.]+)/i) ||
+                      card.match(/\/chapter-([0-9.]+)/i);
+      const latestChapter = chMatch ? chMatch[1] : null;
+      const totalChapters = latestChapter && !isNaN(parseFloat(latestChapter)) ? Math.floor(parseFloat(latestChapter)) : null;
+
       results.push({
         id: `thunder:${slug}`,
         rawId: slug,
@@ -87,6 +96,8 @@ export async function searchThunder(query = '') {
         status: 'Ongoing',
         author: 'Thunder Scans',
         tags: ['Manhwa', 'Action'],
+        totalChapters,
+        latestChapter,
         sourceName: 'Thunder Scans',
         provider: 'thunder',
       });
@@ -114,15 +125,18 @@ export async function getPopularThunder(limit = 16) {
     if (!res.ok) throw new Error(`HTTP ${res.status}`);
     const html = await res.text();
 
-    const cardRegex = /<div class="bsx">[\s\S]*?<a\s+href="([^"]+)"\s+title="([^"]+)"[\s\S]*?<img[^>]+(?:data-src|src)="([^"]+)"/gi;
-    let m;
+    const cardBlocks = html.split('<div class="bsx">').slice(1);
     const results = [];
     const seen = new Set();
 
-    while ((m = cardRegex.exec(html)) !== null && results.length < limit) {
-      const pageUrl = m[1];
-      const rawTitle = m[2];
-      const coverUrl = m[3];
+    for (const card of cardBlocks) {
+      if (results.length >= limit) break;
+      const linkMatch = card.match(/<a\s+href="([^"]+)"\s+title="([^"]+)"[\s\S]*?<img[^>]+(?:data-src|src)="([^"]+)"/i);
+      if (!linkMatch) continue;
+
+      const pageUrl = linkMatch[1];
+      const rawTitle = linkMatch[2];
+      const coverUrl = linkMatch[3];
 
       const slugMatch = pageUrl.match(/\/(?:comics|manga)\/([^/]+)/i);
       const slug = slugMatch ? slugMatch[1] : pageUrl.replace(/\/$/, '').split('/').pop();
@@ -131,6 +145,13 @@ export async function getPopularThunder(limit = 16) {
       seen.add(slug);
 
       const title = cleanTitle(decodeHtml(rawTitle));
+
+      // Extract chapter count from card badge or link
+      const chMatch = card.match(/(?:class="epxs"[^>]*>|epxs">\s*(?:Chapter\s*)?|Chapter\s+)([0-9.]+)/i) ||
+                      card.match(/\/chapter-([0-9.]+)/i);
+      const latestChapter = chMatch ? chMatch[1] : null;
+      const totalChapters = latestChapter && !isNaN(parseFloat(latestChapter)) ? Math.floor(parseFloat(latestChapter)) : null;
+
       results.push({
         id: `thunder:${slug}`,
         rawId: slug,
@@ -140,6 +161,8 @@ export async function getPopularThunder(limit = 16) {
         status: 'Ongoing',
         author: 'Thunder Scans',
         tags: ['Manhwa', 'Action'],
+        totalChapters,
+        latestChapter,
         sourceName: 'Thunder Scans',
         provider: 'thunder',
       });

@@ -223,9 +223,17 @@ export function computeSourceScore(item) {
     item.id?.startsWith('webtoon:') ? 'webtoon' : 'mangapill'
   );
   let score = PROVIDER_QUALITY_SCORE[prov] || 50;
-  if (item.totalChapters && !isNaN(item.totalChapters)) {
-    score += item.totalChapters * 5;
+
+  // Extract numeric chapter count from totalChapters or latestChapter
+  const chCount = (item.totalChapters && !isNaN(item.totalChapters))
+    ? parseFloat(item.totalChapters)
+    : (item.latestChapter && !isNaN(parseFloat(item.latestChapter)) ? parseFloat(item.latestChapter) : 0);
+
+  if (chCount > 0) {
+    // Strongly prioritize the source with the most complete and latest chapters (e.g. 54 vs 32)
+    score += chCount * 10;
   }
+
   if (item.coverUrl && !item.coverUrl.includes('nocover') && !item.coverUrl.includes('placeholder')) {
     score += 15;
   }
@@ -264,11 +272,29 @@ export function groupAndSelectBestManga(list) {
     }
   }
 
-  return Array.from(groups.values()).map(g => ({
-    ...g.best,
-    alternativeSourcesCount: g.alternatives.length,
-    alternativeSources: g.alternatives.map(a => a.sourceName || a.provider || 'Alternative')
-  }));
+  return Array.from(groups.values()).map(g => {
+    // Collect highest known chapter count among all duplicates to ensure accurate count
+    const allMatches = [g.best, ...g.alternatives];
+    let maxCh = 0;
+    let maxChStr = null;
+    for (const m of allMatches) {
+      const num = (m.totalChapters && !isNaN(m.totalChapters))
+        ? parseFloat(m.totalChapters)
+        : (m.latestChapter && !isNaN(parseFloat(m.latestChapter)) ? parseFloat(m.latestChapter) : 0);
+      if (num > maxCh) {
+        maxCh = num;
+        maxChStr = m.latestChapter || String(Math.floor(num));
+      }
+    }
+
+    return {
+      ...g.best,
+      latestChapter: maxCh > 0 ? (g.best.latestChapter || maxChStr) : g.best.latestChapter,
+      totalChapters: maxCh > 0 ? (g.best.totalChapters || Math.floor(maxCh)) : g.best.totalChapters,
+      alternativeSourcesCount: g.alternatives.length,
+      alternativeSources: g.alternatives.map(a => a.sourceName || a.provider || 'Alternative')
+    };
+  });
 }
 
 /**
@@ -715,10 +741,11 @@ async function resolveAvailableSources(title, currentId, currentSourceName, curr
       // Strictly match identical series to prevent mixing different mangas
       if (targetNorm && (titleNorm === targetNorm || engNorm === targetNorm)) {
         seenSources.add(srcName);
+        const chCount = item.totalChapters || (item.latestChapter && !isNaN(parseFloat(item.latestChapter)) ? Math.floor(parseFloat(item.latestChapter)) : null);
         sources.push({
           id: item.id,
           sourceName: srcName,
-          totalChapters: item.totalChapters || null,
+          totalChapters: chCount,
           isCurrent: false,
         });
       }
@@ -792,13 +819,14 @@ export function isAuthenticSeriesMatch(details, match, matchDetails) {
 }
 
 /**
- * Automatically heal manga with missing or 0 chapters by cross-querying alternative titles
- * across top-tier scanlation providers (Thunder Scans, WeebCentral, Flame Comics, Asura Scans, Vortex Scans).
+ * Automatically heal manga with missing chapters OR upgrade to a source with more complete, latest chapters.
+ * Cross-queries top scanlation providers (Thunder Scans, WeebCentral, Flame Comics, Asura Scans, Vortex Scans, MangaKakalot).
+ * Strictly enforces isAuthenticSeriesMatch to prevent mixing different mangas.
  */
-export async function autoHealMissingChapters(details, bypassCache = false) {
-  if (!details || (Array.isArray(details.chapters) && details.chapters.length > 0)) {
-    return details;
-  }
+export async function autoHealAndUpgradeChapters(details, bypassCache = false) {
+  if (!details) return details;
+
+  const currentCount = Array.isArray(details.chapters) ? details.chapters.length : 0;
 
   const candidates = new Set();
   if (details.title) candidates.add(details.title);
@@ -817,17 +845,19 @@ export async function autoHealMissingChapters(details, bypassCache = false) {
     qVariants.forEach(v => candidates.add(v));
   });
 
-  let bestHealed = null;
+  let bestUpgrade = null;
+  let maxFoundCount = currentCount;
 
   for (const query of candidates) {
     if (!query || query.length < 2) continue;
     try {
-      const [thunderResults, wcResults, flameResults, asuraResults, vortexResults] = await Promise.all([
+      const [thunderResults, wcResults, flameResults, asuraResults, vortexResults, mkResults] = await Promise.all([
         searchThunder(query).catch(() => []),
         searchWeebCentral(query).catch(() => []),
         searchFlame(query).catch(() => []),
         searchAsura(query).catch(() => []),
         searchVortex(query).catch(() => []),
+        searchMangaKakalot(query).catch(() => []),
       ]);
 
       const foundMatches = [
@@ -836,10 +866,22 @@ export async function autoHealMissingChapters(details, bypassCache = false) {
         ...flameResults,
         ...asuraResults,
         ...vortexResults,
+        ...mkResults,
       ];
 
       for (const match of foundMatches) {
-        if (!match || !match.id) continue;
+        if (!match || !match.id || match.id === details.id) continue;
+
+        // Chapter count indicator from search
+        const candidateCh = (match.totalChapters && !isNaN(match.totalChapters))
+          ? parseFloat(match.totalChapters)
+          : (match.latestChapter && !isNaN(parseFloat(match.latestChapter)) ? parseFloat(match.latestChapter) : 0);
+
+        // Optimization: if we already have chapters and this candidate is known to have fewer or equal, skip
+        if (currentCount > 0 && candidateCh > 0 && candidateCh <= maxFoundCount) {
+          continue;
+        }
+
         let matchDetails = null;
         if (match.id.startsWith('thunder:')) {
           matchDetails = await getThunderDetails(match.id);
@@ -851,15 +893,18 @@ export async function autoHealMissingChapters(details, bypassCache = false) {
           matchDetails = await getAsuraDetails(match.id);
         } else if (match.id.startsWith('vortex:')) {
           matchDetails = await getVortexDetails(match.id);
+        } else if (match.id.startsWith('mk:')) {
+          matchDetails = await getMangaKakalotDetails(match.id, bypassCache);
         }
 
         if (matchDetails && Array.isArray(matchDetails.chapters) && matchDetails.chapters.length > 0) {
           if (!isAuthenticSeriesMatch(details, match, matchDetails)) {
             continue;
           }
-          if (!bestHealed || matchDetails.chapters.length > (bestHealed.chapters?.length || 0)) {
+          if (matchDetails.chapters.length > maxFoundCount) {
+            maxFoundCount = matchDetails.chapters.length;
             const uniqueChapters = deduplicateChapters(matchDetails.chapters);
-            bestHealed = {
+            bestUpgrade = {
               ...details,
               aliasId: matchDetails.id,
               sourceName: matchDetails.sourceName || details.sourceName,
@@ -873,17 +918,24 @@ export async function autoHealMissingChapters(details, bypassCache = false) {
           }
         }
       }
+
+      if (bestUpgrade && bestUpgrade.chapters.length > currentCount) {
+        break;
+      }
     } catch (err) {
-      console.warn('autoHealMissingChapters search step warning:', err.message);
+      console.warn('autoHealAndUpgradeChapters search step warning:', err.message);
     }
   }
 
-  if (bestHealed) {
-    return bestHealed;
+  if (bestUpgrade) {
+    return bestUpgrade;
   }
 
   return details;
 }
+
+// Backward-compatibility alias
+export const autoHealMissingChapters = autoHealAndUpgradeChapters;
 
 /**
  * Get Manga Details & Complete Chapters List
@@ -952,9 +1004,7 @@ export async function getMangaDetails(mangaId, bypassCache = false) {
   }
 
   if (resolvedDetails) {
-    if (!resolvedDetails.chapters || resolvedDetails.chapters.length === 0) {
-      resolvedDetails = await autoHealMissingChapters(resolvedDetails, bypassCache);
-    }
+    resolvedDetails = await autoHealAndUpgradeChapters(resolvedDetails, bypassCache);
     if (Array.isArray(resolvedDetails.chapters)) {
       resolvedDetails.chapters = deduplicateChapters(resolvedDetails.chapters);
       resolvedDetails.totalChapters = resolvedDetails.chapters.length;
@@ -1057,6 +1107,13 @@ export async function getMangaDetails(mangaId, bypassCache = false) {
       totalChapters: dedupedChapters.length,
       availableSources: sources,
     };
+
+    result = await autoHealAndUpgradeChapters(result, bypassCache);
+    if (Array.isArray(result.chapters)) {
+      result.chapters = deduplicateChapters(result.chapters);
+      result.totalChapters = result.chapters.length;
+    }
+    result.availableSources = await resolveAvailableSources(result.englishTitle || result.title, mangaId, result.sourceName, result.totalChapters);
 
     setCache(cacheKey, result);
     return result;

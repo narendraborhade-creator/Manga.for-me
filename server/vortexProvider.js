@@ -105,6 +105,12 @@ export async function searchVortex(query) {
       const titleAttr = m[0].match(/title="([^"]+)"/i) || inner.match(/alt="([^"]+)"/i);
       const title = titleAttr ? cleanTitle(titleAttr[1]) : cleanSlugTitle(slug);
 
+      // Extract chapter count from card chapter links
+      const chRegex = new RegExp(`href="\\/series\\/${slug}\\/chapter-([0-9.]+)"`, 'i');
+      const chM = html.match(chRegex);
+      const latestChapter = chM ? chM[1] : null;
+      const totalChapters = latestChapter && !isNaN(parseFloat(latestChapter)) ? Math.floor(parseFloat(latestChapter)) : null;
+
       results.push({
         id: `vortex:${slug}`,
         title,
@@ -114,6 +120,8 @@ export async function searchVortex(query) {
         status: 'Ongoing',
         author: 'Vortex Scans',
         tags: ['Manhwa', 'Webtoon'],
+        totalChapters,
+        latestChapter,
         sourceName: 'Vortex Scans',
         provider: 'vortex',
       });
@@ -156,6 +164,12 @@ export async function getPopularVortex() {
       const titleAttr = m[0].match(/title="([^"]+)"/i) || inner.match(/alt="([^"]+)"/i);
       const title = titleAttr ? cleanTitle(titleAttr[1]) : cleanSlugTitle(slug);
 
+      // Extract chapter count from card chapter links
+      const chRegex = new RegExp(`href="\\/series\\/${slug}\\/chapter-([0-9.]+)"`, 'i');
+      const chM = html.match(chRegex);
+      const latestChapter = chM ? chM[1] : null;
+      const totalChapters = latestChapter && !isNaN(parseFloat(latestChapter)) ? Math.floor(parseFloat(latestChapter)) : null;
+
       results.push({
         id: `vortex:${slug}`,
         title,
@@ -165,6 +179,8 @@ export async function getPopularVortex() {
         status: 'Ongoing',
         author: 'Vortex Scans',
         tags: ['Manhwa', 'Popular'],
+        totalChapters,
+        latestChapter,
         sourceName: 'Vortex Scans',
         provider: 'vortex',
       });
@@ -282,6 +298,7 @@ export async function getVortexDetails(slug) {
       tags,
       chapters,
       totalChapters: chapters.length,
+      latestChapter: chapters[0] ? chapters[0].chapter : null,
       sourceName: 'Vortex Scans',
       provider: 'vortex',
     };

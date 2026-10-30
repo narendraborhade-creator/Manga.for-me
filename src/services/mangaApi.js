@@ -686,7 +686,7 @@ function formatMangaItem(item) {
       item.id?.startsWith('webtoon:') ? 'webtoon' : 'mangapill'
     ),
     latestChapter: item.latestChapter || (item.totalChapters ? String(item.totalChapters) : null),
-    totalChapters: item.totalChapters || null,
+    totalChapters: item.totalChapters ? Number(item.totalChapters) : (item.latestChapter && !isNaN(parseFloat(item.latestChapter)) ? Math.floor(parseFloat(item.latestChapter)) : null),
     lastUpdated: item.lastUpdated || null,
   };
 }
