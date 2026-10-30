@@ -447,6 +447,29 @@ export default function App() {
     });
     return map;
   }, [history]);
+
+  // Performance Optimization: Memoize filtered manga lists to avoid expensive inline string operations
+  // and redundant array allocations during re-renders, especially when typing in the search bar.
+  const filteredPopularManga = useMemo(
+    () => popularManga.filter((m) => matchesSource(m, selectedSource)),
+    [popularManga, selectedSource]
+  );
+
+  const filteredLatestManga = useMemo(
+    () => latestManga.filter((m) => matchesSource(m, selectedSource)),
+    [latestManga, selectedSource]
+  );
+
+  const filteredTopRatedManga = useMemo(
+    () => topRatedManga.filter((m) => matchesSource(m, selectedSource)),
+    [topRatedManga, selectedSource]
+  );
+
+  const filteredSearchMangaList = useMemo(
+    () => searchMangaList.filter((m) => matchesSource(m, selectedSource)),
+    [searchMangaList, selectedSource]
+  );
+
   const handleSelectAnime = useCallback((anime) => {
     setSelectedAnime(anime);
   }, []);
@@ -504,11 +527,11 @@ export default function App() {
           const isFilterActive = selectedGenre !== 'All' || selectedSource !== 'All' || Boolean(searchQuery.trim());
           const isSearching = Boolean(searchQuery.trim()) || selectedGenre !== 'All';
           const displayedMatchingCount = isSearching
-            ? searchMangaList.filter((m) => matchesSource(m, selectedSource)).length
+            ? filteredSearchMangaList.length
             : (
-                popularManga.filter((m) => matchesSource(m, selectedSource)).length +
-                latestManga.filter((m) => matchesSource(m, selectedSource)).length +
-                topRatedManga.filter((m) => matchesSource(m, selectedSource)).length
+                filteredPopularManga.length +
+                filteredLatestManga.length +
+                filteredTopRatedManga.length
               );
 
           return (
@@ -679,8 +702,7 @@ export default function App() {
                       </div>
                     ) : (
                       <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 xl:grid-cols-6 gap-4 sm:gap-5">
-                        {popularManga
-                          .filter((m) => matchesSource(m, selectedSource))
+                        {filteredPopularManga
                           .map((manga) => {
                             const hist = historyMap[manga.id];
                             return (
@@ -767,8 +789,7 @@ export default function App() {
                     </div>
 
                     <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 xl:grid-cols-6 gap-4 sm:gap-5">
-                      {latestManga
-                        .filter((m) => matchesSource(m, selectedSource))
+                      {filteredLatestManga
                         .map((manga) => {
                           const hist = historyMap[manga.id];
                           return (
@@ -804,8 +825,7 @@ export default function App() {
                     </div>
 
                     <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 xl:grid-cols-6 gap-4 sm:gap-5">
-                      {topRatedManga
-                        .filter((m) => matchesSource(m, selectedSource))
+                      {filteredTopRatedManga
                         .map((manga) => {
                           const hist = historyMap[manga.id];
                           return (
@@ -855,7 +875,7 @@ export default function App() {
                       <Loader2 className="w-8 h-8 text-rose-500 animate-spin" />
                       <p className="text-xs text-slate-400">Searching Keiyoushi & Multi-Source Library...</p>
                     </div>
-                  ) : searchMangaList.filter((m) => matchesSource(m, selectedSource)).length === 0 ? (
+                  ) : filteredSearchMangaList.length === 0 ? (
                     <div className="py-24 text-center text-slate-400 text-sm">
                       <p>No manga found matching the active filters.</p>
                       <button
@@ -871,8 +891,7 @@ export default function App() {
                     </div>
                   ) : (
                     <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 xl:grid-cols-6 gap-4 sm:gap-5">
-                      {searchMangaList
-                        .filter((manga) => matchesSource(manga, selectedSource))
+                      {filteredSearchMangaList
                         .map((manga) => (
                           <MangaCard
                             key={manga.id}
