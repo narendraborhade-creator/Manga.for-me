@@ -209,8 +209,9 @@ export default function HistoryView({
 
                   {/* Quick Delete from History */}
                   <button
+                    aria-label="Remove from history"
                     onClick={(e) => handleRemoveItem(e, item.mangaId)}
-                    className="absolute top-2.5 right-2.5 p-1.5 rounded-lg bg-black/70 hover:bg-rose-600 text-slate-300 hover:text-white backdrop-blur-md border border-white/10 transition-all opacity-80 sm:opacity-0 group-hover:opacity-100 shadow-sm"
+                    className="absolute top-2.5 right-2.5 p-1.5 rounded-lg bg-black/70 hover:bg-rose-600 text-slate-300 hover:text-white backdrop-blur-md border border-white/10 transition-all opacity-80 sm:opacity-0 group-hover:opacity-100 focus-visible:opacity-100 focus-visible:ring-2 focus-visible:ring-rose-500 outline-none shadow-sm"
                     title="Remove from history"
                   >
                     <Trash2 className="w-3.5 h-3.5" />

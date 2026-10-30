@@ -1,0 +1,3 @@
+## 2026-10-30 - Keyboard Accessibility for Hover-Only UI Elements
+**Learning:** Elements hidden behind hover states (e.g., `opacity-0 group-hover:opacity-100`) become inaccessible to keyboard users because they remain visually hidden when focused, although they still exist in the DOM and tab order.
+**Action:** When creating hover-revealed elements, always append `focus-visible:opacity-100 focus-visible:ring-2 outline-none` (along with appropriate ring colors) to ensure the element becomes visible and clearly outlined when accessed via keyboard navigation.
