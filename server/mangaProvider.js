@@ -1292,6 +1292,7 @@ export function isValidProxyTarget(rawUrl) {
   }
 
   // Block localhost, .local, .internal, .lan, .corp, etc.
+  // Security: Block wildcard DNS and domain rebinding services that resolve to loopback/private IPs
   if (
     hostname === 'localhost' ||
     hostname.endsWith('.localhost') ||
@@ -1300,9 +1301,28 @@ export function isValidProxyTarget(rawUrl) {
     hostname.endsWith('.lan') ||
     hostname.endsWith('.corp') ||
     hostname.endsWith('.home') ||
-    hostname.endsWith('.onion')
+    hostname.endsWith('.onion') ||
+    /(^|\.)(nip\.io|sslip\.io|localtest\.me|vcap\.me|lvh\.me)$/i.test(hostname)
   ) {
     return false;
+  }
+
+  // Security SSRF: Block domains embedding full private/loopback/cloud metadata IPv4 patterns (e.g. 127.0.0.1.nip.io or 127-0-0-1.sslip.io)
+  // Check full 4-octet embedded patterns with dots or hyphens to avoid false positives on legitimate numbered subdomains (e.g. cdn-10.example.com)
+  const embeddedIpMatch = hostname.match(/(?:^|[.-])(127|10|169|192|172)([.-])(\d{1,3})\2(\d{1,3})\2(\d{1,3})(?:[.-]|$)/);
+  if (embeddedIpMatch) {
+    const [, first, , second] = embeddedIpMatch;
+    const o1 = parseInt(first, 10);
+    const o2 = parseInt(second, 10);
+    if (
+      o1 === 127 || // Loopback (127.0.0.0/8)
+      o1 === 10 ||  // Private RFC1918 (10.0.0.0/8)
+      (o1 === 169 && o2 === 254) || // Link-local / Cloud Metadata (169.254.0.0/16)
+      (o1 === 192 && o2 === 168) || // Private RFC1918 (192.168.0.0/16)
+      (o1 === 172 && o2 >= 16 && o2 <= 31) // Private RFC1918 (172.16.0.0/12)
+    ) {
+      return false;
+    }
   }
 
   // IPv6 checks
