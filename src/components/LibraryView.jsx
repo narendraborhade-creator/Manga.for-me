@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useMemo } from 'react';
 import { 
   Bookmark, 
   Search, 
@@ -21,58 +21,73 @@ export default function LibraryView({
   const [filterStatus, setFilterStatus] = useState('all');
   const [searchQuery, setSearchQuery] = useState('');
 
-  // Deduplicate library items by normalized key to ensure 0 duplicates in library
-  const seenLibraryKeys = new Set();
-  const bookmarkList = Object.values(bookmarks).filter((item) => {
-    if (!item) return false;
-    const norm = (item.englishTitle || item.title || item.id || '')
-      .toLowerCase()
-      .replace(/^(vortex|asura|webtoon|weebcentral|mangadex|mangakakalot|kakamanga|mangapill|wc|mk|md)\s*:\s*/i, '')
-      .replace(/[^a-z0-9]+/g, '');
-    if (norm && seenLibraryKeys.has(norm)) return false;
-    if (norm) seenLibraryKeys.add(norm);
-    return true;
-  });
+  // ⚡ Bolt: Memoize expensive string manipulation and deduplication logic
+  const bookmarkList = useMemo(() => {
+    const seenLibraryKeys = new Set();
+    return Object.values(bookmarks).filter((item) => {
+      if (!item) return false;
+      const norm = (item.englishTitle || item.title || item.id || '')
+        .toLowerCase()
+        .replace(/^(vortex|asura|webtoon|weebcentral|mangadex|mangakakalot|kakamanga|mangapill|wc|mk|md)\s*:\s*/i, '')
+        .replace(/[^a-z0-9]+/g, '');
+      if (norm && seenLibraryKeys.has(norm)) return false;
+      if (norm) seenLibraryKeys.add(norm);
+      return true;
+    });
+  }, [bookmarks]);
+
+  // Note: We cannot safely memoize getHistory() and getUpdates() here using bookmarks
+  // as a proxy dependency because they read from localStorage, and updates can occur
+  // without bookmarks changing, which would lead to stale data.
   const history = getHistory();
   const updates = getUpdates();
 
-  const updatesByManga = new Map();
-  updates.forEach((u) => {
-    if (!u.read) {
-      updatesByManga.set(u.mangaId, u);
-    }
-  });
+  // ⚡ Bolt: Memoize the creation of the updates map
+  const updatesByManga = useMemo(() => {
+    const map = new Map();
+    updates.forEach((u) => {
+      if (!u.read) {
+        map.set(u.mangaId, u);
+      }
+    });
+    return map;
+  }, [updates]);
 
-  // Calculate statistics
-  const totalReadChapters = history.reduce((acc, cur) => acc + (cur.readChapters?.length || 1), 0);
-  const readingCount = bookmarkList.filter((b) => b.status === 'reading').length;
-  const completedCount = bookmarkList.filter((b) => b.status === 'completed').length;
-  const planCount = bookmarkList.filter((b) => b.status === 'plan_to_read').length;
-  const favCount = bookmarkList.filter((b) => b.status === 'favorite').length;
-  const hasUpdatesCount = bookmarkList.filter((b) => updatesByManga.has(b.id)).length;
+  // ⚡ Bolt: Memoize statistics calculations
+  const totalReadChapters = useMemo(() => history.reduce((acc, cur) => acc + (cur.readChapters?.length || 1), 0), [history]);
+  const readingCount = useMemo(() => bookmarkList.filter((b) => b.status === 'reading').length, [bookmarkList]);
+  const completedCount = useMemo(() => bookmarkList.filter((b) => b.status === 'completed').length, [bookmarkList]);
+  const planCount = useMemo(() => bookmarkList.filter((b) => b.status === 'plan_to_read').length, [bookmarkList]);
+  const favCount = useMemo(() => bookmarkList.filter((b) => b.status === 'favorite').length, [bookmarkList]);
+  const hasUpdatesCount = useMemo(() => bookmarkList.filter((b) => updatesByManga.has(b.id)).length, [bookmarkList, updatesByManga]);
+  const onHoldCount = useMemo(() => bookmarkList.filter((b) => b.status === 'on_hold').length, [bookmarkList]);
 
-  const statusTabs = [
+  // ⚡ Bolt: Memoize tabs array
+  const statusTabs = useMemo(() => [
     { id: 'all', label: 'All Titles', count: bookmarkList.length },
     ...(hasUpdatesCount > 0 ? [{ id: 'updates', label: '⚡ New Releases', count: hasUpdatesCount }] : []),
     { id: 'reading', label: 'Reading', count: readingCount },
     { id: 'plan_to_read', label: 'Plan to Read', count: planCount },
     { id: 'completed', label: 'Completed', count: completedCount },
     { id: 'favorite', label: 'Favorites', count: favCount },
-    { id: 'on_hold', label: 'On Hold', count: bookmarkList.filter((b) => b.status === 'on_hold').length },
-  ];
+    { id: 'on_hold', label: 'On Hold', count: onHoldCount },
+  ], [bookmarkList.length, hasUpdatesCount, readingCount, planCount, completedCount, favCount, onHoldCount]);
 
-  const filteredList = bookmarkList.filter((item) => {
-    const matchesStatus = filterStatus === 'all'
-      ? true
-      : filterStatus === 'updates'
-      ? updatesByManga.has(item.id)
-      : item.status === filterStatus;
-    const q = searchQuery.toLowerCase();
-    const matchesSearch = !searchQuery || 
-      item.title?.toLowerCase().includes(q) || 
-      item.englishTitle?.toLowerCase().includes(q);
-    return matchesStatus && matchesSearch;
-  });
+  // ⚡ Bolt: Memoize final filtered list
+  const filteredList = useMemo(() => {
+    return bookmarkList.filter((item) => {
+      const matchesStatus = filterStatus === 'all'
+        ? true
+        : filterStatus === 'updates'
+        ? updatesByManga.has(item.id)
+        : item.status === filterStatus;
+      const q = searchQuery.toLowerCase();
+      const matchesSearch = !searchQuery ||
+        item.title?.toLowerCase().includes(q) ||
+        item.englishTitle?.toLowerCase().includes(q);
+      return matchesStatus && matchesSearch;
+    });
+  }, [bookmarkList, filterStatus, updatesByManga, searchQuery]);
 
   return (
     <div className="space-y-8 animate-fadeIn">
