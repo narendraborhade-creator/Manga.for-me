@@ -50,7 +50,9 @@ export default function BackupModal({ isOpen, onClose, onRefreshData }) {
     }
     const cleanUrl = target.replace(/#.*$/, '').replace(/\/+$/, '');
     const migrationUrl = `${cleanUrl}/#sync_data=${encoded}`;
-    window.open(migrationUrl, '_blank');
+    // Security: Prevent reverse tabnabbing by disallowing the opened window from accessing window.opener
+    const win = window.open(migrationUrl, '_blank', 'noopener,noreferrer');
+    if (win) win.opener = null;
     setImportStatus({ type: 'success', message: 'Migration launched! Your Vercel app tab will automatically restore all data.' });
   };
 
