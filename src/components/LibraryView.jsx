@@ -218,8 +218,9 @@ export default function LibraryView({
                       e.stopPropagation();
                       onRemoveBookmark(item.id);
                     }}
-                    className="absolute top-2 right-2 p-1.5 rounded-lg bg-black/60 hover:bg-rose-600 text-slate-400 hover:text-white backdrop-blur-md transition-all opacity-0 group-hover:opacity-100"
+                    className="absolute top-2 right-2 p-1.5 rounded-lg bg-black/60 hover:bg-rose-600 text-slate-400 hover:text-white backdrop-blur-md transition-all opacity-0 group-hover:opacity-100 focus-visible:opacity-100 focus-visible:ring-2 focus-visible:ring-rose-500 focus:outline-none"
                     title="Remove from Library"
+                    aria-label="Remove from Library"
                   >
                     <Trash2 className="w-3.5 h-3.5" />
                   </button>
