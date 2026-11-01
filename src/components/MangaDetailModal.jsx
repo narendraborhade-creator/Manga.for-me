@@ -46,14 +46,32 @@ export default function MangaDetailModal({
   const [chapterSort, setChapterSort] = useState('desc'); // 'asc' | 'desc'
   const [chapterSearch, setChapterSearch] = useState('');
   const [readChapterIds, setReadChapterIds] = useState([]);
-  const [visibleChapterCount, setVisibleChapterCount] = useState(150);
+  const [visibleChapterCount, setVisibleChapterCount] = useState(200);
   const [isExpandedSynopsis, setIsExpandedSynopsis] = useState(false);
+  const scrollContainerRef = React.useRef(null);
 
   useEffect(() => {
     setActiveMangaId(mangaId);
-    setVisibleChapterCount(150);
+    setVisibleChapterCount(200);
     setIsExpandedSynopsis(false);
+    if (scrollContainerRef.current) {
+      scrollContainerRef.current.scrollTo({ top: 0, behavior: 'instant' });
+    }
   }, [mangaId]);
+
+  const handleSelectRecommendation = (rec) => {
+    if (!rec || !rec.id) return;
+    setActiveMangaId(rec.id);
+    setLoading(true);
+    setLoadingChapters(true);
+    setChapters([]);
+    if (scrollContainerRef.current) {
+      scrollContainerRef.current.scrollTo({ top: 0, behavior: 'instant' });
+    }
+    if (onSelectManga) {
+      onSelectManga(rec.id, rec.coverUrl);
+    }
+  };
 
   // Close modal on Escape key press
   useEffect(() => {
@@ -231,6 +249,7 @@ export default function MangaDetailModal({
 
         {/* Unified Scrollable Body - Everything scrolls smoothly together without nested scroll traps */}
         <div 
+          ref={scrollContainerRef}
           className="flex-1 min-h-0 overflow-y-auto overscroll-contain scrollbar-thin scrollbar-thumb-cyan-500/40 scrollbar-track-transparent divide-y divide-white/5"
           style={{ WebkitOverflowScrolling: 'touch', touchAction: 'pan-y' }}
         >
@@ -808,28 +827,32 @@ export default function MangaDetailModal({
                     {recommendations.slice(0, 6).map((rec) => (
                       <div
                         key={rec.id}
-                        onClick={() => {
-                          if (onSelectManga) {
-                            onSelectManga(rec.id, rec.coverUrl);
-                          }
-                        }}
-                        className="group cursor-pointer flex flex-col space-y-2 p-2 rounded-2xl bg-slate-900/40 hover:bg-white/5 border border-white/5 hover:border-rose-500/30 transition-all"
+                        onClick={() => handleSelectRecommendation(rec)}
+                        className="group cursor-pointer flex flex-col space-y-2 p-2.5 rounded-2xl bg-slate-900/70 hover:bg-slate-850 border border-white/10 hover:border-cyan-400/50 hover:shadow-xl hover:shadow-cyan-950/40 transition-all duration-300 hover:-translate-y-1 select-none"
+                        title={`Open ${rec.englishTitle || rec.title}`}
                       >
                         <div className="relative aspect-[3/4] rounded-xl overflow-hidden bg-slate-950 border border-white/5 shadow-md">
                           <img
                             src={getReliableCoverUrl(rec.title, rec.coverUrl)}
                             alt={rec.title}
+                            loading="lazy"
                             referrerPolicy="no-referrer"
-                            className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-300"
+                            className="w-full h-full object-cover group-hover:scale-110 transition-transform duration-500 ease-out"
                             onError={(e) => {
                               e.target.src = getFallbackCover(rec.title);
                             }}
                           />
-                          <span className="absolute bottom-1.5 left-1.5 text-[9px] px-1.5 py-0.2 rounded-md bg-black/80 backdrop-blur-md text-rose-400 font-semibold border border-white/10">
+                          <div className="absolute inset-0 bg-gradient-to-t from-[#060810] via-transparent to-transparent opacity-70 group-hover:opacity-40 transition-opacity" />
+                          <span className="absolute bottom-1.5 left-1.5 text-[9px] px-1.5 py-0.5 rounded-md bg-black/85 backdrop-blur-md text-cyan-300 font-mono font-bold border border-cyan-500/30">
                             {rec.sourceName || 'Manga'}
                           </span>
+                          <div className="absolute inset-0 flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity duration-200 pointer-events-none">
+                            <span className="px-2.5 py-1 rounded-lg bg-rose-600 text-white font-mono text-[10px] font-bold shadow-xl shadow-rose-600/50 scale-90 group-hover:scale-100 transition-transform flex items-center gap-1">
+                              OPEN [▶]
+                            </span>
+                          </div>
                         </div>
-                        <h4 className="text-xs font-bold text-slate-200 group-hover:text-rose-400 transition-colors line-clamp-2">
+                        <h4 className="text-xs font-bold text-slate-200 group-hover:text-cyan-300 transition-colors line-clamp-2">
                           {rec.englishTitle || rec.title}
                         </h4>
                       </div>

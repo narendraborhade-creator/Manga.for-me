@@ -16,10 +16,10 @@ export const FALLBACK_MANGA_CATALOG = [
     description: 'Gol D. Roger was known as the "Pirate King", the strongest and most infamous being to have sailed the Grand Line. Monkey D. Luffy sets sail in search of the legendary One Piece treasure!',
     tags: ['Action', 'Adventure', 'Fantasy', 'Shounen'],
     sourceName: 'MangaPill',
-    totalChapters: 1115,
-    latestChapter: '1115',
-    chapters: Array.from({ length: 1115 }, (_, i) => {
-      const chNum = 1115 - i;
+    totalChapters: 1120,
+    latestChapter: '1120',
+    chapters: Array.from({ length: 1120 }, (_, i) => {
+      const chNum = 1120 - i;
       return {
         id: `2-${String(chNum).padStart(4, '0')}0000/one-piece-chapter-${chNum}`,
         chapter: String(chNum),
@@ -86,10 +86,10 @@ export const FALLBACK_MANGA_CATALOG = [
     description: 'I was a prophetess who was revered as a living god in my past life. But after dying a tragic death, I was reincarnated as the neglected fifth princess of the imperial family.',
     tags: ['Romance', 'Fantasy', 'Shoujo', 'Reincarnation'],
     sourceName: 'Webtoon',
-    totalChapters: 110,
-    latestChapter: '110',
-    chapters: Array.from({ length: 110 }, (_, i) => {
-      const chNum = 110 - i;
+    totalChapters: 174,
+    latestChapter: '174',
+    chapters: Array.from({ length: 174 }, (_, i) => {
+      const chNum = 174 - i;
       return {
         id: `webtoon:a-fortune-telling-princess:${chNum}`,
         chapter: String(chNum),
@@ -114,10 +114,10 @@ export const FALLBACK_MANGA_CATALOG = [
     description: 'After dying from betrayal, she regresses back to the start of her second marriage with her stepchildren. This time, she will protect them and take control of her destiny!',
     tags: ['Romance', 'Drama', 'Fantasy', 'Regression'],
     sourceName: 'Webtoon',
-    totalChapters: 60,
-    latestChapter: '60',
-    chapters: Array.from({ length: 60 }, (_, idx) => {
-      const num = 60 - idx;
+    totalChapters: 85,
+    latestChapter: '85',
+    chapters: Array.from({ length: 85 }, (_, idx) => {
+      const num = 85 - idx;
       return {
         id: `webtoon:stepmother:${num}`,
         chapter: String(num),
@@ -137,10 +137,10 @@ export const FALLBACK_MANGA_CATALOG = [
     description: 'Denji is a young man living in poverty with his chainsaw demon Pochita, until an unholy union transforms him into Chainsaw Man!',
     tags: ['Action', 'Supernatural', 'Gore', 'Shounen'],
     sourceName: 'MangaPill',
-    totalChapters: 160,
-    latestChapter: '160',
-    chapters: Array.from({ length: 160 }, (_, i) => {
-      const chNum = 160 - i;
+    totalChapters: 170,
+    latestChapter: '170',
+    chapters: Array.from({ length: 170 }, (_, i) => {
+      const chNum = 170 - i;
       return {
         id: `723-${String(chNum).padStart(4, '0')}0000/chainsaw-man-chapter-${chNum}`,
         chapter: String(chNum),
@@ -183,10 +183,10 @@ export const FALLBACK_MANGA_CATALOG = [
     description: 'Three years have passed since the fateful memory distortion. Boruto Uzumaki returns as a rogue warrior facing Omnipotence.',
     tags: ['Action', 'Ninja', 'Shounen'],
     sourceName: 'MangaPill',
-    totalChapters: 15,
-    latestChapter: '15',
-    chapters: Array.from({ length: 15 }, (_, i) => {
-      const chNum = 15 - i;
+    totalChapters: 16,
+    latestChapter: '16',
+    chapters: Array.from({ length: 16 }, (_, i) => {
+      const chNum = 16 - i;
       return {
         id: `7486-${String(chNum).padStart(4, '0')}0000/boruto-two-blue-vortex-chapter-${chNum}`,
         chapter: String(chNum),
@@ -206,10 +206,10 @@ export const FALLBACK_MANGA_CATALOG = [
     description: 'Chihiro spends his days training under his swordsmith father until tragedy strikes. Armed with an enchanted katana, his quest for vengeance begins.',
     tags: ['Action', 'Supernatural', 'Swordplay'],
     sourceName: 'MangaPill',
-    totalChapters: 30,
-    latestChapter: '30',
-    chapters: Array.from({ length: 30 }, (_, i) => {
-      const chNum = 30 - i;
+    totalChapters: 35,
+    latestChapter: '35',
+    chapters: Array.from({ length: 35 }, (_, i) => {
+      const chNum = 35 - i;
       return {
         id: `7529-${String(chNum).padStart(4, '0')}0000/kagurabachi-chapter-${chNum}`,
         chapter: String(chNum),
@@ -302,10 +302,10 @@ export const FALLBACK_MANGA_CATALOG = [
     description: 'When the warrior Hamel sacrifices himself to protect his rival Bermut Lionhart, he vows to eliminate the demon kings. Reincarnated 300 years later as Eugene Lionhart in his rival bloodline, he begins his quest!',
     tags: ['Action', 'Adventure', 'Fantasy', 'Reincarnation'],
     sourceName: 'Asura Scans',
-    totalChapters: 82,
-    latestChapter: '82',
-    chapters: Array.from({ length: 82 }, (_, i) => {
-      const chNum = 82 - i;
+    totalChapters: 85,
+    latestChapter: '85',
+    chapters: Array.from({ length: 85 }, (_, i) => {
+      const chNum = 85 - i;
       return {
         id: `asura_ch:damn-reincarnation-3ebcc5a9:${chNum}`,
         chapter: String(chNum),
@@ -885,6 +885,33 @@ export async function fetchMangaRecommendations(mangaId = '', genres = [], limit
   const cached = getClientCached(cacheKey);
   if (cached) return cached;
 
+  const getFilteredCatalog = () => {
+    const normMid = String(mangaId || '').toLowerCase().trim();
+    const genreList = Array.isArray(genres)
+      ? genres.map((g) => String(g).toLowerCase())
+      : String(genres || '').toLowerCase().split(',').map((s) => s.trim()).filter(Boolean);
+
+    const candidates = FALLBACK_MANGA_CATALOG.filter((m) => {
+      const mid = m.id.toLowerCase();
+      if (normMid && (mid === normMid || mid.includes(normMid) || normMid.includes(mid))) return false;
+      if (m.aliases && m.aliases.some((a) => normMid && (a.toLowerCase() === normMid || a.toLowerCase().includes(normMid) || normMid.includes(a.toLowerCase())))) return false;
+      const titleLower = m.title.toLowerCase();
+      const engLower = (m.englishTitle || '').toLowerCase();
+      if (normMid && (titleLower.includes(normMid) || normMid.includes(titleLower) || engLower.includes(normMid))) return false;
+      return true;
+    });
+
+    if (genreList.length > 0) {
+      candidates.sort((a, b) => {
+        const matchA = (a.tags || []).filter((t) => genreList.includes(String(t).toLowerCase())).length;
+        const matchB = (b.tags || []).filter((t) => genreList.includes(String(t).toLowerCase())).length;
+        return matchB - matchA;
+      });
+    }
+
+    return candidates.slice(0, limit).map(formatMangaItem);
+  };
+
   try {
     const url = `/api/manga/recommendations?id=${encodeURIComponent(mangaId)}&genres=${encodeURIComponent(genresStr)}&limit=${limit}`;
     const res = await fetch(url);
@@ -895,10 +922,13 @@ export async function fetchMangaRecommendations(mangaId = '', genres = [], limit
       setClientCached(cacheKey, list);
       return list;
     }
-    return FALLBACK_MANGA_CATALOG.slice(0, limit).map(formatMangaItem);
+    const fallbackList = getFilteredCatalog();
+    setClientCached(cacheKey, fallbackList);
+    return fallbackList;
   } catch (err) {
-    console.warn('fetchMangaRecommendations error:', err);
-    return FALLBACK_MANGA_CATALOG.slice(0, limit).map(formatMangaItem);
+    const fallbackList = getFilteredCatalog();
+    setClientCached(cacheKey, fallbackList);
+    return fallbackList;
   }
 }
 
