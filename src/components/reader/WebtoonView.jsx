@@ -13,12 +13,14 @@ function WebtoonPageItem({ p, ch, idx, chIdx, settings }) {
     setHasError(false);
     retriedCountRef.current += 1;
     const targetUrl = p.originalUrl || p.url;
-    const newSrc = `/api/image-proxy?url=${encodeURIComponent(targetUrl)}&_reload=${Date.now()}`;
+    const isGh = typeof window !== 'undefined' && window.location.hostname.includes('github.io');
+    const newSrc = isGh ? `${targetUrl}?_reload=${Date.now()}` : `/api/image-proxy?url=${encodeURIComponent(targetUrl)}&_reload=${Date.now()}`;
     setCurrentSrc(newSrc);
   };
 
   const handleImageError = () => {
-    if (retriedCountRef.current === 0 && !currentSrc.startsWith('/api/image-proxy')) {
+    const isGh = typeof window !== 'undefined' && window.location.hostname.includes('github.io');
+    if (retriedCountRef.current === 0 && !currentSrc.startsWith('/api/image-proxy') && !isGh) {
       retriedCountRef.current = 1;
       setCurrentSrc(`/api/image-proxy?url=${encodeURIComponent(p.originalUrl || p.url)}`);
       return;

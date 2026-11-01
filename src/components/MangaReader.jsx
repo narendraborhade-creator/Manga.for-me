@@ -1,5 +1,5 @@
 import React, { useState, useEffect, useRef, useCallback } from 'react';
-import { Loader2, AlertCircle } from 'lucide-react';
+import { Loader2, AlertCircle, ExternalLink, Globe, Sparkles } from 'lucide-react';
 import { fetchChapterPages, fetchMangaChapters } from '../services/mangaApi';
 import { 
   recordReadingProgress, 
@@ -50,6 +50,7 @@ export default function MangaReader({
   }, [allChapters]);
 
   const [initialLoading, setInitialLoading] = useState(true);
+  const [chapterSourceUrl, setChapterSourceUrl] = useState(null);
   const [initialError, setInitialError] = useState(null);
 
   // Safety watchdog: prevent infinite spinner buffering if network stalls

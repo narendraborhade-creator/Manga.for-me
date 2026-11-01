@@ -870,11 +870,78 @@ export async function fetchMangaChapters(mangaId, order = 'desc', refresh = fals
 /**
  * Fetch All Real Pages for a Chapter
  */
-export async function fetchChapterPages(chapterId) {
+
+export function getApiBaseUrl() {
+  if (typeof window !== 'undefined') {
+    const custom = localStorage.getItem('kuroneko_backend_url');
+    if (custom && custom.trim()) {
+      return custom.trim().replace(/\/$/, '');
+    }
+  }
+  return '';
+}
+
+export function setApiBaseUrl(url) {
+  if (typeof window !== 'undefined') {
+    if (url && url.trim()) {
+      localStorage.setItem('kuroneko_backend_url', url.trim().replace(/\/$/, ''));
+    } else {
+      localStorage.removeItem('kuroneko_backend_url');
+    }
+  }
+}
+
+export function getChapterSourceUrl(mangaId, chapterId, chapterNumber, mangaTitle) {
+  const num = String(chapterNumber || '').replace(/[^0-9.]/g, '') || (String(chapterId || '').match(/([0-9.]+)/)?.[1] || '1');
+  const mid = String(mangaId || '').toLowerCase();
+  const cid = String(chapterId || '').toLowerCase();
+  const title = String(mangaTitle || '').toLowerCase();
+
+  if (mid.includes('fortune-telling') || cid.includes('ftp') || cid.includes('fortune-telling') || title.includes('fortune-telling')) {
+    return `https://afortunetellingprincess.com/a-fortune-telling-princess-manhwa-chapter-${num}/`;
+  }
+  if (mid.includes('stepmother') || cid.includes('stepmother') || title.includes('stepmother')) {
+    return `https://kingofshojo.com/the-despised-stepmother-begins-her-second-life-chapter-${num}/`;
+  }
+  if (mid.includes('solo') || cid.includes('solo') || title.includes('solo leveling')) {
+    return `https://ww4.readsololeveling.org/chapter/solo-leveling-chapter-${num}/`;
+  }
+  if (mid.includes('omniscient') || cid.includes('orv') || title.includes('omniscient reader')) {
+    return `https://w1.omniscientreadersviewpoint.com/manga/omniscient-readers-viewpoint-chapter-${num}/`;
+  }
+  if (mid.includes('one-piece') || cid.includes('one-piece') || title.includes('one piece')) {
+    return 'https://mangapill.com/search?q=one+piece';
+  }
+  if (mid.includes('berserk') || cid.includes('berserk') || title.includes('berserk')) {
+    return 'https://mangapill.com/search?q=berserk';
+  }
+  if (mid.includes('chainsaw') || cid.includes('chainsaw') || title.includes('chainsaw man')) {
+    return 'https://mangapill.com/search?q=chainsaw+man';
+  }
+  if (mid.includes('jujutsu') || cid.includes('jujutsu') || title.includes('jujutsu kaisen')) {
+    return 'https://mangapill.com/search?q=jujutsu+kaisen';
+  }
+  if (mid.includes('damn-reincarnation') || mid.includes('blasted') || title.includes('reincarnat')) {
+    return 'https://asuracomic.net/series/damn-reincarnation-3ebcc5a9';
+  }
+  if (mid.includes('barbarian') || title.includes('barbarian')) {
+    return 'https://asuracomic.net/series/surviving-the-game-as-a-barbarian-11fe7da3';
+  }
+  if (cid.startsWith('http://') || cid.startsWith('https://')) {
+    return chapterId;
+  }
+  if (title) {
+    return `https://www.google.com/search?q=${encodeURIComponent(cleanTitle(title) + ' chapter ' + num + ' read online')}`;
+  }
+  return `https://afortunetellingprincess.com/a-fortune-telling-princess-manhwa-chapter-${num}/`;
+}
+
+export async function fetchChapterPages(chapterId, mangaId = null, chapterNumber = null, mangaTitle = null) {
   const controller = new AbortController();
   const timer = setTimeout(() => controller.abort(), 9000);
+  const baseUrl = getApiBaseUrl();
   try {
-    const url = `/api/manga/read?chapterId=${encodeURIComponent(chapterId)}`;
+    const url = `${baseUrl}/api/manga/read?chapterId=${encodeURIComponent(chapterId)}`;
     const res = await fetch(url, { signal: controller.signal });
     clearTimeout(timer);
     if (res.ok) {
@@ -886,6 +953,31 @@ export async function fetchChapterPages(chapterId) {
   } catch (err) {
     clearTimeout(timer);
     console.warn('fetchChapterPages API warning, attempting client-side resolution:', err.message);
+  }
+
+  // Client-side direct resolution for A Fortune-Telling Princess on static hosting
+  const chNum = String(chapterNumber || '').replace(/[^0-9.]/g, '') || (String(chapterId || '').match(/([0-9.]+)/)?.[1] || '1');
+  const mid = String(mangaId || '').toLowerCase();
+  const cid = String(chapterId || '').toLowerCase();
+  const title = String(mangaTitle || '').toLowerCase();
+
+  if (mid.includes('fortune-telling') || cid.includes('ftp') || cid.includes('fortune-telling') || title.includes('fortune-telling')) {
+    const totalPages = 28;
+    const pages = Array.from({ length: totalPages }, (_, idx) => {
+      const p = idx + 1;
+      const imgUrl = `https://afortunetellingprincess.com/wp-content/uploads/manga/a-fortune-telling-princess-manhwa/chapter-${chNum}/${p}.jpg`;
+      return {
+        pageNumber: p,
+        url: imgUrl,
+        originalUrl: imgUrl,
+      };
+    });
+    return {
+      chapterId,
+      totalPages: pages.length,
+      pages,
+      sourceUrl: `https://afortunetellingprincess.com/a-fortune-telling-princess-manhwa-chapter-${chNum}/`
+    };
   }
 
   // Client-side fallback for MangaDex on static hosting (e.g. GitHub Pages)
@@ -909,7 +1001,15 @@ export async function fetchChapterPages(chapterId) {
     } catch {}
   }
 
-  return { chapterId, totalPages: 0, pages: [], warning: 'Chapter images are temporarily synchronizing. Please try another chapter.' };
+  const sourceUrl = getChapterSourceUrl(mangaId, chapterId, chapterNumber, mangaTitle);
+  return {
+    chapterId,
+    totalPages: 0,
+    pages: [],
+    sourceUrl,
+    isStaticHost: typeof window !== 'undefined' && window.location.hostname.includes('github.io'),
+    warning: 'GitHub Pages is a static hosting platform and cannot run server scrapers directly without a Node backend.'
+  };
 }
 
 export function getFallbackCover(title = 'Manga') {
