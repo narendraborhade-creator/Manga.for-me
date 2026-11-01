@@ -316,7 +316,11 @@ export async function searchManga(query = '') {
 function needsImageProxy(url) {
   if (!url) return false;
   if (url.startsWith('/api/image-proxy') || url.startsWith('data:')) return false;
-  // Proxy all external CDNs to bypass strict hotlinking referer checks (e.g. MangaDex Cloudflare, MangaKakalot, MangaPill)
+  // If running on static hosting without backend (e.g. GitHub Pages), avoid local proxy
+  if (typeof window !== 'undefined' && (window.location.hostname.includes('github.io') || window.location.protocol === 'file:')) {
+    return false;
+  }
+  // Proxy all external CDNs when running with backend server
   return true;
 }
 
@@ -615,14 +619,39 @@ export async function fetchChapterPages(chapterId) {
     const url = `/api/manga/read?chapterId=${encodeURIComponent(chapterId)}`;
     const res = await fetch(url, { signal: controller.signal });
     clearTimeout(timer);
-    if (!res.ok) throw new Error(`HTTP ${res.status}`);
-    const data = await res.json();
-    return data;
+    if (res.ok) {
+      const data = await res.json();
+      if (data && Array.isArray(data.pages) && data.pages.length > 0) {
+        return data;
+      }
+    }
   } catch (err) {
     clearTimeout(timer);
-    console.error('fetchChapterPages failed:', err);
-    throw err;
+    console.warn('fetchChapterPages API warning, attempting client-side resolution:', err.message);
   }
+
+  // Client-side fallback for MangaDex on static hosting (e.g. GitHub Pages)
+  if (chapterId && (chapterId.startsWith('md_ch:') || chapterId.startsWith('md:'))) {
+    const cleanId = chapterId.replace(/^md_ch:|^md:/, '');
+    try {
+      const res = await fetch(`https://api.mangadex.org/at-home/server/${cleanId}`);
+      if (res.ok) {
+        const json = await res.json();
+        const baseUrl = json.baseUrl;
+        const hash = json.chapter?.hash;
+        const files = json.chapter?.dataSaver || json.chapter?.data || [];
+        const folder = json.chapter?.dataSaver ? 'data-saver' : 'data';
+        const pages = files.map((fileName, idx) => ({
+          pageNumber: idx + 1,
+          url: `${baseUrl}/${folder}/${hash}/${fileName}`,
+          originalUrl: `${baseUrl}/${folder}/${hash}/${fileName}`,
+        }));
+        return { chapterId, totalPages: pages.length, pages };
+      }
+    } catch {}
+  }
+
+  return { chapterId, totalPages: 0, pages: [], warning: 'Chapter images are temporarily synchronizing. Please try another chapter.' };
 }
 
 export function getFallbackCover(title = 'Manga') {
