@@ -1,6 +1,6 @@
 import React, { useState, useEffect, useRef } from 'react';
 import { Play, BookOpen, Star, Bookmark, ChevronLeft, ChevronRight, Info, Sparkles } from 'lucide-react';
-import { getFallbackCover, cleanTitle } from '../services/mangaApi';
+import { getFallbackCover, cleanTitle, getReliableCoverUrl } from '../services/mangaApi';
 
 export default function HeroCarousel({
   items = [],
@@ -62,12 +62,15 @@ export default function HeroCarousel({
       {/* Background Banner with Layered Gradients */}
       <div className="absolute inset-0">
         <img
-          src={current.coverUrl}
+          src={getReliableCoverUrl(current.title, current.coverUrl)}
           alt={current.title}
           referrerPolicy="no-referrer"
           className="w-full h-full object-cover object-center filter brightness-[0.55] group-hover:scale-104 transition-transform duration-1000 ease-out"
           onError={(e) => {
-            if (current.rawCoverUrl && e.target.src !== current.rawCoverUrl) {
+            const reliable = getReliableCoverUrl(current.title, null);
+            if (reliable && reliable !== e.target.src && !reliable.startsWith('data:')) {
+              e.target.src = reliable;
+            } else if (current.rawCoverUrl && e.target.src !== current.rawCoverUrl) {
               e.target.src = current.rawCoverUrl;
             } else {
               e.target.src = getFallbackCover(current.title);

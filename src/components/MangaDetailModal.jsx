@@ -17,7 +17,7 @@ import {
   ExternalLink,
   Flame
 } from 'lucide-react';
-import { getFallbackCover, fetchMangaDetails, fetchMangaRecommendations, fetchMangaNews, cleanTitle, decodeHtml, deduplicateChapters } from '../services/mangaApi';
+import { getFallbackCover, fetchMangaDetails, fetchMangaRecommendations, fetchMangaNews, cleanTitle, decodeHtml, deduplicateChapters, getReliableCoverUrl } from '../services/mangaApi';
 import { getReadChaptersForManga } from '../services/storage';
 
 export default function MangaDetailModal({
@@ -263,7 +263,7 @@ export default function MangaDetailModal({
                   {/* Cover Art */}
                   <div className="w-32 sm:w-44 flex-shrink-0 rounded-2xl overflow-hidden shadow-2xl border border-white/10 aspect-[3/4.2] bg-slate-950 mx-auto sm:mx-0">
                     <img
-                      src={initialCoverUrl || manga.coverUrl}
+                      src={getReliableCoverUrl(manga?.title, initialCoverUrl || manga?.coverUrl)}
                       alt={manga.title}
                       referrerPolicy="no-referrer"
                       className="w-full h-full object-cover"
@@ -817,7 +817,7 @@ export default function MangaDetailModal({
                       >
                         <div className="relative aspect-[3/4] rounded-xl overflow-hidden bg-slate-950 border border-white/5 shadow-md">
                           <img
-                            src={rec.coverUrl}
+                            src={getReliableCoverUrl(rec.title, rec.coverUrl)}
                             alt={rec.title}
                             referrerPolicy="no-referrer"
                             className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-300"

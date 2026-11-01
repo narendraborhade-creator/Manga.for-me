@@ -187,7 +187,7 @@ export default function HistoryView({
                 {/* Poster */}
                 <div className="relative aspect-[3/4.2] w-full overflow-hidden bg-slate-950">
                   <img
-                    src={item.coverUrl}
+                    src={getReliableCoverUrl(item.mangaTitle, item.coverUrl)}
                     alt={item.mangaTitle}
                     loading="lazy"
                     referrerPolicy="no-referrer"
@@ -287,7 +287,7 @@ export default function HistoryView({
               <div className="flex items-center gap-3 sm:gap-4 min-w-0 flex-1 overflow-hidden">
                 <div className="w-13 h-18 sm:w-16 sm:h-22 rounded-xl overflow-hidden flex-shrink-0 bg-slate-950 border border-white/10 shadow-md relative">
                   <img
-                    src={item.coverUrl}
+                    src={getReliableCoverUrl(item.mangaTitle, item.coverUrl)}
                     alt={item.mangaTitle}
                     referrerPolicy="no-referrer"
                     className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-300"
