@@ -1,6 +1,6 @@
 import React, { memo } from 'react';
 import { Bookmark, Star, BookOpen, Check } from 'lucide-react';
-import { getFallbackCover, cleanTitle } from '../services/mangaApi';
+import { getFallbackCover, cleanTitle, getReliableCoverUrl } from '../services/mangaApi';
 
 function MangaCard({
   manga,

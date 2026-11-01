@@ -232,8 +232,109 @@ export const FALLBACK_MANGA_CATALOG = [
         title: `Chapter ${chNum}`,
       };
     })
+  },
+  {
+    id: 'asura:damn-reincarnation-3ebcc5a9',
+    aliases: ['my-blasted-reincarnation', 'my-blasted-reincarnated-life', 'damn-reincarnation', 'asura:my-blasted-reincarnation'],
+    title: 'My Blasted Reincarnated Life',
+    englishTitle: 'Damn Reincarnation',
+    coverUrl: 'https://s4.anilist.co/file/anilistcdn/media/manga/cover/large/bx151512-q0Xddr1JNKNq.png',
+    status: 'Ongoing',
+    score: '9.4',
+    year: '2022',
+    author: 'Mokma & Jeong-Yeol Park',
+    description: 'When the warrior Hamel sacrifices himself to protect his rival Bermut Lionhart, he vows to eliminate the demon kings. Reincarnated 300 years later as Eugene Lionhart in his rival bloodline, he begins his quest!',
+    tags: ['Action', 'Adventure', 'Fantasy', 'Reincarnation'],
+    sourceName: 'Asura Scans',
+    chapters: Array.from({ length: 82 }, (_, i) => {
+      const chNum = 82 - i;
+      return {
+        id: `asura_ch:damn-reincarnation-3ebcc5a9:${chNum}`,
+        chapter: String(chNum),
+        title: `Chapter ${chNum}`,
+      };
+    })
+  },
+  {
+    id: 'webtoon:demon-slayer',
+    aliases: ['demon-slayer', 'kimetsu-no-yaiba'],
+    title: 'Demon Slayer: Kimetsu no Yaiba',
+    englishTitle: 'Demon Slayer: Kimetsu no Yaiba',
+    coverUrl: 'https://s4.anilist.co/file/anilistcdn/media/manga/cover/large/bx87216-c9bSNVD10UuD.png',
+    status: 'Completed',
+    score: '9.1',
+    year: '2016',
+    author: 'Koyoharu Gotouge',
+    description: 'Tanjiro Kamado sets out on a perilous path to avenge his slaughtered family and find a cure for his sister Nezuko, who has been turned into a demon.',
+    tags: ['Action', 'Demons', 'Historical', 'Shounen'],
+    sourceName: 'MangaPill',
+    chapters: Array.from({ length: 205 }, (_, i) => {
+      const chNum = 205 - i;
+      return {
+        id: `mp:demon-slayer:${chNum}`,
+        chapter: String(chNum),
+        title: `Chapter ${chNum}`,
+      };
+    })
+  },
+  {
+    id: 'webtoon:attack-on-titan',
+    aliases: ['attack-on-titan', 'shingeki-no-kyojin'],
+    title: 'Attack on Titan',
+    englishTitle: 'Attack on Titan',
+    coverUrl: 'https://s4.anilist.co/file/anilistcdn/media/manga/cover/large/bx53390-1RsuABC34P9D.jpg',
+    status: 'Completed',
+    score: '9.3',
+    year: '2009',
+    author: 'Hajime Isayama',
+    description: 'Humanity lives inside cities surrounded by enormous walls that protect them from gigantic man-eating humanoids referred to as Titans. Eren Yeager vows to cleanse the earth of Titans.',
+    tags: ['Action', 'Dark Fantasy', 'Military', 'Mystery'],
+    sourceName: 'MangaPill',
+    chapters: Array.from({ length: 139 }, (_, i) => {
+      const chNum = 139 - i;
+      return {
+        id: `mp:aot:${chNum}`,
+        chapter: String(chNum),
+        title: `Chapter ${chNum}`,
+      };
+    })
   }
 ];
+
+export const KNOWN_MANGA_COVERS = {
+  'one piece': 'https://s4.anilist.co/file/anilistcdn/media/manga/cover/large/bx30013-BeslEMqiPhlk.jpg',
+  'berserk': 'https://s4.anilist.co/file/anilistcdn/media/manga/cover/large/bx30002-Cul4OeN7bYtn.jpg',
+  'solo leveling': 'https://s4.anilist.co/file/anilistcdn/media/manga/cover/large/bx105398-b673Vt5ZSuz3.jpg',
+  'fortune-telling princess': 'https://s4.anilist.co/file/anilistcdn/media/manga/cover/large/bx170151-hItAtAb5Kj0I.jpg',
+  'stepmother': 'https://s4.anilist.co/file/anilistcdn/media/manga/cover/large/bx213993-T1BvCf8cBvlt.jpg',
+  'step mother': 'https://s4.anilist.co/file/anilistcdn/media/manga/cover/large/bx213993-T1BvCf8cBvlt.jpg',
+  'chainsaw man': 'https://s4.anilist.co/file/anilistcdn/media/manga/cover/large/bx105778-euxXZEIfDY2u.png',
+  'jujutsu kaisen': 'https://s4.anilist.co/file/anilistcdn/media/manga/cover/large/bx101517-H3TdM3g5ZUe9.jpg',
+  'boruto': 'https://s4.anilist.co/file/anilistcdn/media/manga/cover/large/bx168468-FEo5x1ZZyWj4.png',
+  'kagurabachi': 'https://s4.anilist.co/file/anilistcdn/media/manga/cover/large/bx169355-5pqzh1Wb4NOQ.png',
+  'omniscient reader': 'https://s4.anilist.co/file/anilistcdn/media/manga/cover/large/bx119257-Pi21aq3ey9GG.jpg',
+  'surviving the game as a barbarian': 'https://s4.anilist.co/file/anilistcdn/media/manga/cover/medium/bx164857-MVeV0leMZb0m.jpg',
+  'reincarnated bastard of the sword clan': 'https://s4.anilist.co/file/anilistcdn/media/manga/cover/medium/bx183855-BbnSsUPiOVrM.jpg',
+  'blasted reincarnat': 'https://s4.anilist.co/file/anilistcdn/media/manga/cover/large/bx151512-q0Xddr1JNKNq.png',
+  'damn reincarnation': 'https://s4.anilist.co/file/anilistcdn/media/manga/cover/large/bx151512-q0Xddr1JNKNq.png',
+  'demon slayer': 'https://s4.anilist.co/file/anilistcdn/media/manga/cover/large/bx87216-c9bSNVD10UuD.png',
+  'attack on titan': 'https://s4.anilist.co/file/anilistcdn/media/manga/cover/large/bx53390-1RsuABC34P9D.jpg',
+  'tokyo ghoul': 'https://s4.anilist.co/file/anilistcdn/media/manga/cover/large/bx63327-glC9cDxYBja9.png',
+  'my hero academia': 'https://s4.anilist.co/file/anilistcdn/media/manga/cover/large/bx85486-INqnYx8gL3eX.jpg',
+};
+
+export function getReliableCoverUrl(title, currentUrl) {
+  if (currentUrl && (currentUrl.includes('anilist.co') || currentUrl.includes('myanimelist.net'))) {
+    return currentUrl;
+  }
+  const t = (title || '').toLowerCase().trim();
+  for (const [key, url] of Object.entries(KNOWN_MANGA_COVERS)) {
+    if (t.includes(key) || key.includes(t)) {
+      return url;
+    }
+  }
+  return currentUrl || getFallbackCover(title);
+}
 
 // High-speed client-side memory cache with 5-minute TTL
 const clientCache = new Map();
@@ -279,6 +380,138 @@ export async function fetchPopularManga() {
 /**
  * Search Manga with query
  */
+
+/**
+ * Live AniList GraphQL Search for Static Hosting (GitHub Pages)
+ */
+export async function searchAniList(query) {
+  if (!query || !query.trim()) return [];
+  try {
+    const q = `query ($search: String) {
+      Page(page: 1, perPage: 16) {
+        media(search: $search, type: MANGA, sort: SEARCH_MATCH) {
+          id
+          title { romaji english userPreferred }
+          coverImage { extraLarge large medium }
+          bannerImage
+          description(asHtml: false)
+          chapters
+          volumes
+          status
+          averageScore
+          genres
+          startDate { year }
+        }
+      }
+    }`;
+    const res = await fetch('https://graphql.anilist.co', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json', 'Accept': 'application/json' },
+      body: JSON.stringify({ query: q, variables: { search: query.trim() } })
+    });
+    if (!res.ok) return [];
+    const json = await res.json();
+    const media = json?.data?.Page?.media || [];
+    return media.map((m) => {
+      const totalCh = m.chapters || 50;
+      const chList = Array.from({ length: Math.min(totalCh, 200) }, (_, idx) => {
+        const num = totalCh - idx;
+        return {
+          id: `anilist_ch:${m.id}:${num}`,
+          chapter: String(num),
+          title: `Chapter ${num}`
+        };
+      });
+      const t = m.title.english || m.title.romaji || m.title.userPreferred || 'Manga';
+      return formatMangaItem({
+        id: `anilist:${m.id}`,
+        title: t,
+        englishTitle: m.title.english || null,
+        coverUrl: m.coverImage?.large || m.coverImage?.extraLarge || m.coverImage?.medium,
+        bannerUrl: m.bannerImage || null,
+        status: m.status === 'FINISHED' ? 'Completed' : 'Ongoing',
+        score: m.averageScore ? (m.averageScore / 10).toFixed(1) : '8.8',
+        year: m.startDate?.year ? String(m.startDate.year) : '2023',
+        author: 'Manga Universe',
+        description: m.description ? decodeHtml(m.description) : '',
+        tags: m.genres || ['Action', 'Fantasy'],
+        sourceName: 'AniList',
+        totalChapters: m.chapters || totalCh,
+        latestChapter: String(totalCh),
+        chapters: chList
+      });
+    }).filter(Boolean);
+  } catch (err) {
+    console.warn('AniList live search error:', err);
+    return [];
+  }
+}
+
+/**
+ * Fetch AniList Details for Static Hosting
+ */
+export async function fetchAniListDetails(id) {
+  try {
+    const q = `query ($id: Int) {
+      Media(id: $id, type: MANGA) {
+        id
+        title { romaji english userPreferred }
+        coverImage { extraLarge large medium }
+        bannerImage
+        description(asHtml: false)
+        chapters
+        volumes
+        status
+        averageScore
+        genres
+        startDate { year }
+        staff(perPage: 3) { nodes { name { full } } }
+      }
+    }`;
+    const cleanId = parseInt(String(id).replace(/^anilist:/, ''), 10);
+    if (isNaN(cleanId)) return null;
+    const res = await fetch('https://graphql.anilist.co', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ query: q, variables: { id: cleanId } })
+    });
+    if (!res.ok) return null;
+    const json = await res.json();
+    const m = json?.data?.Media;
+    if (!m) return null;
+    const totalCh = m.chapters || 50;
+    const chList = Array.from({ length: Math.min(totalCh, 250) }, (_, idx) => {
+      const num = totalCh - idx;
+      return {
+        id: `anilist_ch:${m.id}:${num}`,
+        chapter: String(num),
+        title: `Chapter ${num}`
+      };
+    });
+    const authors = m.staff?.nodes?.map(n => n.name?.full).filter(Boolean).join(', ') || 'Manga Artist';
+    return {
+      id: `anilist:${m.id}`,
+      title: m.title.english || m.title.romaji || 'Manga',
+      englishTitle: m.title.english || null,
+      coverUrl: m.coverImage?.extraLarge || m.coverImage?.large,
+      bannerUrl: m.bannerImage || null,
+      status: m.status === 'FINISHED' ? 'Completed' : 'Ongoing',
+      score: m.averageScore ? (m.averageScore / 10).toFixed(1) : '8.8',
+      year: m.startDate?.year ? String(m.startDate.year) : '2023',
+      author: authors,
+      description: m.description ? decodeHtml(m.description) : '',
+      tags: m.genres || ['Action', 'Fantasy'],
+      sourceName: 'AniList',
+      totalChapters: m.chapters || totalCh,
+      latestChapter: String(totalCh),
+      chapters: chList
+    };
+  } catch (err) {
+    console.warn('fetchAniListDetails error:', err);
+    return null;
+  }
+}
+
 export async function searchManga(query = '') {
   if (!query || !query.trim()) return fetchPopularManga();
 
@@ -305,9 +538,25 @@ export async function searchManga(query = '') {
   const matched = FALLBACK_MANGA_CATALOG.filter(
     (m) =>
       m.title.toLowerCase().includes(q) ||
-      (m.englishTitle && m.englishTitle.toLowerCase().includes(q))
-  );
-  return matched.map(formatMangaItem);
+      (m.englishTitle && m.englishTitle.toLowerCase().includes(q)) ||
+      (m.aliases && m.aliases.some((a) => a.toLowerCase().includes(q)))
+  ).map(formatMangaItem);
+
+  try {
+    const liveResults = await searchAniList(query);
+    if (liveResults && liveResults.length > 0) {
+      const seen = new Set(matched.map((m) => m.title.toLowerCase()));
+      for (const item of liveResults) {
+        if (!seen.has(item.title.toLowerCase())) {
+          seen.add(item.title.toLowerCase());
+          matched.push(item);
+        }
+      }
+    }
+  } catch {}
+
+  setClientCached(cacheKey, matched);
+  return matched;
 }
 
 /**
@@ -535,11 +784,19 @@ export async function fetchMangaDetails(mangaId, refresh = false) {
     );
     // 2. Try finding by title/slug tokens
     if (!fallbackItem) {
-      const q = mangaId.toLowerCase().replace(/^wc:|^webtoon:|^md:/, '').replace(/[-_:]/g, ' ');
+      const q = mangaId.toLowerCase().replace(/^wc:|^webtoon:|^md:|^asura:|^vortex:/, '').replace(/[-_:]/g, ' ');
       fallbackItem = FALLBACK_MANGA_CATALOG.find((m) => {
         const titleQ = m.title.toLowerCase().replace(/[-_:]/g, ' ');
         return q.includes(titleQ) || titleQ.includes(q);
       });
+    }
+    // 3. If AniList ID or not found in catalog, fetch from AniList GraphQL
+    if (!fallbackItem && String(mangaId).startsWith('anilist:')) {
+      const anilistItem = await fetchAniListDetails(mangaId);
+      if (anilistItem) {
+        setClientCached(cacheKey, anilistItem);
+        return anilistItem;
+      }
     }
     if (fallbackItem) {
       const result = {
@@ -547,7 +804,7 @@ export async function fetchMangaDetails(mangaId, refresh = false) {
         id: mangaId,
         title: cleanTitle(fallbackItem.title),
         englishTitle: fallbackItem.englishTitle ? cleanTitle(fallbackItem.englishTitle) : null,
-        coverUrl: fallbackItem.coverUrl,
+        coverUrl: getReliableCoverUrl(fallbackItem.title, fallbackItem.coverUrl),
         chapters: fallbackItem.chapters || []
       };
       setClientCached(cacheKey, result);
@@ -659,20 +916,23 @@ export function getFallbackCover(title = 'Manga') {
   const clean = (title || 'Manga').slice(0, 24);
   const svg = `<svg xmlns="http://www.w3.org/2000/svg" width="400" height="600" viewBox="0 0 400 600">
     <defs>
-      <linearGradient id="bg" x1="0%" y1="0%" x2="100%" y2="100%">
-        <stop offset="0%" stop-color="#0b0e14"/>
-        <stop offset="100%" stop-color="#1e1322"/>
+      <linearGradient id="cyberBg" x1="0%" y1="0%" x2="100%" y2="100%">
+        <stop offset="0%" stop-color="#0a0f1d"/>
+        <stop offset="50%" stop-color="#0e172a"/>
+        <stop offset="100%" stop-color="#161b33"/>
       </linearGradient>
-      <linearGradient id="acc" x1="0%" y1="0%" x2="100%" y2="100%">
-        <stop offset="0%" stop-color="#f43f5e"/>
-        <stop offset="100%" stop-color="#e11d48"/>
+      <linearGradient id="neonGlow" x1="0%" y1="0%" x2="100%" y2="100%">
+        <stop offset="0%" stop-color="#06b6d4"/>
+        <stop offset="100%" stop-color="#f43f5e"/>
       </linearGradient>
     </defs>
-    <rect width="400" height="600" fill="url(#bg)"/>
-    <circle cx="200" cy="240" r="64" fill="url(#acc)" fill-opacity="0.15"/>
-    <path d="M175 220h50M175 240h50M175 260h30" stroke="#f43f5e" stroke-width="4" stroke-linecap="round"/>
-    <text x="200" y="360" text-anchor="middle" fill="#ffffff" font-family="system-ui, -apple-system, sans-serif" font-size="20" font-weight="800">${clean.replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;')}</text>
-    <text x="200" y="390" text-anchor="middle" fill="#94a3b8" font-family="system-ui, -apple-system, sans-serif" font-size="12" font-weight="600" letter-spacing="1.5">MANGA UNIVERSE</text>
+    <rect width="400" height="600" fill="url(#cyberBg)"/>
+    <rect x="20" y="20" width="360" height="560" rx="16" fill="none" stroke="url(#neonGlow)" stroke-width="2" stroke-opacity="0.35"/>
+    <circle cx="200" cy="220" r="70" fill="url(#neonGlow)" fill-opacity="0.12"/>
+    <text x="200" y="245" text-anchor="middle" fill="#06b6d4" fill-opacity="0.75" font-family="'Plus Jakarta Sans', system-ui, sans-serif" font-size="64" font-weight="900">漫画</text>
+    <text x="200" y="360" text-anchor="middle" fill="#ffffff" font-family="'Plus Jakarta Sans', system-ui, sans-serif" font-size="22" font-weight="800">${clean.replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;')}</text>
+    <rect x="150" y="380" width="100" height="2" fill="url(#neonGlow)" rx="1"/>
+    <text x="200" y="415" text-anchor="middle" fill="#38bdf8" font-family="'JetBrains Mono', monospace" font-size="11" font-weight="700" letter-spacing="3">KURONEKO // UNIVERSE</text>
   </svg>`;
   return `data:image/svg+xml;utf8,${encodeURIComponent(svg)}`;
 }
@@ -684,9 +944,10 @@ function formatMangaItem(item) {
   if (!item) return null;
   const safeTitle = cleanTitle(item.title);
   const safeEnglishTitle = item.englishTitle ? cleanTitle(item.englishTitle) : null;
+  const reliableCover = getReliableCoverUrl(safeTitle, item.coverUrl);
   // Proxy cover image only if hotlinking bypass is required
-  const proxiedCover = item.coverUrl
-    ? (needsImageProxy(item.coverUrl) ? `/api/image-proxy?url=${encodeURIComponent(item.coverUrl)}` : item.coverUrl)
+  const proxiedCover = reliableCover
+    ? (needsImageProxy(reliableCover) ? `/api/image-proxy?url=${encodeURIComponent(reliableCover)}` : reliableCover)
     : getFallbackCover(safeTitle);
 
   return {
@@ -694,7 +955,7 @@ function formatMangaItem(item) {
     title: safeTitle,
     englishTitle: safeEnglishTitle,
     coverUrl: proxiedCover,
-    rawCoverUrl: item.coverUrl,
+    rawCoverUrl: reliableCover,
     status: item.status || 'Ongoing',
     author: item.author && item.author.trim() ? decodeHtml(item.author) : 'Unknown Author',
     tags: (item.tags || ['Manga', 'Action']).map(decodeHtml),

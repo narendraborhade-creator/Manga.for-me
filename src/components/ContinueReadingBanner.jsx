@@ -1,6 +1,6 @@
 import React, { useState, useEffect, useRef } from 'react';
 import { Play, BookOpen, Clock, ChevronRight, ChevronLeft, X, Layers, Trash2 } from 'lucide-react';
-import { getFallbackCover, cleanTitle } from '../services/mangaApi';
+import { getFallbackCover, cleanTitle, getReliableCoverUrl } from '../services/mangaApi';
 
 export default function ContinueReadingBanner({
   lastRead,
@@ -184,7 +184,7 @@ export default function ContinueReadingBanner({
             title="Open manga details"
           >
             <img
-              src={currentItem.coverUrl}
+              src={getReliableCoverUrl(currentItem.mangaTitle, currentItem.coverUrl)}
               alt={currentItem.mangaTitle}
               referrerPolicy="no-referrer"
               className="w-full h-full object-cover group-hover:scale-108 transition-transform duration-300"

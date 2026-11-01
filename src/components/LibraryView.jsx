@@ -189,7 +189,7 @@ export default function LibraryView({
                 {/* Poster */}
                 <div className="relative aspect-[3/4.2] w-full overflow-hidden bg-slate-950">
                   <img
-                    src={item.coverUrl}
+                    src={getReliableCoverUrl(item.title, item.coverUrl)}
                     alt={item.title}
                     loading="lazy"
                     referrerPolicy="no-referrer"
