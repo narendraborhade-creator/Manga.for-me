@@ -1,6 +1,6 @@
 import React, { useState, useEffect, useRef, useCallback } from 'react';
-import { Loader2, AlertCircle, ExternalLink, Globe, Sparkles } from 'lucide-react';
-import { fetchChapterPages, fetchMangaChapters } from '../services/mangaApi';
+import { Loader2, AlertCircle, ExternalLink, Globe, Sparkles, BookOpen, Check } from 'lucide-react';
+import { fetchChapterPages, fetchMangaChapters, getChapterSourceUrl, cleanTitle } from '../services/mangaApi';
 import { 
   recordReadingProgress, 
   getReaderSettings, 
@@ -453,7 +453,7 @@ export default function MangaReader({
     setNextChapterError(null);
 
     try {
-      const data = await fetchChapterPages(nextChap.id);
+      const data = await fetchChapterPages(nextChap.id, mangaId, nextChap.chapter, mangaTitle);
       if (!data || !data.pages || data.pages.length === 0) {
         throw new Error(data?.warning || 'Pages for this chapter are currently synchronizing.');
       }
@@ -488,7 +488,7 @@ export default function MangaReader({
     setIsLoadingPrev(true);
 
     try {
-      const data = await fetchChapterPages(prevChapterToLoad.id);
+      const data = await fetchChapterPages(prevChapterToLoad.id, mangaId, prevChapterToLoad.chapter, mangaTitle);
       if (!data || !data.pages || data.pages.length === 0) {
         throw new Error('Pages unavailable for previous chapter');
       }

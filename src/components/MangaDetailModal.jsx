@@ -46,12 +46,12 @@ export default function MangaDetailModal({
   const [chapterSort, setChapterSort] = useState('desc'); // 'asc' | 'desc'
   const [chapterSearch, setChapterSearch] = useState('');
   const [readChapterIds, setReadChapterIds] = useState([]);
-  const [visibleChapterCount, setVisibleChapterCount] = useState(100);
+  const [visibleChapterCount, setVisibleChapterCount] = useState(150);
   const [isExpandedSynopsis, setIsExpandedSynopsis] = useState(false);
 
   useEffect(() => {
     setActiveMangaId(mangaId);
-    setVisibleChapterCount(100);
+    setVisibleChapterCount(150);
     setIsExpandedSynopsis(false);
   }, [mangaId]);
 

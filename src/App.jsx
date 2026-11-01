@@ -512,7 +512,7 @@ export default function App() {
             lastRead={lastRead}
             history={history}
             onOpenReader={handleOpenReader}
-            onOpenMangaDetails={(mangaId, cover) => handleOpenMangaDetails(mangaId, cover || lastRead?.coverUrl)}
+            onOpenMangaDetails={(mangaId, cover) => handleOpenMangaDetails(mangaId, cover)}
             onDismiss={() => setDismissContinueBanner(true)}
             onRemoveFromHistory={(mangaId) => {
               removeFromHistory(mangaId);

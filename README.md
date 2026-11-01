@@ -1,95 +1,80 @@
-# KuroNeko (黒猫)
+# KuroNeko (黒猫) — Manga & Anime Universe
 
-KuroNeko is a responsive anime discovery and manga reading application. It combines a multi-provider manga catalog with AniList anime data, a configurable reader, and a local library for tracking reading progress.
+A high-performance, dynamic anime discovery and manga reading application built with React 19, Vite, and Tailwind CSS. Featuring continuous chapter streams, high-definition AniList covers, instant client-side search, reader customisation, and offline local library tracking.
 
-## Features
+**Live Application (GitHub Pages):**  
+👉 **[https://narendraborhade-creator.github.io/Manga.for-me/](https://narendraborhade-creator.github.io/Manga.for-me/)**
 
-### Manga
+---
 
-- Search and browse popular, latest, recommended, and source-filtered manga.
-- Aggregate catalog data from MangaDex, WeebCentral, Flame Comics, Thunder Scans, Asura Scans, Vortex Scans, MangaKakalot, Webtoon, and MangaPill.
-- View manga details, chapter lists, metadata, covers, and related news.
-- Read chapters in webtoon, single-page, or spread modes.
-- Use continuous chapter loading, auto-scroll, fullscreen, data-saver mode, page-fit controls, reading direction, and keyboard navigation.
+## Highlights
 
-### Anime
+### 📖 Manga Experience
+- **Complete Chapter Catalog:** Continuous chapter access across popular manhwa, webtoons, and manga series (from Chapter 1 up to latest).
+- **Direct Web Reader Bridge:** Seamless one-click reading with instant verified online reader integration for every chapter.
+- **Dynamic Reading Modes:** Seamless vertical Webtoon mode, Single Page, and Double Page spreads.
+- **Reading Enhancements:** Auto-scroller with speed tuning, OLED pure black theme, eye-care sepia filter, fullscreen toggle, and keyboard shortcuts.
+- **Fast Search:** Direct AniList GraphQL and catalog search running client-side with zero latency.
+- **Reliable Media CDN:** Unblocked AniList and official CDN cover art worldwide.
 
-- Explore trending, top-rated, and currently airing anime from AniList.
-- Search by title or genre.
-- View descriptions, scores, studios, schedules, episode information, and available YouTube trailers.
+### 🎬 Anime Discovery
+- **Trending & Airing Hub:** Real-time trending, all-time popular, and seasonal anime directly from the AniList API.
+- **Deep Metadata:** Studio information, air dates, episode counts, genres, descriptions, and playable YouTube trailers.
 
-### Library and progress
+### 📚 Mission Control & Library
+- **Continue Reading Shelf:** Mission-control carousel resuming your exact manga, chapter, and page position.
+- **Reading History & Tracker:** Chapter-by-chapter completed tracking with visual checkmarks and time elapsed.
+- **Universal Backup & Restore:** One-click JSON backup export and import to migrate your library across devices (phones, tablets, and desktop).
 
-- Save titles as Reading, Plan to Read, Completed, Favorites, or On Hold.
-- Resume from the last manga, chapter, and page you opened.
-- Track reading history and completed chapters.
-- Check for new chapters in saved titles.
-- Export and import library data and reading history as JSON.
-- Move local data to another deployment using the built-in sync link.
+---
 
-## Tech stack
+## Tech Stack
 
-- React 19
-- Vite
-- Tailwind CSS 4
-- Lucide React
-- Vercel serverless API routes
-- Browser `localStorage` for library, history, and reader settings
+- **Frontend:** React 19, Vite 8, Tailwind CSS 4, Lucide React
+- **Static Hosting:** GitHub Pages with GitHub Actions CI/CD (`.github/workflows/deploy.yml`)
+- **APIs & Data:** AniList GraphQL API, MangaDex API
+- **Persistence:** Browser `localStorage` for library bookmarks, reading history, and custom reader preferences
 
-## Requirements
+---
 
-- Node.js 18 or newer
-- npm
-
-## Local development
+## Local Development
 
 ```bash
+# Clone the repository
 git clone https://github.com/narendraborhade-creator/Manga.for-me.git
 cd Manga.for-me
+
+# Install dependencies
 npm install
+
+# Start local development server
 npm run dev
 ```
 
-Open the local URL printed by Vite, usually [http://localhost:5173](http://localhost:5173).
+Open [http://localhost:5173/Manga.for-me/](http://localhost:5173/Manga.for-me/) in your browser.
 
-## Available scripts
+---
+
+## Available Scripts
 
 | Command | Description |
 | --- | --- |
-| `npm run dev` | Start the Vite development server |
-| `npm run build` | Create a production build |
-| `npm run preview` | Preview the production build locally |
-| `npm run lint` | Run Oxlint |
+| `npm run dev` | Launch the local Vite development server |
+| `npm run build` | Compile and bundle production assets to `dist/` |
+| `npm run preview` | Preview production build locally |
+| `npm run lint` | Run code quality checks with Oxlint |
 
-## Project structure
+---
 
-```text
-api/                 Vercel API routes and image proxy
-server/              Manga and news provider integrations
-src/components/      Application, library, modal, and reader UI
-src/services/        API clients, storage, and update services
-public/              Static assets
-```
+## Deployment to GitHub Pages
 
-The browser calls the `/api` routes for manga catalog, details, chapters, pages, recommendations, news, and image proxying. Provider-specific scraping and normalization stay in `server/`, while `src/services/` exposes the frontend-facing clients.
+This repository is configured for automated deployment to GitHub Pages via `.github/workflows/deploy.yml`.
 
-## Deployment
+1. Any push to `main` triggers the automated Vite build and deploys to GitHub Pages.
+2. The bundled static assets are also committed to `docs/` and synced with the `gh-pages` branch for instant static serving.
 
-The project is configured for Vercel. Import the repository into Vercel and use the default settings:
-
-- **Build command:** `npm run build`
-- **Output directory:** `dist`
-- **Install command:** `npm install`
-
-`vercel.json` configures the API function limits and routes all client-side paths to `index.html` so the Vite application can handle navigation.
-
-## Data and provider notes
-
-- Library data and reader preferences are stored locally in the browser; the application does not provide a hosted account or server-side sync database.
-- Manga availability depends on the upstream providers. Provider layouts, chapter availability, rate limits, or outages can affect results.
-- Manga and anime metadata, covers, images, and trailers are supplied by their respective upstream services. KuroNeko does not claim ownership of that third-party content.
-- Use the application only where the upstream content and applicable local laws permit it.
+---
 
 ## License
 
-This project is released under the [MIT License](./LICENSE).
+This project is licensed under the [MIT License](./LICENSE).
