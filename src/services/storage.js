@@ -208,6 +208,19 @@ export const recordReadingProgress = ({
   }
 
   safeSet(KEYS.HISTORY, history);
+
+  if (typeof window !== 'undefined') {
+    try {
+      window.dispatchEvent(
+        new CustomEvent('kuroneko:reading_progress_updated', {
+          detail: { lastRead: lastReadObj, history },
+        })
+      );
+    } catch {
+      // Ignore if not in browser environment
+    }
+  }
+
   return { lastRead: lastReadObj, history };
 };
 

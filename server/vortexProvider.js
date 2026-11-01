@@ -94,16 +94,35 @@ export async function searchVortex(query) {
     const results = [];
     const seen = new Set();
 
+    const stopWords = new Set([
+      'the', 'a', 'an', 'and', 'or', 'of', 'in', 'to', 'for', 'with', 'on', 'at', 'from', 'by', 'about', 'as',
+      'into', 'like', 'through', 'after', 'over', 'between', 'out', 'against', 'during', 'without', 'before',
+      'under', 'around', 'among', 'my', 'me', 'i', 'you', 'your', 'he', 'him', 'his', 'she', 'her', 'we', 'us',
+      'our', 'they', 'them', 'their', 'it', 'its', 'is', 'am', 'are', 'was', 'were', 'be', 'been', 'being'
+    ]);
+    const queryTokens = q.toLowerCase()
+      .replace(/[^a-z0-9\s]/g, ' ')
+      .split(/\s+/)
+      .filter(t => t.length >= 2 && !stopWords.has(t));
+
     for (const m of linkMatches) {
       const rawSlug = m[1].replace('/series/', '').replace(/\/$/, '');
       const slug = decodeHtml(rawSlug);
       if (slug === 'series' || seen.has(slug)) continue;
-      seen.add(slug);
 
       const inner = m[2];
       const rawCover = extractVortexCover(inner);
       const titleAttr = m[0].match(/title="([^"]+)"/i) || inner.match(/alt="([^"]+)"/i);
       const title = titleAttr ? cleanTitle(titleAttr[1]) : cleanSlugTitle(slug);
+
+      // Filter out unrelated catalog dumps from Vortex Scans search endpoint
+      if (queryTokens.length > 0) {
+        const textCorpus = `${title} ${slug}`.toLowerCase().replace(/[^a-z0-9\s]/g, ' ');
+        const matchesAny = queryTokens.some(tok => textCorpus.includes(tok));
+        if (!matchesAny) continue;
+      }
+
+      seen.add(slug);
 
       // Extract chapter count from card chapter links
       const chRegex = new RegExp(`href="\\/series\\/${slug}\\/chapter-([0-9.]+)"`, 'i');

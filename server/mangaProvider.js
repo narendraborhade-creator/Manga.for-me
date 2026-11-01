@@ -202,6 +202,9 @@ export function normalizeTitleKey(str) {
     .replace(/na honjaman level[\s-]*up/i, 'solo leveling')
     .replace(/omniscient reader['’]?s?(\s+viewpoint)?/i, 'omniscient reader')
     .replace(/reincarnation of the suicidal battle god/i, 'doom breaker')
+    .replace(/my blasted reincarnat(ion|ed life)/gi, 'damn reincarnation')
+    .replace(/bireomeogeul hwansaeng/gi, 'damn reincarnation')
+    .replace(/(to hell with being heir.*|hugyeja neun moreugetgo healing.*|forget about the succession.*)/gi, 'forget about succession')
     .replace(/[^\p{L}\p{N}\s]/gu, '')
     .replace(/\s+/g, ' ')
     .trim();
@@ -428,6 +431,19 @@ export async function getPopularManga() {
   }
 }
 
+const SEARCH_SYNONYMS = {
+  'my blasted reincarnation': ['my blasted reincarnated life', 'damn reincarnation'],
+  'my blasted reincarnated life': ['my blasted reincarnation', 'damn reincarnation'],
+  'damn reincarnation': ['my blasted reincarnated life', 'my blasted reincarnation'],
+  'to hell with being heir': ['forget about the succession', 'to hell with being heir im going to heal'],
+  'to hell with being heir im going to heal': ['forget about the succession', 'to hell with being heir'],
+  'hugyeja neun moreugetgo healing': ['forget about the succession', 'to hell with being heir'],
+  'hugyeja neun moreugetgo healing ina haryeomnida': ['forget about the succession', 'to hell with being heir'],
+  'forget about the succession': ['to hell with being heir', 'hugyeja neun moreugetgo healing'],
+  'forget about the succession im here to heal': ['to hell with being heir', 'hugyeja neun moreugetgo healing'],
+  'solo leveling ragnarok': ['solo leveling: ragnarok', 'ragnarok'],
+};
+
 /**
  * Search Manga & Webtoons across prioritized sources
  * Ranked strictly by chapter completeness:
@@ -497,6 +513,18 @@ export async function searchManga(query = '') {
   }
 
   try {
+    const normQ = trimmed.toLowerCase();
+    const expandedQueries = [trimmed];
+    for (const [key, syns] of Object.entries(SEARCH_SYNONYMS)) {
+      if (normQ.includes(key) || key.includes(normQ)) {
+        syns.forEach(s => {
+          if (!expandedQueries.includes(s)) expandedQueries.push(s);
+        });
+      }
+    }
+
+    const secondaryQuery = expandedQueries[1] || null;
+
     const [
       weebCentralMatches,
       flameMatches,
@@ -506,7 +534,10 @@ export async function searchManga(query = '') {
       asuraMatches,
       vortexMatches,
       webtoonMatches,
-      mangapillMatches
+      mangapillMatches,
+      extraWcMatches,
+      extraThunderMatches,
+      extraAsuraMatches
     ] = await Promise.all([
       searchWeebCentral(query).catch((e) => {
         console.error('searchWeebCentral error:', e.message);
@@ -544,13 +575,35 @@ export async function searchManga(query = '') {
         console.error('fetchMangaPillSearch error:', e.message);
         return [];
       }),
+      secondaryQuery ? searchWeebCentral(secondaryQuery).catch(() => []) : Promise.resolve([]),
+      secondaryQuery ? searchThunder(secondaryQuery).catch(() => []) : Promise.resolve([]),
+      secondaryQuery ? searchAsura(secondaryQuery).catch(() => []) : Promise.resolve([]),
     ]);
+
+    const stopWords = new Set([
+      'the', 'a', 'an', 'and', 'or', 'of', 'in', 'to', 'for', 'with', 'on', 'at', 'from', 'by', 'about', 'as',
+      'into', 'like', 'through', 'after', 'over', 'between', 'out', 'against', 'during', 'without', 'before',
+      'under', 'around', 'among', 'my', 'me', 'i', 'you', 'your', 'he', 'him', 'his', 'she', 'her', 'we', 'us',
+      'our', 'they', 'them', 'their', 'it', 'its', 'is', 'am', 'are', 'was', 'were', 'be', 'been', 'being'
+    ]);
+    const allTokens = expandedQueries.flatMap(q => 
+      q.toLowerCase().replace(/[^a-z0-9\s]/g, ' ').split(/\s+/).filter(t => t.length >= 2 && !stopWords.has(t))
+    );
+
+    const filterMatches = (list) => {
+      if (!allTokens.length) return list;
+      return list.filter(item => {
+        if (!item) return false;
+        const text = `${item.title || ''} ${item.englishTitle || ''} ${item.id || ''}`.toLowerCase();
+        return allTokens.some(tok => text.includes(tok));
+      });
+    };
 
     const seen = new Set();
     const combined = [];
 
     // 1. WeebCentral matches (Ranked #1 for complete chapter scanlations)
-    weebCentralMatches.forEach((item) => {
+    filterMatches([...weebCentralMatches, ...extraWcMatches]).forEach((item) => {
       if (!seen.has(item.id)) {
         combined.push({ ...item, sourceName: 'WeebCentral' });
         seen.add(item.id);
@@ -558,7 +611,7 @@ export async function searchManga(query = '') {
     });
 
     // 2. Flame Comics matches (Ranked #2 for official weekly manhwa releases)
-    flameMatches.forEach((item) => {
+    filterMatches(flameMatches).forEach((item) => {
       if (!seen.has(item.id)) {
         combined.push({ ...item, sourceName: 'Flame Comics' });
         seen.add(item.id);
@@ -566,7 +619,7 @@ export async function searchManga(query = '') {
     });
 
     // 3. Thunder Scans matches (Ranked for premium manhwa & fantasy chapters)
-    thunderMatches.forEach((item) => {
+    filterMatches([...thunderMatches, ...extraThunderMatches]).forEach((item) => {
       if (!seen.has(item.id)) {
         combined.push({ ...item, sourceName: 'Thunder Scans' });
         seen.add(item.id);
@@ -574,7 +627,7 @@ export async function searchManga(query = '') {
     });
 
     // 4. MangaDex matches (Ranked for official & high-quality scanlations)
-    dexMatches.forEach((item) => {
+    filterMatches(dexMatches).forEach((item) => {
       if (!seen.has(item.id)) {
         combined.push({ ...item, sourceName: 'MangaDex' });
         seen.add(item.id);
@@ -582,7 +635,7 @@ export async function searchManga(query = '') {
     });
 
     // 5. MangaKakalot matches (Ranked for extensive catalog)
-    mkMatches.forEach((item) => {
+    filterMatches(mkMatches).forEach((item) => {
       if (!seen.has(item.id)) {
         combined.push({ ...item, sourceName: 'MangaKakalot' });
         seen.add(item.id);
@@ -590,7 +643,7 @@ export async function searchManga(query = '') {
     });
 
     // 6. Asura Scans matches (Ranked for weekly manhwa)
-    asuraMatches.forEach((item) => {
+    filterMatches([...asuraMatches, ...extraAsuraMatches]).forEach((item) => {
       if (!seen.has(item.id)) {
         combined.push({ ...item, sourceName: 'Asura Scans' });
         seen.add(item.id);
@@ -598,7 +651,7 @@ export async function searchManga(query = '') {
     });
 
     // 7. Vortex Scans matches (Ranked for manhwa/manhua)
-    vortexMatches.forEach((item) => {
+    filterMatches(vortexMatches).forEach((item) => {
       if (!seen.has(item.id)) {
         combined.push({ ...item, sourceName: 'Vortex Scans' });
         seen.add(item.id);
@@ -606,7 +659,7 @@ export async function searchManga(query = '') {
     });
 
     // 8. Webtoon curated catalog matches (Stepmother, Solo Leveling, ORV)
-    webtoonMatches.forEach((item) => {
+    filterMatches(webtoonMatches).forEach((item) => {
       if (!seen.has(item.id)) {
         combined.push({ ...item, sourceName: item.sourceName || 'Webtoon' });
         seen.add(item.id);
@@ -614,7 +667,7 @@ export async function searchManga(query = '') {
     });
 
     // 9. MangaPill matches (Ranked for fallback)
-    mangapillMatches.forEach((item) => {
+    filterMatches(mangapillMatches).forEach((item) => {
       if (!seen.has(item.id)) {
         combined.push({ ...item, sourceName: 'MangaPill' });
         seen.add(item.id);
@@ -827,6 +880,7 @@ export async function autoHealAndUpgradeChapters(details, bypassCache = false) {
   if (!details) return details;
 
   const currentCount = Array.isArray(details.chapters) ? details.chapters.length : 0;
+  if (currentCount >= 20) return details;
 
   const candidates = new Set();
   if (details.title) candidates.add(details.title);
@@ -845,11 +899,12 @@ export async function autoHealAndUpgradeChapters(details, bypassCache = false) {
     qVariants.forEach(v => candidates.add(v));
   });
 
+  const candidateList = Array.from(candidates).filter(c => c && c.length >= 2).slice(0, 3);
   let bestUpgrade = null;
   let maxFoundCount = currentCount;
 
-  for (const query of candidates) {
-    if (!query || query.length < 2) continue;
+  for (const query of candidateList) {
+    if (maxFoundCount >= 20) break;
     try {
       const [thunderResults, wcResults, flameResults, asuraResults, vortexResults, mkResults] = await Promise.all([
         searchThunder(query).catch(() => []),
@@ -869,7 +924,7 @@ export async function autoHealAndUpgradeChapters(details, bypassCache = false) {
         ...mkResults,
       ];
 
-      for (const match of foundMatches) {
+      for (const match of foundMatches.slice(0, 4)) {
         if (!match || !match.id || match.id === details.id) continue;
 
         // Chapter count indicator from search
@@ -975,6 +1030,10 @@ export async function getMangaDetails(mangaId, bypassCache = false) {
     '7529/kagurabachi': 'wc:01J76XYGGM22WZP7T4TKA4ZFAF',
     'md:eee25eb6-591b-40a4-a2aa-f4ab68169795': 'thunder:forget-about-the-succession-im-here-to-heal',
     'eee25eb6-591b-40a4-a2aa-f4ab68169795': 'thunder:forget-about-the-succession-im-here-to-heal',
+    'my-blasted-reincarnation': 'asura:damn-reincarnation-3ebcc5a9',
+    'my-blasted-reincarnated-life': 'asura:damn-reincarnation-3ebcc5a9',
+    'damn-reincarnation': 'asura:damn-reincarnation-3ebcc5a9',
+    'to-hell-with-being-heir': 'thunder:forget-about-the-succession-im-here-to-heal',
   };
 
   const lookupId = VERIFIED_COMPLETE_ALIASES[mangaId] || mangaId;
@@ -984,6 +1043,17 @@ export async function getMangaDetails(mangaId, bypassCache = false) {
   try {
     if (lookupId.startsWith('md:') || lookupId.startsWith('mangadex:')) {
       resolvedDetails = await getMangaDexDetails(lookupId, bypassCache);
+      // If MangaDex returned 0 chapters, immediately fall back to known alias if available
+      if ((!resolvedDetails?.chapters || resolvedDetails.chapters.length === 0) && VERIFIED_COMPLETE_ALIASES[mangaId]) {
+        const altId = VERIFIED_COMPLETE_ALIASES[mangaId];
+        if (altId.startsWith('thunder:')) {
+          resolvedDetails = await getThunderDetails(altId);
+        } else if (altId.startsWith('wc:')) {
+          resolvedDetails = await getWeebCentralDetails(altId.replace('wc:', ''), '', bypassCache);
+        } else if (altId.startsWith('asura:')) {
+          resolvedDetails = await getAsuraDetails(altId);
+        }
+      }
     } else if (lookupId.startsWith('thunder:')) {
       resolvedDetails = await getThunderDetails(lookupId);
     } else if (lookupId.startsWith('flame:')) {
@@ -1004,17 +1074,40 @@ export async function getMangaDetails(mangaId, bypassCache = false) {
   }
 
   if (resolvedDetails) {
-    resolvedDetails = await autoHealAndUpgradeChapters(resolvedDetails, bypassCache);
+    if (!resolvedDetails.chapters || resolvedDetails.chapters.length < 20) {
+      resolvedDetails = await autoHealAndUpgradeChapters(resolvedDetails, bypassCache);
+    }
     if (Array.isArray(resolvedDetails.chapters)) {
       resolvedDetails.chapters = deduplicateChapters(resolvedDetails.chapters);
       resolvedDetails.totalChapters = resolvedDetails.chapters.length;
     }
-    resolvedDetails.availableSources = await resolveAvailableSources(
-      resolvedDetails.englishTitle || resolvedDetails.title,
-      resolvedDetails.id,
-      resolvedDetails.sourceName,
-      resolvedDetails.totalChapters
-    );
+    try {
+      resolvedDetails.availableSources = await Promise.race([
+        resolveAvailableSources(
+          resolvedDetails.englishTitle || resolvedDetails.title,
+          resolvedDetails.id,
+          resolvedDetails.sourceName,
+          resolvedDetails.totalChapters
+        ),
+        new Promise(resolve => setTimeout(() => resolve([
+          {
+            id: resolvedDetails.id,
+            sourceName: resolvedDetails.sourceName || 'Primary',
+            totalChapters: resolvedDetails.totalChapters || 0,
+            isCurrent: true,
+          }
+        ]), 1800))
+      ]);
+    } catch {
+      resolvedDetails.availableSources = [
+        {
+          id: resolvedDetails.id,
+          sourceName: resolvedDetails.sourceName || 'Primary',
+          totalChapters: resolvedDetails.totalChapters || 0,
+          isCurrent: true,
+        }
+      ];
+    }
     return {
       ...resolvedDetails,
       id: mangaId, // preserve requested ID for frontend consistency

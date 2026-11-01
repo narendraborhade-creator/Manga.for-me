@@ -176,6 +176,12 @@ export default function App() {
   useEffect(() => {
     refreshStorageData();
 
+    // Listen for real-time reading progress updates from MangaReader
+    const handleProgressUpdate = () => {
+      refreshStorageData();
+    };
+    window.addEventListener('kuroneko:reading_progress_updated', handleProgressUpdate);
+
     // Check for 1-click sync data in URL hash (e.g. migrating from localhost to Vercel)
     if (window.location.hash && window.location.hash.startsWith('#sync_data=')) {
       try {
@@ -199,6 +205,10 @@ export default function App() {
         console.error('Failed to parse sync data from URL hash:', err);
       }
     }
+
+    return () => {
+      window.removeEventListener('kuroneko:reading_progress_updated', handleProgressUpdate);
+    };
   }, [refreshStorageData]);
 
   // Background Periodic Chapter Updates Engine
@@ -478,6 +488,13 @@ export default function App() {
         setActiveTab={setActiveTab}
         searchQuery={searchQuery}
         setSearchQuery={setSearchQuery}
+        selectedGenre={selectedGenre}
+        selectedSource={selectedSource}
+        onResetFilters={() => {
+          setSearchQuery('');
+          setSelectedGenre('All');
+          setSelectedSource('All');
+        }}
         bookmarksCount={Object.keys(bookmarks).length}
         lastRead={lastRead}
         onOpenReader={handleOpenReader}
@@ -489,13 +506,18 @@ export default function App() {
       {/* Main Container */}
       <main className="flex-1 max-w-7xl w-full mx-auto px-4 sm:px-6 lg:px-8 pt-4 pb-28 sm:py-8 space-y-6 sm:space-y-8">
         
-        {/* Continue Reading Banner (Always tracks last read manga!) */}
-        {lastRead && !dismissContinueBanner && activeTab !== 'history' && (
+        {/* Continue Reading Shelf (Multi-item dynamic mission control carousel) */}
+        {(lastRead || history.length > 0) && !dismissContinueBanner && activeTab !== 'history' && (
           <ContinueReadingBanner
             lastRead={lastRead}
+            history={history}
             onOpenReader={handleOpenReader}
-            onOpenMangaDetails={(mangaId) => handleOpenMangaDetails(mangaId, lastRead?.coverUrl)}
+            onOpenMangaDetails={(mangaId, cover) => handleOpenMangaDetails(mangaId, cover || lastRead?.coverUrl)}
             onDismiss={() => setDismissContinueBanner(true)}
+            onRemoveFromHistory={(mangaId) => {
+              removeFromHistory(mangaId);
+              refreshStorageData();
+            }}
           />
         )}
 

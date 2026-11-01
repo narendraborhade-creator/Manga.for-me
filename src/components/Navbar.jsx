@@ -11,7 +11,9 @@ import {
   X, 
   Bell,
   TrendingUp,
-  Loader2
+  Loader2,
+  SlidersHorizontal,
+  Filter
 } from 'lucide-react';
 import NotificationsDropdown from './NotificationsDropdown';
 import { searchManga, getFallbackCover } from '../services/mangaApi';
@@ -21,6 +23,9 @@ export default function Navbar({
   setActiveTab,
   searchQuery,
   setSearchQuery,
+  selectedGenre = 'All',
+  selectedSource = 'All',
+  onResetFilters,
   bookmarksCount,
   lastRead,
   onOpenReader,
@@ -30,6 +35,8 @@ export default function Navbar({
 }) {
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
   const [notificationsOpen, setNotificationsOpen] = useState(false);
+
+  const hasActiveFilters = selectedGenre !== 'All' || selectedSource !== 'All';
 
   // Suggestions & Autocomplete state
   const [suggestions, setSuggestions] = useState([]);
@@ -179,6 +186,24 @@ export default function Navbar({
 
           {/* Search & Actions with HUD Reticle */}
           <div className="flex items-center gap-3">
+            {/* Active Filters Pill in Header */}
+            {hasActiveFilters && onResetFilters && (
+              <button
+                type="button"
+                onClick={onResetFilters}
+                className="hidden xl:inline-flex items-center gap-1.5 px-2.5 py-1.5 rounded-xl text-xs font-mono font-bold bg-cyan-950/80 border border-cyan-400/50 text-cyan-300 hover:bg-rose-950/80 hover:border-rose-400/50 hover:text-rose-300 transition-all shadow-[0_0_10px_rgba(6,182,212,0.25)] flex-shrink-0 cursor-pointer"
+                title="Click to reset active filters"
+              >
+                <SlidersHorizontal className="w-3.5 h-3.5 text-cyan-400 animate-pulse" />
+                <span className="text-white">
+                  {selectedGenre !== 'All' ? selectedGenre : ''}
+                  {selectedGenre !== 'All' && selectedSource !== 'All' ? ' • ' : ''}
+                  {selectedSource !== 'All' ? selectedSource : ''}
+                </span>
+                <X className="w-3 h-3 text-cyan-400" />
+              </button>
+            )}
+
             {/* Desktop Search Input with Suggestions Dropdown */}
             <div ref={desktopSearchRef} className="relative hidden lg:block w-72">
               <Search className="w-4 h-4 text-cyan-400/80 absolute left-3.5 top-1/2 -translate-y-1/2 pointer-events-none" />
@@ -359,7 +384,28 @@ export default function Navbar({
         </div>
 
         {/* Mobile Search Input with Suggestions Dropdown */}
-        <div ref={mobileSearchRef} className="lg:hidden pb-3 relative">
+        <div ref={mobileSearchRef} className="lg:hidden pb-3 relative space-y-2">
+          {hasActiveFilters && onResetFilters && (
+            <div className="flex items-center justify-between px-1 text-xs font-mono">
+              <span className="flex items-center gap-1.5 text-cyan-400 font-bold">
+                <SlidersHorizontal className="w-3 h-3 animate-pulse" />
+                <span>FILTER_ACTIVE:</span>
+                <span className="text-white font-semibold">
+                  {selectedGenre !== 'All' ? selectedGenre : ''}
+                  {selectedGenre !== 'All' && selectedSource !== 'All' ? ' • ' : ''}
+                  {selectedSource !== 'All' ? selectedSource : ''}
+                </span>
+              </span>
+              <button
+                type="button"
+                onClick={onResetFilters}
+                className="text-rose-400 hover:text-rose-300 flex items-center gap-0.5 text-[11px]"
+              >
+                <span>Reset</span>
+                <X className="w-3 h-3" />
+              </button>
+            </div>
+          )}
           <div className="relative w-full">
             <Search className="w-4 h-4 text-slate-400 absolute left-3.5 top-1/2 -translate-y-1/2 pointer-events-none" />
             <input

@@ -205,6 +205,14 @@ export async function getThunderDetails(rawId) {
       const rawAlt = decodeHtml(altMatch[1].replace(/<[^>]+>/g, ' ').trim());
       altTitles = rawAlt.split(/[\/,|•]+/).map(t => cleanTitle(t.trim())).filter(t => t.length > 1);
     }
+    if (slug === 'forget-about-the-succession-im-here-to-heal') {
+      if (!altTitles.includes("To Hell with Being Heir, I'm going to Heal")) {
+        altTitles.push("To Hell with Being Heir, I'm going to Heal");
+      }
+      if (!altTitles.includes("Hugyeja neun Moreugetgo Healing ina Haryeomnida")) {
+        altTitles.push("Hugyeja neun Moreugetgo Healing ina Haryeomnida");
+      }
+    }
 
     // Extract Cover
     let coverUrl = getFallbackCover(title);

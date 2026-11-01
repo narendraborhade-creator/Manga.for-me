@@ -591,8 +591,28 @@ export default function MangaDetailModal({
                       <span className="text-xs">Fetching English chapters...</span>
                     </div>
                   ) : filteredChapters.length === 0 ? (
-                    <div className="py-12 text-center text-slate-500 text-xs">
-                      No translated chapters found matching your filter.
+                    <div className="py-12 px-4 text-center space-y-3">
+                      <div className="inline-flex p-3 rounded-2xl bg-cyan-500/10 border border-cyan-500/30 text-cyan-400">
+                        <Layers className="w-6 h-6 animate-pulse" />
+                      </div>
+                      <p className="text-sm font-semibold text-white">
+                        {chapterSearch ? `No chapters matching "${chapterSearch}"` : 'Chapters are being synchronized from primary sources...'}
+                      </p>
+                      <p className="text-xs text-slate-400 max-w-sm mx-auto">
+                        {chapterSearch ? 'Try a different chapter number or query.' : 'Click below to pull chapters directly from Thunder Scans, Asura, and WeebCentral.'}
+                      </p>
+                      <button
+                        type="button"
+                        onClick={() => {
+                          setChapterSearch('');
+                          loadMangaData(true);
+                        }}
+                        disabled={isRefreshing}
+                        className="px-4 py-2 rounded-xl text-xs font-bold btn-holo text-white shadow-md inline-flex items-center gap-2 cursor-pointer"
+                      >
+                        <RefreshCw className={`w-3.5 h-3.5 ${isRefreshing ? 'animate-spin' : ''}`} />
+                        <span>{isRefreshing ? 'Scanning Feeds...' : 'Force Refresh Chapters'}</span>
+                      </button>
                     </div>
                   ) : (
                     <>
