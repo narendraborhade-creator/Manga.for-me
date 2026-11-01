@@ -8,7 +8,7 @@ export const FALLBACK_MANGA_CATALOG = [
     id: '2/one-piece',
     title: 'One Piece',
     englishTitle: 'One Piece',
-    coverUrl: 'https://uploads.mangadex.org/covers/a1c7c817-4e59-43b7-9365-09675a149a6f/2f4aca53-64c7-46ac-ae85-3bc9b3169890.png.512.jpg',
+    coverUrl: 'https://s4.anilist.co/file/anilistcdn/media/manga/cover/large/bx30013-BeslEMqiPhlk.jpg',
     status: 'Ongoing',
     score: '9.3',
     year: '1997',
@@ -27,7 +27,7 @@ export const FALLBACK_MANGA_CATALOG = [
     id: '1/berserk',
     title: 'Berserk',
     englishTitle: 'Berserk',
-    coverUrl: 'https://uploads.mangadex.org/covers/dc332d04-d3b0-413c-a767-70f5e451b031/21c2aa50-53d2-4924-881b-826b9a1bca3b.jpg.512.jpg',
+    coverUrl: 'https://s4.anilist.co/file/anilistcdn/media/manga/cover/large/bx30002-Cul4OeN7bYtn.jpg',
     status: 'Ongoing',
     score: '9.5',
     year: '1989',
@@ -44,7 +44,7 @@ export const FALLBACK_MANGA_CATALOG = [
     id: 'webtoon:solo-leveling',
     title: 'Solo Leveling',
     englishTitle: 'Solo Leveling (Only I Level Up)',
-    coverUrl: 'https://uploads.mangadex.org/covers/ade0306c-f4b6-4890-9edb-1ddf04df2039/fe76445d-387f-4ff6-8340-f06403c20dbe.jpg.512.jpg',
+    coverUrl: 'https://s4.anilist.co/file/anilistcdn/media/manga/cover/large/bx105398-b673Vt5ZSuz3.jpg',
     status: 'Completed',
     score: '9.6',
     year: '2018',
@@ -62,7 +62,7 @@ export const FALLBACK_MANGA_CATALOG = [
     aliases: ['webtoon:a-fortune-telling-princess'],
     title: 'A Fortune-Telling Princess',
     englishTitle: 'A Fortune-Telling Princess',
-    coverUrl: 'https://uploads.mangadex.org/covers/0ba6b85e-3e87-454a-b81d-1040468248e1/11023c20-0bdd-48df-bb5d-7f451a109a26.jpg.512.jpg',
+    coverUrl: 'https://s4.anilist.co/file/anilistcdn/media/manga/cover/large/bx170151-hItAtAb5Kj0I.jpg',
     status: 'Ongoing',
     score: '9.2',
     year: '2023',
@@ -84,7 +84,7 @@ export const FALLBACK_MANGA_CATALOG = [
     ],
     title: 'The Despised Stepmother Begins Her Second Life',
     englishTitle: "The Step Mother's Began Her Second Life",
-    coverUrl: 'https://uploads.mangadex.org/covers/73f00a6a-dc33-49f6-beb0-98feb29ce0cc/48f83bf3-2493-411b-a7c2-4242a39887f5.jpg.512.jpg',
+    coverUrl: 'https://s4.anilist.co/file/anilistcdn/media/manga/cover/large/bx213993-T1BvCf8cBvlt.jpg',
     status: 'Ongoing',
     score: '9.3',
     year: '2024',
@@ -105,7 +105,7 @@ export const FALLBACK_MANGA_CATALOG = [
     id: '723/chainsaw-man',
     title: 'Chainsaw Man',
     englishTitle: 'Chainsaw Man',
-    coverUrl: 'https://uploads.mangadex.org/covers/e896c48c-3150-437d-ba57-d8567eb399ae/fa06e4e4-ef2a-477b-bfb6-a2a88793620b.jpg.512.jpg',
+    coverUrl: 'https://s4.anilist.co/file/anilistcdn/media/manga/cover/large/bx105778-euxXZEIfDY2u.png',
     status: 'Ongoing',
     score: '8.9',
     year: '2018',
@@ -122,7 +122,7 @@ export const FALLBACK_MANGA_CATALOG = [
     id: '2085/jujutsu-kaisen',
     title: 'Jujutsu Kaisen',
     englishTitle: 'Jujutsu Kaisen',
-    coverUrl: 'https://uploads.mangadex.org/covers/c52b2ce3-7f95-469c-96b0-479524fb7a1a/6d9134b2-21ea-4d02-ac2b-7c0d1c6a2aaa.jpg.512.jpg',
+    coverUrl: 'https://s4.anilist.co/file/anilistcdn/media/manga/cover/large/bx101517-H3TdM3g5ZUe9.jpg',
     status: 'Completed',
     score: '8.8',
     year: '2018',
@@ -139,7 +139,7 @@ export const FALLBACK_MANGA_CATALOG = [
     id: '7486/boruto-two-blue-vortex',
     title: 'Boruto: Two Blue Vortex',
     englishTitle: 'Boruto: Two Blue Vortex',
-    coverUrl: 'https://uploads.mangadex.org/covers/0b094aab-0cfb-4837-a49b-7267bdb86bec/baf472db-4658-46fb-8130-d4abdd43f171.jpg.512.jpg',
+    coverUrl: 'https://s4.anilist.co/file/anilistcdn/media/manga/cover/large/bx168468-FEo5x1ZZyWj4.png',
     status: 'Ongoing',
     score: '8.7',
     year: '2023',
@@ -156,7 +156,7 @@ export const FALLBACK_MANGA_CATALOG = [
     id: '7529/kagurabachi',
     title: 'Kagurabachi',
     englishTitle: 'Kagurabachi',
-    coverUrl: 'https://uploads.mangadex.org/covers/d65c0332-3764-4c89-84bd-b1a4e7278ad7/3edb80b9-dae6-4483-984d-2e7f8b02b702.jpg.512.jpg',
+    coverUrl: 'https://s4.anilist.co/file/anilistcdn/media/manga/cover/large/bx169355-5pqzh1Wb4NOQ.png',
     status: 'Ongoing',
     score: '8.9',
     year: '2023',
@@ -174,7 +174,7 @@ export const FALLBACK_MANGA_CATALOG = [
     aliases: ['webtoon:omniscient-readers-viewpoint', 'asura:omniscient-readers-viewpoint-11fe7da3'],
     title: "Omniscient Reader's Viewpoint",
     englishTitle: "Omniscient Reader's Viewpoint",
-    coverUrl: 'https://uploads.mangadex.org/covers/9a414441-bbad-43f1-a3a7-dc262ca790a3/be18dc9a-7f1c-4ca5-b318-ffff2d7d58c3.jpg.512.jpg',
+    coverUrl: 'https://s4.anilist.co/file/anilistcdn/media/manga/cover/large/bx119257-Pi21aq3ey9GG.jpg',
     status: 'Ongoing',
     score: '9.8',
     year: '2020',
@@ -195,7 +195,7 @@ export const FALLBACK_MANGA_CATALOG = [
     id: 'asura:surviving-the-game-as-a-barbarian-11fe7da3',
     title: 'Surviving The Game as a Barbarian',
     englishTitle: 'Surviving The Game as a Barbarian',
-    coverUrl: 'https://cdn.asurascans.com/asura-images/covers/surviving-the-game-as-a-barbarian.86af24-400.webp',
+    coverUrl: 'https://s4.anilist.co/file/anilistcdn/media/manga/cover/medium/bx164857-MVeV0leMZb0m.jpg',
     status: 'Ongoing',
     score: '9.7',
     year: '2023',
@@ -216,7 +216,7 @@ export const FALLBACK_MANGA_CATALOG = [
     id: 'vortex:regressing-as-the-reincarnated-bastard',
     title: 'Regressing as the Reincarnated Bastard of the Sword Clan',
     englishTitle: 'Regressing as the Reincarnated Bastard of the Sword Clan',
-    coverUrl: 'https://i0.wp.com/storage.vortexscans.org/upload/series/banner/4/7f6da000-9781-4d10-baee-0f6426996786.png?w=768&quality=50&strip=all&ssl=1',
+    coverUrl: 'https://s4.anilist.co/file/anilistcdn/media/manga/cover/medium/bx183855-BbnSsUPiOVrM.jpg',
     status: 'Ongoing',
     score: '9.6',
     year: '2023',
@@ -316,11 +316,12 @@ export async function searchManga(query = '') {
 function needsImageProxy(url) {
   if (!url) return false;
   if (url.startsWith('/api/image-proxy') || url.startsWith('data:')) return false;
+  // AniList and MyAnimeList CDNs are 100% open with CORS & hotlinking allowed worldwide
+  if (url.includes('anilist.co') || url.includes('myanimelist.net')) return false;
   // If running on static hosting without backend (e.g. GitHub Pages), avoid local proxy
   if (typeof window !== 'undefined' && (window.location.hostname.includes('github.io') || window.location.protocol === 'file:')) {
     return false;
   }
-  // Proxy all external CDNs when running with backend server
   return true;
 }
 
