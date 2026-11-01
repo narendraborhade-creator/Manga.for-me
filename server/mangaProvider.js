@@ -86,7 +86,7 @@ export const FEATURED_MANGA = [
   {
     id: 'wc:01J76XY7E9FNDZ1DBBM6PBJPFK',
     title: 'One Piece',
-    coverUrl: 'https://uploads.mangadex.org/covers/a1c7c817-4e59-43b7-9365-09675a149a6f/2f4aca53-64c7-46ac-ae85-3bc9b3169890.png.512.jpg',
+    coverUrl: 'https://s4.anilist.co/file/anilistcdn/media/manga/cover/large/bx30013-BeslEMqiPhlk.jpg',
     status: 'Ongoing',
     score: '9.3',
     year: '1997',
@@ -99,7 +99,7 @@ export const FEATURED_MANGA = [
   {
     id: 'wc:01J76XY7EF75DJNQCV04HTPDZK',
     title: 'Berserk',
-    coverUrl: 'https://uploads.mangadex.org/covers/dc332d04-d3b0-413c-a767-70f5e451b031/21c2aa50-53d2-4924-881b-826b9a1bca3b.jpg.512.jpg',
+    coverUrl: 'https://s4.anilist.co/file/anilistcdn/media/manga/cover/large/bx30002-Cul4OeN7bYtn.jpg',
     status: 'Ongoing',
     score: '9.5',
     year: '1989',
@@ -112,7 +112,7 @@ export const FEATURED_MANGA = [
   {
     id: 'wc:01J76XYCRVY3QGYAMRR3STW941',
     title: 'Chainsaw Man',
-    coverUrl: 'https://uploads.mangadex.org/covers/e896c48c-3150-437d-ba57-d8567eb399ae/fa06e4e4-ef2a-477b-bfb6-a2a88793620b.jpg.512.jpg',
+    coverUrl: 'https://s4.anilist.co/file/anilistcdn/media/manga/cover/large/bx105778-euxXZEIfDY2u.png',
     status: 'Ongoing',
     score: '8.9',
     year: '2018',
@@ -125,7 +125,7 @@ export const FEATURED_MANGA = [
   {
     id: 'wc:01J76XYCERXE60T7FKXVCCAQ0H',
     title: 'Jujutsu Kaisen',
-    coverUrl: 'https://uploads.mangadex.org/covers/c52b2ce3-7f95-469c-96b0-479524fb7a1a/6d9134b2-21ea-4d02-ac2b-7c0d1c6a2aaa.jpg.512.jpg',
+    coverUrl: 'https://s4.anilist.co/file/anilistcdn/media/manga/cover/large/bx101517-H3TdM3g5ZUe9.jpg',
     status: 'Completed',
     score: '8.8',
     year: '2018',
@@ -138,7 +138,7 @@ export const FEATURED_MANGA = [
   {
     id: 'wc:01J76XYBNEJ5EGK9ZEP3YS0PMH',
     title: 'Boruto: Two Blue Vortex',
-    coverUrl: 'https://uploads.mangadex.org/covers/0b094aab-0cfb-4837-a49b-7267bdb86bec/baf472db-4658-46fb-8130-d4abdd43f171.jpg.512.jpg',
+    coverUrl: 'https://s4.anilist.co/file/anilistcdn/media/manga/cover/large/bx168468-FEo5x1ZZyWj4.png',
     status: 'Ongoing',
     score: '8.7',
     year: '2023',
@@ -151,7 +151,7 @@ export const FEATURED_MANGA = [
   {
     id: 'wc:01J76XYGGM22WZP7T4TKA4ZFAF',
     title: 'Kagurabachi',
-    coverUrl: 'https://uploads.mangadex.org/covers/d65c0332-3764-4c89-84bd-b1a4e7278ad7/3edb80b9-dae6-4483-984d-2e7f8b02b702.jpg.512.jpg',
+    coverUrl: 'https://s4.anilist.co/file/anilistcdn/media/manga/cover/large/bx169355-5pqzh1Wb4NOQ.png',
     status: 'Ongoing',
     score: '8.9',
     year: '2023',
