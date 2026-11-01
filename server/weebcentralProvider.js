@@ -558,7 +558,18 @@ export async function getWeebCentralChapterPages(rawChapId) {
     const res = await fetchWithTimeout(url, { headers: HEADERS }, 4500);
     if (res.ok) {
       const html = await res.text();
-      const imgMatches = [...html.matchAll(/<img[^>]+src="([^"]+)"/gi)];
+      const imgMatches = [...html.matchAll(/<img[^>]+src="([^"]+)"/gi)].filter(m => {
+        const src = m[1];
+        if (!src) return false;
+        if (src.includes('/static/') || src.includes('brand.png') || src.includes('logo') || src.includes('favicon')) return false;
+        return (
+          src.includes('compsci88.com') ||
+          src.includes('weebcentral') ||
+          src.includes('planeptune') ||
+          src.includes('lastation') ||
+          src.match(/\.(?:jpg|jpeg|png|webp|avif)/i)
+        );
+      });
       if (imgMatches.length > 0) {
         const pages = imgMatches.map((m, idx) => ({
           pageNumber: idx + 1,

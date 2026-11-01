@@ -312,7 +312,12 @@ export async function getAsuraChapterPages(chapterId) {
     setCache(cacheKey, result);
     return result;
   } catch (err) {
-    console.error(`getAsuraChapterPages error for ${chapterId}:`, err.message);
-    throw err;
+    console.warn(`getAsuraChapterPages error for ${chapterId}:`, err.message);
+    return {
+      chapterId,
+      totalPages: 0,
+      pages: [],
+      warning: 'Asura Scans chapter pages are temporarily synchronizing.',
+    };
   }
 }

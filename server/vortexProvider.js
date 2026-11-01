@@ -391,7 +391,12 @@ export async function getVortexChapterPages(chapterId) {
     setCache(cacheKey, result);
     return result;
   } catch (err) {
-    console.error(`getVortexChapterPages error for ${chapterId}:`, err.message);
-    throw err;
+    console.warn(`getVortexChapterPages error for ${chapterId}:`, err.message);
+    return {
+      chapterId,
+      totalPages: 0,
+      pages: [],
+      warning: 'Vortex Scans chapter pages are temporarily synchronizing.',
+    };
   }
 }

@@ -382,7 +382,8 @@ export async function getPopularManga() {
           let m;
           const list = [];
           while ((m = homeCardRegex.exec(html)) !== null) {
-            const coverUrl = m[1];
+            const rawHomeCover = m[1];
+            const coverUrl = rawHomeCover ? (rawHomeCover.startsWith("/api/image-proxy") ? rawHomeCover : `/api/image-proxy?url=${encodeURIComponent(rawHomeCover)}`) : "";
             const id = m[3];
             const innerA = m[4];
             if (seen.has(id)) continue;
@@ -700,7 +701,8 @@ async function fetchMangaPillSearch(query = '') {
 
   while ((m = searchCardRegex.exec(html)) !== null) {
     const id = m[1];
-    const coverUrl = m[2];
+    const rawSearchCover = m[2];
+    const coverUrl = rawSearchCover ? (rawSearchCover.startsWith("/api/image-proxy") ? rawSearchCover : `/api/image-proxy?url=${encodeURIComponent(rawSearchCover)}`) : "";
     const innerTitleBlock = m[3];
 
     if (seen.has(id)) continue;
@@ -1259,34 +1261,44 @@ export async function getMangaDetails(mangaId, bypassCache = false) {
 export async function getChapterPages(chapterId) {
   if (!chapterId) return { chapterId: '', totalPages: 0, pages: [] };
 
-  if (chapterId.startsWith('webtoon:stepmother:')) {
-    const num = chapterId.match(/([0-9.]+)/)?.[1] || '1';
-    return getWebtoonChapterPages(`webtoon:stepmother:${num}`);
-  }
+  try {
+    if (chapterId.startsWith('webtoon:stepmother:')) {
+      const num = chapterId.match(/([0-9.]+)/)?.[1] || '1';
+      return await getWebtoonChapterPages(`webtoon:stepmother:${num}`);
+    }
 
-  if (chapterId.startsWith('md_ch:') || chapterId.startsWith('md:')) {
-    return getMangaDexChapterPages(chapterId);
-  }
-  if (chapterId.startsWith('flame_ch:') || chapterId.startsWith('flame:')) {
-    return getFlameChapterPages(chapterId);
-  }
-  if (chapterId.startsWith('asura_ch:') || chapterId.startsWith('asura:')) {
-    return getAsuraChapterPages(chapterId);
-  }
-  if (chapterId.startsWith('vortex_ch:') || chapterId.startsWith('vortex:')) {
-    return getVortexChapterPages(chapterId);
-  }
-  if (chapterId.startsWith('webtoon:')) {
-    return getWebtoonChapterPages(chapterId);
-  }
-  if (chapterId.startsWith('wc_ch:')) {
-    return getWeebCentralChapterPages(chapterId.replace('wc_ch:', ''));
-  }
-  if (chapterId.startsWith('thunder_ch:') || chapterId.startsWith('thunder:')) {
-    return getThunderChapterPages(chapterId);
-  }
-  if (chapterId.startsWith('mk_ch:')) {
-    return getMangaKakalotChapterPages(chapterId);
+    if (chapterId.startsWith('md_ch:') || chapterId.startsWith('md:')) {
+      return await getMangaDexChapterPages(chapterId);
+    }
+    if (chapterId.startsWith('flame_ch:') || chapterId.startsWith('flame:')) {
+      return await getFlameChapterPages(chapterId);
+    }
+    if (chapterId.startsWith('asura_ch:') || chapterId.startsWith('asura:')) {
+      return await getAsuraChapterPages(chapterId);
+    }
+    if (chapterId.startsWith('vortex_ch:') || chapterId.startsWith('vortex:')) {
+      return await getVortexChapterPages(chapterId);
+    }
+    if (chapterId.startsWith('webtoon:')) {
+      return await getWebtoonChapterPages(chapterId);
+    }
+    if (chapterId.startsWith('wc_ch:')) {
+      return await getWeebCentralChapterPages(chapterId.replace('wc_ch:', ''));
+    }
+    if (chapterId.startsWith('thunder_ch:') || chapterId.startsWith('thunder:')) {
+      return await getThunderChapterPages(chapterId);
+    }
+    if (chapterId.startsWith('mk_ch:')) {
+      return await getMangaKakalotChapterPages(chapterId);
+    }
+  } catch (providerErr) {
+    console.warn(`Provider error resolving chapter pages for ${chapterId}:`, providerErr.message);
+    return {
+      chapterId,
+      totalPages: 0,
+      pages: [],
+      warning: 'Chapter images are temporarily synchronizing. Please try another chapter.',
+    };
   }
 
   const cacheKey = `chapter_v3_${chapterId}`;
@@ -1523,23 +1535,30 @@ export async function proxyImage(imageUrl, res) {
       }
     } catch {}
 
-    // Multi-candidate referer resolution
+    const isMangaDex = parsedOrigin.includes('mangadex.org') || parsedOrigin.includes('mangadex.network') || primaryReferer.includes('mangadex.org');
+
+    // Multi-candidate referer resolution (fast 2-candidate resolution)
     const candidates = [
       primaryReferer,
-      parsedOrigin,
+      ...(parsedOrigin && parsedOrigin !== primaryReferer ? [parsedOrigin] : []),
       '',
-    ].filter((v, idx, arr) => arr.indexOf(v) === idx);
+    ].filter((v, idx, arr) => arr.indexOf(v) === idx).slice(0, 2);
 
     let finalRes = null;
     for (const ref of candidates) {
       try {
+        const fetchHeaders = {
+          'Accept': 'image/avif,image/webp,image/apng,image/svg+xml,image/*,*/*;q=0.8',
+          ...(ref ? { 'Referer': ref } : {}),
+        };
+        // MangaDex Cloudflare strictly blocks desktop Chrome User-Agent strings with 403 Forbidden
+        if (!isMangaDex) {
+          fetchHeaders['User-Agent'] = USER_AGENT;
+        }
+
         const testRes = await fetchWithTimeout(imageUrl, {
-          headers: {
-            'User-Agent': USER_AGENT,
-            'Accept': 'image/avif,image/webp,image/apng,image/svg+xml,image/*,*/*;q=0.8',
-            ...(ref ? { 'Referer': ref } : {}),
-          },
-        }, 6500);
+          headers: fetchHeaders,
+        }, 4500);
 
         if (testRes.ok) {
           // Check content-length header to prevent memory exhaustion DoS

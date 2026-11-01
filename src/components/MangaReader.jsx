@@ -52,6 +52,16 @@ export default function MangaReader({
   const [initialLoading, setInitialLoading] = useState(true);
   const [initialError, setInitialError] = useState(null);
 
+  // Safety watchdog: prevent infinite spinner buffering if network stalls
+  useEffect(() => {
+    if (!initialLoading) return;
+    const safetyTimer = setTimeout(() => {
+      setInitialLoading(false);
+      setInitialError((prev) => prev || 'Chapter loading took longer than expected. Tap below to retry or choose another chapter.');
+    }, 8500);
+    return () => clearTimeout(safetyTimer);
+  }, [initialLoading]);
+
   // Next chapter auto-loading state
   const [isLoadingNext, setIsLoadingNext] = useState(false);
   const isLoadingNextRef = useRef(false);
@@ -996,25 +1006,45 @@ export default function MangaReader({
               </p>
             </div>
           ) : initialError ? (
-            <div className="max-w-md mx-auto p-6 rounded-3xl bg-rose-500/10 border border-rose-500/20 text-center space-y-4 my-auto">
-              <AlertCircle className="w-10 h-10 text-rose-400 mx-auto" />
-              <h3 className="font-bold text-white">Chapter Unavailable</h3>
-              <p className="text-xs text-slate-300 leading-relaxed">{initialError}</p>
-              <div className="flex justify-center gap-2 pt-2">
+            <div className="max-w-md mx-auto p-6 sm:p-8 rounded-3xl bg-slate-900/90 border border-rose-500/30 text-center space-y-4 my-auto shadow-2xl backdrop-blur-xl">
+              <div className="w-14 h-14 rounded-2xl bg-rose-500/15 border border-rose-500/30 flex items-center justify-center text-rose-400 mx-auto">
+                <AlertCircle className="w-7 h-7" />
+              </div>
+              <div className="space-y-1.5">
+                <h3 className="text-base font-bold text-white">Chapter Loading Halted</h3>
+                <p className="text-xs text-slate-300 leading-relaxed max-w-sm mx-auto">{initialError}</p>
+              </div>
+              <div className="flex flex-wrap justify-center gap-2.5 pt-2">
                 <button
+                  type="button"
                   onClick={() => jumpToChapter(chapterId, chapterNumber)}
-                  className="px-4 py-2 rounded-xl text-xs font-semibold bg-white/10 hover:bg-white/20 text-white"
+                  className="px-4 py-2.5 rounded-xl text-xs font-bold bg-gradient-to-r from-rose-600 to-rose-500 hover:from-rose-500 hover:to-rose-400 text-white shadow-lg shadow-rose-600/30 transition-all cursor-pointer"
                 >
-                  Retry
+                  Retry Chapter {chapterNumber}
                 </button>
                 {nextChapter && (
                   <button
+                    type="button"
                     onClick={() => jumpToChapter(nextChapter.id, nextChapter.chapter)}
-                    className="px-4 py-2 rounded-xl text-xs font-semibold bg-rose-600 text-white"
+                    className="px-4 py-2.5 rounded-xl text-xs font-bold bg-white/10 hover:bg-white/20 text-white transition-all cursor-pointer"
                   >
-                    Try Next Chapter
+                    Next (Ch {nextChapter.chapter})
                   </button>
                 )}
+                <button
+                  type="button"
+                  onClick={() => setShowChapterMenu(true)}
+                  className="px-4 py-2.5 rounded-xl text-xs font-bold bg-white/5 hover:bg-white/10 text-slate-300 border border-white/10 transition-all cursor-pointer"
+                >
+                  Choose Chapter
+                </button>
+                <button
+                  type="button"
+                  onClick={handleHome}
+                  className="px-4 py-2.5 rounded-xl text-xs font-bold bg-transparent hover:bg-white/5 text-slate-400 transition-all cursor-pointer"
+                >
+                  Close Reader
+                </button>
               </div>
             </div>
           ) : (

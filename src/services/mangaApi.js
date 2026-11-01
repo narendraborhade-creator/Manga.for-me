@@ -316,7 +316,7 @@ export async function searchManga(query = '') {
 function needsImageProxy(url) {
   if (!url) return false;
   if (url.startsWith('/api/image-proxy') || url.startsWith('data:')) return false;
-  if (url.includes('mangadex.org') || url.includes('mangadex.network')) return false;
+  // Proxy all external CDNs to bypass strict hotlinking referer checks (e.g. MangaDex Cloudflare, MangaKakalot, MangaPill)
   return true;
 }
 
@@ -609,13 +609,17 @@ export async function fetchMangaChapters(mangaId, order = 'desc', refresh = fals
  * Fetch All Real Pages for a Chapter
  */
 export async function fetchChapterPages(chapterId) {
+  const controller = new AbortController();
+  const timer = setTimeout(() => controller.abort(), 9000);
   try {
     const url = `/api/manga/read?chapterId=${encodeURIComponent(chapterId)}`;
-    const res = await fetch(url);
+    const res = await fetch(url, { signal: controller.signal });
+    clearTimeout(timer);
     if (!res.ok) throw new Error(`HTTP ${res.status}`);
     const data = await res.json();
     return data;
   } catch (err) {
+    clearTimeout(timer);
     console.error('fetchChapterPages failed:', err);
     throw err;
   }

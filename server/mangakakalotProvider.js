@@ -97,7 +97,7 @@ export async function getPopularMangaKakalot() {
           slug,
           title: cleanTitle(rawTitle),
           englishTitle: cleanTitle(rawTitle),
-          coverUrl: rawCover,
+          coverUrl: rawCover ? (rawCover.startsWith("/api/image-proxy") ? rawCover : `/api/image-proxy?url=${encodeURIComponent(rawCover)}`) : getFallbackCover(rawTitle),
           status: 'Ongoing',
           author: 'MangaKakalot',
           latestChapter: latestCh,
@@ -190,7 +190,7 @@ export async function getMangaKakalotDetails(slug, bypassCache = false) {
       slug: cleanSlug,
       title: title || cleanSlug,
       englishTitle: title || cleanSlug,
-      coverUrl: coverUrl || `https://img-r1.2xstorage.com/thumb/${cleanSlug}.webp`,
+      coverUrl: (coverUrl && coverUrl.startsWith("/api/image-proxy")) ? coverUrl : (coverUrl ? `/api/image-proxy?url=${encodeURIComponent(coverUrl)}` : `https://img-r1.2xstorage.com/thumb/${cleanSlug}.webp`),
       description: description || 'Read on MangaKakalot.',
       status,
       author: authors,
@@ -213,9 +213,15 @@ export async function getMangaKakalotDetails(slug, bypassCache = false) {
  * Fetch All Real Image Pages for a MangaKakalot Chapter
  */
 export async function getMangaKakalotChapterPages(rawChapterId) {
+  if (!rawChapterId) return { chapterId: '', totalPages: 0, pages: [] };
   // Format: mk_ch:slug:chapter-31 or mk_ch:slug:31
   const cleanId = String(rawChapterId).replace(/^mk_ch:/, '');
-  const [slug, rawCh] = cleanId.split(':');
+  const parts = cleanId.split(':');
+  const slug = parts[0];
+  const rawCh = parts.length > 1 ? parts[1] : '';
+  if (!slug || !rawCh) {
+    return { chapterId: rawChapterId, totalPages: 0, pages: [] };
+  }
   const chSlug = rawCh.startsWith('chapter-') ? rawCh : `chapter-${rawCh}`;
 
   const cacheKey = `mk_pages_${slug}_${chSlug}`;
@@ -265,7 +271,12 @@ export async function getMangaKakalotChapterPages(rawChapterId) {
     throw new Error('No chapter images found');
   } catch (err) {
     console.warn(`getMangaKakalotChapterPages error for ${cleanId}:`, err.message);
-    throw err;
+    return {
+      chapterId: rawChapterId,
+      totalPages: 0,
+      pages: [],
+      warning: 'MangaKakalot chapter pages are temporarily synchronizing.',
+    };
   }
 }
 
@@ -321,7 +332,7 @@ export async function searchMangaKakalot(query = '') {
           slug,
           title: cleanTitle(rawTitle),
           englishTitle: cleanTitle(rawTitle),
-          coverUrl: rawCover,
+          coverUrl: rawCover ? (rawCover.startsWith("/api/image-proxy") ? rawCover : `/api/image-proxy?url=${encodeURIComponent(rawCover)}`) : getFallbackCover(rawTitle),
           status: 'Ongoing',
           author: 'MangaKakalot',
           latestChapter: latestCh,
