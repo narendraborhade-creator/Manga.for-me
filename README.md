@@ -1,84 +1,95 @@
-# KuroNeko (黒猫) — Anime & Manga Universe
+# KuroNeko (黒猫)
 
-A modern, classy anime and manga reading web application built using curated public community APIs from [public-apis/public-apis](https://github.com/public-apis/public-apis.git).
+KuroNeko is a responsive anime discovery and manga reading application. It combines a multi-provider manga catalog with AniList anime data, a configurable reader, and a local library for tracking reading progress.
 
-![Preview](https://images.unsplash.com/photo-1578632767115-351597cf2477?w=1200&auto=format&fit=crop&q=80)
+## Features
 
----
+### Manga
 
-## ✨ Key Features
+- Search and browse popular, latest, recommended, and source-filtered manga.
+- Aggregate catalog data from MangaDex, WeebCentral, Flame Comics, Thunder Scans, Asura Scans, Vortex Scans, MangaKakalot, Webtoon, and MangaPill.
+- View manga details, chapter lists, metadata, covers, and related news.
+- Read chapters in webtoon, single-page, or spread modes.
+- Use continuous chapter loading, auto-scroll, fullscreen, data-saver mode, page-fit controls, reading direction, and keyboard navigation.
 
-### 📖 Manga Hub & Reading Experience
-- **Live Manga Catalog**: Powered directly by the **MangaDex REST API** (`api.mangadex.org`).
-- **Read Up to Latest Chapters**: Browse, search, and read all published English chapters for any manga up to the latest releases.
-- **World-Class Reader**:
-  - **Webtoon Mode (Long Strip)**: Continuous vertical smooth scrolling with auto-scroll and page gap adjustment.
-  - **Single Page Mode**: Flip through pages one-by-one with keyboard shortcuts (Left/Right arrows, Space, A/D) or on-screen tap controls.
-  - **MangaDex@Home High-Res CDN**: Crisp HD pages with optional **Data-Saver** mode for fast loading on slower networks.
-  - **Fullscreen Toggle**: Enter distraction-free reading (`F` key or icon).
-  - **Instant Chapter Switcher**: Switch to any chapter on the fly without closing the reader.
+### Anime
 
-### ⏱️ Reading Tracker & History
-- **"Jump Back In" Last-Read Banner**: Prominently highlights the exact manga you read last, showing chapter number, page progress, and a one-click **Resume Reading** button.
-- **Reading History Timeline**: Automatically tracks every manga and chapter you read with relative timestamps (e.g., *"10 minutes ago"*, *"Yesterday"*).
-- **Chapter Checkmarks**: Automatically marks finished chapters with green checkmarks so you always know what you've read.
+- Explore trending, top-rated, and currently airing anime from AniList.
+- Search by title or genre.
+- View descriptions, scores, studios, schedules, episode information, and available YouTube trailers.
 
-### 🔖 Bookmarks & Personal Library
-- **Status Organization**: Categorize titles into:
-  - 📖 **Reading**
-  - 📋 **Plan to Read**
-  - ✅ **Completed**
-  - ⭐ **Favorites**
-  - ⏸️ **On Hold**
-- **Library Statistics**: Live overview of total books saved, currently reading, and chapters completed.
-- **Backup & Sync**: Export your entire library and reading history to JSON, or restore from a backup file with one click.
+### Library and progress
 
-### 🎬 Anime Hub & Video Trailers
-- **Trending & Seasonal Anime**: Discover currently airing hits and top-rated masterworks via the **AniList GraphQL API**.
-- **Interactive Trailer Player**: Watch official YouTube trailers directly in a cinematic modal without leaving the site.
-- **Rich Metadata**: Airing schedules, episode counts, studio names, and genres.
+- Save titles as Reading, Plan to Read, Completed, Favorites, or On Hold.
+- Resume from the last manga, chapter, and page you opened.
+- Track reading history and completed chapters.
+- Check for new chapters in saved titles.
+- Export and import library data and reading history as JSON.
+- Move local data to another deployment using the built-in sync link.
 
-### 🎨 Classy Hybrid UI Design
-- A polished fusion of **MangaDex**, **AniList**, **Crunchyroll**, and **Netflix**:
-  - Deep obsidian & slate dark mode (`#080a0f`, `#0c1017`).
-  - Frosted glassmorphism navigation and floating toolbars.
-  - Glowing rose-crimson and amber neon accents.
-  - Responsive layouts optimized for desktop, tablets, and mobile devices.
+## Tech stack
 
----
+- React 19
+- Vite
+- Tailwind CSS 4
+- Lucide React
+- Vercel serverless API routes
+- Browser `localStorage` for library, history, and reader settings
 
-## 🚀 Getting Started
+## Requirements
 
-### Prerequisites
-- Node.js (v18+)
-- npm or yarn
+- Node.js 18 or newer
+- npm
 
-### Installation & Run
+## Local development
+
 ```bash
-# Clone or navigate to the directory
-cd Anime
-
-# Install dependencies (if not already installed)
+git clone https://github.com/narendraborhade-creator/Manga.for-me.git
+cd Manga.for-me
 npm install
-
-# Start the development server
 npm run dev
 ```
 
-Open your browser and navigate to:
-```
-http://127.0.0.1:5173/
+Open the local URL printed by Vite, usually [http://localhost:5173](http://localhost:5173).
+
+## Available scripts
+
+| Command | Description |
+| --- | --- |
+| `npm run dev` | Start the Vite development server |
+| `npm run build` | Create a production build |
+| `npm run preview` | Preview the production build locally |
+| `npm run lint` | Run Oxlint |
+
+## Project structure
+
+```text
+api/                 Vercel API routes and image proxy
+server/              Manga and news provider integrations
+src/components/      Application, library, modal, and reader UI
+src/services/        API clients, storage, and update services
+public/              Static assets
 ```
 
-### Production Build
-```bash
-npm run build
-npm run preview
-```
+The browser calls the `/api` routes for manga catalog, details, chapters, pages, recommendations, news, and image proxying. Provider-specific scraping and normalization stay in `server/`, while `src/services/` exposes the frontend-facing clients.
 
----
+## Deployment
 
-## 🌐 Public APIs Used
-Sourced from [public-apis/public-apis](https://github.com/public-apis/public-apis.git):
-1. **[MangaDex API](https://api.mangadex.org/docs/)**: Manga search, covers, chapter feeds, and MangaDex@Home reader image CDN.
-2. **[AniList API](https://github.com/AniList/ApiV2-GraphQL-Docs)**: Anime discovery, popularity, studios, and official trailer embeds.
+The project is configured for Vercel. Import the repository into Vercel and use the default settings:
+
+- **Build command:** `npm run build`
+- **Output directory:** `dist`
+- **Install command:** `npm install`
+
+`vercel.json` configures the API function limits and routes all client-side paths to `index.html` so the Vite application can handle navigation.
+
+## Data and provider notes
+
+- Library data and reader preferences are stored locally in the browser; the application does not provide a hosted account or server-side sync database.
+- Manga availability depends on the upstream providers. Provider layouts, chapter availability, rate limits, or outages can affect results.
+- Manga and anime metadata, covers, images, and trailers are supplied by their respective upstream services. KuroNeko does not claim ownership of that third-party content.
+- Use the application only where the upstream content and applicable local laws permit it.
+
+## License
+
+This project is released under the [MIT License](./LICENSE).
