@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useMemo } from 'react';
 import { 
   Bookmark, 
   Search, 
@@ -22,17 +22,19 @@ export default function LibraryView({
   const [searchQuery, setSearchQuery] = useState('');
 
   // Deduplicate library items by normalized key to ensure 0 duplicates in library
-  const seenLibraryKeys = new Set();
-  const bookmarkList = Object.values(bookmarks).filter((item) => {
-    if (!item) return false;
-    const norm = (item.englishTitle || item.title || item.id || '')
-      .toLowerCase()
-      .replace(/^(vortex|asura|webtoon|weebcentral|mangadex|mangakakalot|kakamanga|mangapill|wc|mk|md)\s*:\s*/i, '')
-      .replace(/[^a-z0-9]+/g, '');
-    if (norm && seenLibraryKeys.has(norm)) return false;
-    if (norm) seenLibraryKeys.add(norm);
-    return true;
-  });
+  const bookmarkList = useMemo(() => {
+    const seenLibraryKeys = new Set();
+    return Object.values(bookmarks).filter((item) => {
+      if (!item) return false;
+      const norm = (item.englishTitle || item.title || item.id || '')
+        .toLowerCase()
+        .replace(/^(vortex|asura|webtoon|weebcentral|mangadex|mangakakalot|kakamanga|mangapill|wc|mk|md)\s*:\s*/i, '')
+        .replace(/[^a-z0-9]+/g, '');
+      if (norm && seenLibraryKeys.has(norm)) return false;
+      if (norm) seenLibraryKeys.add(norm);
+      return true;
+    });
+  }, [bookmarks]);
   const history = getHistory();
   const updates = getUpdates();
 
@@ -45,11 +47,17 @@ export default function LibraryView({
 
   // Calculate statistics
   const totalReadChapters = history.reduce((acc, cur) => acc + (cur.readChapters?.length || 1), 0);
-  const readingCount = bookmarkList.filter((b) => b.status === 'reading').length;
-  const completedCount = bookmarkList.filter((b) => b.status === 'completed').length;
-  const planCount = bookmarkList.filter((b) => b.status === 'plan_to_read').length;
-  const favCount = bookmarkList.filter((b) => b.status === 'favorite').length;
-  const hasUpdatesCount = bookmarkList.filter((b) => updatesByManga.has(b.id)).length;
+
+  // ⚡ Bolt: consolidate multiple array iterations into a single O(N) pass for performance
+  const stats = useMemo(() => {
+    return bookmarkList.reduce((acc, b) => {
+      acc[b.status] = (acc[b.status] || 0) + 1;
+      if (updatesByManga.has(b.id)) acc.hasUpdatesCount++;
+      return acc;
+    }, { reading: 0, completed: 0, plan_to_read: 0, favorite: 0, on_hold: 0, hasUpdatesCount: 0 });
+  }, [bookmarkList, updatesByManga]);
+
+  const { reading: readingCount, completed: completedCount, plan_to_read: planCount, favorite: favCount, on_hold: onHoldCount, hasUpdatesCount } = stats;
 
   const statusTabs = [
     { id: 'all', label: 'All Titles', count: bookmarkList.length },
@@ -58,7 +66,7 @@ export default function LibraryView({
     { id: 'plan_to_read', label: 'Plan to Read', count: planCount },
     { id: 'completed', label: 'Completed', count: completedCount },
     { id: 'favorite', label: 'Favorites', count: favCount },
-    { id: 'on_hold', label: 'On Hold', count: bookmarkList.filter((b) => b.status === 'on_hold').length },
+    { id: 'on_hold', label: 'On Hold', count: onHoldCount },
   ];
 
   const filteredList = bookmarkList.filter((item) => {
