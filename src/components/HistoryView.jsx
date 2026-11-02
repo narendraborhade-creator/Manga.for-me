@@ -9,7 +9,7 @@ import {
   List 
 } from 'lucide-react';
 import { clearHistory, removeFromHistory } from '../services/storage';
-import { getFallbackCover } from '../services/mangaApi';
+import { getFallbackCover, getReliableCoverUrl } from '../services/mangaApi';
 
 export default function HistoryView({
   history = [],

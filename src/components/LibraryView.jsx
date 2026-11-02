@@ -8,7 +8,7 @@ import {
   Download
 } from 'lucide-react';
 import { getHistory, getUpdates } from '../services/storage';
-import { getFallbackCover } from '../services/mangaApi';
+import { getFallbackCover, getReliableCoverUrl } from '../services/mangaApi';
 
 export default function LibraryView({
   bookmarks = {},
@@ -208,7 +208,7 @@ export default function LibraryView({
                       </span>
                     )}
                     <span className="px-2 py-0.5 rounded-md text-[10px] font-bold uppercase tracking-wider bg-black/70 backdrop-blur-md text-rose-400 border border-rose-500/30">
-                      {item.status.replace('_', ' ')}
+                      {item.status ? item.status.replace('_', ' ') : 'Reading'}
                     </span>
                   </div>
 
@@ -230,8 +230,8 @@ export default function LibraryView({
                       <div 
                         onClick={(e) => {
                           e.stopPropagation();
-                          if (onOpenReader && historyItem) {
-                            onOpenReader(item.id, historyItem.chapterId, lastCh, item.title, item.coverUrl, item.englishTitle);
+                          if (onOpenReader && histEntry) {
+                            onOpenReader(item.id, histEntry.chapterId, lastCh, item.title, item.coverUrl, item.englishTitle);
                           } else {
                             onSelectManga(item.id, item.coverUrl);
                           }
@@ -278,7 +278,7 @@ export default function LibraryView({
                     </select>
 
                     <span className="text-[10px] text-slate-500">
-                      {new Date(item.updatedAt).toLocaleDateString()}
+                      {item.updatedAt ? new Date(item.updatedAt).toLocaleDateString() : 'Saved'}
                     </span>
                   </div>
                 </div>
