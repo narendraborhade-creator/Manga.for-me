@@ -18,6 +18,21 @@ const HEADERS = {
 const cache = new Map();
 const CACHE_TTL = 15 * 60 * 1000;
 
+const ASURA_SLUG_MAP = {
+  'barbarian': 'surviving-the-game-as-a-barbarian-ab39de10',
+  'surviving-game-barbarian': 'surviving-the-game-as-a-barbarian-ab39de10',
+  'surviving-the-game-as-a-barbarian': 'surviving-the-game-as-a-barbarian-ab39de10',
+  'estate-developer': 'the-greatest-estate-developer-ab39de10',
+  'the-greatest-estate-developer': 'the-greatest-estate-developer-ab39de10',
+  'greatest-estate-developer': 'the-greatest-estate-developer-ab39de10',
+  'damn-reincarnation': 'damn-reincarnation-3ebcc5a9',
+  'my-blasted-reincarnation': 'damn-reincarnation-3ebcc5a9',
+  'my-blasted-reincarnated-life': 'damn-reincarnation-3ebcc5a9',
+  'orv': 'omniscient-readers-viewpoint',
+  'omniscient-reader': 'omniscient-readers-viewpoint',
+  'omniscient-readers-viewpoint': 'omniscient-readers-viewpoint',
+};
+
 function getCached(key) {
   const item = cache.get(key);
   if (!item) return null;
@@ -197,7 +212,8 @@ export async function getPopularAsura() {
  * Get Asura Comic Details & Chapter List
  */
 export async function getAsuraDetails(slug) {
-  const cleanSlug = decodeHtml(slug.replace(/^asura:/i, ''));
+  const rawSlug = decodeHtml(slug.replace(/^asura:/i, ''));
+  const cleanSlug = ASURA_SLUG_MAP[rawSlug] || ASURA_SLUG_MAP[rawSlug.toLowerCase()] || rawSlug;
   const cacheKey = `asura_details_${cleanSlug}`;
   const cached = getCached(cacheKey);
   if (cached) return cached;
@@ -274,15 +290,6 @@ export async function getAsuraDetails(slug) {
 /**
  * Get Chapter Pages from Asura Scans
  */
-const ASURA_SLUG_MAP = {
-  'barbarian': 'surviving-the-game-as-a-barbarian-ab39de10',
-  'surviving-the-game-as-a-barbarian': 'surviving-the-game-as-a-barbarian-ab39de10',
-  'estate-developer': 'the-greatest-estate-developer-ab39de10',
-  'the-greatest-estate-developer': 'the-greatest-estate-developer-ab39de10',
-  'greatest-estate-developer': 'the-greatest-estate-developer-ab39de10',
-  'damn-reincarnation': 'damn-reincarnation-3ebcc5a9',
-  'my-blasted-reincarnated-life': 'damn-reincarnation-3ebcc5a9',
-};
 
 export async function getAsuraChapterPages(chapterId) {
   const parts = chapterId.replace(/^asura_ch:|^asura:/, '').split(':');

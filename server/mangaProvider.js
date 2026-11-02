@@ -84,7 +84,7 @@ function setCache(key, data) {
 // Curated Top Masterpieces for Spotlight with verified high-res artwork and complete 1000+ chapter archives
 export const FEATURED_MANGA = [
   {
-    id: 'wc:01J76XY7E9FNDZ1DBBM6PBJPFK',
+    id: '2/one-piece',
     title: 'One Piece',
     coverUrl: 'https://s4.anilist.co/file/anilistcdn/media/manga/cover/large/bx30013-BeslEMqiPhlk.jpg',
     status: 'Ongoing',
@@ -1024,12 +1024,6 @@ export async function getMangaDetails(mangaId, bypassCache = false) {
 
   // Direct alias resolution for top series with verified 1000+ unskipped chapter archives
   const VERIFIED_COMPLETE_ALIASES = {
-    '2/one-piece': 'wc:01J76XY7E9FNDZ1DBBM6PBJPFK',
-    '1/berserk': 'wc:01J76XY7EF75DJNQCV04HTPDZK',
-    '723/chainsaw-man': 'wc:01J76XYCRVY3QGYAMRR3STW941',
-    '2085/jujutsu-kaisen': 'wc:01J76XYCERXE60T7FKXVCCAQ0H',
-    '7486/boruto-two-blue-vortex': 'wc:01J76XYBNEJ5EGK9ZEP3YS0PMH',
-    '7529/kagurabachi': 'wc:01J76XYGGM22WZP7T4TKA4ZFAF',
     'md:eee25eb6-591b-40a4-a2aa-f4ab68169795': 'thunder:forget-about-the-succession-im-here-to-heal',
     'eee25eb6-591b-40a4-a2aa-f4ab68169795': 'thunder:forget-about-the-succession-im-here-to-heal',
     'my-blasted-reincarnation': 'asura:damn-reincarnation-3ebcc5a9',

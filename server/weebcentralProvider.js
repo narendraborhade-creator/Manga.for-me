@@ -472,7 +472,7 @@ export async function getWeebCentralDetails(seriesId, initialCover = '', bypassC
   const cleanSearch = rawSlug.replace(/[-_]+/g, ' ').toLowerCase().trim();
 
   // A. Check if it matches Stepmother Second Life
-  if (cleanSearch.includes('step mother') || cleanSearch.includes('stepmother') || cleanSearch.includes('second life')) {
+  if (cleanSearch && cleanSearch.length >= 3 && (cleanSearch.includes('step mother') || cleanSearch.includes('stepmother') || cleanSearch.includes('second life'))) {
     try {
       const wtData = await getWebtoonDetails('webtoon:stepmother-second-life', bypassCache);
       if (wtData && wtData.chapters && wtData.chapters.length > 0) {
@@ -491,10 +491,10 @@ export async function getWeebCentralDetails(seriesId, initialCover = '', bypassC
   }
 
   // B. Check against curated WEBTOON_CATALOG
-  const matchedWt = WEBTOON_CATALOG.find((w) => {
+  const matchedWt = (cleanSearch && cleanSearch.length >= 4) ? WEBTOON_CATALOG.find((w) => {
     const wtCorpus = (w.title + ' ' + (w.englishTitle || '') + ' ' + (w.altTitles || []).join(' ')).toLowerCase();
-    return wtCorpus.includes(cleanSearch) || cleanSearch.includes(w.title.toLowerCase());
-  });
+    return wtCorpus.includes(cleanSearch) || (cleanSearch.length >= 6 && cleanSearch.includes(w.title.toLowerCase()));
+  }) : null;
 
   if (matchedWt) {
     try {
