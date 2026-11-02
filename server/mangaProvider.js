@@ -1258,8 +1258,58 @@ export async function getMangaDetails(mangaId, bypassCache = false) {
 /**
  * Get Complete Real Pages for a Chapter
  */
-export async function getChapterPages(chapterId) {
-  if (!chapterId) return { chapterId: '', totalPages: 0, pages: [] };
+const MANGAPILL_PREFIX_MAP = {
+  'one-piece': { prefix: '2', slug: 'one-piece' },
+  'berserk': { prefix: '1', slug: 'berserk' },
+  'chainsaw-man': { prefix: '723', slug: 'chainsaw-man' },
+  'jujutsu-kaisen': { prefix: '2085', slug: 'jujutsu-kaisen' },
+  'boruto': { prefix: '7486', slug: 'boruto-two-blue-vortex' },
+  'boruto-two-blue-vortex': { prefix: '7486', slug: 'boruto-two-blue-vortex' },
+  'kagurabachi': { prefix: '7529', slug: 'kagurabachi' },
+  'demon-slayer': { prefix: '467', slug: 'demon-slayer-kimetsu-no-yaiba' },
+  'attack-on-titan': { prefix: '50', slug: 'attack-on-titan' },
+  'aot': { prefix: '50', slug: 'attack-on-titan' },
+  'bleach': { prefix: '3', slug: 'bleach' },
+  'naruto': { prefix: '5', slug: 'naruto' },
+  'hunter-x-hunter': { prefix: '17', slug: 'hunter-x-hunter' },
+  'spy-x-family': { prefix: '2873', slug: 'spy-x-family' },
+  'frieren': { prefix: '4708', slug: 'sousou-no-frieren' },
+  'dandadan': { prefix: '5588', slug: 'dandadan' },
+  'vinland-saga': { prefix: '60', slug: 'vinland-saga' },
+  'vagabond': { prefix: '4', slug: 'vagabond' },
+  'kingdom': { prefix: '8', slug: 'kingdom' },
+};
+
+export async function getChapterPages(rawChapterId) {
+  if (!rawChapterId) return { chapterId: '', totalPages: 0, pages: [] };
+  let chapterId = String(rawChapterId);
+
+  // Auto-correct any MangaPill IDs that used leading zeros (e.g. 2-00010000 -> 2-10001000)
+  if (/^[0-9]+-0+[0-9]+\//.test(chapterId)) {
+    const chMatch = chapterId.match(/^([0-9]+)-0+([0-9]+)\/([a-z0-9\-]+)-chapter-([0-9.]+)/i);
+    if (chMatch) {
+      const prefix = chMatch[1];
+      const chNum = parseFloat(chMatch[4]);
+      const slug = chMatch[3];
+      if (!isNaN(chNum)) {
+        const code = 10000000 + Math.floor(chNum * 1000);
+        chapterId = `${prefix}-${code}/${slug}-chapter-${chMatch[4]}`;
+      }
+    }
+  }
+
+  // Handle mp:series:ch format
+  if (chapterId.startsWith('mp:')) {
+    const parts = chapterId.replace('mp:', '').split(':');
+    const series = parts[0];
+    const chNum = parts[1];
+    const meta = MANGAPILL_PREFIX_MAP[series];
+    if (meta && chNum) {
+      const parsedNum = parseFloat(chNum);
+      const code = 10000000 + Math.floor(parsedNum * 1000);
+      chapterId = `${meta.prefix}-${code}/${meta.slug}-chapter-${chNum}`;
+    }
+  }
 
   try {
     if (chapterId.startsWith('webtoon:stepmother:')) {
@@ -1307,7 +1357,7 @@ export async function getChapterPages(chapterId) {
 
   try {
     const url = `${BASE_URL}/chapters/${chapterId}`;
-    const res = await fetchWithTimeout(url, { headers: HEADERS }, 4500);
+    const res = await fetchWithTimeout(url, { headers: HEADERS }, 12000);
     if (!res.ok) throw new Error(`HTTP ${res.status}`);
     const html = await res.text();
 

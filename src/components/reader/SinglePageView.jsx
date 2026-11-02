@@ -1,3 +1,4 @@
+import { getApiBaseUrl } from '../../services/mangaApi';
 import React, { useState, useEffect, useRef } from 'react';
 import { ChevronLeft, ChevronRight, RotateCw } from 'lucide-react';
 
@@ -34,23 +35,27 @@ export default function SinglePageView({
     }
   }, [curPage, singlePageNum, chapterId]);
 
+  const getProxyUrl = (raw) => {
+    const baseUrl = getApiBaseUrl();
+    const prefix = baseUrl ? `${baseUrl}/api/image-proxy` : '/api/image-proxy';
+    return `${prefix}?url=${encodeURIComponent(raw)}`;
+  };
+
   const handleManualReload = () => {
     if (!curPage) return;
     setIsReloading(true);
     setHasError(false);
     retriedCountRef.current += 1;
     const targetUrl = curPage.originalUrl || curPage.url;
-    const isGh = typeof window !== 'undefined' && window.location.hostname.includes('github.io');
-    const newSrc = isGh ? `${targetUrl}?_reload=${Date.now()}` : `/api/image-proxy?url=${encodeURIComponent(targetUrl)}&_reload=${Date.now()}`;
+    const newSrc = `${getProxyUrl(targetUrl)}&_reload=${Date.now()}`;
     setCurrentSrc(newSrc);
   };
 
   const handleImageError = () => {
     if (!curPage) return;
-    const isGh = typeof window !== 'undefined' && window.location.hostname.includes('github.io');
-    if (retriedCountRef.current === 0 && !currentSrc.startsWith('/api/image-proxy') && !isGh) {
+    if (retriedCountRef.current === 0) {
       retriedCountRef.current = 1;
-      setCurrentSrc(`/api/image-proxy?url=${encodeURIComponent(curPage.originalUrl || curPage.url)}`);
+      setCurrentSrc(getProxyUrl(curPage.originalUrl || curPage.url));
       return;
     }
     if (retriedCountRef.current < 2) {

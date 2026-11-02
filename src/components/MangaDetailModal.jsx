@@ -67,11 +67,13 @@ export default function MangaDetailModal({
     setLoading(true);
     setLoadingChapters(true);
     if (scrollContainerRef.current) {
+      scrollContainerRef.current.scrollTop = 0;
       scrollContainerRef.current.scrollTo({ top: 0, behavior: 'instant' });
     }
     if (onSelectManga) {
-      onSelectManga(rec.id, rec.coverUrl);
+      onSelectManga(rec.id, rec.coverUrl || '');
     }
+    loadMangaData(false, rec.id);
   };
 
   // Close modal on Escape key press
@@ -88,8 +90,9 @@ export default function MangaDetailModal({
   }, [onClose]);
 
   // Fetch manga details and chapters
-  const loadMangaData = useCallback((forceRefresh = false) => {
-    if (!activeMangaId) return;
+  const loadMangaData = useCallback((forceRefresh = false, targetId = null) => {
+    const currentId = targetId || activeMangaId;
+    if (!currentId) return;
     if (forceRefresh) {
       setIsRefreshing(true);
     } else {
@@ -98,15 +101,12 @@ export default function MangaDetailModal({
     }
 
     // Load read chapters from history
-    const readList = getReadChaptersForManga(activeMangaId);
+    const readList = getReadChaptersForManga(currentId);
     setReadChapterIds(readList);
 
-    fetchMangaDetails(activeMangaId, forceRefresh)
+    fetchMangaDetails(currentId, forceRefresh)
       .then((data) => {
         if (data) {
-          if (initialCoverUrl && activeMangaId === mangaId) {
-            data.coverUrl = initialCoverUrl;
-          }
           setManga(data);
           if (data.chapters && Array.isArray(data.chapters)) {
             const uniqueChapters = deduplicateChapters(data.chapters);

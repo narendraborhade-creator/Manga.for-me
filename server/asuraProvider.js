@@ -274,9 +274,20 @@ export async function getAsuraDetails(slug) {
 /**
  * Get Chapter Pages from Asura Scans
  */
+const ASURA_SLUG_MAP = {
+  'barbarian': 'surviving-the-game-as-a-barbarian-ab39de10',
+  'surviving-the-game-as-a-barbarian': 'surviving-the-game-as-a-barbarian-ab39de10',
+  'estate-developer': 'the-greatest-estate-developer-ab39de10',
+  'the-greatest-estate-developer': 'the-greatest-estate-developer-ab39de10',
+  'greatest-estate-developer': 'the-greatest-estate-developer-ab39de10',
+  'damn-reincarnation': 'damn-reincarnation-3ebcc5a9',
+  'my-blasted-reincarnated-life': 'damn-reincarnation-3ebcc5a9',
+};
+
 export async function getAsuraChapterPages(chapterId) {
-  const parts = chapterId.replace(/^asura_ch:/, '').split(':');
-  const slug = decodeHtml(parts[0]);
+  const parts = chapterId.replace(/^asura_ch:|^asura:/, '').split(':');
+  const rawSlug = decodeHtml(parts[0]);
+  const slug = ASURA_SLUG_MAP[rawSlug] || ASURA_SLUG_MAP[rawSlug.toLowerCase()] || rawSlug;
   const chNum = parts[1];
 
   const cacheKey = `asura_pages_${slug}_${chNum}`;
@@ -285,15 +296,22 @@ export async function getAsuraChapterPages(chapterId) {
 
   try {
     const url = `${BASE_URL}/comics/${encodeURI(slug)}/chapter/${chNum}`;
-    const res = await fetchWithTimeout(url, { headers: HEADERS }, 8000);
+    const res = await fetchWithTimeout(url, { headers: HEADERS }, 10000);
     if (!res.ok) throw new Error(`HTTP ${res.status}`);
     const html = await res.text();
 
     const allImgs = [...html.matchAll(/<img[^>]+(?:src|data-src)="([^"]+)"/gi)].map(m => m[1]);
     const chapterImages = allImgs.filter(u =>
-      u.includes('asura-images/chapters') ||
-      u.includes('cdn.asurascans.com') ||
-      (u.includes('chapters/') && !u.includes('covers/'))
+      !u.includes('covers/') &&
+      !u.includes('logo') &&
+      !u.includes('icon') &&
+      !u.includes('avatar') &&
+      !u.includes('banner') &&
+      (
+        u.includes('asura-images/chapters') ||
+        u.includes('chapters/') ||
+        u.includes('cdn.asurascans.com')
+      )
     );
 
     const pages = chapterImages.map((imgUrl, idx) => ({

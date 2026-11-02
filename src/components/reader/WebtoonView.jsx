@@ -1,3 +1,4 @@
+import { getApiBaseUrl } from '../../services/mangaApi';
 import React, { useState, useRef } from 'react';
 import { ChevronLeft, ChevronRight, Loader2, AlertCircle, RotateCw, Check, Home } from 'lucide-react';
 
@@ -7,22 +8,26 @@ function WebtoonPageItem({ p, ch, idx, chIdx, settings }) {
   const [currentSrc, setCurrentSrc] = useState(p.url);
   const retriedCountRef = useRef(0);
 
+  const getProxyUrl = (raw) => {
+    const baseUrl = getApiBaseUrl();
+    const prefix = baseUrl ? `${baseUrl}/api/image-proxy` : '/api/image-proxy';
+    return `${prefix}?url=${encodeURIComponent(raw)}`;
+  };
+
   const handleManualReload = (e) => {
     e.stopPropagation();
     setIsReloading(true);
     setHasError(false);
     retriedCountRef.current += 1;
     const targetUrl = p.originalUrl || p.url;
-    const isGh = typeof window !== 'undefined' && window.location.hostname.includes('github.io');
-    const newSrc = isGh ? `${targetUrl}?_reload=${Date.now()}` : `/api/image-proxy?url=${encodeURIComponent(targetUrl)}&_reload=${Date.now()}`;
+    const newSrc = `${getProxyUrl(targetUrl)}&_reload=${Date.now()}`;
     setCurrentSrc(newSrc);
   };
 
   const handleImageError = () => {
-    const isGh = typeof window !== 'undefined' && window.location.hostname.includes('github.io');
-    if (retriedCountRef.current === 0 && !currentSrc.startsWith('/api/image-proxy') && !isGh) {
+    if (retriedCountRef.current === 0) {
       retriedCountRef.current = 1;
-      setCurrentSrc(`/api/image-proxy?url=${encodeURIComponent(p.originalUrl || p.url)}`);
+      setCurrentSrc(getProxyUrl(p.originalUrl || p.url));
       return;
     }
     if (retriedCountRef.current < 2) {

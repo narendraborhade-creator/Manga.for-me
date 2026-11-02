@@ -1,11 +1,22 @@
 import { proxyImage, isValidProxyTarget } from '../server/mangaProvider.js';
 
 export default async function handler(req, res) {
+  // Global CORS Headers so GitHub Pages can call Vercel
+  res.setHeader('Access-Control-Allow-Origin', '*');
+  res.setHeader('Access-Control-Allow-Methods', 'GET, OPTIONS');
+  res.setHeader('Access-Control-Allow-Headers', 'Content-Type, Authorization');
+
+  if (req.method === 'OPTIONS') {
+    res.statusCode = 200;
+    res.end();
+    return;
+  }
+
   // Enforce security headers
   res.setHeader('X-Content-Type-Options', 'nosniff');
   res.setHeader('X-Frame-Options', 'DENY');
   res.setHeader('Referrer-Policy', 'no-referrer');
-  res.setHeader('Content-Security-Policy', "default-src 'none'; img-src 'self' data:; style-src 'unsafe-inline'");
+  res.setHeader('Content-Security-Policy', "default-src 'none'; img-src 'self' data: *; style-src 'unsafe-inline'");
 
   if (req.method !== 'GET') {
     res.setHeader('Allow', 'GET');
@@ -39,4 +50,3 @@ export default async function handler(req, res) {
     }
   }
 }
-
