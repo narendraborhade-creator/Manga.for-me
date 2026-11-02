@@ -149,6 +149,7 @@ export default function App() {
   const [isBackupOpen, setIsBackupOpen] = useState(false);
 
   // Manga Hub Data
+  const [allMangaList, setAllMangaList] = useState([]);
   const [popularManga, setPopularManga] = useState([]);
   const [latestManga, setLatestManga] = useState([]);
   const [topRatedManga, setTopRatedManga] = useState([]);
@@ -254,6 +255,7 @@ export default function App() {
     fetchPopularManga()
       .then((pop) => {
         if (!isMounted) return;
+        setAllMangaList(pop);
         setPopularManga(pop.slice(0, 12));
         setLatestManga(pop.slice(12, 24).length > 0 ? pop.slice(12, 24) : pop.slice(0, 12));
         setTopRatedManga(pop.slice(24, 36).length > 0 ? pop.slice(24, 36) : pop.slice(0, 12));
@@ -524,9 +526,12 @@ export default function App() {
         {/* --------------------- TAB 1: MANGA HUB --------------------- */}
         {activeTab === 'manga' && (() => {
           const isFilterActive = selectedGenre !== 'All' || selectedSource !== 'All' || Boolean(searchQuery.trim());
-          const isSearching = Boolean(searchQuery.trim()) || selectedGenre !== 'All';
+          const isSearching = Boolean(searchQuery.trim()) || selectedGenre !== 'All' || selectedSource !== 'All';
+          const effectiveSearchList = (Boolean(searchQuery.trim()) || selectedGenre !== 'All')
+            ? searchMangaList
+            : (allMangaList.length > 0 ? allMangaList : [...popularManga, ...latestManga, ...topRatedManga]);
           const displayedMatchingCount = isSearching
-            ? searchMangaList.filter((m) => matchesSource(m, selectedSource)).length
+            ? effectiveSearchList.filter((m) => matchesSource(m, selectedSource)).length
             : (
                 popularManga.filter((m) => matchesSource(m, selectedSource)).length +
                 latestManga.filter((m) => matchesSource(m, selectedSource)).length +
@@ -854,8 +859,8 @@ export default function App() {
                         <span>Search & Filter Results</span>
                       </h2>
                       <p className="text-xs text-slate-400 mt-1">
-                        {searchQuery ? `Showing results for "${searchQuery}"` : `Filtered by ${selectedGenre}`}
-                        {selectedSource !== 'All' ? ` • Source: ${selectedSource}` : ''}
+                        {searchQuery ? `Showing results for "${searchQuery}"` : (selectedGenre !== 'All' ? `Filtered by ${selectedGenre}` : `All titles from ${selectedSource}`)}
+                        {selectedSource !== 'All' && selectedGenre === 'All' ? '' : (selectedSource !== 'All' ? ` • Source: ${selectedSource}` : '')}
                       </p>
                     </div>
 
@@ -877,7 +882,7 @@ export default function App() {
                       <Loader2 className="w-8 h-8 text-rose-500 animate-spin" />
                       <p className="text-xs text-slate-400">Searching Keiyoushi & Multi-Source Library...</p>
                     </div>
-                  ) : searchMangaList.filter((m) => matchesSource(m, selectedSource)).length === 0 ? (
+                  ) : effectiveSearchList.filter((m) => matchesSource(m, selectedSource)).length === 0 ? (
                     <div className="py-24 text-center text-slate-400 text-sm">
                       <p>No manga found matching the active filters.</p>
                       <button
@@ -893,7 +898,7 @@ export default function App() {
                     </div>
                   ) : (
                     <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 xl:grid-cols-6 gap-4 sm:gap-5">
-                      {searchMangaList
+                      {effectiveSearchList
                         .filter((manga) => matchesSource(manga, selectedSource))
                         .map((manga) => (
                           <MangaCard

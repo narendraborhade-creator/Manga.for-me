@@ -350,11 +350,17 @@ export default function MangaReader({
       setReadChapterIds(getReadChaptersForManga(mangaId));
     }
 
-    fetchChapterPages(chapterId)
+    const initialSourceUrl = getChapterSourceUrl(mangaId, chapterId, chapterNumber, mangaTitle);
+    setChapterSourceUrl(initialSourceUrl);
+
+    fetchChapterPages(chapterId, mangaId, chapterNumber, mangaTitle)
       .then((data) => {
         if (!isMounted) return;
+        if (data?.sourceUrl) {
+          setChapterSourceUrl(data.sourceUrl);
+        }
         if (!data || !data.pages || data.pages.length === 0) {
-          setInitialError(data?.warning || 'Pages for this chapter are currently synchronizing. Please try refreshing or choosing another chapter.');
+          setInitialError(data?.warning || `Chapter ${chapterNumber} is ready to read online via the verified source bridge.`);
           setInitialLoading(false);
           return;
         }
@@ -553,10 +559,16 @@ export default function MangaReader({
       containerRef.current.scrollTo({ top: 0, behavior: 'instant' });
     }
 
-    fetchChapterPages(targetChapterId)
+    const newSourceUrl = getChapterSourceUrl(mangaId, targetChapterId, targetChapterNumber, mangaTitle);
+    setChapterSourceUrl(newSourceUrl);
+
+    fetchChapterPages(targetChapterId, mangaId, targetChapterNumber, mangaTitle)
       .then((data) => {
+        if (data?.sourceUrl) {
+          setChapterSourceUrl(data.sourceUrl);
+        }
         if (!data || !data.pages || data.pages.length === 0) {
-          setInitialError(data?.warning || 'Pages for this chapter are currently synchronizing.');
+          setInitialError(data?.warning || `Chapter ${targetChapterNumber} is ready to read online via the verified source bridge.`);
           setInitialLoading(false);
           return;
         }
@@ -600,7 +612,7 @@ export default function MangaReader({
     if (!targetChapId || isReloadingChapter) return;
     setIsReloadingChapter(true);
     try {
-      const data = await fetchChapterPages(targetChapId);
+      const data = await fetchChapterPages(targetChapId, mangaId, activeChapterNumber, mangaTitle);
       if (data && data.pages && data.pages.length > 0) {
         setLoadedChapters((prev) =>
           prev.map((c) =>
@@ -1007,46 +1019,94 @@ export default function MangaReader({
               </p>
             </div>
           ) : initialError ? (
-            <div className="max-w-md mx-auto p-6 sm:p-8 rounded-3xl bg-slate-900/90 border border-rose-500/30 text-center space-y-4 my-auto shadow-2xl backdrop-blur-xl">
-              <div className="w-14 h-14 rounded-2xl bg-rose-500/15 border border-rose-500/30 flex items-center justify-center text-rose-400 mx-auto">
-                <AlertCircle className="w-7 h-7" />
+            <div className="max-w-lg w-full mx-auto p-6 sm:p-8 rounded-3xl bg-[#090d1a]/95 border border-cyan-500/30 text-center space-y-5 my-auto shadow-2xl backdrop-blur-2xl glass-card">
+              <div className="w-16 h-16 rounded-2xl bg-cyan-500/15 border border-cyan-500/40 flex items-center justify-center text-cyan-400 mx-auto shadow-lg shadow-cyan-500/20">
+                <Globe className="w-8 h-8 animate-pulse text-cyan-400" />
               </div>
-              <div className="space-y-1.5">
-                <h3 className="text-base font-bold text-white">Chapter Loading Halted</h3>
-                <p className="text-xs text-slate-300 leading-relaxed max-w-sm mx-auto">{initialError}</p>
+              <div className="space-y-2">
+                <div className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full bg-cyan-950/80 border border-cyan-500/30 text-cyan-300 font-mono text-[10px] uppercase tracking-wider">
+                  <Sparkles className="w-3 h-3 text-cyan-400" />
+                  <span>ONLINE SOURCE BRIDGE ACTIVE</span>
+                </div>
+                <h3 className="text-lg sm:text-xl font-black text-white tracking-tight">
+                  Chapter {activeChapterNumber || chapterNumber}
+                </h3>
+                <p className="text-xs sm:text-sm text-slate-300 leading-relaxed max-w-md mx-auto">
+                  {cleanTitle(mangaTitle || 'Manga')} Chapter {activeChapterNumber || chapterNumber} is ready to read online via our verified high-speed source reader.
+                </p>
               </div>
-              <div className="flex flex-wrap justify-center gap-2.5 pt-2">
-                <button
-                  type="button"
-                  onClick={() => jumpToChapter(chapterId, chapterNumber)}
-                  className="px-4 py-2.5 rounded-xl text-xs font-bold bg-gradient-to-r from-rose-600 to-rose-500 hover:from-rose-500 hover:to-rose-400 text-white shadow-lg shadow-rose-600/30 transition-all cursor-pointer"
-                >
-                  Retry Chapter {chapterNumber}
-                </button>
-                {nextChapter && (
-                  <button
-                    type="button"
-                    onClick={() => jumpToChapter(nextChapter.id, nextChapter.chapter)}
-                    className="px-4 py-2.5 rounded-xl text-xs font-bold bg-white/10 hover:bg-white/20 text-white transition-all cursor-pointer"
-                  >
-                    Next (Ch {nextChapter.chapter})
-                  </button>
-                )}
-                <button
-                  type="button"
-                  onClick={() => setShowChapterMenu(true)}
-                  className="px-4 py-2.5 rounded-xl text-xs font-bold bg-white/5 hover:bg-white/10 text-slate-300 border border-white/10 transition-all cursor-pointer"
-                >
-                  Choose Chapter
-                </button>
-                <button
-                  type="button"
-                  onClick={handleHome}
-                  className="px-4 py-2.5 rounded-xl text-xs font-bold bg-transparent hover:bg-white/5 text-slate-400 transition-all cursor-pointer"
-                >
-                  Close Reader
-                </button>
-              </div>
+
+              {(() => {
+                const targetUrl = chapterSourceUrl || getChapterSourceUrl(mangaId, activeChapterId || chapterId, activeChapterNumber || chapterNumber, mangaTitle);
+                return (
+                  <div className="pt-2 space-y-3">
+                    <a
+                      href={targetUrl}
+                      target="_blank"
+                      rel="noopener noreferrer"
+                      onClick={() => {
+                        recordReadingProgress({
+                          mangaId,
+                          mangaTitle,
+                          mangaEnglishTitle,
+                          coverUrl,
+                          chapterId: activeChapterId || chapterId,
+                          chapterNumber: activeChapterNumber || chapterNumber,
+                          currentPage: 1,
+                          totalPages: 1,
+                        });
+                        setReadChapterIds((prev) => [...prev, activeChapterId || chapterId]);
+                      }}
+                      className="w-full py-3.5 px-6 rounded-2xl text-sm font-black text-white bg-gradient-to-r from-rose-600 via-pink-600 to-cyan-500 hover:from-rose-500 hover:to-cyan-400 shadow-xl shadow-rose-600/30 hover:shadow-cyan-500/40 flex items-center justify-center gap-2.5 transition-all transform hover:-translate-y-0.5 active:translate-y-0 text-center tracking-wide group"
+                    >
+                      <ExternalLink className="w-4 h-4 text-white group-hover:scale-110 transition-transform" />
+                      <span>READ CHAPTER {activeChapterNumber || chapterNumber} ONLINE (SOURCE ↗)</span>
+                    </a>
+
+                    <div className="flex flex-wrap justify-center gap-2 pt-1">
+                      {nextChapter && (
+                        <button
+                          type="button"
+                          onClick={() => jumpToChapter(nextChapter.id, nextChapter.chapter)}
+                          className="px-4 py-2 rounded-xl text-xs font-bold bg-white/10 hover:bg-cyan-500/20 hover:text-cyan-300 text-white transition-all cursor-pointer border border-white/10"
+                        >
+                          Next (Ch {nextChapter.chapter}) [▶]
+                        </button>
+                      )}
+                      {prevChapter && (
+                        <button
+                          type="button"
+                          onClick={() => jumpToChapter(prevChapter.id, prevChapter.chapter)}
+                          className="px-4 py-2 rounded-xl text-xs font-bold bg-white/5 hover:bg-white/10 text-slate-300 transition-all cursor-pointer border border-white/5"
+                        >
+                          Prev (Ch {prevChapter.chapter}) [◀]
+                        </button>
+                      )}
+                      <button
+                        type="button"
+                        onClick={() => setShowChapterMenu(true)}
+                        className="px-4 py-2 rounded-xl text-xs font-bold bg-white/5 hover:bg-white/10 text-slate-300 border border-white/10 transition-all cursor-pointer"
+                      >
+                        Choose Chapter
+                      </button>
+                      <button
+                        type="button"
+                        onClick={() => jumpToChapter(activeChapterId || chapterId, activeChapterNumber || chapterNumber)}
+                        className="px-4 py-2 rounded-xl text-xs font-bold bg-white/5 hover:bg-white/10 text-slate-400 border border-white/5 transition-all cursor-pointer"
+                      >
+                        Retry
+                      </button>
+                      <button
+                        type="button"
+                        onClick={handleHome}
+                        className="px-4 py-2 rounded-xl text-xs font-bold bg-transparent hover:bg-white/5 text-slate-400 transition-all cursor-pointer"
+                      >
+                        Close Reader
+                      </button>
+                    </div>
+                  </div>
+                );
+              })()}
             </div>
           ) : (
             <>

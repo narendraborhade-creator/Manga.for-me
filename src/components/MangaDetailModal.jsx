@@ -62,9 +62,10 @@ export default function MangaDetailModal({
   const handleSelectRecommendation = (rec) => {
     if (!rec || !rec.id) return;
     setActiveMangaId(rec.id);
+    setManga(null);
+    setChapters([]);
     setLoading(true);
     setLoadingChapters(true);
-    setChapters([]);
     if (scrollContainerRef.current) {
       scrollContainerRef.current.scrollTo({ top: 0, behavior: 'instant' });
     }
@@ -103,7 +104,7 @@ export default function MangaDetailModal({
     fetchMangaDetails(activeMangaId, forceRefresh)
       .then((data) => {
         if (data) {
-          if (initialCoverUrl) {
+          if (initialCoverUrl && activeMangaId === mangaId) {
             data.coverUrl = initialCoverUrl;
           }
           setManga(data);
