@@ -116,11 +116,32 @@ const server = http.createServer(async (req, res) => {
       }
     }
 
-    // Static Assets from dist/
-    let safePath = path.normalize(pathname).replace(/^(\.\.[/\\])+/, '');
-    let filePath = path.join(DIST_DIR, safePath);
+    // Static Assets from dist/ with strict directory traversal prevention
+    let decodedPath = '';
+    try {
+      decodedPath = decodeURIComponent(pathname);
+    } catch {
+      res.statusCode = 400;
+      res.end(JSON.stringify({ error: 'Bad Request' }));
+      return;
+    }
 
-    // If file doesn't exist or is a directory, fallback to dist/index.html (SPA routing)
+    // Reject null bytes or illegal characters
+    if (decodedPath.includes('\0')) {
+      res.statusCode = 400;
+      res.end(JSON.stringify({ error: 'Bad Request' }));
+      return;
+    }
+
+    // Strip leading path separators to guarantee relative resolution from DIST_DIR
+    const relativeSubPath = decodedPath.replace(/^[/\\]+/, '');
+    const resolvedPath = path.resolve(DIST_DIR, relativeSubPath);
+
+    // Security check: ensure resolved path strictly stays within DIST_DIR
+    const isWithinDist = resolvedPath === DIST_DIR || resolvedPath.startsWith(DIST_DIR + path.sep);
+    let filePath = isWithinDist ? resolvedPath : path.join(DIST_DIR, 'index.html');
+
+    // If file doesn't exist, escaped root, or is a directory, fallback to dist/index.html (SPA routing)
     if (!fs.existsSync(filePath) || fs.statSync(filePath).isDirectory()) {
       filePath = path.join(DIST_DIR, 'index.html');
     }
@@ -142,10 +163,11 @@ const server = http.createServer(async (req, res) => {
     res.statusCode = 404;
     res.end('Not Found');
   } catch (err) {
+    // Fail securely: log internally, do not leak error details or stack traces to client
     console.error('Server error:', err);
     if (!res.headersSent) {
       res.statusCode = 500;
-      res.end(JSON.stringify({ error: err.message }));
+      res.end(JSON.stringify({ error: 'Internal Server Error' }));
     }
   }
 });

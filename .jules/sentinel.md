@@ -1,0 +1,4 @@
+## 2026-11-02 - Path Traversal Prevention in Custom Node Static File Serving
+**Vulnerability:** Static asset handling in custom Node HTTP server stripped only leading `../` strings without URI decoding or root-boundary verification, allowing path traversal using URL-encoded sequences (`%2e%2e`) or path manipulation.
+**Learning:** `new URL(req.url)` leaves URL-encoded characters in `urlObj.pathname`. Simply using `path.normalize(pathname).replace(/^(\.\.[/\\])+/, '')` is insufficient because `%2e%2e` bypasses the regex, and subsequent `fs` calls or URL decodings could access unintended directories outside `DIST_DIR`.
+**Prevention:** Always URI-decode pathnames inside a try-catch block, reject null bytes (`\0`), strip leading slashes before resolving relative to the web root, and enforce that `resolvedPath === ROOT || resolvedPath.startsWith(ROOT + path.sep)`.
