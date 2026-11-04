@@ -46,6 +46,8 @@ async function fetchWithTimeout(url, options = {}, timeoutMs = 8000) {
 export const WEBTOON_CATALOG = [
   {
     id: 'webtoon:stepmother-second-life',
+    totalChapters: 130,
+    latestChapter: '130',
     title: 'The Despised Stepmother Begins Her Second Life',
     englishTitle: "The Step Mother's Began Her Second Life",
     altTitles: [
@@ -73,6 +75,8 @@ export const WEBTOON_CATALOG = [
   },
   {
     id: 'webtoon:fortune-telling-princess',
+    totalChapters: 176,
+    latestChapter: '176',
     title: 'A Fortune-Telling Princess',
     englishTitle: 'A Fortune-Telling Princess',
     altTitles: [
@@ -94,6 +98,8 @@ export const WEBTOON_CATALOG = [
   },
   {
     id: 'webtoon:solo-leveling',
+    totalChapters: 200,
+    latestChapter: '200',
     title: 'Solo Leveling',
     englishTitle: 'Solo Leveling',
     altTitles: ['Na Honjaman Level Up', 'I Level Up Alone', '나 혼자만 레벨업'],
@@ -109,6 +115,8 @@ export const WEBTOON_CATALOG = [
   },
   {
     id: 'webtoon:omniscient-reader',
+    totalChapters: 250,
+    latestChapter: '250',
     title: "Omniscient Reader's Viewpoint",
     englishTitle: "Omniscient Reader's Viewpoint",
     altTitles: ['ORV', 'Jeonjijeok Dokja Sijeom', '전지적 독자 시점'],
@@ -183,6 +191,8 @@ export async function searchWebtoons(query = '') {
     description: item.description,
     provider: 'webtoon',
     sourceName: 'Webtoon',
+    totalChapters: item.totalChapters || 100,
+    latestChapter: item.latestChapter || '100',
   }));
 
   // 2. Query King of Shojo dynamically for expanded manhwa/webtoon titles
@@ -496,7 +506,7 @@ async function getFortuneTellingPrincessDetails() {
     // Fallback generated chapters up to 173
     const entry = WEBTOON_CATALOG.find((w) => w.id === 'webtoon:fortune-telling-princess');
     const fallbackChapters = [];
-    for (let i = 173; i >= 0; i--) {
+    for (let i = 176; i >= 0; i--) {
       fallbackChapters.push({
         id: `webtoon:ftp:${i}`,
         chapter: String(i),

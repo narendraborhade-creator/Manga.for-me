@@ -125,7 +125,7 @@ export default function MangaDetailModal({
 
           // Fetch suggestions & recommendations for this manga
           setLoadingRecs(true);
-          fetchMangaRecommendations(activeMangaId, data.tags || [])
+          fetchMangaRecommendations(currentId, data.tags || [])
             .then(recs => setRecommendations(recs || []))
             .catch(() => setRecommendations([]))
             .finally(() => setLoadingRecs(false));

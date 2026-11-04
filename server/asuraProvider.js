@@ -19,6 +19,13 @@ const cache = new Map();
 const CACHE_TTL = 15 * 60 * 1000;
 
 const ASURA_SLUG_MAP = {
+  'nano-machine': 'nano-machine-ab39de10',
+  'doom-breaker': 'reincarnation-of-the-suicidal-battle-god-ab39de10',
+  'reincarnation-of-the-suicidal-battle-god': 'reincarnation-of-the-suicidal-battle-god-ab39de10',
+  'mount-hua': 'return-of-the-mount-hua-sect-ab39de10',
+  'return-of-the-mount-hua-sect': 'return-of-the-mount-hua-sect-ab39de10',
+  'reaper-of-the-drifting-moon': 'reaper-of-the-drifting-moon-ab39de10',
+  'murim-login': 'murim-login-ab39de10',
   'barbarian': 'surviving-the-game-as-a-barbarian-ab39de10',
   'surviving-game-barbarian': 'surviving-the-game-as-a-barbarian-ab39de10',
   'surviving-the-game-as-a-barbarian': 'surviving-the-game-as-a-barbarian-ab39de10',

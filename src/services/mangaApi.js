@@ -4,6 +4,225 @@
  */
 
 export const FALLBACK_MANGA_CATALOG = [
+  // --- TOP GLOBAL MANHWA & WEBSERIES ---
+  {
+    id: 'wc:01J76XYBD282Y3XKX0KRGD64Q5',
+    aliases: ['lookism', 'webtoon:lookism'],
+    title: 'Lookism',
+    englishTitle: 'Lookism',
+    coverUrl: 'https://s4.anilist.co/file/anilistcdn/media/manga/cover/large/bx86337-0g70bKkFpD7E.jpg',
+    status: 'Ongoing',
+    score: '9.3',
+    year: '2014',
+    author: 'Park Tae-jun',
+    description: 'Daniel Park, an overweight and unattractive high school student bullied relentlessly, mysteriously wakes up in a tall, handsome, and physically gifted new body.',
+    tags: ['Action', 'School', 'Drama', 'Supernatural'],
+    sourceName: 'WeebCentral',
+    totalChapters: 631,
+    latestChapter: '631',
+    chapters: Array.from({ length: 631 }, (_, i) => {
+      const chNum = 631 - i;
+      return {
+        id: `wc_ch:lookism:${chNum}`,
+        chapter: String(chNum),
+        title: `Chapter ${chNum}`,
+      };
+    })
+  },
+  {
+    id: 'wc:01J76XY7M0W9WWJ55VJYYB2J1S',
+    aliases: ['tower-of-god', 'webtoon:tower-of-god', 'tower of god'],
+    title: 'Tower of God',
+    englishTitle: 'Tower of God',
+    coverUrl: 'https://s4.anilist.co/file/anilistcdn/media/manga/cover/large/bx85143-6o80VwHhYVrn.jpg',
+    status: 'Ongoing',
+    score: '9.4',
+    year: '2010',
+    author: 'SIU',
+    description: 'What do you desire? Fortune? Glory? Power? Revenge? Whatever you desire, it is here, at the peak of the Tower.',
+    tags: ['Action', 'Adventure', 'Fantasy', 'Mystery'],
+    sourceName: 'WeebCentral',
+    totalChapters: 630,
+    latestChapter: '630',
+    chapters: Array.from({ length: 630 }, (_, i) => {
+      const chNum = 630 - i;
+      return {
+        id: `wc_ch:tower-of-god:${chNum}`,
+        chapter: String(chNum),
+        title: `Chapter ${chNum}`,
+      };
+    })
+  },
+  {
+    id: 'wc:01J76XYA1TQYKV6W4BCMR2WD5M',
+    aliases: ['wind-breaker', 'webtoon:wind-breaker', 'wind breaker'],
+    title: 'Wind Breaker',
+    englishTitle: 'Wind Breaker',
+    coverUrl: 'https://s4.anilist.co/file/anilistcdn/media/manga/cover/large/bx85489-B0x2z8P96Y24.jpg',
+    status: 'Ongoing',
+    score: '9.5',
+    year: '2013',
+    author: 'Jo Yongseok',
+    description: 'Jay is an honors student whose sole focus is academics—until he is plunged into the high-stakes world of underground street cycling!',
+    tags: ['Sports', 'Action', 'Drama', 'School'],
+    sourceName: 'WeebCentral',
+    totalChapters: 500,
+    latestChapter: '500',
+    chapters: Array.from({ length: 500 }, (_, i) => {
+      const chNum = 500 - i;
+      return {
+        id: `wc_ch:wind-breaker:${chNum}`,
+        chapter: String(chNum),
+        title: `Chapter ${chNum}`,
+      };
+    })
+  },
+  {
+    id: 'wc:01J76XYD3Q2Q7HYYMB3FSDPSKC',
+    aliases: ['eleceed', 'webtoon:eleceed'],
+    title: 'Eleceed',
+    englishTitle: 'Eleceed',
+    coverUrl: 'https://s4.anilist.co/file/anilistcdn/media/manga/cover/large/bx110291-PqA9Zuhd8OqJ.jpg',
+    status: 'Ongoing',
+    score: '9.6',
+    year: '2018',
+    author: 'Son Jaeho & ZHENA',
+    description: 'Jiwoo has super-speed reflexes. Kayden is a deadly awakener on the run who transforms into a fat, fluffy street cat!',
+    tags: ['Action', 'Comedy', 'Supernatural'],
+    sourceName: 'WeebCentral',
+    totalChapters: 320,
+    latestChapter: '320',
+    chapters: Array.from({ length: 320 }, (_, i) => {
+      const chNum = 320 - i;
+      return {
+        id: `wc_ch:eleceed:${chNum}`,
+        chapter: String(chNum),
+        title: `Chapter ${chNum}`,
+      };
+    })
+  },
+  {
+    id: 'asura:nano-machine-ab39de10',
+    aliases: ['nano-machine', 'webtoon:nano-machine'],
+    title: 'Nano Machine',
+    englishTitle: 'Nano Machine',
+    coverUrl: 'https://s4.anilist.co/file/anilistcdn/media/manga/cover/large/bx111594-g9YqGkM0Yw8S.jpg',
+    status: 'Ongoing',
+    score: '9.4',
+    year: '2020',
+    author: 'Jeolmu Hyeon',
+    description: 'Cheon Yeo-woon is an illegitimate prince of the Demonic Cult marked for assassination until a descendant injects him with nanomachines.',
+    tags: ['Action', 'Martial Arts', 'Sci-Fi', 'Murim'],
+    sourceName: 'Asura Scans',
+    totalChapters: 230,
+    latestChapter: '230',
+    chapters: Array.from({ length: 230 }, (_, i) => {
+      const chNum = 230 - i;
+      return {
+        id: `asura_ch:nano-machine-ab39de10:${chNum}`,
+        chapter: String(chNum),
+        title: `Chapter ${chNum}`,
+      };
+    })
+  },
+  {
+    id: 'asura:return-of-the-mount-hua-sect-ab39de10',
+    aliases: ['return-of-the-mount-hua-sect', 'mount-hua'],
+    title: 'Return of the Mount Hua Sect',
+    englishTitle: 'Return of the Mount Hua Sect',
+    coverUrl: 'https://s4.anilist.co/file/anilistcdn/media/manga/cover/large/bx124479-7aKj9V318vLz.jpg',
+    status: 'Ongoing',
+    score: '9.6',
+    year: '2021',
+    author: 'Biga',
+    description: 'Chung Myung, the 13th disciple of the Great Mount Hua Sect, slays the Heavenly Demon and awakens a century later to restore his fallen sect.',
+    tags: ['Action', 'Adventure', 'Comedy', 'Martial Arts'],
+    sourceName: 'Asura Scans',
+    totalChapters: 150,
+    latestChapter: '150',
+    chapters: Array.from({ length: 150 }, (_, i) => {
+      const chNum = 150 - i;
+      return {
+        id: `asura_ch:return-of-the-mount-hua-sect-ab39de10:${chNum}`,
+        chapter: String(chNum),
+        title: `Chapter ${chNum}`,
+      };
+    })
+  },
+  {
+    id: 'asura:reincarnation-of-the-suicidal-battle-god-ab39de10',
+    aliases: ['doom-breaker', 'reincarnation-of-the-suicidal-battle-god'],
+    title: 'Doom Breaker',
+    englishTitle: 'Reincarnation of the Suicidal Battle God',
+    coverUrl: 'https://s4.anilist.co/file/anilistcdn/media/manga/cover/large/bx136264-bM8qjX4jF8Lz.jpg',
+    status: 'Ongoing',
+    score: '9.5',
+    year: '2021',
+    author: 'Cheong-dam',
+    description: 'Zephyr is the last surviving human in a world destroyed by gods. Granted a second chance by the gods who found his struggle entertaining, he regresses to get revenge.',
+    tags: ['Action', 'Fantasy', 'Reincarnation', 'Manhwa'],
+    sourceName: 'Asura Scans',
+    totalChapters: 110,
+    latestChapter: '110',
+    chapters: Array.from({ length: 110 }, (_, i) => {
+      const chNum = 110 - i;
+      return {
+        id: `asura_ch:reincarnation-of-the-suicidal-battle-god-ab39de10:${chNum}`,
+        chapter: String(chNum),
+        title: `Chapter ${chNum}`,
+      };
+    })
+  },
+  {
+    id: '938/death-note',
+    aliases: ['death-note', 'death note'],
+    title: 'Death Note',
+    englishTitle: 'Death Note',
+    coverUrl: 'https://s4.anilist.co/file/anilistcdn/media/manga/cover/large/bx30001-A5Tf0z3g7R6o.jpg',
+    status: 'Completed',
+    score: '9.3',
+    year: '2003',
+    author: 'Tsugumi Ohba & Takeshi Obata',
+    description: 'Light Yagami discovers a supernatural notebook that grants him the ability to kill anyone whose name and face he knows.',
+    tags: ['Mystery', 'Psychological', 'Supernatural', 'Thriller'],
+    sourceName: 'MangaPill',
+    totalChapters: 108,
+    latestChapter: '108',
+    chapters: Array.from({ length: 108 }, (_, i) => {
+      const chNum = 108 - i;
+      const code = 10000000 + (chNum * 1000);
+      return {
+        id: `938-${code}/death-note-chapter-${chNum}`,
+        chapter: String(chNum),
+        title: `Chapter ${chNum}`,
+      };
+    })
+  },
+  {
+    id: '3262/one-punch-man',
+    aliases: ['one-punch-man', 'one punch man', 'opm'],
+    title: 'One-Punch Man',
+    englishTitle: 'One-Punch Man',
+    coverUrl: 'https://s4.anilist.co/file/anilistcdn/media/manga/cover/large/bx69363-22ZgqCqKqB7b.jpg',
+    status: 'Ongoing',
+    score: '9.2',
+    year: '2012',
+    author: 'ONE & Yusuke Murata',
+    description: 'Saitama is a hero who only does it for fun. After three years of training, he has grown so strong that he can defeat any enemy with a single punch.',
+    tags: ['Action', 'Comedy', 'Superhero', 'Supernatural'],
+    sourceName: 'MangaPill',
+    totalChapters: 215,
+    latestChapter: '215',
+    chapters: Array.from({ length: 215 }, (_, i) => {
+      const chNum = 215 - i;
+      const code = 10000000 + (chNum * 1000);
+      return {
+        id: `3262-${code}/one-punch-man-chapter-${chNum}`,
+        chapter: String(chNum),
+        title: `Chapter ${chNum}`,
+      };
+    })
+  },
   // --- MANGAPILL SHONEN & SEINEN CLASSICS ---
   {
     id: '2/one-piece',
@@ -603,6 +822,29 @@ export const FALLBACK_MANGA_CATALOG = [
 ];
 
 export const KNOWN_MANGA_COVERS = {
+  'lookism': 'https://s4.anilist.co/file/anilistcdn/media/manga/cover/large/bx86337-0g70bKkFpD7E.jpg',
+  'tower of god': 'https://s4.anilist.co/file/anilistcdn/media/manga/cover/large/bx85143-6o80VwHhYVrn.jpg',
+  'wind breaker': 'https://s4.anilist.co/file/anilistcdn/media/manga/cover/large/bx85489-B0x2z8P96Y24.jpg',
+  'eleceed': 'https://s4.anilist.co/file/anilistcdn/media/manga/cover/large/bx110291-PqA9Zuhd8OqJ.jpg',
+  'mercenary enrollment': 'https://s4.anilist.co/file/anilistcdn/media/manga/cover/large/bx125633-5cTzE1O23e59.jpg',
+  'teenage mercenary': 'https://s4.anilist.co/file/anilistcdn/media/manga/cover/large/bx125633-5cTzE1O23e59.jpg',
+  'nano machine': 'https://s4.anilist.co/file/anilistcdn/media/manga/cover/large/bx111594-g9YqGkM0Yw8S.jpg',
+  'return of the mount hua sect': 'https://s4.anilist.co/file/anilistcdn/media/manga/cover/large/bx124479-7aKj9V318vLz.jpg',
+  'mount hua': 'https://s4.anilist.co/file/anilistcdn/media/manga/cover/large/bx124479-7aKj9V318vLz.jpg',
+  'reincarnation of the suicidal battle god': 'https://s4.anilist.co/file/anilistcdn/media/manga/cover/large/bx136264-bM8qjX4jF8Lz.jpg',
+  'doom breaker': 'https://s4.anilist.co/file/anilistcdn/media/manga/cover/large/bx136264-bM8qjX4jF8Lz.jpg',
+  'reaper of the drifting moon': 'https://s4.anilist.co/file/anilistcdn/media/manga/cover/large/bx151608-F4l8jNq9M2X5.jpg',
+  'murim login': 'https://s4.anilist.co/file/anilistcdn/media/manga/cover/large/bx119614-fX48Z1kM9m2K.jpg',
+  'death note': 'https://s4.anilist.co/file/anilistcdn/media/manga/cover/large/bx30001-A5Tf0z3g7R6o.jpg',
+  'one punch man': 'https://s4.anilist.co/file/anilistcdn/media/manga/cover/large/bx69363-22ZgqCqKqB7b.jpg',
+  'one-punch man': 'https://s4.anilist.co/file/anilistcdn/media/manga/cover/large/bx69363-22ZgqCqKqB7b.jpg',
+  'tokyo ghoul': 'https://s4.anilist.co/file/anilistcdn/media/manga/cover/large/bx63327-S7M94aK1QYd0.jpg',
+  'black clover': 'https://s4.anilist.co/file/anilistcdn/media/manga/cover/large/bx86123-5cTzE1O23e59.jpg',
+  'blue lock': 'https://s4.anilist.co/file/anilistcdn/media/manga/cover/large/bx106130-9mW113O7rDnA.jpg',
+  'sakamoto days': 'https://s4.anilist.co/file/anilistcdn/media/manga/cover/large/bx125828-5pqzh1Wb4NOQ.png',
+  'oshi no ko': 'https://s4.anilist.co/file/anilistcdn/media/manga/cover/large/bx117040-CXKgWikBFQgS.jpg',
+  'haikyuu': 'https://s4.anilist.co/file/anilistcdn/media/manga/cover/large/bx65243-KPXir4sRqJBW.png',
+  'dragon ball super': 'https://s4.anilist.co/file/anilistcdn/media/manga/cover/large/bx86942-0mjRDkf4THpo.jpg',
   'one piece': 'https://s4.anilist.co/file/anilistcdn/media/manga/cover/large/bx30013-BeslEMqiPhlk.jpg',
   'berserk': 'https://s4.anilist.co/file/anilistcdn/media/manga/cover/large/bx30002-Cul4OeN7bYtn.jpg',
   'solo leveling': 'https://s4.anilist.co/file/anilistcdn/media/manga/cover/large/bx105398-b673Vt5ZSuz3.jpg',

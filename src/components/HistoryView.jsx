@@ -66,7 +66,7 @@ export default function HistoryView({
       const eng = item.mangaEnglishTitle?.toLowerCase() || '';
       return title.includes(q) || eng.includes(q);
     });
-  }, [history, searchQuery]);
+  }, [safeHistory, searchQuery]);
 
   return (
     <div className="space-y-6 sm:space-y-8 animate-fadeIn w-full max-w-full overflow-x-hidden">

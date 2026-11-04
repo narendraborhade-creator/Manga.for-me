@@ -185,18 +185,79 @@ export const PROVIDER_QUALITY_SCORE = {
   mangakakalot: 80,
   mangadex: 75,
   webtoon: 65,
-  mangapill: 50,
+  mangapill: 95,
 };
 
 /**
  * Robust title normalization key to deduplicate identical series across different sources.
  * Strips bracketed tags, season annotations, trailing suffixes, and leading articles.
  */
+
+export const KNOWN_CHAPTER_COUNTS = {
+  'lookism': 631,
+  'tower of god': 630,
+  'wind breaker': 500,
+  'eleceed': 320,
+  'mercenary enrollment': 210,
+  'teenage mercenary': 210,
+  'nano machine': 230,
+  'the beginning after the end': 190,
+  'tbate': 190,
+  'return of the mount hua sect': 150,
+  'reincarnation of the suicidal battle god': 110,
+  'doom breaker': 110,
+  'reaper of the drifting moon': 110,
+  'murim login': 190,
+  'a fortune-telling princess': 176,
+  'solo leveling': 200,
+  'omniscient reader': 240,
+  'damn reincarnation': 85,
+  'surviving the game as a barbarian': 100,
+  'the greatest estate developer': 165,
+  'one piece': 1120,
+  'berserk': 376,
+  'naruto': 700,
+  'bleach': 686,
+  'jujutsu kaisen': 271,
+  'chainsaw man': 180,
+  'death note': 108,
+  'one-punch man': 215,
+  'one punch man': 215,
+  'tokyo ghoul': 143,
+  'black clover': 375,
+  'blue lock': 280,
+  'sakamoto days': 190,
+  'oshi no ko': 166,
+  'haikyuu': 402,
+  'dragon ball super': 103,
+  'fortune-telling princess': 176,
+  'fortune telling princess': 176,
+  'a fortune-telling princess': 176,
+  'damn reincarnation': 81,
+  'surviving the game as a barbarian': 90,
+  'the greatest estate developer': 180,
+  'the beginning after the end': 185,
+  'tbate': 185,
+  'reincarnation of the suicidal battle god': 110,
+  'doom breaker': 110,
+  'return of the mount hua sect': 150,
+  'mount hua': 150,
+};
+
+export function getKnownChapterCount(title) {
+  if (!title) return null;
+  const t = String(title).toLowerCase().trim();
+  for (const [key, count] of Object.entries(KNOWN_CHAPTER_COUNTS)) {
+    if (t === key || t.startsWith(key) || key.startsWith(t)) return count;
+  }
+  return null;
+}
+
 export function normalizeTitleKey(str) {
   if (!str) return '';
   return str
     .toLowerCase()
-    .replace(/\s*[\(\[\{](?:official|fan colored|colored|webtoon|manhwa|manhua|novel|scanlation|book version|pre-serialization)[\)\]\}]/gi, '')
+    .replace(/\s*[\(\[\{](?:official|fan colored|colored|webtoon|manhwa|manhua|novel|scanlation|book version)[\)\]\}]/gi, '')
     .replace(/\s*-\s*(?:official|fan colored|colored|webtoon|manhwa|manhua|novel|scanlation).*$/gi, '')
     .replace(/^(the|a|an)\s+/i, '')
     .replace(/na honjaman level[\s-]*up/i, 'solo leveling')
@@ -205,6 +266,8 @@ export function normalizeTitleKey(str) {
     .replace(/my blasted reincarnat(ion|ed life)/gi, 'damn reincarnation')
     .replace(/bireomeogeul hwansaeng/gi, 'damn reincarnation')
     .replace(/(to hell with being heir.*|hugyeja neun moreugetgo healing.*|forget about the succession.*)/gi, 'forget about succession')
+    .replace(/(jeomgwaeboneun gongnyeonim|fortune[\s-]*telling lady)/gi, 'fortune telling princess')
+    .replace(/fortune[\s-]*telling princess/gi, 'fortune telling princess')
     .replace(/[^\p{L}\p{N}\s]/gu, '')
     .replace(/\s+/g, ' ')
     .trim();
@@ -457,6 +520,54 @@ const SEARCH_SYNONYMS = {
  * 7. Webtoon (high-res verified color catalog)
  * 8. MangaPill (clean mirror fallback)
  */
+
+/**
+ * Compute search relevance score to prioritize exact matches and working series
+ */
+export function computeSearchRelevance(item, query) {
+  if (!item) return -1000;
+  const q = String(query || '').toLowerCase().trim();
+  const cleanQ = q.replace(/[^a-z0-9]/g, '');
+  const t = String(item.title || '').toLowerCase().trim();
+  const et = String(item.englishTitle || '').toLowerCase().trim();
+  const cleanT = t.replace(/[^a-z0-9]/g, '');
+  const cleanEt = et.replace(/[^a-z0-9]/g, '');
+
+  let score = 0;
+
+  // Exact matches get supreme priority (+10,000)
+  if (t === q || et === q || cleanT === cleanQ || cleanEt === cleanQ) {
+    score += 10000;
+  }
+  // Title starts with query (+5,000)
+  else if (t.startsWith(q) || et.startsWith(q)) {
+    score += 5000;
+  }
+  // Full query occurs as a phrase in title (+3,000)
+  else if (t.includes(q) || et.includes(q)) {
+    score += 3000;
+  }
+  // Normalized query occurs (+1,500)
+  else if (cleanT.includes(cleanQ) || cleanEt.includes(cleanQ)) {
+    score += 1500;
+  }
+
+  // Severe penalty for pre-serialization, fan-colored duplicates, side stories if querying the main series
+  if (t.includes('pre-serialization') || t.includes('fan colored') || t.includes('side story')) {
+    score -= 2500;
+  }
+
+  // Bonus for sources with real chapters
+  const ch = item.totalChapters || (item.latestChapter ? parseFloat(item.latestChapter) : 0);
+  if (ch > 0) {
+    score += Math.min(ch * 5, 1000);
+  } else {
+    score -= 1500; // Penalize 0-chapter entries heavily
+  }
+
+  return score;
+}
+
 export async function searchManga(query = '') {
   if (!query || !query.trim()) return getPopularManga();
 
@@ -687,7 +798,7 @@ export async function searchManga(query = '') {
 /**
  * Fetch Search Results from MangaPill
  */
-async function fetchMangaPillSearch(query = '') {
+export async function fetchMangaPillSearch(query = '') {
   const url = `${BASE_URL}/search?q=${encodeURIComponent(query.trim())}`;
   const res = await fetch(url, { headers: HEADERS });
   if (!res.ok) throw new Error(`HTTP ${res.status}`);
@@ -1024,6 +1135,35 @@ export async function getMangaDetails(mangaId, bypassCache = false) {
 
   // Direct alias resolution for top series with verified 1000+ unskipped chapter archives
   const VERIFIED_COMPLETE_ALIASES = {
+    'lookism': 'wc:01J76XYBD282Y3XKX0KRGD64Q5',
+    'webtoon:lookism': 'wc:01J76XYBD282Y3XKX0KRGD64Q5',
+    'tower-of-god': 'wc:01J76XY7M0W9WWJ55VJYYB2J1S',
+    'webtoon:tower-of-god': 'wc:01J76XY7M0W9WWJ55VJYYB2J1S',
+    'wind-breaker': 'wc:01J76XYA1TQYKV6W4BCMR2WD5M',
+    'webtoon:wind-breaker': 'wc:01J76XYA1TQYKV6W4BCMR2WD5M',
+    'eleceed': 'wc:01J76XYD3Q2Q7HYYMB3FSDPSKC',
+    'webtoon:eleceed': 'wc:01J76XYD3Q2Q7HYYMB3FSDPSKC',
+    'mercenary-enrollment': 'wc:01J76XYEA95PG5AVMCKC9TK492',
+    'webtoon:mercenary-enrollment': 'wc:01J76XYEA95PG5AVMCKC9TK492',
+    'teenage-mercenary': 'wc:01J76XYEA95PG5AVMCKC9TK492',
+    'nano-machine': 'asura:nano-machine-ab39de10',
+    'webtoon:nano-machine': 'asura:nano-machine-ab39de10',
+    'the-beginning-after-the-end': 'thunder:the-beginning-after-the-end',
+    'tbate': 'thunder:the-beginning-after-the-end',
+    'doom-breaker': 'asura:reincarnation-of-the-suicidal-battle-god-ab39de10',
+    'reincarnation-of-the-suicidal-battle-god': 'asura:reincarnation-of-the-suicidal-battle-god-ab39de10',
+    'mount-hua': 'asura:return-of-the-mount-hua-sect-ab39de10',
+    'return-of-the-mount-hua-sect': 'asura:return-of-the-mount-hua-sect-ab39de10',
+    'reaper-of-the-drifting-moon': 'asura:reaper-of-the-drifting-moon-ab39de10',
+    'murim-login': 'asura:murim-login-ab39de10',
+    'barbarian': 'asura:surviving-the-game-as-a-barbarian-ab39de10',
+    'a-fortune-telling-princess': 'webtoon:fortune-telling-princess',
+    'fortune-telling-princess': 'webtoon:fortune-telling-princess',
+    'md:0ba6b85e-3e87-454a-b81d-1040468248e1': 'webtoon:fortune-telling-princess',
+    'damn-reincarnation': 'asura:damn-reincarnation-ab39de10',
+    'surviving-the-game-as-a-barbarian': 'asura:surviving-the-game-as-a-barbarian-ab39de10',
+    'greatest-estate-developer': 'asura:the-greatest-estate-developer-ab39de10',
+    'the-greatest-estate-developer': 'asura:the-greatest-estate-developer-ab39de10',
     'md:eee25eb6-591b-40a4-a2aa-f4ab68169795': 'thunder:forget-about-the-succession-im-here-to-heal',
     'eee25eb6-591b-40a4-a2aa-f4ab68169795': 'thunder:forget-about-the-succession-im-here-to-heal',
     'my-blasted-reincarnation': 'asura:damn-reincarnation-3ebcc5a9',
@@ -1253,6 +1393,16 @@ export async function getMangaDetails(mangaId, bypassCache = false) {
  * Get Complete Real Pages for a Chapter
  */
 const MANGAPILL_PREFIX_MAP = {
+  'death-note': { prefix: '938', slug: 'death-note' },
+  'one-punch-man': { prefix: '3262', slug: 'one-punch-man' },
+  'tokyo-ghoul': { prefix: '4524', slug: 'tokyo-ghoul' },
+  'black-clover': { prefix: '524', slug: 'black-clover' },
+  'blue-lock': { prefix: '580', slug: 'blue-lock' },
+  'sakamoto-days': { prefix: '5281', slug: 'sakamoto-days' },
+  'oshi-no-ko': { prefix: '5053', slug: 'oshi-no-ko' },
+  'haikyuu': { prefix: '1515', slug: 'haikyuu' },
+  'haikyu': { prefix: '1515', slug: 'haikyuu' },
+  'dragon-ball-super': { prefix: '1069', slug: 'dragon-ball-super' },
   'one-piece': { prefix: '2', slug: 'one-piece' },
   'berserk': { prefix: '1', slug: 'berserk' },
   'chainsaw-man': { prefix: '723', slug: 'chainsaw-man' },
@@ -1274,9 +1424,64 @@ const MANGAPILL_PREFIX_MAP = {
   'kingdom': { prefix: '8', slug: 'kingdom' },
 };
 
-export async function getChapterPages(rawChapterId) {
-  if (!rawChapterId) return { chapterId: '', totalPages: 0, pages: [] };
-  let chapterId = String(rawChapterId);
+export async function getChapterPages(rawChapterId, rawMangaId = '', rawChapterNumber = '', rawTitle = '') {
+  if (!rawChapterId && (!rawMangaId || !rawChapterNumber)) {
+    return { chapterId: '', totalPages: 0, pages: [] };
+  }
+  let chapterId = String(rawChapterId || '');
+  const mId = String(rawMangaId || '').toLowerCase();
+  const title = String(rawTitle || '').toLowerCase();
+  const chNum = String(rawChapterNumber || '').replace(/[^0-9.]/g, '') || (chapterId.match(/([0-9.]+)/)?.[1] || '1');
+
+  // Universal AniList Chapter Resolver
+  if (chapterId.startsWith('anilist_ch:')) {
+    const parts = chapterId.replace('anilist_ch:', '').split(':');
+    const aniId = parts[0];
+    const requestedCh = parts[1] || chNum;
+    
+    if (aniId === '151512' || mId.includes('blasted') || mId.includes('damn-reincarnation') || title.includes('reincarnat')) {
+      chapterId = `asura_ch:damn-reincarnation-3ebcc5a9:${requestedCh}`;
+    } else if (aniId === '164857' || mId.includes('barbarian') || title.includes('barbarian')) {
+      chapterId = `asura_ch:surviving-the-game-as-a-barbarian-ab39de10:${requestedCh}`;
+    } else if (aniId === '140407' || mId.includes('estate') || title.includes('greatest estate')) {
+      chapterId = `asura_ch:the-greatest-estate-developer-ab39de10:${requestedCh}`;
+    } else if (aniId === '105398' || mId.includes('solo') || title.includes('solo leveling')) {
+      chapterId = `webtoon:solo:${requestedCh}`;
+    } else if (aniId === '170151' || mId.includes('fortune-telling') || title.includes('fortune-telling')) {
+      chapterId = `webtoon:ftp:${requestedCh}`;
+    } else if (aniId === '213993' || mId.includes('stepmother') || title.includes('stepmother')) {
+      chapterId = `webtoon:stepmother:${requestedCh}`;
+    } else if (aniId === '119257' || mId.includes('omniscient') || title.includes('omniscient')) {
+      chapterId = `webtoon:orv:${requestedCh}`;
+    } else if (aniId === '86337' || mId.includes('lookism') || title.includes('lookism')) {
+      const wcDetails = await getWeebCentralDetails('01J76XYBD282Y3XKX0KRGD64Q5').catch(() => null);
+      const targetCh = wcDetails?.chapters?.find(c => String(c.chapter) === String(requestedCh));
+      if (targetCh) {
+        return await getWeebCentralChapterPages(targetCh.id.replace('wc_ch:', ''));
+      }
+    } else if (aniId === '30013' || mId.includes('one-piece') || title.includes('one piece')) {
+      const code = 10000000 + Math.floor(parseFloat(requestedCh) * 1000);
+      chapterId = `2-${code}/one-piece-chapter-${requestedCh}`;
+    } else if (aniId === '30002' || mId.includes('berserk') || title.includes('berserk')) {
+      const code = 10000000 + Math.floor(parseFloat(requestedCh) * 1000);
+      chapterId = `1-${code}/berserk-chapter-${requestedCh}`;
+    } else if (aniId === '105778' || mId.includes('chainsaw') || title.includes('chainsaw man')) {
+      const code = 10000000 + Math.floor(parseFloat(requestedCh) * 1000);
+      chapterId = `723-${code}/chainsaw-man-chapter-${requestedCh}`;
+    } else if (aniId === '101517' || mId.includes('jujutsu') || title.includes('jujutsu kaisen')) {
+      const code = 10000000 + Math.floor(parseFloat(requestedCh) * 1000);
+      chapterId = `2085-${code}/jujutsu-kaisen-chapter-${requestedCh}`;
+    } else if (aniId === '30011' || mId.includes('naruto') || title.includes('naruto')) {
+      const code = 10000000 + Math.floor(parseFloat(requestedCh) * 1000);
+      chapterId = `5-${code}/naruto-chapter-${requestedCh}`;
+    } else if (aniId === '30012' || mId.includes('bleach') || title.includes('bleach')) {
+      const code = 10000000 + Math.floor(parseFloat(requestedCh) * 1000);
+      chapterId = `3-${code}/bleach-chapter-${requestedCh}`;
+    } else if (aniId === '87216' || mId.includes('demon-slayer') || title.includes('demon slayer')) {
+      const code = 10000000 + Math.floor(parseFloat(requestedCh) * 1000);
+      chapterId = `467-${code}/demon-slayer-kimetsu-no-yaiba-chapter-${requestedCh}`;
+    }
+  }
 
   // Auto-correct any MangaPill IDs that used leading zeros (e.g. 2-00010000 -> 2-10001000)
   if (/^[0-9]+-0+[0-9]+\//.test(chapterId)) {

@@ -23,7 +23,7 @@ export default function LibraryView({
 
   // Deduplicate library items by normalized key to ensure 0 duplicates in library
   const seenLibraryKeys = new Set();
-  const bookmarkList = Object.values(bookmarks).filter((item) => {
+  const bookmarkList = Object.values(bookmarks || {}).filter((item) => {
     if (!item) return false;
     const norm = (item.englishTitle || item.title || item.id || '')
       .toLowerCase()

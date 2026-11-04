@@ -56,10 +56,11 @@ export default function MangaReader({
   // Safety watchdog: prevent infinite spinner buffering if network stalls
   useEffect(() => {
     if (!initialLoading) return;
+    // Extended safety timeout to avoid premature interruption of high-res image parsing
     const safetyTimer = setTimeout(() => {
       setInitialLoading(false);
       setInitialError((prev) => prev || 'Chapter loading took longer than expected. Tap below to retry or choose another chapter.');
-    }, 8500);
+    }, 25000);
     return () => clearTimeout(safetyTimer);
   }, [initialLoading]);
 
@@ -1019,20 +1020,20 @@ export default function MangaReader({
               </p>
             </div>
           ) : initialError ? (
-            <div className="max-w-lg w-full mx-auto p-6 sm:p-8 rounded-3xl bg-[#090d1a]/95 border border-cyan-500/30 text-center space-y-5 my-auto shadow-2xl backdrop-blur-2xl glass-card">
-              <div className="w-16 h-16 rounded-2xl bg-cyan-500/15 border border-cyan-500/40 flex items-center justify-center text-cyan-400 mx-auto shadow-lg shadow-cyan-500/20">
-                <Globe className="w-8 h-8 animate-pulse text-cyan-400" />
+            <div className="max-w-lg w-full mx-auto p-6 sm:p-8 rounded-3xl bg-[#090d1a]/95 border border-rose-500/30 text-center space-y-5 my-auto shadow-2xl backdrop-blur-2xl glass-card">
+              <div className="w-16 h-16 rounded-2xl bg-rose-500/15 border border-rose-500/40 flex items-center justify-center text-rose-400 mx-auto shadow-lg shadow-rose-500/20">
+                <AlertCircle className="w-8 h-8 animate-pulse text-rose-400" />
               </div>
               <div className="space-y-2">
-                <div className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full bg-cyan-950/80 border border-cyan-500/30 text-cyan-300 font-mono text-[10px] uppercase tracking-wider">
-                  <Sparkles className="w-3 h-3 text-cyan-400" />
-                  <span>ONLINE SOURCE BRIDGE ACTIVE</span>
+                <div className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full bg-rose-950/80 border border-rose-500/30 text-rose-300 font-mono text-[10px] uppercase tracking-wider">
+                  <Sparkles className="w-3 h-3 text-rose-400" />
+                  <span>CHAPTER MIRROR RECOVERY</span>
                 </div>
                 <h3 className="text-lg sm:text-xl font-black text-white tracking-tight">
                   Chapter {activeChapterNumber || chapterNumber}
                 </h3>
                 <p className="text-xs sm:text-sm text-slate-300 leading-relaxed max-w-md mx-auto">
-                  {cleanTitle(mangaTitle || 'Manga')} Chapter {activeChapterNumber || chapterNumber} is ready to read online via our verified high-speed source reader.
+                  {cleanTitle(mangaTitle || 'Manga')} Chapter {activeChapterNumber || chapterNumber} pages are synchronizing from high-speed mirror sources.
                 </p>
               </div>
 
@@ -1040,28 +1041,18 @@ export default function MangaReader({
                 const targetUrl = chapterSourceUrl || getChapterSourceUrl(mangaId, activeChapterId || chapterId, activeChapterNumber || chapterNumber, mangaTitle);
                 return (
                   <div className="pt-2 space-y-3">
-                    <a
-                      href={targetUrl}
-                      target="_blank"
-                      rel="noopener noreferrer"
+                    <button
+                      type="button"
                       onClick={() => {
-                        recordReadingProgress({
-                          mangaId,
-                          mangaTitle,
-                          mangaEnglishTitle,
-                          coverUrl,
-                          chapterId: activeChapterId || chapterId,
-                          chapterNumber: activeChapterNumber || chapterNumber,
-                          currentPage: 1,
-                          totalPages: 1,
-                        });
-                        setReadChapterIds((prev) => [...prev, activeChapterId || chapterId]);
+                        setInitialLoading(true);
+                        setInitialError(null);
+                        jumpToChapter(activeChapterId || chapterId, activeChapterNumber || chapterNumber);
                       }}
-                      className="w-full py-3.5 px-6 rounded-2xl text-sm font-black text-white bg-gradient-to-r from-rose-600 via-pink-600 to-cyan-500 hover:from-rose-500 hover:to-cyan-400 shadow-xl shadow-rose-600/30 hover:shadow-cyan-500/40 flex items-center justify-center gap-2.5 transition-all transform hover:-translate-y-0.5 active:translate-y-0 text-center tracking-wide group"
+                      className="w-full py-3.5 px-6 rounded-2xl text-sm font-black text-white bg-gradient-to-r from-rose-600 via-pink-600 to-rose-500 hover:from-rose-500 hover:to-pink-500 shadow-xl shadow-rose-600/30 flex items-center justify-center gap-2.5 transition-all transform hover:-translate-y-0.5 active:translate-y-0 text-center tracking-wide group cursor-pointer"
                     >
-                      <ExternalLink className="w-4 h-4 text-white group-hover:scale-110 transition-transform" />
-                      <span>READ CHAPTER {activeChapterNumber || chapterNumber} ONLINE (SOURCE ↗)</span>
-                    </a>
+                      <Sparkles className="w-4 h-4 text-white group-hover:scale-110 transition-transform" />
+                      <span>RETRY CHAPTER {activeChapterNumber || chapterNumber} IN-APP</span>
+                    </button>
 
                     <div className="flex flex-wrap justify-center gap-2 pt-1">
                       {nextChapter && (
@@ -1091,19 +1082,26 @@ export default function MangaReader({
                       </button>
                       <button
                         type="button"
-                        onClick={() => jumpToChapter(activeChapterId || chapterId, activeChapterNumber || chapterNumber)}
-                        className="px-4 py-2 rounded-xl text-xs font-bold bg-white/5 hover:bg-white/10 text-slate-400 border border-white/5 transition-all cursor-pointer"
-                      >
-                        Retry
-                      </button>
-                      <button
-                        type="button"
                         onClick={handleHome}
                         className="px-4 py-2 rounded-xl text-xs font-bold bg-transparent hover:bg-white/5 text-slate-400 transition-all cursor-pointer"
                       >
                         Close Reader
                       </button>
                     </div>
+
+                    {targetUrl && (
+                      <div className="pt-2">
+                        <a
+                          href={targetUrl}
+                          target="_blank"
+                          rel="noopener noreferrer"
+                          className="text-[11px] text-slate-400 hover:text-cyan-300 transition-colors inline-flex items-center gap-1 underline underline-offset-2"
+                        >
+                          <span>Open external backup mirror</span>
+                          <ExternalLink className="w-3 h-3" />
+                        </a>
+                      </div>
+                    )}
                   </div>
                 );
               })()}

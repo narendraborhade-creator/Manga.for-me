@@ -109,7 +109,10 @@ function mangaApiPlugin() {
 
       if (pathname === '/api/manga/read') {
         const chapterId = (urlObj.searchParams.get('chapterId') || '').slice(0, 300);
-        const result = await getChapterPages(chapterId);
+        const mangaId = (urlObj.searchParams.get('mangaId') || '').slice(0, 300);
+        const ch = (urlObj.searchParams.get('ch') || '').slice(0, 50);
+        const title = (urlObj.searchParams.get('title') || '').slice(0, 300);
+        const result = await getChapterPages(chapterId, mangaId, ch, title);
         res.setHeader('Content-Type', 'application/json');
         res.end(JSON.stringify(result));
         return;

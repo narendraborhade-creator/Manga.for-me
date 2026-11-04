@@ -19,18 +19,21 @@ export default async function handler(req, res) {
 
   try {
     const urlObj = new URL(req.url, 'http://localhost');
-    const chapterId = req.query?.chapterId || urlObj.searchParams.get('chapterId');
+    const chapterId = req.query?.chapterId || urlObj.searchParams.get('chapterId') || '';
+    const mangaId = req.query?.mangaId || urlObj.searchParams.get('mangaId') || '';
+    const chapterNumber = req.query?.ch || req.query?.chapterNumber || urlObj.searchParams.get('ch') || '';
+    const title = req.query?.title || urlObj.searchParams.get('title') || '';
 
-    if (!chapterId) {
+    if (!chapterId && (!mangaId || !chapterNumber)) {
       res.status(400).json({ error: 'Missing chapterId parameter' });
       return;
     }
 
-    const result = await getChapterPages(chapterId);
+    const result = await getChapterPages(chapterId, mangaId, chapterNumber, title);
     res.setHeader('Content-Type', 'application/json');
     res.setHeader('Cache-Control', 's-maxage=600, stale-while-revalidate=1200');
     res.status(200).json(result || {
-      chapterId,
+      chapterId: chapterId || '',
       totalPages: 0,
       pages: [],
       warning: 'Chapter images are being synchronized.',
