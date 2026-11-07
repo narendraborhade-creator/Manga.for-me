@@ -33,8 +33,10 @@ export default function LibraryView({
     if (norm) seenLibraryKeys.add(norm);
     return true;
   });
-  const history = getHistory();
-  const updates = getUpdates();
+  const rawHistory = getHistory();
+  const history = Array.isArray(rawHistory) ? rawHistory : [];
+  const rawUpdates = getUpdates();
+  const updates = Array.isArray(rawUpdates) ? rawUpdates : [];
 
   const updatesByManga = new Map();
   updates.forEach((u) => {

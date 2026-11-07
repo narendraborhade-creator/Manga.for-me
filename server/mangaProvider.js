@@ -52,6 +52,12 @@ import {
   getMangaKakalotChapterPages
 } from './mangakakalotProvider.js';
 import { getMangaNews } from './newsProvider.js';
+import {
+  searchMangaKatana,
+  getPopularMangaKatana,
+  getMangaKatanaDetails,
+  getMangaKatanaChapterPages
+} from './mangakatanaProvider.js';
 import { decodeHtml, cleanTitle, getFallbackCover, deduplicateChapters } from './htmlUtils.js';
 
 // Server-side provider for complete manga chapters and pages
@@ -178,6 +184,7 @@ async function fetchWithTimeout(url, options = {}, timeoutMs = 4000) {
 // Quality ranking weights for providers (higher is better for complete unskipped chapters)
 export const PROVIDER_QUALITY_SCORE = {
   weebcentral: 100,
+  mangakatana: 98,
   flame: 95,
   thunder: 92,
   asura: 90,
@@ -280,6 +287,7 @@ export function computeSourceScore(item) {
   if (!item) return 0;
   const prov = item.provider || (
     item.id?.startsWith('wc:') ? 'weebcentral' :
+    item.id?.startsWith('kat:') ? 'mangakatana' :
     item.id?.startsWith('flame:') ? 'flame' :
     item.id?.startsWith('thunder:') ? 'thunder' :
     item.id?.startsWith('md:') ? 'mangadex' :
@@ -428,7 +436,8 @@ export async function getPopularManga() {
   });
 
   try {
-    const [wcList, dexList, flameList, thunderList, asuraList, vortexList, mkList, scrapedList] = await Promise.all([
+    const [wcList, katList, dexList, flameList, thunderList, asuraList, vortexList, mkList, scrapedList] = await Promise.all([
+      getPopularMangaKatana(16).catch(() => []),
       getPopularWeebCentral(16).catch(() => []),
       getPopularMangaDex(12).catch(() => []),
       getPopularFlame(12).catch(() => []),
@@ -476,6 +485,7 @@ export async function getPopularManga() {
     const merged = [
       ...baseList,
       ...wcList.slice(0, 16),
+      ...katList.slice(0, 16),
       ...flameList.slice(0, 10),
       ...thunderList.slice(0, 10),
       ...dexList.slice(0, 10),
@@ -581,7 +591,8 @@ export async function searchManga(query = '') {
 
   if (isNewQuery) {
     try {
-      const [wcLatest, wcAdded, dexLatest, dexAdded, flamePopular, thunderPop, asuraPop, vortexPop] = await Promise.all([
+      const [wcLatest, wcAdded, katPopular, dexLatest, dexAdded, flamePopular, thunderPop, asuraPop, vortexPop] = await Promise.all([
+        getPopularMangaKatana(20).catch(() => []),
         getLatestUpdatesWeebCentral(20).catch(() => []),
         getRecentlyAddedWeebCentral(16).catch(() => []),
         getLatestMangaDex(20).catch(() => []),
@@ -608,6 +619,7 @@ export async function searchManga(query = '') {
       };
 
       addFresh(wcLatest, 'WeebCentral');
+      addFresh(katPopular, 'MangaKatana');
       addFresh(dexLatest, 'MangaDex');
       addFresh(flamePopular, 'Flame Comics');
       addFresh(thunderPop, 'Thunder Scans');
@@ -638,6 +650,7 @@ export async function searchManga(query = '') {
     const secondaryQuery = expandedQueries[1] || null;
 
     const [
+      katMatches,
       weebCentralMatches,
       flameMatches,
       thunderMatches,
@@ -649,8 +662,10 @@ export async function searchManga(query = '') {
       mangapillMatches,
       extraWcMatches,
       extraThunderMatches,
-      extraAsuraMatches
+      extraAsuraMatches,
+      extraKatMatches
     ] = await Promise.all([
+      searchMangaKatana(query).catch(() => []),
       searchWeebCentral(query).catch((e) => {
         console.error('searchWeebCentral error:', e.message);
         return [];
@@ -690,6 +705,7 @@ export async function searchManga(query = '') {
       secondaryQuery ? searchWeebCentral(secondaryQuery).catch(() => []) : Promise.resolve([]),
       secondaryQuery ? searchThunder(secondaryQuery).catch(() => []) : Promise.resolve([]),
       secondaryQuery ? searchAsura(secondaryQuery).catch(() => []) : Promise.resolve([]),
+      secondaryQuery ? searchMangaKatana(secondaryQuery).catch(() => []) : Promise.resolve([]),
     ]);
 
     const stopWords = new Set([
@@ -714,7 +730,15 @@ export async function searchManga(query = '') {
     const seen = new Set();
     const combined = [];
 
-    // 1. WeebCentral matches (Ranked #1 for complete chapter scanlations)
+    // 1. MangaKatana matches (30,000+ complete HQ scanlations)
+    filterMatches([...katMatches, ...extraKatMatches]).forEach((item) => {
+      if (!seen.has(item.id)) {
+        combined.push({ ...item, sourceName: 'MangaKatana', provider: 'mangakatana' });
+        seen.add(item.id);
+      }
+    });
+
+    // 2. WeebCentral matches (Ranked #1 for complete chapter scanlations)
     filterMatches([...weebCentralMatches, ...extraWcMatches]).forEach((item) => {
       if (!seen.has(item.id)) {
         combined.push({ ...item, sourceName: 'WeebCentral' });
@@ -875,7 +899,8 @@ async function resolveAvailableSources(title, currentId, currentSourceName, curr
     const clean = title.replace(/[^\w\s]/gi, ' ').trim();
     if (!clean || clean.length < 2) return sources;
 
-    const [wc, flame, thunder, md, mk, asura, vortex, pill] = await Promise.all([
+    const [kat, wc, flame, thunder, md, mk, asura, vortex, pill] = await Promise.all([
+      searchMangaKatana(clean).catch(() => []),
       searchWeebCentral(clean).catch(() => []),
       searchFlame(clean).catch(() => []),
       searchThunder(clean).catch(() => []),
@@ -892,6 +917,7 @@ async function resolveAvailableSources(title, currentId, currentSourceName, curr
     const addIfMatch = (item) => {
       if (!item || !item.id || item.id === currentId) return;
       const srcName = item.sourceName || (
+        item.id?.startsWith('kat:') ? 'MangaKatana' :
         item.id?.startsWith('wc:') ? 'WeebCentral' :
         item.id?.startsWith('flame:') ? 'Flame Comics' :
         item.id?.startsWith('thunder:') ? 'Thunder Scans' :
@@ -917,6 +943,7 @@ async function resolveAvailableSources(title, currentId, currentSourceName, curr
       }
     };
 
+    kat.slice(0, 3).forEach(addIfMatch);
     wc.slice(0, 3).forEach(addIfMatch);
     flame.slice(0, 3).forEach(addIfMatch);
     thunder.slice(0, 3).forEach(addIfMatch);
@@ -1019,7 +1046,8 @@ export async function autoHealAndUpgradeChapters(details, bypassCache = false) {
   for (const query of candidateList) {
     if (maxFoundCount >= 20) break;
     try {
-      const [thunderResults, wcResults, flameResults, asuraResults, vortexResults, mkResults] = await Promise.all([
+      const [katResults, thunderResults, wcResults, flameResults, asuraResults, vortexResults, mkResults] = await Promise.all([
+        searchMangaKatana(query).catch(() => []),
         searchThunder(query).catch(() => []),
         searchWeebCentral(query).catch(() => []),
         searchFlame(query).catch(() => []),
@@ -1029,6 +1057,7 @@ export async function autoHealAndUpgradeChapters(details, bypassCache = false) {
       ]);
 
       const foundMatches = [
+        ...katResults,
         ...thunderResults,
         ...wcResults,
         ...flameResults,
@@ -1051,7 +1080,9 @@ export async function autoHealAndUpgradeChapters(details, bypassCache = false) {
         }
 
         let matchDetails = null;
-        if (match.id.startsWith('thunder:')) {
+        if (match.id.startsWith('kat:')) {
+          matchDetails = await getMangaKatanaDetails(match.id, bypassCache);
+        } else if (match.id.startsWith('thunder:')) {
           matchDetails = await getThunderDetails(match.id);
         } else if (match.id.startsWith('wc:')) {
           matchDetails = await getWeebCentralDetails(match.id.replace('wc:', ''), '', bypassCache);
@@ -1135,6 +1166,21 @@ export async function getMangaDetails(mangaId, bypassCache = false) {
 
   // Direct alias resolution for top series with verified 1000+ unskipped chapter archives
   const VERIFIED_COMPLETE_ALIASES = {
+    '2/one-piece': 'kat:one-piece.49',
+    'one-piece': 'kat:one-piece.49',
+    '1/berserk': 'kat:berserk.1',
+    'berserk': 'kat:berserk.1',
+    '5/naruto': 'kat:naruto.5',
+    'naruto': 'kat:naruto.5',
+    '3/bleach': 'kat:bleach.4',
+    'bleach': 'kat:bleach.4',
+    '2085/jujutsu-kaisen': 'kat:jujutsu-kaisen.2085',
+    'jujutsu-kaisen': 'kat:jujutsu-kaisen.2085',
+    '723/chainsaw-man': 'kat:chainsaw-man.2081',
+    'chainsaw-man': 'kat:chainsaw-man.2081',
+    'damn-reincarnation': 'kat:damn-reincarnation.26360',
+    'my-blasted-reincarnation': 'kat:damn-reincarnation.26360',
+    'my-blasted-reincarnated-life': 'kat:damn-reincarnation.26360',
     'lookism': 'wc:01J76XYBD282Y3XKX0KRGD64Q5',
     'webtoon:lookism': 'wc:01J76XYBD282Y3XKX0KRGD64Q5',
     'tower-of-god': 'wc:01J76XY7M0W9WWJ55VJYYB2J1S',
@@ -1202,6 +1248,8 @@ export async function getMangaDetails(mangaId, bypassCache = false) {
       resolvedDetails = await getWebtoonDetails(lookupId, bypassCache);
     } else if (lookupId.startsWith('wc:')) {
       resolvedDetails = await getWeebCentralDetails(lookupId.replace('wc:', ''), '', bypassCache);
+    } else if (lookupId.startsWith('kat:')) {
+      resolvedDetails = await getMangaKatanaDetails(lookupId, bypassCache);
     } else if (lookupId.startsWith('mk:')) {
       resolvedDetails = await getMangaKakalotDetails(lookupId, bypassCache);
     }
@@ -1440,6 +1488,11 @@ export async function getChapterPages(rawChapterId, rawMangaId = '', rawChapterN
     const requestedCh = parts[1] || chNum;
     
     if (aniId === '151512' || mId.includes('blasted') || mId.includes('damn-reincarnation') || title.includes('reincarnat')) {
+      const katDetails = await getMangaKatanaDetails('damn-reincarnation.26360').catch(() => null);
+      const targetCh = katDetails?.chapters?.find(c => String(c.chapter) === String(requestedCh));
+      if (targetCh) {
+        return await getMangaKatanaChapterPages(targetCh.id);
+      }
       chapterId = `asura_ch:damn-reincarnation-3ebcc5a9:${requestedCh}`;
     } else if (aniId === '164857' || mId.includes('barbarian') || title.includes('barbarian')) {
       chapterId = `asura_ch:surviving-the-game-as-a-barbarian-ab39de10:${requestedCh}`;
@@ -1460,9 +1513,19 @@ export async function getChapterPages(rawChapterId, rawMangaId = '', rawChapterN
         return await getWeebCentralChapterPages(targetCh.id.replace('wc_ch:', ''));
       }
     } else if (aniId === '30013' || mId.includes('one-piece') || title.includes('one piece')) {
+      const katDetails = await getMangaKatanaDetails('one-piece.49').catch(() => null);
+      const targetCh = katDetails?.chapters?.find(c => String(c.chapter) === String(requestedCh));
+      if (targetCh) {
+        return await getMangaKatanaChapterPages(targetCh.id);
+      }
       const code = 10000000 + Math.floor(parseFloat(requestedCh) * 1000);
       chapterId = `2-${code}/one-piece-chapter-${requestedCh}`;
     } else if (aniId === '30002' || mId.includes('berserk') || title.includes('berserk')) {
+      const katDetails = await getMangaKatanaDetails('berserk.1').catch(() => null);
+      const targetCh = katDetails?.chapters?.find(c => String(c.chapter) === String(requestedCh));
+      if (targetCh) {
+        return await getMangaKatanaChapterPages(targetCh.id);
+      }
       const code = 10000000 + Math.floor(parseFloat(requestedCh) * 1000);
       chapterId = `1-${code}/berserk-chapter-${requestedCh}`;
     } else if (aniId === '105778' || mId.includes('chainsaw') || title.includes('chainsaw man')) {
@@ -1516,6 +1579,9 @@ export async function getChapterPages(rawChapterId, rawMangaId = '', rawChapterN
       return await getWebtoonChapterPages(`webtoon:stepmother:${num}`);
     }
 
+    if (chapterId.startsWith('kat_ch:') || chapterId.startsWith('kat:')) {
+      return await getMangaKatanaChapterPages(chapterId);
+    }
     if (chapterId.startsWith('md_ch:') || chapterId.startsWith('md:')) {
       return await getMangaDexChapterPages(chapterId);
     }
@@ -1583,7 +1649,25 @@ export async function getChapterPages(rawChapterId, rawMangaId = '', rawChapterN
     setCache(cacheKey, result);
     return result;
   } catch (error) {
-    console.warn('getChapterPages warning, returning safe object:', error.message);
+    console.warn('getChapterPages MangaPill warning, attempting MangaKatana fallback:', error.message);
+    if (rawTitle || rawMangaId) {
+      try {
+        const queryTerm = rawTitle || rawMangaId.replace(/[-_]/g, ' ');
+        const searchMatches = await searchMangaKatana(queryTerm);
+        if (searchMatches && searchMatches.length > 0) {
+          const matchDet = await getMangaKatanaDetails(searchMatches[0].id);
+          const matchedCh = matchDet?.chapters?.find(c => String(c.chapter) === String(chNum));
+          if (matchedCh) {
+            const katRes = await getMangaKatanaChapterPages(matchedCh.id);
+            if (katRes && katRes.pages && katRes.pages.length > 0) {
+              return katRes;
+            }
+          }
+        }
+      } catch (fbErr) {
+        console.warn('MangaKatana chapter fallback error:', fbErr.message);
+      }
+    }
     return {
       chapterId,
       totalPages: 0,
@@ -1779,6 +1863,8 @@ export async function proxyImage(imageUrl, res) {
         primaryReferer = 'https://mangadex.org/';
       } else if (host.includes('mangapill') || host.includes('readdetectiveconan')) {
         primaryReferer = 'https://mangapill.com/';
+      } else if (host.includes('mangakatana')) {
+        primaryReferer = 'https://mangakatana.com/';
       } else {
         primaryReferer = parsedOrigin;
       }

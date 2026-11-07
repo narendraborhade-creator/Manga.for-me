@@ -53,15 +53,17 @@ export default function HistoryView({
   };
 
   // Calculate stats
+  const safeHistory = Array.isArray(history) ? history : [];
+
   const totalReadChapters = useMemo(() => {
-    return history.reduce((acc, cur) => acc + (cur.readChapters?.length || 1), 0);
-  }, [history]);
+    return safeHistory.reduce((acc, cur) => acc + (cur.readChapters?.length || 1), 0);
+  }, [safeHistory]);
 
   // Filtered by search query
   const filteredHistory = useMemo(() => {
-    if (!searchQuery.trim()) return history;
+    if (!searchQuery.trim()) return safeHistory;
     const q = searchQuery.toLowerCase().trim();
-    return history.filter((item) => {
+    return safeHistory.filter((item) => {
       const title = item.mangaTitle?.toLowerCase() || '';
       const eng = item.mangaEnglishTitle?.toLowerCase() || '';
       return title.includes(q) || eng.includes(q);
@@ -91,7 +93,7 @@ export default function HistoryView({
           <div className="grid grid-cols-2 gap-3 w-full md:w-auto font-mono">
             <div className="p-3 sm:p-3.5 rounded-2xl bg-slate-950/80 border border-cyan-500/30 text-center min-w-[120px]">
               <span className="text-[11px] text-slate-400 block font-medium">Titles Read</span>
-              <span className="text-lg font-extrabold text-white">{history.length}</span>
+              <span className="text-lg font-extrabold text-white">{safeHistory.length}</span>
             </div>
             <div className="p-3 sm:p-3.5 rounded-2xl bg-slate-950/80 border border-cyan-500/30 text-center min-w-[120px]">
               <span className="text-[11px] text-cyan-400 block font-medium">Chapters Read</span>

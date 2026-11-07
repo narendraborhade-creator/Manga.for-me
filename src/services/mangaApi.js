@@ -1315,24 +1315,12 @@ export async function fetchMangaDetails(mangaId, refresh = false) {
   const fallbackItem = FALLBACK_MANGA_CATALOG.find(
     (m) => m.id === mangaId || m.aliases?.includes(mangaId)
   ) || FALLBACK_MANGA_CATALOG.find((m) => {
-    const q = String(mangaId || '').toLowerCase().replace(/^wc:|^webtoon:|^md:|^asura:|^vortex:|^thunder:|^flame:|^mk:/, '').replace(/[-_:]/g, ' ');
+    const q = String(mangaId || '').toLowerCase().replace(/^wc:|^webtoon:|^md:|^asura:|^vortex:|^thunder:|^flame:|^mk:|^kat:/, '').replace(/[-_:]/g, ' ');
     const titleQ = m.title.toLowerCase().replace(/[-_:]/g, ' ');
     return q.includes(titleQ) || titleQ.includes(q);
   });
 
-  // Fast resolution from rich static catalog
-  if (fallbackItem && !refresh) {
-    const result = {
-      ...fallbackItem,
-      id: mangaId,
-      title: cleanTitle(fallbackItem.title),
-      englishTitle: fallbackItem.englishTitle ? cleanTitle(fallbackItem.englishTitle) : null,
-      coverUrl: getReliableCoverUrl(fallbackItem.title, fallbackItem.coverUrl),
-      chapters: fallbackItem.chapters || []
-    };
-    setClientCached(cacheKey, result);
-    return result;
-  }
+  // Always query live backend first for the latest chapters; fallback catalog is reserved strictly for network failure
 
   try {
     const refreshQuery = refresh ? '&refresh=true' : '';
@@ -1521,9 +1509,15 @@ export async function fetchChapterPages(chapterId, mangaId = null, chapterNumber
   const baseUrl = getApiBaseUrl();
 
   try {
+    const qParams = new URLSearchParams({
+      chapterId: chapterId || '',
+      mangaId: mangaId || '',
+      ch: chapterNumber || '',
+      title: mangaTitle || '',
+    });
     const url = baseUrl
-      ? `${baseUrl}/api/manga/read?chapterId=${encodeURIComponent(chapterId)}`
-      : `/api/manga/read?chapterId=${encodeURIComponent(chapterId)}`;
+      ? `${baseUrl}/api/manga/read?${qParams.toString()}`
+      : `/api/manga/read?${qParams.toString()}`;
     const res = await fetch(url, { signal: controller.signal });
     clearTimeout(timer);
     if (res.ok) {
@@ -1654,6 +1648,7 @@ function formatMangaItem(item) {
     tags: (item.tags || ['Manga', 'Action']).map(decodeHtml),
     year: item.year || null,
     sourceName: item.sourceName || (
+      item.id?.startsWith('kat:') ? 'MangaKatana' :
       item.id?.startsWith('asura:') ? 'Asura Scans' :
       item.id?.startsWith('webtoon:') ? 'Webtoon' : 'MangaPill'
     ),
