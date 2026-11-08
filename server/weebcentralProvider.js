@@ -384,10 +384,16 @@ export async function getWeebCentralDetails(seriesId, initialCover = '', bypassC
     if (cached) return cached;
   }
 
-  // 1. Try WeebCentral direct fetch with timeout
+  // 1. Try WeebCentral direct fetch with parallel timeout
   try {
     const seriesUrl = `https://weebcentral.com/series/${seriesId}`;
-    const res = await fetchWithTimeout(seriesUrl, { headers: HEADERS }, 4500);
+    const chapUrl = `https://weebcentral.com/series/${seriesId}/full-chapter-list`;
+
+    const [res, chapRes] = await Promise.all([
+      fetchWithTimeout(seriesUrl, { headers: HEADERS }, 8000),
+      fetchWithTimeout(chapUrl, { headers: HEADERS }, 8000),
+    ]);
+
     if (res.ok) {
       const html = await res.text();
 
@@ -428,9 +434,7 @@ export async function getWeebCentralDetails(seriesId, initialCover = '', bypassC
       );
       const tags = [...new Set(tagMatches)].slice(0, 8);
 
-      // Fetch Full Chapter List
-      const chapUrl = `https://weebcentral.com/series/${seriesId}/full-chapter-list`;
-      const chapRes = await fetchWithTimeout(chapUrl, { headers: HEADERS }, 4500);
+      // Parse Chapter List
       if (chapRes.ok) {
         const chapHtml = await chapRes.text();
         const chapMatches = [...chapHtml.matchAll(/<a[^>]+href="(\/chapters\/([^"/]+))"[^>]*>([\s\S]*?)<\/a>/gi)];
