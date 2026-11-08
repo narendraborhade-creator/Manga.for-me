@@ -82,34 +82,42 @@ export async function searchWeebCentral(query = '') {
 
     let articles = html.split('<article class="bg-base-300').slice(1);
 
-    // If no results and query contains straight apostrophe, retry with curly quote
-    if (articles.length === 0 && q.includes("'")) {
-      const altQ = q.replace(/'/g, '’');
-      try {
-        const altRes = await fetch(`https://weebcentral.com/search/data?text=${encodeURIComponent(altQ)}`, { headers: HEADERS });
-        if (altRes.ok) {
-          const altHtml = await altRes.text();
-          const altArticles = altHtml.split('<article class="bg-base-300').slice(1);
-          if (altArticles.length > 0) {
-            articles = altArticles;
-          }
-        }
-      } catch {}
-    }
+    // Robust fallbacks if raw query returned 0 results:
+    if (articles.length === 0) {
+      const fallbackQueries = [];
+      // 1. Hyphen removal (WeebCentral search treats '-' as exclusion/NOT)
+      if (q.includes('-')) {
+        fallbackQueries.push(q.replace(/-/g, ' ').replace(/\s+/g, ' ').trim());
+      }
+      // 2. Leading article/pronoun stripping ('The', 'A', 'An', 'My') with hyphen removal
+      const noArticle = q.replace(/^(the|a|an|my)\s+/i, '').replace(/-/g, ' ').replace(/\s+/g, ' ').trim();
+      if (noArticle !== q && noArticle.length >= 3) {
+        fallbackQueries.push(noArticle);
+      }
+      // 3. Curly quote replacement
+      if (q.includes("'")) {
+        fallbackQueries.push(q.replace(/'/g, '’'));
+        fallbackQueries.push(q.replace(/'/g, ''));
+      }
+      // 4. Honorific stripping (-san, -kun, etc.)
+      if (/-(?:san|kun|chan|sama|dono)\b/i.test(q)) {
+        fallbackQueries.push(q.replace(/-(?:san|kun|chan|sama|dono)\b/gi, '').replace(/'/g, '’').trim());
+      }
 
-    // If still no results and query contains honorific (e.g. Komi-san -> Komi)
-    if (articles.length === 0 && /-(?:san|kun|chan|sama|dono)\b/i.test(q)) {
-      const cleanQ = q.replace(/-(?:san|kun|chan|sama|dono)\b/gi, '').replace(/'/g, '’').trim();
-      try {
-        const altRes = await fetch(`https://weebcentral.com/search/data?text=${encodeURIComponent(cleanQ)}`, { headers: HEADERS });
-        if (altRes.ok) {
-          const altHtml = await altRes.text();
-          const altArticles = altHtml.split('<article class="bg-base-300').slice(1);
-          if (altArticles.length > 0) {
-            articles = altArticles;
+      for (const altQ of fallbackQueries) {
+        if (!altQ || altQ === q) continue;
+        try {
+          const altRes = await fetch(`https://weebcentral.com/search/data?text=${encodeURIComponent(altQ)}`, { headers: HEADERS });
+          if (altRes.ok) {
+            const altHtml = await altRes.text();
+            const altArticles = altHtml.split('<article class="bg-base-300').slice(1);
+            if (altArticles.length > 0) {
+              articles = altArticles;
+              break;
+            }
           }
-        }
-      } catch {}
+        } catch {}
+      }
     }
 
     const list = [];

@@ -228,6 +228,10 @@ export const KNOWN_CHAPTER_COUNTS = {
   'reaper of the drifting moon': 110,
   'murim login': 190,
   'a fortune-telling princess': 176,
+  'the despised stepmother begins her second life': 130,
+  'the despised stepmother': 130,
+  'my in-laws are obsessed with me': 130,
+  'my in laws are obsessed with me': 130,
   'solo leveling': 200,
   'omniscient reader': 240,
   'damn reincarnation': 85,
@@ -1078,9 +1082,17 @@ export async function autoHealAndUpgradeChapters(details, bypassCache = false) {
     if (clean.length >= 2 && !queryCandidates.includes(clean)) {
       queryCandidates.push(clean);
     }
+    const noHyphen = clean.replace(/-/g, ' ').replace(/\s+/g, ' ').trim();
+    if (noHyphen.length >= 2 && !queryCandidates.includes(noHyphen)) {
+      queryCandidates.push(noHyphen);
+    }
     const noSan = clean.replace(/-(?:san|kun|chan|sama|dono)\b/gi, '').trim();
     if (noSan.length >= 2 && !queryCandidates.includes(noSan)) {
       queryCandidates.push(noSan);
+    }
+    const noArticle = clean.replace(/^(the|a|an|my)\s+/i, '').replace(/-/g, ' ').replace(/\s+/g, ' ').trim();
+    if (noArticle.length >= 3 && !queryCandidates.includes(noArticle)) {
+      queryCandidates.push(noArticle);
     }
   };
 
@@ -1101,7 +1113,7 @@ export async function autoHealAndUpgradeChapters(details, bypassCache = false) {
     details.altTitles.forEach(addQuery);
   }
 
-  const candidateList = queryCandidates.slice(0, 4);
+  const candidateList = queryCandidates.slice(0, 5);
   let bestUpgrade = null;
   let maxFoundCount = currentCount;
 
@@ -1156,8 +1168,10 @@ export async function autoHealAndUpgradeChapters(details, bypassCache = false) {
           const candidateChapters = deduplicateChapters(matchDetails.chapters);
           const candidateGaps = detectChapterGaps(candidateChapters);
 
-          // 1. If candidate has significantly more chapters and fewer/no gaps, adopt it as primary
-          if (candidateChapters.length > maxFoundCount && candidateGaps.length <= currentGaps.length) {
+          // 1. If candidate has significantly more chapters, adopt it as primary!
+          // When currentCount === 0, ANY candidate with chapters is adopted to avoid leaving user with 0 chapters.
+          const isBetterOrZero = currentCount === 0 || (candidateChapters.length > maxFoundCount && candidateGaps.length <= Math.max(1, currentGaps.length));
+          if (isBetterOrZero) {
             maxFoundCount = candidateChapters.length;
             currentChapters = candidateChapters;
             currentGaps = candidateGaps;
@@ -1284,6 +1298,14 @@ export async function getMangaDetails(mangaId, bypassCache = false) {
     'a-fortune-telling-princess': 'webtoon:fortune-telling-princess',
     'fortune-telling-princess': 'webtoon:fortune-telling-princess',
     'md:0ba6b85e-3e87-454a-b81d-1040468248e1': 'webtoon:fortune-telling-princess',
+    'the-despised-stepmother-begins-her-second-life': 'webtoon:stepmother-second-life',
+    'the-despised-stepmother': 'webtoon:stepmother-second-life',
+    'stepmother-second-life': 'webtoon:stepmother-second-life',
+    'md:73f00a6a-dc33-49f6-beb0-98feb29ce0cc': 'webtoon:stepmother-second-life',
+    '73f00a6a-dc33-49f6-beb0-98feb29ce0cc': 'webtoon:stepmother-second-life',
+    'my-in-laws-are-obsessed-with-me': 'wc:01J76XYFAESZTJT5AQ1SPFKYXR',
+    'md:c44b5b1d-60cf-4faf-be2c-0a807200358f': 'wc:01J76XYFAESZTJT5AQ1SPFKYXR',
+    'c44b5b1d-60cf-4faf-be2c-0a807200358f': 'wc:01J76XYFAESZTJT5AQ1SPFKYXR',
     'damn-reincarnation': 'asura:damn-reincarnation-ab39de10',
     'surviving-the-game-as-a-barbarian': 'asura:surviving-the-game-as-a-barbarian-ab39de10',
     'greatest-estate-developer': 'asura:the-greatest-estate-developer-ab39de10',
@@ -1312,6 +1334,10 @@ export async function getMangaDetails(mangaId, bypassCache = false) {
           resolvedDetails = await getWeebCentralDetails(altId.replace('wc:', ''), '', bypassCache);
         } else if (altId.startsWith('asura:')) {
           resolvedDetails = await getAsuraDetails(altId);
+        } else if (altId.startsWith('webtoon:')) {
+          resolvedDetails = await getWebtoonDetails(altId, bypassCache);
+        } else if (altId.startsWith('kat:')) {
+          resolvedDetails = await getMangaKatanaDetails(altId, bypassCache);
         }
       }
     } else if (lookupId.startsWith('thunder:')) {
