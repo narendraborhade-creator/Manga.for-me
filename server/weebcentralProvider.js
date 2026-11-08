@@ -556,35 +556,8 @@ export async function getWeebCentralDetails(seriesId, initialCover = '', bypassC
     }
   }
 
-  // C. Fallback series structure with generated chapters so user can browse
-  const fallbackTitle = slugToTitle(rawSlug);
-  const fallbackChapters = [];
-  for (let i = 30; i >= 1; i--) {
-    fallbackChapters.push({
-      id: `wc_ch:${seriesId}_ch${i}`,
-      chapter: String(i),
-      title: `Chapter ${i}`,
-      sourceUrl: `https://weebcentral.com/series/${seriesId}`,
-    });
-  }
-
-  const fallbackResult = {
-    id: `wc:${seriesId}`,
-    title: fallbackTitle,
-    englishTitle: fallbackTitle,
-    coverUrl: initialCover || getFallbackCover(fallbackTitle),
-    status: 'Ongoing',
-    description: `${fallbackTitle} chapters and summary are available from archived backup sources.`,
-    tags: ['Manga', 'Ongoing'],
-    author: 'Author',
-    chapters: fallbackChapters,
-    totalChapters: fallbackChapters.length,
-    provider: 'weebcentral',
-    sourceName: 'WeebCentral Archive',
-  };
-
-  setCache(cacheKey, fallbackResult);
-  return fallbackResult;
+  // If direct fetch didn't return real chapters, return null so autoHeal can use other verified providers
+  return null;
 }
 
 /**

@@ -1119,7 +1119,7 @@ export async function autoHealAndUpgradeChapters(details, bypassCache = false) {
 
   for (const query of candidateList) {
     try {
-      const [katResults, wcResults, mkResults, thunderResults, flameResults, asuraResults, vortexResults] = await Promise.all([
+      const [katResults, wcResults, mkResults, thunderResults, flameResults, asuraResults, vortexResults, webtoonResults] = await Promise.all([
         searchMangaKatana(query).catch(() => []),
         searchWeebCentral(query).catch(() => []),
         searchMangaKakalot(query).catch(() => []),
@@ -1127,12 +1127,14 @@ export async function autoHealAndUpgradeChapters(details, bypassCache = false) {
         searchFlame(query).catch(() => []),
         searchAsura(query).catch(() => []),
         searchVortex(query).catch(() => []),
+        searchWebtoons(query).catch(() => []),
       ]);
 
       // Balanced cross-provider candidate gathering: top 2 from each provider
       const providerMatches = [
         ...katResults.slice(0, 2),
         ...wcResults.slice(0, 2),
+        ...webtoonResults.slice(0, 2),
         ...mkResults.slice(0, 2),
         ...thunderResults.slice(0, 2),
         ...flameResults.slice(0, 2),
@@ -1148,6 +1150,8 @@ export async function autoHealAndUpgradeChapters(details, bypassCache = false) {
           matchDetails = await getMangaKatanaDetails(match.id, bypassCache);
         } else if (match.id.startsWith('wc:')) {
           matchDetails = await getWeebCentralDetails(match.id.replace('wc:', ''), '', bypassCache);
+        } else if (match.id.startsWith('webtoon:')) {
+          matchDetails = await getWebtoonDetails(match.id, bypassCache);
         } else if (match.id.startsWith('mk:')) {
           matchDetails = await getMangaKakalotDetails(match.id, bypassCache);
         } else if (match.id.startsWith('thunder:')) {
@@ -1303,9 +1307,9 @@ export async function getMangaDetails(mangaId, bypassCache = false) {
     'stepmother-second-life': 'webtoon:stepmother-second-life',
     'md:73f00a6a-dc33-49f6-beb0-98feb29ce0cc': 'webtoon:stepmother-second-life',
     '73f00a6a-dc33-49f6-beb0-98feb29ce0cc': 'webtoon:stepmother-second-life',
-    'my-in-laws-are-obsessed-with-me': 'wc:01J76XYFAESZTJT5AQ1SPFKYXR',
-    'md:c44b5b1d-60cf-4faf-be2c-0a807200358f': 'wc:01J76XYFAESZTJT5AQ1SPFKYXR',
-    'c44b5b1d-60cf-4faf-be2c-0a807200358f': 'wc:01J76XYFAESZTJT5AQ1SPFKYXR',
+    'my-in-laws-are-obsessed-with-me': 'webtoon:ks:my-in-laws-are-obsessed-with-me',
+    'md:c44b5b1d-60cf-4faf-be2c-0a807200358f': 'webtoon:ks:my-in-laws-are-obsessed-with-me',
+    'c44b5b1d-60cf-4faf-be2c-0a807200358f': 'webtoon:ks:my-in-laws-are-obsessed-with-me',
     'damn-reincarnation': 'asura:damn-reincarnation-ab39de10',
     'surviving-the-game-as-a-barbarian': 'asura:surviving-the-game-as-a-barbarian-ab39de10',
     'greatest-estate-developer': 'asura:the-greatest-estate-developer-ab39de10',
