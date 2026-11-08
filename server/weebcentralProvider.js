@@ -80,7 +80,38 @@ export async function searchWeebCentral(query = '') {
     if (!res.ok) return [];
     const html = await res.text();
 
-    const articles = html.split('<article class="bg-base-300').slice(1);
+    let articles = html.split('<article class="bg-base-300').slice(1);
+
+    // If no results and query contains straight apostrophe, retry with curly quote
+    if (articles.length === 0 && q.includes("'")) {
+      const altQ = q.replace(/'/g, '’');
+      try {
+        const altRes = await fetch(`https://weebcentral.com/search/data?text=${encodeURIComponent(altQ)}`, { headers: HEADERS });
+        if (altRes.ok) {
+          const altHtml = await altRes.text();
+          const altArticles = altHtml.split('<article class="bg-base-300').slice(1);
+          if (altArticles.length > 0) {
+            articles = altArticles;
+          }
+        }
+      } catch {}
+    }
+
+    // If still no results and query contains honorific (e.g. Komi-san -> Komi)
+    if (articles.length === 0 && /-(?:san|kun|chan|sama|dono)\b/i.test(q)) {
+      const cleanQ = q.replace(/-(?:san|kun|chan|sama|dono)\b/gi, '').replace(/'/g, '’').trim();
+      try {
+        const altRes = await fetch(`https://weebcentral.com/search/data?text=${encodeURIComponent(cleanQ)}`, { headers: HEADERS });
+        if (altRes.ok) {
+          const altHtml = await altRes.text();
+          const altArticles = altHtml.split('<article class="bg-base-300').slice(1);
+          if (altArticles.length > 0) {
+            articles = altArticles;
+          }
+        }
+      } catch {}
+    }
+
     const list = [];
     const seen = new Set();
 

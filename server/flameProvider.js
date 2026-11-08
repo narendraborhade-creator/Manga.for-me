@@ -133,12 +133,14 @@ export async function searchFlame(query = '') {
 /**
  * Get Manga Details and Chapters from Flame Comics
  */
-export async function getFlameDetails(rawId) {
+export async function getFlameDetails(rawId, bypassCache = false) {
   if (!rawId) return null;
   const cleanId = String(rawId).replace(/^flame:/, '');
   const cacheKey = `flame_details_${cleanId}`;
-  const cached = getCached(cacheKey);
-  if (cached) return cached;
+  if (!bypassCache) {
+    const cached = getCached(cacheKey);
+    if (cached) return cached;
+  }
 
   try {
     const url = `${BASE_URL}/series/${cleanId}`;

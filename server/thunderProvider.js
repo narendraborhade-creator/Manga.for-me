@@ -179,12 +179,14 @@ export async function getPopularThunder(limit = 16) {
 /**
  * Get Manga Details and Full Chapter List from Thunder Scans
  */
-export async function getThunderDetails(rawId) {
+export async function getThunderDetails(rawId, bypassCache = false) {
   if (!rawId) return null;
   const slug = String(rawId).replace(/^thunder:/, '').replace(/\/$/, '');
   const cacheKey = `thunder_details_${slug}`;
-  const cached = getCached(cacheKey);
-  if (cached) return cached;
+  if (!bypassCache) {
+    const cached = getCached(cacheKey);
+    if (cached) return cached;
+  }
 
   try {
     const url = `${BASE_URL}/comics/${slug}/`;

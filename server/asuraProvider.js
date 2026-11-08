@@ -218,12 +218,14 @@ export async function getPopularAsura() {
 /**
  * Get Asura Comic Details & Chapter List
  */
-export async function getAsuraDetails(slug) {
+export async function getAsuraDetails(slug, bypassCache = false) {
   const rawSlug = decodeHtml(slug.replace(/^asura:/i, ''));
   const cleanSlug = ASURA_SLUG_MAP[rawSlug] || ASURA_SLUG_MAP[rawSlug.toLowerCase()] || rawSlug;
   const cacheKey = `asura_details_${cleanSlug}`;
-  const cached = getCached(cacheKey);
-  if (cached) return cached;
+  if (!bypassCache) {
+    const cached = getCached(cacheKey);
+    if (cached) return cached;
+  }
 
   try {
     const url = `${BASE_URL}/comics/${encodeURI(cleanSlug)}`;

@@ -218,11 +218,13 @@ export async function getPopularVortex() {
 /**
  * Get Vortex Series Details & Chapter List
  */
-export async function getVortexDetails(slug) {
+export async function getVortexDetails(slug, bypassCache = false) {
   const cleanSlug = decodeHtml(slug.replace(/^vortex:/i, ''));
   const cacheKey = `vortex_details_${cleanSlug}`;
-  const cached = getCached(cacheKey);
-  if (cached) return cached;
+  if (!bypassCache) {
+    const cached = getCached(cacheKey);
+    if (cached) return cached;
+  }
 
   try {
     const url = `${BASE_URL}/series/${encodeURI(cleanSlug)}`;

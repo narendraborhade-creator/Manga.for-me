@@ -153,8 +153,23 @@ export async function getMangaKatanaDetails(mangaId, bypassCache = false) {
       seenCh.add(chSlug);
 
       const chText = cm[2].trim();
-      const numMatch = chText.match(/(?:Chapter|Ch\.?|Ep\.?)\s*([0-9.]+)/i) || chText.match(/([0-9.]+)/);
-      const chapterNum = numMatch ? numMatch[1] : chSlug.replace(/^c/, '');
+      const slugMatch = chSlug.match(/^c([0-9.]+)/i);
+      const titleChMatch = chText.match(/(?:Chapter|Ch\.?|Ep\.?)\s*([0-9.]+)/i);
+
+      let chapterNum;
+      if (titleChMatch) {
+        chapterNum = titleChMatch[1];
+      } else if (slugMatch) {
+        chapterNum = slugMatch[1];
+      } else {
+        const fallbackMatch = chText.match(/([0-9.]+)/);
+        const pNum = fallbackMatch ? parseFloat(fallbackMatch[1]) : NaN;
+        if (!isNaN(pNum) && !(pNum >= 1990 && pNum <= 2030)) {
+          chapterNum = fallbackMatch[1];
+        } else {
+          chapterNum = chSlug.replace(/^c/, '') || 'Special';
+        }
+      }
 
       chapters.push({
         id: `kat_ch:${slug}:${chSlug}`,

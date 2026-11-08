@@ -58,7 +58,7 @@ import {
   getMangaKatanaDetails,
   getMangaKatanaChapterPages
 } from './mangakatanaProvider.js';
-import { decodeHtml, cleanTitle, getFallbackCover, deduplicateChapters } from './htmlUtils.js';
+import { decodeHtml, cleanTitle, getFallbackCover, deduplicateChapters, detectChapterGaps, mergeAndDeduplicateChapters } from './htmlUtils.js';
 
 // Server-side provider for complete manga chapters and pages
 const USER_AGENT = 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36';
@@ -92,6 +92,8 @@ export const FEATURED_MANGA = [
   {
     id: '2/one-piece',
     title: 'One Piece',
+    latestChapter: '1198',
+    totalChapters: 1208,
     coverUrl: 'https://s4.anilist.co/file/anilistcdn/media/manga/cover/large/bx30013-BeslEMqiPhlk.jpg',
     status: 'Ongoing',
     score: '9.3',
@@ -105,6 +107,8 @@ export const FEATURED_MANGA = [
   {
     id: 'wc:01J76XY7EF75DJNQCV04HTPDZK',
     title: 'Berserk',
+    latestChapter: '376',
+    totalChapters: 376,
     coverUrl: 'https://s4.anilist.co/file/anilistcdn/media/manga/cover/large/bx30002-Cul4OeN7bYtn.jpg',
     status: 'Ongoing',
     score: '9.5',
@@ -118,6 +122,8 @@ export const FEATURED_MANGA = [
   {
     id: 'wc:01J76XYCRVY3QGYAMRR3STW941',
     title: 'Chainsaw Man',
+    latestChapter: '232',
+    totalChapters: 232,
     coverUrl: 'https://s4.anilist.co/file/anilistcdn/media/manga/cover/large/bx105778-euxXZEIfDY2u.png',
     status: 'Ongoing',
     score: '8.9',
@@ -131,6 +137,8 @@ export const FEATURED_MANGA = [
   {
     id: 'wc:01J76XYCERXE60T7FKXVCCAQ0H',
     title: 'Jujutsu Kaisen',
+    latestChapter: '271',
+    totalChapters: 271,
     coverUrl: 'https://s4.anilist.co/file/anilistcdn/media/manga/cover/large/bx101517-H3TdM3g5ZUe9.jpg',
     status: 'Completed',
     score: '8.8',
@@ -144,6 +152,8 @@ export const FEATURED_MANGA = [
   {
     id: 'wc:01J76XYBNEJ5EGK9ZEP3YS0PMH',
     title: 'Boruto: Two Blue Vortex',
+    latestChapter: '25',
+    totalChapters: 25,
     coverUrl: 'https://s4.anilist.co/file/anilistcdn/media/manga/cover/large/bx168468-FEo5x1ZZyWj4.png',
     status: 'Ongoing',
     score: '8.7',
@@ -157,6 +167,8 @@ export const FEATURED_MANGA = [
   {
     id: 'wc:01J76XYGGM22WZP7T4TKA4ZFAF',
     title: 'Kagurabachi',
+    latestChapter: '70',
+    totalChapters: 70,
     coverUrl: 'https://s4.anilist.co/file/anilistcdn/media/manga/cover/large/bx169355-5pqzh1Wb4NOQ.png',
     status: 'Ongoing',
     score: '8.9',
@@ -267,6 +279,11 @@ export function normalizeTitleKey(str) {
     .replace(/\s*[\(\[\{](?:official|fan colored|colored|webtoon|manhwa|manhua|novel|scanlation|book version)[\)\]\}]/gi, '')
     .replace(/\s*-\s*(?:official|fan colored|colored|webtoon|manhwa|manhua|novel|scanlation).*$/gi, '')
     .replace(/^(the|a|an)\s+/i, '')
+    .replace(/\s*-(?:san|kun|chan|sama|dono)\b/gi, '')
+    .replace(/\b([a-z0-9]{3,})(?:san|kun|chan|sama|dono)\b/gi, '$1')
+    .replace(/\s*season\s*[0-9]+/gi, '')
+    .replace(/\s*s[0-9]+\b/gi, '')
+    .replace(/\s*part\s*[0-9]+/gi, '')
     .replace(/na honjaman level[\s-]*up/i, 'solo leveling')
     .replace(/omniscient reader['’]?s?(\s+viewpoint)?/i, 'omniscient reader')
     .replace(/reincarnation of the suicidal battle god/i, 'doom breaker')
@@ -275,6 +292,13 @@ export function normalizeTitleKey(str) {
     .replace(/(to hell with being heir.*|hugyeja neun moreugetgo healing.*|forget about the succession.*)/gi, 'forget about succession')
     .replace(/(jeomgwaeboneun gongnyeonim|fortune[\s-]*telling lady)/gi, 'fortune telling princess')
     .replace(/fortune[\s-]*telling princess/gi, 'fortune telling princess')
+    .replace(/komi[\s-]*san wa komyushou desu/gi, 'komi cant communicate')
+    .replace(/kaoru hana wa rin to saku/gi, 'fragrant flower blooms with dignity')
+    .replace(/the fragrant flower blooms with dignity/gi, 'fragrant flower blooms with dignity')
+    .replace(/sousou no frieren/gi, 'frieren beyond journeys end')
+    .replace(/boku no hero academia/gi, 'my hero academia')
+    .replace(/kimetsu no yaiba/gi, 'demon slayer')
+    .replace(/shingeki no kyojin/gi, 'attack on titan')
     .replace(/[^\p{L}\p{N}\s]/gu, '')
     .replace(/\s+/g, ' ')
     .trim();
@@ -283,6 +307,17 @@ export function normalizeTitleKey(str) {
 /**
  * Compute composite quality and completeness score for a manga card
  */
+
+export function extractNumericChapter(val) {
+  if (typeof val === 'number') return isNaN(val) ? 0 : val;
+  if (!val) return 0;
+  const match = String(val).match(/([0-9]+(?:\.[0-9]+)?)/);
+  if (!match) return 0;
+  const num = parseFloat(match[1]);
+  if (num >= 1990 && num <= 2030) return 0; // Exclude year promos
+  return isNaN(num) ? 0 : num;
+}
+
 export function computeSourceScore(item) {
   if (!item) return 0;
   const prov = item.provider || (
@@ -299,9 +334,7 @@ export function computeSourceScore(item) {
   let score = PROVIDER_QUALITY_SCORE[prov] || 50;
 
   // Extract numeric chapter count from totalChapters or latestChapter
-  const chCount = (item.totalChapters && !isNaN(item.totalChapters))
-    ? parseFloat(item.totalChapters)
-    : (item.latestChapter && !isNaN(parseFloat(item.latestChapter)) ? parseFloat(item.latestChapter) : 0);
+  const chCount = extractNumericChapter(item.totalChapters) || extractNumericChapter(item.latestChapter);
 
   if (chCount > 0) {
     // Strongly prioritize the source with the most complete and latest chapters (e.g. 54 vs 32)
@@ -347,24 +380,31 @@ export function groupAndSelectBestManga(list) {
   }
 
   return Array.from(groups.values()).map(g => {
-    // Collect highest known chapter count among all duplicates to ensure accurate count
     const allMatches = [g.best, ...g.alternatives];
     let maxCh = 0;
     let maxChStr = null;
+    let bestItem = g.best;
+
     for (const m of allMatches) {
-      const num = (m.totalChapters && !isNaN(m.totalChapters))
-        ? parseFloat(m.totalChapters)
-        : (m.latestChapter && !isNaN(parseFloat(m.latestChapter)) ? parseFloat(m.latestChapter) : 0);
+      const num = extractNumericChapter(m.totalChapters) || extractNumericChapter(m.latestChapter);
       if (num > maxCh) {
         maxCh = num;
         maxChStr = m.latestChapter || String(Math.floor(num));
+        // If an alternative source has substantially more chapters, upgrade the primary card!
+        if (num > (extractNumericChapter(bestItem.totalChapters) || extractNumericChapter(bestItem.latestChapter)) + 5) {
+          bestItem = m;
+        }
       }
     }
 
+    const knownCount = getKnownChapterCount(bestItem.englishTitle || bestItem.title);
+    const latestChStr = bestItem.latestChapter || (maxCh > 0 ? (maxChStr || `Chapter ${maxCh}`) : (knownCount ? String(knownCount) : null));
+    const totalCh = bestItem.totalChapters || (maxCh > 0 ? Math.floor(maxCh) : (knownCount || null));
+
     return {
-      ...g.best,
-      latestChapter: maxCh > 0 ? (g.best.latestChapter || maxChStr) : g.best.latestChapter,
-      totalChapters: maxCh > 0 ? (g.best.totalChapters || Math.floor(maxCh)) : g.best.totalChapters,
+      ...bestItem,
+      latestChapter: latestChStr || bestItem.latestChapter,
+      totalChapters: totalCh || bestItem.totalChapters,
       alternativeSourcesCount: g.alternatives.length,
       alternativeSources: g.alternatives.map(a => a.sourceName || a.provider || 'Alternative')
     };
@@ -429,6 +469,8 @@ export async function getPopularManga() {
         year: wt.year,
         tags: wt.tags,
         description: wt.description,
+        latestChapter: wt.latestChapter ? String(wt.latestChapter) : null,
+        totalChapters: wt.totalChapters || null,
         sourceName: 'Webtoon',
         provider: 'webtoon',
       });
@@ -1019,106 +1061,141 @@ export function isAuthenticSeriesMatch(details, match, matchDetails) {
 export async function autoHealAndUpgradeChapters(details, bypassCache = false) {
   if (!details) return details;
 
-  const currentCount = Array.isArray(details.chapters) ? details.chapters.length : 0;
-  if (currentCount >= 20) return details;
+  let currentChapters = Array.isArray(details.chapters) ? deduplicateChapters(details.chapters) : [];
+  let currentGaps = detectChapterGaps(currentChapters);
+  const currentCount = currentChapters.length;
 
-  const candidates = new Set();
-  if (details.title) candidates.add(details.title);
-  if (details.englishTitle) candidates.add(details.englishTitle);
-  if (Array.isArray(details.altTitles)) {
-    details.altTitles.forEach(t => {
-      if (t && typeof t === 'string' && t.trim().length > 1) {
-        candidates.add(t.trim());
-      }
-    });
+  // If already has 100+ complete chapters with 0 gaps, no healing needed
+  if (currentCount >= 100 && currentGaps.length === 0) {
+    return details;
   }
 
-  // Also include base variants (e.g. without punctuation)
-  Array.from(candidates).forEach(t => {
-    const qVariants = getQueryVariants(t);
-    qVariants.forEach(v => candidates.add(v));
-  });
+  // Build high-value search queries prioritizing English/Western titles
+  const queryCandidates = [];
+  const addQuery = (q) => {
+    if (!q || typeof q !== 'string') return;
+    const clean = q.replace(/\s*[\(\[\{][^\)\]\}]+[\)\]\}]/g, '').trim();
+    if (clean.length >= 2 && !queryCandidates.includes(clean)) {
+      queryCandidates.push(clean);
+    }
+    const noSan = clean.replace(/-(?:san|kun|chan|sama|dono)\b/gi, '').trim();
+    if (noSan.length >= 2 && !queryCandidates.includes(noSan)) {
+      queryCandidates.push(noSan);
+    }
+  };
 
-  const candidateList = Array.from(candidates).filter(c => c && c.length >= 2).slice(0, 3);
+  // 1. English title first
+  if (details.englishTitle) addQuery(details.englishTitle);
+
+  // 2. English / Latin altTitles
+  if (Array.isArray(details.altTitles)) {
+    const latinAlts = details.altTitles.filter(t => /^[a-zA-Z0-9\s'’.,!?-]+$/.test(t));
+    latinAlts.forEach(addQuery);
+  }
+
+  // 3. Primary title
+  if (details.title) addQuery(details.title);
+
+  // 4. Any remaining altTitles
+  if (Array.isArray(details.altTitles)) {
+    details.altTitles.forEach(addQuery);
+  }
+
+  const candidateList = queryCandidates.slice(0, 4);
   let bestUpgrade = null;
   let maxFoundCount = currentCount;
 
   for (const query of candidateList) {
-    if (maxFoundCount >= 20) break;
     try {
-      const [katResults, thunderResults, wcResults, flameResults, asuraResults, vortexResults, mkResults] = await Promise.all([
+      const [katResults, wcResults, mkResults, thunderResults, flameResults, asuraResults, vortexResults] = await Promise.all([
         searchMangaKatana(query).catch(() => []),
-        searchThunder(query).catch(() => []),
         searchWeebCentral(query).catch(() => []),
+        searchMangaKakalot(query).catch(() => []),
+        searchThunder(query).catch(() => []),
         searchFlame(query).catch(() => []),
         searchAsura(query).catch(() => []),
         searchVortex(query).catch(() => []),
-        searchMangaKakalot(query).catch(() => []),
       ]);
 
-      const foundMatches = [
-        ...katResults,
-        ...thunderResults,
-        ...wcResults,
-        ...flameResults,
-        ...asuraResults,
-        ...vortexResults,
-        ...mkResults,
+      // Balanced cross-provider candidate gathering: top 2 from each provider
+      const providerMatches = [
+        ...katResults.slice(0, 2),
+        ...wcResults.slice(0, 2),
+        ...mkResults.slice(0, 2),
+        ...thunderResults.slice(0, 2),
+        ...flameResults.slice(0, 2),
+        ...asuraResults.slice(0, 2),
+        ...vortexResults.slice(0, 2),
       ];
 
-      for (const match of foundMatches.slice(0, 4)) {
+      for (const match of providerMatches) {
         if (!match || !match.id || match.id === details.id) continue;
-
-        // Chapter count indicator from search
-        const candidateCh = (match.totalChapters && !isNaN(match.totalChapters))
-          ? parseFloat(match.totalChapters)
-          : (match.latestChapter && !isNaN(parseFloat(match.latestChapter)) ? parseFloat(match.latestChapter) : 0);
-
-        // Optimization: if we already have chapters and this candidate is known to have fewer or equal, skip
-        if (currentCount > 0 && candidateCh > 0 && candidateCh <= maxFoundCount) {
-          continue;
-        }
 
         let matchDetails = null;
         if (match.id.startsWith('kat:')) {
           matchDetails = await getMangaKatanaDetails(match.id, bypassCache);
-        } else if (match.id.startsWith('thunder:')) {
-          matchDetails = await getThunderDetails(match.id);
         } else if (match.id.startsWith('wc:')) {
           matchDetails = await getWeebCentralDetails(match.id.replace('wc:', ''), '', bypassCache);
-        } else if (match.id.startsWith('flame:')) {
-          matchDetails = await getFlameDetails(match.id);
-        } else if (match.id.startsWith('asura:')) {
-          matchDetails = await getAsuraDetails(match.id);
-        } else if (match.id.startsWith('vortex:')) {
-          matchDetails = await getVortexDetails(match.id);
         } else if (match.id.startsWith('mk:')) {
           matchDetails = await getMangaKakalotDetails(match.id, bypassCache);
+        } else if (match.id.startsWith('thunder:')) {
+          matchDetails = await getThunderDetails(match.id, bypassCache);
+        } else if (match.id.startsWith('flame:')) {
+          matchDetails = await getFlameDetails(match.id, bypassCache);
+        } else if (match.id.startsWith('asura:')) {
+          matchDetails = await getAsuraDetails(match.id, bypassCache);
+        } else if (match.id.startsWith('vortex:')) {
+          matchDetails = await getVortexDetails(match.id, bypassCache);
         }
 
         if (matchDetails && Array.isArray(matchDetails.chapters) && matchDetails.chapters.length > 0) {
           if (!isAuthenticSeriesMatch(details, match, matchDetails)) {
             continue;
           }
-          if (matchDetails.chapters.length > maxFoundCount) {
-            maxFoundCount = matchDetails.chapters.length;
-            const uniqueChapters = deduplicateChapters(matchDetails.chapters);
+
+          const candidateChapters = deduplicateChapters(matchDetails.chapters);
+          const candidateGaps = detectChapterGaps(candidateChapters);
+
+          // 1. If candidate has significantly more chapters and fewer/no gaps, adopt it as primary
+          if (candidateChapters.length > maxFoundCount && candidateGaps.length <= currentGaps.length) {
+            maxFoundCount = candidateChapters.length;
+            currentChapters = candidateChapters;
+            currentGaps = candidateGaps;
             bestUpgrade = {
               ...details,
               aliasId: matchDetails.id,
               sourceName: matchDetails.sourceName || details.sourceName,
               provider: matchDetails.provider || details.provider,
-              chapters: uniqueChapters,
-              totalChapters: uniqueChapters.length,
-              latestChapter: matchDetails.latestChapter || uniqueChapters[0]?.chapter || null,
+              chapters: candidateChapters,
+              totalChapters: candidateChapters.length,
+              latestChapter: candidateChapters[0]?.chapter || matchDetails.latestChapter || null,
               coverUrl: details.coverUrl && !details.coverUrl.includes('placeholder') ? details.coverUrl : matchDetails.coverUrl,
               description: details.description && details.description !== 'No synopsis available.' ? details.description : matchDetails.description,
             };
+          } else if (currentGaps.length > 0) {
+            // 2. Gap filling: merge chapters from candidate to bridge the missing chapters!
+            const merged = mergeAndDeduplicateChapters(currentChapters, candidateChapters);
+            const mergedGaps = detectChapterGaps(merged);
+            if (mergedGaps.length < currentGaps.length || merged.length > currentChapters.length) {
+              currentChapters = merged;
+              currentGaps = mergedGaps;
+              bestUpgrade = {
+                ...(bestUpgrade || details),
+                chapters: merged,
+                totalChapters: merged.length,
+                latestChapter: merged[0]?.chapter || details.latestChapter || null,
+              };
+            }
+          }
+
+          // If all gaps are sealed and chapters are complete, stop searching
+          if (currentGaps.length === 0 && currentChapters.length >= 40) {
+            break;
           }
         }
       }
 
-      if (bestUpgrade && bestUpgrade.chapters.length > currentCount) {
+      if (currentGaps.length === 0 && currentChapters.length >= 40) {
         break;
       }
     } catch (err) {
@@ -1126,11 +1203,12 @@ export async function autoHealAndUpgradeChapters(details, bypassCache = false) {
     }
   }
 
-  if (bestUpgrade) {
-    return bestUpgrade;
-  }
-
-  return details;
+  return bestUpgrade || {
+    ...details,
+    chapters: currentChapters,
+    totalChapters: currentChapters.length,
+    latestChapter: currentChapters[0]?.chapter || details.latestChapter || null,
+  };
 }
 
 // Backward-compatibility alias
@@ -1237,13 +1315,13 @@ export async function getMangaDetails(mangaId, bypassCache = false) {
         }
       }
     } else if (lookupId.startsWith('thunder:')) {
-      resolvedDetails = await getThunderDetails(lookupId);
+      resolvedDetails = await getThunderDetails(lookupId, bypassCache);
     } else if (lookupId.startsWith('flame:')) {
-      resolvedDetails = await getFlameDetails(lookupId);
+      resolvedDetails = await getFlameDetails(lookupId, bypassCache);
     } else if (lookupId.startsWith('asura:')) {
-      resolvedDetails = await getAsuraDetails(lookupId);
+      resolvedDetails = await getAsuraDetails(lookupId, bypassCache);
     } else if (lookupId.startsWith('vortex:')) {
-      resolvedDetails = await getVortexDetails(lookupId);
+      resolvedDetails = await getVortexDetails(lookupId, bypassCache);
     } else if (lookupId.startsWith('webtoon:')) {
       resolvedDetails = await getWebtoonDetails(lookupId, bypassCache);
     } else if (lookupId.startsWith('wc:')) {
@@ -1258,7 +1336,8 @@ export async function getMangaDetails(mangaId, bypassCache = false) {
   }
 
   if (resolvedDetails) {
-    if (!resolvedDetails.chapters || resolvedDetails.chapters.length < 20) {
+    const resolvedGaps = detectChapterGaps(resolvedDetails.chapters);
+    if (!resolvedDetails.chapters || resolvedDetails.chapters.length < 35 || resolvedGaps.length > 0) {
       resolvedDetails = await autoHealAndUpgradeChapters(resolvedDetails, bypassCache);
     }
     if (Array.isArray(resolvedDetails.chapters)) {
@@ -1385,7 +1464,10 @@ export async function getMangaDetails(mangaId, bypassCache = false) {
       availableSources: sources,
     };
 
-    result = await autoHealAndUpgradeChapters(result, bypassCache);
+    const pillGaps = detectChapterGaps(result.chapters);
+    if (!result.chapters || result.chapters.length < 35 || pillGaps.length > 0) {
+      result = await autoHealAndUpgradeChapters(result, bypassCache);
+    }
     if (Array.isArray(result.chapters)) {
       result.chapters = deduplicateChapters(result.chapters);
       result.totalChapters = result.chapters.length;

@@ -30,7 +30,7 @@ export default async function handler(req, res) {
     const details = await getMangaDetails(id, refresh);
     const safeTitle = cleanTitle(id.split('/')[1] || id);
     res.setHeader('Content-Type', 'application/json');
-    res.setHeader('Cache-Control', refresh ? 'no-cache' : 's-maxage=300, stale-while-revalidate=600');
+    res.setHeader('Cache-Control', refresh ? 'no-cache, no-store, must-revalidate' : 's-maxage=60, stale-while-revalidate=120');
     res.status(200).json(details || {
       id,
       title: safeTitle,

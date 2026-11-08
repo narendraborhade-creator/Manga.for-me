@@ -128,6 +128,9 @@ export function deduplicateChapters(chapters) {
       if (isNaN(parsedNum) || parsedNum === 0 || chStr.includes('.') || titleLower.includes('notice') || titleLower.includes('hiatus')) {
         continue;
       }
+      if (parsedNum >= 1990 && parsedNum <= 2030 && !titleLower.includes('chapter')) {
+        continue;
+      }
     }
 
     // Check unique ID
@@ -171,8 +174,8 @@ export function deduplicateChapters(chapters) {
 
   // Sort descending by chapter number: latest release at the top
   result.sort((a, b) => {
-    const numA = parseFloat(a.chapter);
-    const numB = parseFloat(b.chapter);
+    const numA = parseFloat(String(a.chapter || '').replace(/[^0-9.]/g, ''));
+    const numB = parseFloat(String(b.chapter || '').replace(/[^0-9.]/g, ''));
     if (!isNaN(numA) && !isNaN(numB)) return numB - numA;
     return 0;
   });
@@ -200,4 +203,63 @@ export function getFallbackCover(title = 'Manga') {
     <text x="200" y="375" fill="#f8fafc" font-family="system-ui, sans-serif" font-size="16" font-weight="600" text-anchor="middle">${safeTitle}</text>
   </svg>`;
   return `data:image/svg+xml;utf8,${encodeURIComponent(svg)}`;
+}
+
+
+/**
+ * Detect large skips or cutoffs between chapters (e.g. from Ch 20 skipping directly to Ch 60)
+ */
+export function detectChapterGaps(chapters) {
+  if (!Array.isArray(chapters) || chapters.length < 2) return [];
+  const valid = chapters
+    .map((c) => ({ ...c, num: parseFloat(String(c.chapter || '').replace(/[^0-9.]/g, '')) }))
+    .filter((c) => !isNaN(c.num) && c.num > 0 && !(c.num >= 1990 && c.num <= 2030))
+    .sort((a, b) => b.num - a.num);
+
+  if (valid.length < 2) return [];
+  const gaps = [];
+  for (let i = 0; i < valid.length - 1; i++) {
+    const diff = valid[i].num - valid[i + 1].num;
+    // Missing 3 or more chapters between consecutive entries (e.g. 20 to 60)
+    if (diff >= 3) {
+      gaps.push({
+        from: valid[i + 1].num,
+        to: valid[i].num,
+        missingCount: Math.round(diff - 1),
+      });
+    }
+  }
+  return gaps;
+}
+
+/**
+ * Merge chapters from multiple sources to fill in missing chapters and bridge gaps
+ */
+export function mergeAndDeduplicateChapters(primaryChapters = [], secondaryChapters = []) {
+  if (!Array.isArray(primaryChapters) || primaryChapters.length === 0) {
+    return deduplicateChapters(secondaryChapters || []);
+  }
+  if (!Array.isArray(secondaryChapters) || secondaryChapters.length === 0) {
+    return deduplicateChapters(primaryChapters);
+  }
+
+  const map = new Map();
+
+  // Secondary chapters serve as filler for missing numbers
+  secondaryChapters.forEach((ch) => {
+    if (!ch || (!ch.id && !ch.chapter)) return;
+    const num = parseFloat(ch.chapter);
+    const key = !isNaN(num) ? `num:${num}` : `str:${String(ch.chapter || ch.title).toLowerCase().trim()}`;
+    map.set(key, ch);
+  });
+
+  // Primary chapters take precedence for existing chapter numbers
+  primaryChapters.forEach((ch) => {
+    if (!ch || (!ch.id && !ch.chapter)) return;
+    const num = parseFloat(ch.chapter);
+    const key = !isNaN(num) ? `num:${num}` : `str:${String(ch.chapter || ch.title).toLowerCase().trim()}`;
+    map.set(key, ch);
+  });
+
+  return deduplicateChapters(Array.from(map.values()));
 }

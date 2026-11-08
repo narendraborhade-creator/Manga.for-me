@@ -19,7 +19,7 @@ export default async function handler(req, res) {
   try {
     const list = await getPopularManga();
     res.setHeader('Content-Type', 'application/json');
-    res.setHeader('Cache-Control', 's-maxage=600, stale-while-revalidate=1200');
+    res.setHeader('Cache-Control', 's-maxage=120, stale-while-revalidate=240');
     res.status(200).json(list || []);
   } catch (err) {
     console.warn('Vercel API handled error (/api/manga/popular):', err.message);
