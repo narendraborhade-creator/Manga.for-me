@@ -720,6 +720,26 @@ export async function getWebtoonChapterPages(chapterId) {
   // Handle Solo Leveling
   if (chapterId.startsWith('webtoon:solo:') || chapterId.startsWith('webtoon:solo-leveling:')) {
     const num = chapterId.match(/([0-9.]+)/)?.[1] || '1';
+    // 1. Direct High-Resolution MangaKatana Solo Leveling (all 202 chapters verified)
+    try {
+      const { getMangaKatanaDetails, getMangaKatanaChapterPages } = await import('./mangakatanaProvider.js');
+      const katDetails = await getMangaKatanaDetails('solo-leveling.21708');
+      const targetCh = katDetails?.chapters?.find((c) => {
+        const cNum = c.chapter?.replace(/[^0-9.]/g, '');
+        return cNum === String(num) || parseFloat(cNum) === parseFloat(num);
+      });
+      if (targetCh) {
+        const katPages = await getMangaKatanaChapterPages(targetCh.id);
+        if (katPages?.pages?.length > 0) {
+          const result = { chapterId, totalPages: katPages.pages.length, pages: katPages.pages };
+          setCache(cacheKey, result);
+          return result;
+        }
+      }
+    } catch (katErr) {
+      console.warn('Solo Leveling MangaKatana fetch failed, attempting backup:', katErr.message);
+    }
+
     const url = `https://readsololeveling.org/chapter/solo-leveling-chapter-${num}/`;
     try {
       const res = await fetchWithTimeout(url, { headers: HEADERS }, 6500);

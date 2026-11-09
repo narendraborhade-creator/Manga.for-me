@@ -6,8 +6,8 @@
 export const FALLBACK_MANGA_CATALOG = [
   // --- TOP GLOBAL MANHWA & WEBSERIES ---
   {
-    id: 'wc:01J76XYBD282Y3XKX0KRGD64Q5',
-    aliases: ['lookism', 'webtoon:lookism'],
+    id: 'kat:lookism.693',
+    aliases: ['lookism', 'webtoon:lookism', 'wc:01J76XYBD282Y3XKX0KRGD64Q5'],
     title: 'Lookism',
     englishTitle: 'Lookism',
     coverUrl: 'https://s4.anilist.co/file/anilistcdn/media/manga/cover/large/bx86337-0g70bKkFpD7E.jpg',
@@ -16,22 +16,70 @@ export const FALLBACK_MANGA_CATALOG = [
     year: '2014',
     author: 'Park Tae-jun',
     description: 'Daniel Park, an overweight and unattractive high school student bullied relentlessly, mysteriously wakes up in a tall, handsome, and physically gifted new body.',
-    tags: ['Action', 'School', 'Drama', 'Supernatural'],
-    sourceName: 'WeebCentral',
-    totalChapters: 631,
-    latestChapter: '631',
-    chapters: Array.from({ length: 631 }, (_, i) => {
-      const chNum = 631 - i;
+    tags: ['Action', 'School', 'Drama', 'Supernatural', 'Manhwa'],
+    sourceName: 'MangaKatana',
+    totalChapters: 633,
+    latestChapter: '632',
+    chapters: Array.from({ length: 633 }, (_, i) => {
+      const chNum = 633 - i;
       return {
-        id: `wc_ch:lookism:${chNum}`,
+        id: `kat_ch:lookism.693:c${chNum}`,
         chapter: String(chNum),
         title: `Chapter ${chNum}`,
       };
     })
   },
   {
-    id: 'wc:01J76XY7M0W9WWJ55VJYYB2J1S',
-    aliases: ['tower-of-god', 'webtoon:tower-of-god', 'tower of god'],
+    id: 'kat:worlds-strongest-troll.26644',
+    aliases: ['worlds-strongest-troll', 'world-s-strongest-troll', "world's strongest troll", "the world's strongest troll", 'asura:worlds-strongest-troll-f212c582'],
+    title: "World's Strongest Troll",
+    englishTitle: "World's Strongest Troll",
+    coverUrl: '/api/image-proxy?url=https%3A%2F%2Fmangakatana.com%2Fimgs%2Fcover%2F04e%2F1f%2F7b189.jpg',
+    status: 'Completed',
+    score: '9.5',
+    year: '2022',
+    author: 'Dex',
+    description: "Jaeyeong's chaotic VR gaming adventures in Arcadia as the legendary troll DEX who overcomes every insurmountable obstacle through sheer game knowledge and unconventional tactics!",
+    tags: ['Action', 'Comedy', 'Fantasy', 'Virtual Reality', 'Manhwa'],
+    sourceName: 'MangaKatana',
+    totalChapters: 197,
+    latestChapter: '197',
+    chapters: Array.from({ length: 197 }, (_, i) => {
+      const chNum = 197 - i;
+      return {
+        id: `kat_ch:worlds-strongest-troll.26644:c${chNum}`,
+        chapter: String(chNum),
+        title: `Chapter ${chNum}`,
+      };
+    })
+  },
+  {
+    id: 'webtoon:ks:my-in-laws-are-obsessed-with-me',
+    aliases: ['my-in-laws-are-obsessed-with-me', 'my in laws are obsessed with me', 'wc:01J76XYFAESZTJT5AQ1SPFKYXR', 'md:c44b5b1d-60cf-4faf-be2c-0a807200358f'],
+    title: 'My In-Laws Are Obsessed With Me',
+    englishTitle: 'My In-Laws Are Obsessed With Me',
+    coverUrl: 'https://s4.anilist.co/file/anilistcdn/media/manga/cover/large/bx143977-YV08jXW6eQc3.jpg',
+    status: 'Ongoing',
+    score: '9.6',
+    year: '2021',
+    author: 'Seungu & Han Yoon-seol',
+    description: 'Pereshati regresses after being betrayed and poisoned by her family. To safeguard her second life, she proposes a contract marriage with the cursed Grand Duke Therdeo Lapileon.',
+    tags: ['Fantasy', 'Romance', 'Reincarnation', 'Drama', 'Manhwa'],
+    sourceName: 'King of Shojo',
+    totalChapters: 137,
+    latestChapter: '137',
+    chapters: Array.from({ length: 137 }, (_, i) => {
+      const chNum = 137 - i;
+      return {
+        id: `webtoon:ks:my-in-laws-are-obsessed-with-me:${chNum}`,
+        chapter: String(chNum),
+        title: `Chapter ${chNum}`,
+      };
+    })
+  },
+  {
+    id: 'kat:tower-of-god.465',
+    aliases: ['tower-of-god', 'webtoon:tower-of-god', 'tower of god', 'wc:01J76XY7M0W9WWJ55VJYYB2J1S'],
     title: 'Tower of God',
     englishTitle: 'Tower of God',
     coverUrl: 'https://s4.anilist.co/file/anilistcdn/media/manga/cover/large/bx85143-6o80VwHhYVrn.jpg',
@@ -40,22 +88,22 @@ export const FALLBACK_MANGA_CATALOG = [
     year: '2010',
     author: 'SIU',
     description: 'What do you desire? Fortune? Glory? Power? Revenge? Whatever you desire, it is here, at the peak of the Tower.',
-    tags: ['Action', 'Adventure', 'Fantasy', 'Mystery'],
-    sourceName: 'WeebCentral',
-    totalChapters: 630,
-    latestChapter: '630',
-    chapters: Array.from({ length: 630 }, (_, i) => {
-      const chNum = 630 - i;
+    tags: ['Action', 'Adventure', 'Fantasy', 'Mystery', 'Manhwa'],
+    sourceName: 'MangaKatana',
+    totalChapters: 653,
+    latestChapter: '652',
+    chapters: Array.from({ length: 653 }, (_, i) => {
+      const chNum = 653 - i;
       return {
-        id: `wc_ch:tower-of-god:${chNum}`,
+        id: `kat_ch:tower-of-god.465:c${chNum}`,
         chapter: String(chNum),
         title: `Chapter ${chNum}`,
       };
     })
   },
   {
-    id: 'wc:01J76XYA1TQYKV6W4BCMR2WD5M',
-    aliases: ['wind-breaker', 'webtoon:wind-breaker', 'wind breaker'],
+    id: 'kat:wind-breaker.467',
+    aliases: ['wind-breaker', 'webtoon:wind-breaker', 'wind breaker', 'wc:01J76XYA1TQYKV6W4BCMR2WD5M'],
     title: 'Wind Breaker',
     englishTitle: 'Wind Breaker',
     coverUrl: 'https://s4.anilist.co/file/anilistcdn/media/manga/cover/large/bx85489-B0x2z8P96Y24.jpg',
@@ -64,22 +112,22 @@ export const FALLBACK_MANGA_CATALOG = [
     year: '2013',
     author: 'Jo Yongseok',
     description: 'Jay is an honors student whose sole focus is academics—until he is plunged into the high-stakes world of underground street cycling!',
-    tags: ['Sports', 'Action', 'Drama', 'School'],
-    sourceName: 'WeebCentral',
-    totalChapters: 500,
-    latestChapter: '500',
-    chapters: Array.from({ length: 500 }, (_, i) => {
-      const chNum = 500 - i;
+    tags: ['Sports', 'Action', 'Drama', 'School', 'Manhwa'],
+    sourceName: 'MangaKatana',
+    totalChapters: 557,
+    latestChapter: '556.5',
+    chapters: Array.from({ length: 557 }, (_, i) => {
+      const chNum = 557 - i;
       return {
-        id: `wc_ch:wind-breaker:${chNum}`,
+        id: `kat_ch:wind-breaker.467:c${chNum}`,
         chapter: String(chNum),
         title: `Chapter ${chNum}`,
       };
     })
   },
   {
-    id: 'wc:01J76XYD3Q2Q7HYYMB3FSDPSKC',
-    aliases: ['eleceed', 'webtoon:eleceed'],
+    id: 'kat:eleceed.115',
+    aliases: ['eleceed', 'webtoon:eleceed', 'wc:01J76XYD3Q2Q7HYYMB3FSDPSKC'],
     title: 'Eleceed',
     englishTitle: 'Eleceed',
     coverUrl: 'https://s4.anilist.co/file/anilistcdn/media/manga/cover/large/bx110291-PqA9Zuhd8OqJ.jpg',
@@ -88,14 +136,14 @@ export const FALLBACK_MANGA_CATALOG = [
     year: '2018',
     author: 'Son Jaeho & ZHENA',
     description: 'Jiwoo has super-speed reflexes. Kayden is a deadly awakener on the run who transforms into a fat, fluffy street cat!',
-    tags: ['Action', 'Comedy', 'Supernatural'],
-    sourceName: 'WeebCentral',
-    totalChapters: 320,
-    latestChapter: '320',
-    chapters: Array.from({ length: 320 }, (_, i) => {
-      const chNum = 320 - i;
+    tags: ['Action', 'Comedy', 'Supernatural', 'Manhwa'],
+    sourceName: 'MangaKatana',
+    totalChapters: 425,
+    latestChapter: '425',
+    chapters: Array.from({ length: 425 }, (_, i) => {
+      const chNum = 425 - i;
       return {
-        id: `wc_ch:eleceed:${chNum}`,
+        id: `kat_ch:eleceed.115:c${chNum}`,
         chapter: String(chNum),
         title: `Chapter ${chNum}`,
       };

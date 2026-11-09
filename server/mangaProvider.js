@@ -363,6 +363,8 @@ export const VERIFIED_COMPLETE_ALIASES = {
   'my-in-laws-are-obsessed-with-me': 'webtoon:ks:my-in-laws-are-obsessed-with-me',
   'md:c44b5b1d-60cf-4faf-be2c-0a807200358f': 'webtoon:ks:my-in-laws-are-obsessed-with-me',
   'c44b5b1d-60cf-4faf-be2c-0a807200358f': 'webtoon:ks:my-in-laws-are-obsessed-with-me',
+  'wc:01J76XYFAESZTJT5AQ1SPFKYXR': 'webtoon:ks:my-in-laws-are-obsessed-with-me',
+  '01J76XYFAESZTJT5AQ1SPFKYXR': 'webtoon:ks:my-in-laws-are-obsessed-with-me',
   'surviving-the-game-as-a-barbarian': 'asura:surviving-the-game-as-a-barbarian-ab39de10',
   'greatest-estate-developer': 'asura:the-greatest-estate-developer-ab39de10',
   'the-greatest-estate-developer': 'asura:the-greatest-estate-developer-ab39de10',
@@ -1405,12 +1407,23 @@ export async function getMangaDetails(mangaId, bypassCache = false) {
     } else if (lookupId.startsWith('wc:')) {
       resolvedDetails = await getWeebCentralDetails(lookupId.replace('wc:', ''), '', bypassCache);
       if (!resolvedDetails?.chapters || resolvedDetails.chapters.length === 0) {
-        const rawSlug = lookupId.replace('wc:', '').replace(/^[0-9a-z]{20,32}-?/i, '');
-        const cleanName = rawSlug.replace(/[-_]+/g, ' ').trim();
-        if (cleanName && cleanName.length >= 3) {
-          const katMatches = await searchMangaKatana(cleanName).catch(() => []);
-          if (katMatches.length > 0 && katMatches[0].id) {
-            resolvedDetails = await getMangaKatanaDetails(katMatches[0].id, bypassCache);
+        const titleKey = normalizeTitleKey(resolvedDetails?.englishTitle || resolvedDetails?.title || '');
+        const alias = VERIFIED_COMPLETE_ALIASES[titleKey] || VERIFIED_COMPLETE_ALIASES[lookupId];
+        if (alias) {
+          if (alias.startsWith('kat:')) {
+            resolvedDetails = await getMangaKatanaDetails(alias, bypassCache);
+          } else if (alias.startsWith('webtoon:')) {
+            resolvedDetails = await getWebtoonDetails(alias, bypassCache);
+          }
+        }
+        if (!resolvedDetails?.chapters || resolvedDetails.chapters.length === 0) {
+          const rawSlug = lookupId.replace('wc:', '').replace(/^[0-9a-z]{20,32}-?/i, '');
+          const cleanName = (resolvedDetails?.title || rawSlug).replace(/[-_]+/g, ' ').trim();
+          if (cleanName && cleanName.length >= 3) {
+            const katMatches = await searchMangaKatana(cleanName).catch(() => []);
+            if (katMatches.length > 0 && isAuthenticSeriesMatch(cleanName, katMatches[0].title)) {
+              resolvedDetails = await getMangaKatanaDetails(katMatches[0].id, bypassCache);
+            }
           }
         }
       }
@@ -1571,12 +1584,39 @@ export async function getMangaDetails(mangaId, bypassCache = false) {
   } catch (error) {
     console.warn('getMangaDetails upstream warning:', error.message);
     
-    // Proactively attempt fallback search on MangaKatana by title ONLY if title strictly matches
+    // Proactively attempt fallback resolution via verified aliases and authentic match
     try {
       const cleanIdTitle = cleanTitle(mangaId.split('/')[1] || mangaId);
       const targetNorm = normalizeTitleKey(cleanIdTitle);
+      const alias = VERIFIED_COMPLETE_ALIASES[mangaId] || VERIFIED_COMPLETE_ALIASES[targetNorm];
+      if (alias) {
+        if (alias.startsWith('kat:')) {
+          const katDetails = await getMangaKatanaDetails(alias, true);
+          if (katDetails && katDetails.chapters && katDetails.chapters.length > 0) {
+            return {
+              ...katDetails,
+              id: mangaId,
+              aliasId: alias,
+              chapters: deduplicateChapters(katDetails.chapters),
+              totalChapters: katDetails.chapters.length,
+            };
+          }
+        } else if (alias.startsWith('webtoon:')) {
+          const wtDetails = await getWebtoonDetails(alias, true);
+          if (wtDetails && wtDetails.chapters && wtDetails.chapters.length > 0) {
+            return {
+              ...wtDetails,
+              id: mangaId,
+              aliasId: alias,
+              chapters: deduplicateChapters(wtDetails.chapters),
+              totalChapters: wtDetails.chapters.length,
+            };
+          }
+        }
+      }
+
       const katMatches = await searchMangaKatana(cleanIdTitle).catch(() => []);
-      const exactMatch = katMatches.find(m => normalizeTitleKey(m.title) === targetNorm) || katMatches[0];
+      const exactMatch = katMatches.find(m => isAuthenticSeriesMatch(cleanIdTitle, m.title));
       if (exactMatch && exactMatch.id) {
         const katDetails = await getMangaKatanaDetails(exactMatch.id, true);
         if (katDetails && katDetails.chapters && katDetails.chapters.length > 0) {
@@ -1591,7 +1631,7 @@ export async function getMangaDetails(mangaId, bypassCache = false) {
         }
       }
     } catch (fallbackErr) {
-      console.warn('Fallback MangaKatana lookup failed:', fallbackErr.message);
+      console.warn('Fallback lookup failed:', fallbackErr.message);
     }
 
     // Return safe fallback object with sanitized title and SVG cover
@@ -1767,47 +1807,119 @@ export async function getChapterPages(rawChapterId, rawMangaId = '', rawChapterN
     }
   }
 
+  let providerResult = null;
   try {
     if (chapterId.startsWith('webtoon:stepmother:')) {
       const num = chapterId.match(/([0-9.]+)/)?.[1] || '1';
-      return await getWebtoonChapterPages(`webtoon:stepmother:${num}`);
-    }
-
-    if (chapterId.startsWith('kat_ch:') || chapterId.startsWith('kat:')) {
-      return await getMangaKatanaChapterPages(chapterId);
-    }
-    if (chapterId.startsWith('md_ch:') || chapterId.startsWith('md:')) {
-      return await getMangaDexChapterPages(chapterId);
-    }
-    if (chapterId.startsWith('flame_ch:') || chapterId.startsWith('flame:')) {
-      return await getFlameChapterPages(chapterId);
-    }
-    if (chapterId.startsWith('asura_ch:') || chapterId.startsWith('asura:')) {
-      return await getAsuraChapterPages(chapterId);
-    }
-    if (chapterId.startsWith('vortex_ch:') || chapterId.startsWith('vortex:')) {
-      return await getVortexChapterPages(chapterId);
-    }
-    if (chapterId.startsWith('webtoon:')) {
-      return await getWebtoonChapterPages(chapterId);
-    }
-    if (chapterId.startsWith('wc_ch:')) {
-      return await getWeebCentralChapterPages(chapterId.replace('wc_ch:', ''));
-    }
-    if (chapterId.startsWith('thunder_ch:') || chapterId.startsWith('thunder:')) {
-      return await getThunderChapterPages(chapterId);
-    }
-    if (chapterId.startsWith('mk_ch:')) {
-      return await getMangaKakalotChapterPages(chapterId);
+      providerResult = await getWebtoonChapterPages(`webtoon:stepmother:${num}`);
+    } else if (chapterId.startsWith('kat_ch:') || chapterId.startsWith('kat:')) {
+      providerResult = await getMangaKatanaChapterPages(chapterId);
+    } else if (chapterId.startsWith('md_ch:') || chapterId.startsWith('md:')) {
+      providerResult = await getMangaDexChapterPages(chapterId);
+    } else if (chapterId.startsWith('flame_ch:') || chapterId.startsWith('flame:')) {
+      providerResult = await getFlameChapterPages(chapterId);
+    } else if (chapterId.startsWith('asura_ch:') || chapterId.startsWith('asura:')) {
+      providerResult = await getAsuraChapterPages(chapterId);
+    } else if (chapterId.startsWith('vortex_ch:') || chapterId.startsWith('vortex:')) {
+      providerResult = await getVortexChapterPages(chapterId);
+    } else if (chapterId.startsWith('webtoon:')) {
+      providerResult = await getWebtoonChapterPages(chapterId);
+    } else if (chapterId.startsWith('wc_ch:')) {
+      const wcTarget = chapterId.replace('wc_ch:', '');
+      if (/^[0-9A-Z]{26}$/.test(wcTarget)) {
+        providerResult = await getWeebCentralChapterPages(wcTarget);
+      }
+    } else if (chapterId.startsWith('thunder_ch:') || chapterId.startsWith('thunder:')) {
+      providerResult = await getThunderChapterPages(chapterId);
+    } else if (chapterId.startsWith('mk_ch:')) {
+      providerResult = await getMangaKakalotChapterPages(chapterId);
     }
   } catch (providerErr) {
     console.warn(`Provider error resolving chapter pages for ${chapterId}:`, providerErr.message);
-    return {
-      chapterId,
-      totalPages: 0,
-      pages: [],
-      warning: 'Chapter images are temporarily synchronizing. Please try another chapter.',
-    };
+  }
+
+  if (providerResult && Array.isArray(providerResult.pages) && providerResult.pages.length > 0) {
+    return providerResult;
+  }
+
+  // Universal Auto-Healing Chapter Fallback
+  try {
+    let katSlug = null;
+    const normMid = normalizeTitleKey(rawMangaId.replace(/^(wc:|kat:|md:|webtoon:|asura:|thunder:|flame:|mk:)/, ''));
+    const normTitle = normalizeTitleKey(rawTitle);
+
+    const alias = VERIFIED_COMPLETE_ALIASES[rawMangaId] || 
+                  VERIFIED_COMPLETE_ALIASES[normMid] || 
+                  VERIFIED_COMPLETE_ALIASES[normTitle];
+    if (alias && alias.startsWith('kat:')) {
+      katSlug = alias.replace('kat:', '');
+    }
+
+    if (!katSlug && chapterId.includes(':')) {
+      const parts = chapterId.split(':');
+      const pot = normalizeTitleKey(parts[1]);
+      if (pot && VERIFIED_COMPLETE_ALIASES[pot]?.startsWith('kat:')) {
+        katSlug = VERIFIED_COMPLETE_ALIASES[pot].replace('kat:', '');
+      }
+    }
+
+    if (!katSlug) {
+      const query = rawTitle || rawMangaId.replace(/^(wc:|kat:|md:|webtoon:|asura:|thunder:|flame:|mk:)/, '').replace(/[-_]+/g, ' ');
+      if (query && query.length >= 2) {
+        const matches = await searchMangaKatana(query).catch(() => []);
+        if (matches && matches.length > 0 && isAuthenticSeriesMatch(query, matches[0].title)) {
+          katSlug = matches[0].slug;
+        }
+      }
+    }
+
+    if (katSlug) {
+      const det = await getMangaKatanaDetails(katSlug).catch(() => null);
+      if (det && Array.isArray(det.chapters)) {
+        const matched = det.chapters.find(c => {
+          const num = c.chapter?.replace(/[^0-9.]/g, '');
+          return num === chNum || parseFloat(num) === parseFloat(chNum);
+        });
+        if (matched) {
+          const katRes = await getMangaKatanaChapterPages(matched.id);
+          if (katRes && Array.isArray(katRes.pages) && katRes.pages.length > 0) {
+            return katRes;
+          }
+        }
+      }
+    }
+
+    if (alias && alias.startsWith('webtoon:')) {
+      const wtDet = await getWebtoonDetails(alias).catch(() => null);
+      if (wtDet && Array.isArray(wtDet.chapters)) {
+        const matched = wtDet.chapters.find(c => {
+          const num = c.chapter?.replace(/[^0-9.]/g, '');
+          return num === chNum || parseFloat(num) === parseFloat(chNum);
+        });
+        if (matched) {
+          const wtRes = await getWebtoonChapterPages(matched.id);
+          if (wtRes && Array.isArray(wtRes.pages) && wtRes.pages.length > 0) {
+            return wtRes;
+          }
+        }
+      }
+    }
+
+    if (normMid.includes('inlaw') || normMid.includes('in-law') || normTitle.includes('inlaw') || normTitle.includes('in-law') || normTitle.includes('obsessed')) {
+      const ksDet = await getWebtoonDetails('webtoon:ks:my-in-laws-are-obsessed-with-me').catch(() => null);
+      const matched = ksDet?.chapters?.find(c => {
+        const num = c.chapter?.replace(/[^0-9.]/g, '');
+        return num === chNum || parseFloat(num) === parseFloat(chNum);
+      });
+      if (matched) {
+        const ksRes = await getWebtoonChapterPages(matched.id);
+        if (ksRes && Array.isArray(ksRes.pages) && ksRes.pages.length > 0) {
+          return ksRes;
+        }
+      }
+    }
+  } catch (fbErr) {
+    console.warn('Universal chapter fallback error:', fbErr.message);
   }
 
   const cacheKey = `chapter_v3_${chapterId}`;
@@ -1834,41 +1946,25 @@ export async function getChapterPages(rawChapterId, rawMangaId = '', rawChapterN
       originalUrl: imgUrl,
     }));
 
-    const result = {
-      chapterId,
-      totalPages: pages.length,
-      pages,
-    };
-
-    setCache(cacheKey, result);
-    return result;
-  } catch (error) {
-    console.warn('getChapterPages MangaPill warning, attempting MangaKatana fallback:', error.message);
-    if (rawTitle || rawMangaId) {
-      try {
-        const queryTerm = rawTitle || rawMangaId.replace(/[-_]/g, ' ');
-        const searchMatches = await searchMangaKatana(queryTerm);
-        if (searchMatches && searchMatches.length > 0) {
-          const matchDet = await getMangaKatanaDetails(searchMatches[0].id);
-          const matchedCh = matchDet?.chapters?.find(c => String(c.chapter) === String(chNum));
-          if (matchedCh) {
-            const katRes = await getMangaKatanaChapterPages(matchedCh.id);
-            if (katRes && katRes.pages && katRes.pages.length > 0) {
-              return katRes;
-            }
-          }
-        }
-      } catch (fbErr) {
-        console.warn('MangaKatana chapter fallback error:', fbErr.message);
-      }
+    if (pages.length > 0) {
+      const result = {
+        chapterId,
+        totalPages: pages.length,
+        pages,
+      };
+      setCache(cacheKey, result);
+      return result;
     }
-    return {
-      chapterId,
-      totalPages: 0,
-      pages: [],
-      warning: 'Chapter images are temporarily synchronizing. Please try another chapter.',
-    };
+  } catch (error) {
+    console.warn('getChapterPages MangaPill warning:', error.message);
   }
+
+  return {
+    chapterId,
+    totalPages: 0,
+    pages: [],
+    warning: 'Chapter images are temporarily synchronizing. Please try another chapter.',
+  };
 }
 
 const FALLBACK_PAGE_SVG = `<svg xmlns="http://www.w3.org/2000/svg" width="800" height="1200" viewBox="0 0 800 1200">
@@ -2041,9 +2137,10 @@ export async function proxyImage(imageUrl, res) {
         primaryReferer = 'https://en-thunderscans.com/';
       } else if (host.includes('vortexscans')) {
         primaryReferer = 'https://vortexscans.org/';
+      } else if (host.includes('lowee.us') || host.includes('weebcentral')) {
+        primaryReferer = 'https://weebcentral.com/';
       } else if (
         host.includes('omniscientreadersviewpoint') ||
-        host.includes('lowee.us') ||
         host.includes('mangaclash')
       ) {
         primaryReferer = 'https://w1.omniscientreadersviewpoint.com/';
@@ -2104,12 +2201,10 @@ export async function proxyImage(imageUrl, res) {
 
     if (!finalRes || !finalRes.ok) {
       if (!res.headersSent) {
-        res.setHeader('Content-Type', 'image/svg+xml');
-        res.setHeader('Cache-Control', 'public, max-age=60');
-        res.setHeader('X-Content-Type-Options', 'nosniff');
-        res.setHeader('X-Frame-Options', 'DENY');
-        res.setHeader('Content-Security-Policy', "default-src 'none'; img-src 'self' data:; style-src 'unsafe-inline'");
-        res.end(FALLBACK_PAGE_SVG);
+        res.statusCode = finalRes ? finalRes.status : 502;
+        res.setHeader('Content-Type', 'text/plain');
+        res.setHeader('Cache-Control', 'no-cache, no-store');
+        res.end('Image proxy upstream fetch failed');
       }
       return;
     }
@@ -2123,10 +2218,10 @@ export async function proxyImage(imageUrl, res) {
       lowerCt.includes('application/json')
     ) {
       if (!res.headersSent) {
-        res.setHeader('Content-Type', 'image/svg+xml');
-        res.setHeader('Cache-Control', 'public, max-age=60');
-        res.setHeader('X-Content-Type-Options', 'nosniff');
-        res.end(FALLBACK_PAGE_SVG);
+        res.statusCode = 502;
+        res.setHeader('Content-Type', 'text/plain');
+        res.setHeader('Cache-Control', 'no-cache, no-store');
+        res.end('Non-image response from upstream');
       }
       return;
     }
@@ -2142,8 +2237,9 @@ export async function proxyImage(imageUrl, res) {
     const buffer = await finalRes.arrayBuffer();
     if (buffer.byteLength > MAX_IMAGE_SIZE_BYTES) {
       if (!res.headersSent) {
-        res.setHeader('Content-Type', 'image/svg+xml');
-        res.end(FALLBACK_PAGE_SVG);
+        res.statusCode = 502;
+        res.setHeader('Content-Type', 'text/plain');
+        res.end('Image size exceeds limit');
       }
       return;
     }
@@ -2152,10 +2248,10 @@ export async function proxyImage(imageUrl, res) {
   } catch (err) {
     console.warn('proxyImage fetch warning:', err.message);
     if (!res.headersSent) {
-      res.setHeader('Content-Type', 'image/svg+xml');
-      res.setHeader('Cache-Control', 'public, max-age=60');
-      res.setHeader('X-Content-Type-Options', 'nosniff');
-      res.end(FALLBACK_PAGE_SVG);
+      res.statusCode = 502;
+      res.setHeader('Content-Type', 'text/plain');
+      res.setHeader('Cache-Control', 'no-cache, no-store');
+      res.end('Image proxy error');
     }
   }
 }
