@@ -1347,7 +1347,12 @@ export async function fetchMangaDetails(mangaId, refresh = false) {
         data.chapters = deduplicateChapters(data.chapters);
         data.totalChapters = data.chapters.length;
       }
-      setClientCached(cacheKey, data);
+      if (Array.isArray(data.chapters) && data.chapters.length > 0) {
+        setClientCached(cacheKey, data);
+      } else if (fallbackItem && Array.isArray(fallbackItem.chapters) && fallbackItem.chapters.length > 0) {
+        data.chapters = fallbackItem.chapters;
+        data.totalChapters = fallbackItem.chapters.length;
+      }
     }
     return data;
   } catch (err) {

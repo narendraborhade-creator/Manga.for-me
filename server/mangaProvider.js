@@ -1566,7 +1566,7 @@ export async function getMangaDetails(mangaId, bypassCache = false) {
     }
     result.availableSources = await resolveAvailableSources(result.englishTitle || result.title, mangaId, result.sourceName, result.totalChapters);
 
-    setCache(cacheKey, result);
+    if (result && Array.isArray(result.chapters) && result.chapters.length > 0) { setCache(cacheKey, result); }
     return result;
   } catch (error) {
     console.warn('getMangaDetails upstream warning:', error.message);

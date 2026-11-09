@@ -1,9 +1,24 @@
 import React, { useState, useEffect } from 'react';
-import { X, Star, Film, Sparkles, Tv, ExternalLink, Play, MonitorPlay, Layers, AlertCircle, ArrowUpRight } from 'lucide-react';
+import { 
+  X, 
+  Star, 
+  Film, 
+  Sparkles, 
+  Tv, 
+  ExternalLink, 
+  Play, 
+  MonitorPlay, 
+  Layers, 
+  ArrowUpRight, 
+  CheckCircle2, 
+  ShieldAlert,
+  Radio,
+  Flame
+} from 'lucide-react';
 
 export default function AnimeDetailModal({ anime, onClose }) {
   const [activeEpisode, setActiveEpisode] = useState(1);
-  const [selectedServer, setSelectedServer] = useState('trailer');
+  const [playerMode, setPlayerMode] = useState('stream'); // 'stream' | 'trailer' | 'sources'
 
   // Close modal on Escape key press
   useEffect(() => {
@@ -28,54 +43,54 @@ export default function AnimeDetailModal({ anime, onClose }) {
   const totalEps = Math.max(1, parseInt(anime.episodes, 10) || 12);
   const epArray = Array.from({ length: Math.min(totalEps, 150) }, (_, i) => i + 1);
 
-  // Dynamic player embed resolver (from awesome-anime-sources)
-  const getPlayerEmbedUrl = () => {
-    if (selectedServer === 'trailer') {
-      if (anime.trailerUrl) return anime.trailerUrl;
-      return `https://www.youtube.com/embed?listType=search&list=${encodeURIComponent(cleanSearchTitle + ' official trailer')}`;
-    }
-    if (selectedServer === 'vidsrc') {
-      return `https://vidsrc.pm/embed/anime/${anime.id}/${activeEpisode}`;
-    }
-    if (selectedServer === 'twoembed') {
-      return `https://www.2embed.cc/embedtv/${anime.id}&s=1&e=${activeEpisode}`;
-    }
-    return anime.trailerUrl || `https://www.youtube.com/embed?listType=search&list=${encodeURIComponent(cleanSearchTitle + ' official trailer')}`;
-  };
+  // VidLink stream player URL using MAL ID or AniList ID with automatic sub/dub fallback
+  const malOrAniId = anime.malId || anime.id;
+  const vidlinkStreamUrl = `https://vidlink.pro/anime/${malOrAniId}/${activeEpisode}/sub?fallback=true`;
 
-  // Direct Episode Stream Launchers (awesome-anime-sources)
-  const directEpisodeStreamers = [
+  // Official Verified Video Stream (from AniList trailer or YouTube HD search)
+  const officialTrailerEmbed = anime.trailerUrl || `https://www.youtube.com/embed?listType=search&list=${encodeURIComponent(cleanSearchTitle + ' official trailer')}`;
+
+  // Direct Episode Stream Launchers (awesome-anime-sources verified index)
+  const episodeStreamServers = [
     {
       id: 'hianime',
       name: 'HiAnime (Zoro)',
       badge: 'Sub/Dub HD',
       textColor: 'text-amber-300',
-      bgColor: 'hover:bg-amber-500/10 hover:border-amber-500/40',
+      borderColor: 'border-amber-500/40',
+      bgColor: 'hover:bg-amber-500/15',
       url: `https://hianime.to/search?keyword=${encodeURIComponent(cleanSearchTitle)}`,
+      desc: 'Top-rated high-speed HD streaming with both Subtitled and Dubbed audio tracks',
     },
     {
       id: 'animepahe',
       name: 'AnimePahe',
       badge: 'Fast 1080p',
       textColor: 'text-rose-300',
-      bgColor: 'hover:bg-rose-500/10 hover:border-rose-500/40',
+      borderColor: 'border-rose-500/40',
+      bgColor: 'hover:bg-rose-500/15',
       url: `https://animepahe.ru/?q=${encodeURIComponent(cleanSearchTitle)}`,
+      desc: 'Ultra-compressed small-file encodes with rapid buffer-free 1080p/720p playback',
     },
     {
       id: 'gogoanime',
       name: 'GogoAnime',
       badge: 'Direct Stream',
       textColor: 'text-cyan-300',
-      bgColor: 'hover:bg-cyan-500/10 hover:border-cyan-500/40',
+      borderColor: 'border-cyan-500/40',
+      bgColor: 'hover:bg-cyan-500/15',
       url: `https://anitaku.pe/search.html?keyword=${encodeURIComponent(cleanSearchTitle)}`,
+      desc: 'Global anime archive with complete episode index and multiple backup mirrors',
     },
     {
       id: 'crunchyroll',
       name: 'Crunchyroll',
       badge: 'Official',
       textColor: 'text-orange-300',
-      bgColor: 'hover:bg-orange-500/10 hover:border-orange-500/40',
+      borderColor: 'border-orange-500/40',
+      bgColor: 'hover:bg-orange-500/15',
       url: `https://www.crunchyroll.com/search?q=${encodeURIComponent(cleanSearchTitle)}`,
+      desc: 'Licensed simulcast releases with official localization and pristine audio quality',
     },
   ];
 
@@ -176,86 +191,200 @@ export default function AnimeDetailModal({ anime, onClose }) {
           className="flex-1 min-h-0 overflow-y-auto overscroll-contain scrollbar-thin scrollbar-thumb-cyan-500/40 scrollbar-track-transparent space-y-5 p-4 sm:p-6 md:p-8 pb-14 sm:pb-16"
           style={{ WebkitOverflowScrolling: 'touch', touchAction: 'pan-y' }}
         >
-          {/* In-App Interactive Video Streaming Player */}
+          {/* Main Visual Player Frame */}
           <div className="space-y-3">
-            {/* Player Container */}
             <div className="relative aspect-video w-full bg-black rounded-2xl overflow-hidden border border-cyan-500/30 shadow-2xl">
-              <iframe
-                key={`${selectedServer}-${activeEpisode}`}
-                src={getPlayerEmbedUrl()}
-                title={`${anime.title} - Episode ${activeEpisode}`}
-                className="w-full h-full border-0"
-                allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
-                allowFullScreen
-              />
+              {playerMode === 'stream' ? (
+                /* 1. In-App VidLink Episode Player */
+                <iframe
+                  key={`vidlink-ep-${activeEpisode}`}
+                  src={vidlinkStreamUrl}
+                  title={`${anime.title} - Episode ${activeEpisode}`}
+                  className="w-full h-full border-0"
+                  allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
+                  allowFullScreen
+                />
+              ) : playerMode === 'trailer' ? (
+                /* 2. Official HD Embedded Video Player */
+                <iframe
+                  key="official-player"
+                  src={officialTrailerEmbed}
+                  title={`${anime.title} - Official Video Stream`}
+                  className="w-full h-full border-0"
+                  allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
+                  allowFullScreen
+                />
+              ) : (
+                /* 3. Interactive Episode Stream Deck */
+                <div className="relative w-full h-full flex flex-col justify-between p-4 sm:p-6 bg-slate-950">
+                  {/* Background backdrop with cyberpunk styling */}
+                  <img
+                    src={anime.bannerUrl || anime.coverUrl}
+                    alt={anime.title}
+                    referrerPolicy="no-referrer"
+                    className="absolute inset-0 w-full h-full object-cover opacity-20 filter blur-xs"
+                  />
+                  <div className="absolute inset-0 bg-gradient-to-t from-[#0c1017] via-slate-950/80 to-[#0c1017]/90" />
+
+                  {/* Header HUD inside player */}
+                  <div className="relative z-10 flex items-center justify-between text-xs font-mono">
+                    <span className="flex items-center gap-1.5 px-2.5 py-1 rounded-md bg-cyan-500/20 text-cyan-300 border border-cyan-500/40 font-bold">
+                      <MonitorPlay className="w-3.5 h-3.5 text-cyan-400" />
+                      EPISODE {activeEpisode} READY TO STREAM
+                    </span>
+                    <button
+                      type="button"
+                      onClick={() => setPlayerMode('stream')}
+                      className="text-xs text-slate-400 hover:text-white underline cursor-pointer"
+                    >
+                      Return to In-App Player
+                    </button>
+                  </div>
+
+                  {/* Center Action */}
+                  <div className="relative z-10 text-center my-auto space-y-2">
+                    <h3 className="text-lg sm:text-xl font-extrabold text-white font-['Outfit']">
+                      Stream {anime.title} - Episode {activeEpisode}
+                    </h3>
+                    <p className="text-xs text-slate-300 max-w-md mx-auto">
+                      Select your preferred high-speed streaming server below to launch buffer-free playback with Sub & Dub options:
+                    </p>
+                    <div className="flex flex-wrap items-center justify-center gap-2 pt-2">
+                      <a
+                        href={`https://hianime.to/search?keyword=${encodeURIComponent(cleanSearchTitle)}`}
+                        target="_blank"
+                        rel="noopener noreferrer"
+                        className="flex items-center gap-2 px-4 py-2 rounded-xl bg-gradient-to-r from-amber-500 to-amber-600 text-black font-extrabold text-xs shadow-lg shadow-amber-500/30 hover:scale-105 transition-all cursor-pointer"
+                      >
+                        <Play className="w-4 h-4 fill-black" />
+                        <span>Stream Ep {activeEpisode} on HiAnime</span>
+                        <ArrowUpRight className="w-3.5 h-3.5" />
+                      </a>
+                      <a
+                        href={`https://animepahe.ru/?q=${encodeURIComponent(cleanSearchTitle)}`}
+                        target="_blank"
+                        rel="noopener noreferrer"
+                        className="flex items-center gap-2 px-4 py-2 rounded-xl bg-gradient-to-r from-rose-500 to-rose-600 text-white font-extrabold text-xs shadow-lg shadow-rose-500/30 hover:scale-105 transition-all cursor-pointer"
+                      >
+                        <Play className="w-4 h-4 fill-white" />
+                        <span>Stream Ep {activeEpisode} on AnimePahe</span>
+                        <ArrowUpRight className="w-3.5 h-3.5" />
+                      </a>
+                    </div>
+                  </div>
+
+                  {/* Footer status */}
+                  <div className="relative z-10 flex items-center justify-center gap-4 text-[11px] font-mono text-slate-400">
+                    <span className="flex items-center gap-1">
+                      <CheckCircle2 className="w-3 h-3 text-emerald-400" /> 1080p / 720p HD
+                    </span>
+                    <span>•</span>
+                    <span className="flex items-center gap-1">
+                      <CheckCircle2 className="w-3 h-3 text-cyan-400" /> Multi-Audio Sub/Dub
+                    </span>
+                    <span>•</span>
+                    <span className="flex items-center gap-1">
+                      <CheckCircle2 className="w-3 h-3 text-amber-400" /> Fast CDN
+                    </span>
+                  </div>
+                </div>
+              )}
             </div>
 
-            {/* Server Selector Tabs */}
+            {/* Mode Switcher Bar */}
             <div className="flex flex-wrap items-center justify-between gap-2 p-2.5 rounded-xl bg-slate-900/80 border border-white/10 text-xs font-mono">
               <div className="flex items-center gap-1.5 text-slate-400">
                 <MonitorPlay className="w-3.5 h-3.5 text-cyan-400" />
-                <span className="text-[11px] font-bold text-slate-300">PLAYER MODE:</span>
+                <span className="text-[11px] font-bold text-slate-300">STREAM SERVER:</span>
               </div>
               <div className="flex flex-wrap items-center gap-1.5">
                 <button
                   type="button"
-                  onClick={() => setSelectedServer('trailer')}
-                  className={`px-3 py-1 rounded-lg text-xs font-bold transition-all cursor-pointer ${
-                    selectedServer === 'trailer'
+                  onClick={() => setPlayerMode('stream')}
+                  className={`flex items-center gap-1.5 px-3 py-1 rounded-lg text-xs font-bold transition-all cursor-pointer ${
+                    playerMode === 'stream'
+                      ? 'bg-cyan-500 text-black shadow-md shadow-cyan-500/30'
+                      : 'bg-white/5 text-slate-300 hover:bg-white/10'
+                  }`}
+                >
+                  <Play className={`w-3.5 h-3.5 ${playerMode === 'stream' ? 'fill-black' : ''}`} />
+                  <span>Episode {activeEpisode} Player</span>
+                </button>
+                <button
+                  type="button"
+                  onClick={() => setPlayerMode('trailer')}
+                  className={`flex items-center gap-1.5 px-3 py-1 rounded-lg text-xs font-bold transition-all cursor-pointer ${
+                    playerMode === 'trailer'
                       ? 'bg-rose-500 text-white shadow-md shadow-rose-500/30'
                       : 'bg-white/5 text-slate-300 hover:bg-white/10'
                   }`}
                 >
-                  Official HD Stream
+                  <Film className="w-3.5 h-3.5" />
+                  <span>Official Trailer</span>
                 </button>
                 <button
                   type="button"
-                  onClick={() => setSelectedServer('vidsrc')}
-                  className={`px-3 py-1 rounded-lg text-xs font-bold transition-all cursor-pointer ${
-                    selectedServer === 'vidsrc'
-                      ? 'bg-cyan-500 text-black shadow-md shadow-cyan-500/30'
+                  onClick={() => setPlayerMode('sources')}
+                  className={`flex items-center gap-1.5 px-3 py-1 rounded-lg text-xs font-bold transition-all cursor-pointer ${
+                    playerMode === 'sources'
+                      ? 'bg-amber-500 text-black shadow-md shadow-amber-500/30'
                       : 'bg-white/5 text-slate-300 hover:bg-white/10'
                   }`}
                 >
-                  Server 1 (VidSrc)
-                </button>
-                <button
-                  type="button"
-                  onClick={() => setSelectedServer('twoembed')}
-                  className={`px-3 py-1 rounded-lg text-xs font-bold transition-all cursor-pointer ${
-                    selectedServer === 'twoembed'
-                      ? 'bg-cyan-500 text-black shadow-md shadow-cyan-500/30'
-                      : 'bg-white/5 text-slate-300 hover:bg-white/10'
-                  }`}
-                >
-                  Server 2 (2Embed)
+                  <Radio className="w-3.5 h-3.5" />
+                  <span>External Hub</span>
                 </button>
               </div>
             </div>
 
-            {/* Adblock / Iframe Warning & Direct Launch Bar (when on external server) */}
-            {selectedServer !== 'trailer' && (
-              <div className="flex flex-wrap items-center justify-between gap-2 p-2.5 rounded-xl bg-amber-500/10 border border-amber-500/30 text-xs text-amber-200">
-                <div className="flex items-center gap-2">
-                  <AlertCircle className="w-4 h-4 text-amber-400 flex-shrink-0" />
-                  <span>
-                    If browser security blocks the embed frame, open the stream directly:
-                  </span>
-                </div>
+            {/* Quick 1-Click Launchers for Selected Episode */}
+            <div className="p-2.5 rounded-xl bg-cyan-950/20 border border-cyan-500/20 flex flex-wrap items-center justify-between gap-2 text-xs">
+              <span className="text-slate-400 flex items-center gap-1.5 text-[11px] font-mono">
+                <ShieldAlert className="w-3.5 h-3.5 text-cyan-400 flex-shrink-0" />
+                <span>Fast Direct Streamers for Ep {activeEpisode}:</span>
+              </span>
+              <div className="flex flex-wrap items-center gap-1.5">
                 <a
-                  href={getPlayerEmbedUrl()}
+                  href={`https://hianime.to/search?keyword=${encodeURIComponent(cleanSearchTitle)}`}
                   target="_blank"
                   rel="noopener noreferrer"
-                  className="flex items-center gap-1 px-3 py-1 rounded-lg bg-amber-500 text-black font-bold text-xs hover:bg-amber-400 transition-colors flex-shrink-0 shadow-md"
+                  className="px-2.5 py-1 rounded-lg bg-amber-500/20 hover:bg-amber-500 text-amber-300 hover:text-black border border-amber-500/40 text-[11px] font-bold transition-all flex items-center gap-1"
+                >
+                  <span>HiAnime (Zoro)</span>
+                  <ArrowUpRight className="w-3 h-3" />
+                </a>
+                <a
+                  href={`https://animepahe.ru/?q=${encodeURIComponent(cleanSearchTitle)}`}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className="px-2.5 py-1 rounded-lg bg-rose-500/20 hover:bg-rose-500 text-rose-300 hover:text-white border border-rose-500/40 text-[11px] font-bold transition-all flex items-center gap-1"
+                >
+                  <span>AnimePahe</span>
+                  <ArrowUpRight className="w-3 h-3" />
+                </a>
+                <a
+                  href={`https://anitaku.pe/search.html?keyword=${encodeURIComponent(cleanSearchTitle)}`}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className="px-2.5 py-1 rounded-lg bg-cyan-500/20 hover:bg-cyan-500 text-cyan-300 hover:text-black border border-cyan-500/40 text-[11px] font-bold transition-all flex items-center gap-1"
+                >
+                  <span>GogoAnime</span>
+                  <ArrowUpRight className="w-3 h-3" />
+                </a>
+                <a
+                  href={vidlinkStreamUrl}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className="px-2.5 py-1 rounded-lg bg-white/5 hover:bg-white/15 text-slate-300 border border-white/10 text-[11px] font-semibold transition-all flex items-center gap-1"
                 >
                   <span>Open Stream in Tab</span>
-                  <ArrowUpRight className="w-3.5 h-3.5" />
+                  <ArrowUpRight className="w-3 h-3" />
                 </a>
               </div>
-            )}
+            </div>
 
             {/* Episode Grid / Selector */}
-            <div className="p-3 sm:p-4 rounded-xl bg-slate-950/60 border border-white/5 space-y-2.5">
+            <div className="p-3 sm:p-4 rounded-xl bg-slate-950/60 border border-white/5 space-y-3">
               <div className="flex items-center justify-between text-xs font-mono">
                 <span className="font-bold text-slate-300 flex items-center gap-1.5">
                   <Layers className="w-3.5 h-3.5 text-cyan-400" />
@@ -267,45 +396,61 @@ export default function AnimeDetailModal({ anime, onClose }) {
               </div>
 
               {/* Fast 1-Click Streamers for Selected Episode */}
-              <div className="grid grid-cols-2 sm:grid-cols-4 gap-2 pt-1">
-                {directEpisodeStreamers.map((st) => (
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
+                {episodeStreamServers.map((st) => (
                   <a
                     key={st.id}
                     href={st.url}
                     target="_blank"
                     rel="noopener noreferrer"
-                    className={`flex items-center justify-between p-2 rounded-xl bg-slate-900/90 border border-white/10 ${st.bgColor} transition-all text-xs cursor-pointer group`}
+                    className={`flex items-center justify-between p-2.5 rounded-xl bg-slate-900/90 border ${st.borderColor} ${st.bgColor} transition-all text-xs cursor-pointer group shadow-sm`}
                     title={`Watch Episode ${activeEpisode} on ${st.name}`}
                   >
-                    <div className="min-w-0 pr-1">
-                      <div className="text-[11px] font-bold text-white group-hover:text-cyan-300 truncate">
-                        {st.name}
+                    <div className="min-w-0 pr-2">
+                      <div className="flex items-center gap-1.5">
+                        <span className="text-xs font-bold text-white group-hover:text-cyan-300 truncate">
+                          {st.name}
+                        </span>
+                        <span className={`text-[9px] font-mono px-1.5 py-0.2 rounded border ${st.borderColor} ${st.textColor} bg-black/40`}>
+                          {st.badge}
+                        </span>
                       </div>
-                      <div className={`text-[10px] font-mono ${st.textColor}`}>
-                        Ep {activeEpisode} • {st.badge}
-                      </div>
+                      <p className="text-[11px] text-slate-400 truncate mt-0.5">
+                        {st.desc}
+                      </p>
                     </div>
-                    <Play className="w-3.5 h-3.5 text-slate-400 group-hover:text-cyan-400 flex-shrink-0" />
+                    <div className="flex items-center gap-1 px-2 py-1 rounded-lg bg-white/5 group-hover:bg-cyan-500 group-hover:text-black text-slate-300 transition-colors flex-shrink-0 font-bold text-[11px]">
+                      <span>Play Ep {activeEpisode}</span>
+                      <ArrowUpRight className="w-3 h-3" />
+                    </div>
                   </a>
                 ))}
               </div>
 
-              {/* Episode Numbers Badges */}
-              <div className="flex flex-wrap gap-1.5 max-h-28 overflow-y-auto pr-1 scrollbar-thin scrollbar-thumb-cyan-500/30 pt-1">
-                {epArray.map((epNum) => (
-                  <button
-                    key={epNum}
-                    type="button"
-                    onClick={() => setActiveEpisode(epNum)}
-                    className={`px-2.5 py-1 rounded-lg text-xs font-mono font-semibold transition-all cursor-pointer ${
-                      activeEpisode === epNum
-                        ? 'bg-cyan-500 text-black font-bold shadow-sm shadow-cyan-500/40'
-                        : 'bg-slate-900 text-slate-300 hover:bg-slate-800 hover:text-white border border-white/5'
-                    }`}
-                  >
-                    Ep {epNum}
-                  </button>
-                ))}
+              {/* Episode Number Badges */}
+              <div className="space-y-1.5 pt-1">
+                <div className="text-[10px] font-mono text-slate-500">
+                  CLICK EPISODE TO SWITCH PLAY TARGET:
+                </div>
+                <div className="flex flex-wrap gap-1.5 max-h-28 overflow-y-auto pr-1 scrollbar-thin scrollbar-thumb-cyan-500/30">
+                  {epArray.map((epNum) => (
+                    <button
+                      key={epNum}
+                      type="button"
+                      onClick={() => {
+                        setActiveEpisode(epNum);
+                        if (playerMode === 'trailer') setPlayerMode('stream');
+                      }}
+                      className={`px-2.5 py-1 rounded-lg text-xs font-mono font-semibold transition-all cursor-pointer ${
+                        activeEpisode === epNum
+                          ? 'bg-cyan-500 text-black font-bold shadow-sm shadow-cyan-500/40'
+                          : 'bg-slate-900 text-slate-300 hover:bg-slate-800 hover:text-white border border-white/5'
+                      }`}
+                    >
+                      Ep {epNum}
+                    </button>
+                  ))}
+                </div>
               </div>
             </div>
           </div>
@@ -365,7 +510,7 @@ export default function AnimeDetailModal({ anime, onClose }) {
             </div>
           </div>
 
-          {/* Verified Stream Sources Hub (awesome-anime-sources) */}
+          {/* Verified Stream Sources Directory (awesome-anime-sources) */}
           <div className="space-y-3 p-4 rounded-2xl bg-slate-950/70 border border-cyan-500/30 hud-corner">
             <div className="flex items-center justify-between border-b border-cyan-500/20 pb-2">
               <h4 className="text-xs font-bold uppercase tracking-wider text-cyan-300 font-mono flex items-center gap-2">

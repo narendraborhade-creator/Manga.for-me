@@ -2,6 +2,7 @@ const ANILIST_URL = 'https://graphql.anilist.co';
 
 const MEDIA_FIELDS = `
   id
+  idMal
   title {
     romaji
     english
@@ -85,6 +86,7 @@ export const formatAnimeItem = (media) => {
 
   return {
     id: media.id,
+    malId: media.idMal || media.id,
     title,
     romajiTitle: media.title?.romaji,
     nativeTitle: media.title?.native,
