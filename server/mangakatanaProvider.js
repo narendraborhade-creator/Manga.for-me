@@ -48,16 +48,120 @@ export async function searchMangaKatana(query = '') {
 
   try {
     const searchUrl = `${BASE_URL}/?search=${encodeURIComponent(q)}&search_by=book_name`;
-    const res = await fetchWithTimeout(searchUrl, { headers: HEADERS }, 5000);
+    const res = await fetchWithTimeout(searchUrl, { headers: HEADERS }, 7500);
     if (!res.ok) return [];
     const html = await res.text();
 
-    const listStart = html.indexOf('id="book_list"');
-    if (listStart === -1) return [];
-    const listEnd = html.indexOf('class="uk-width-medium-1-3', listStart);
-    const listSection = listEnd !== -1 ? html.slice(listStart, listEnd) : html.slice(listStart);
+    // Check if MangaKatana automatically redirected exact match to the manga detail page
+    if (res.url && res.url.includes('/manga/')) {
+      const slugMatch = res.url.match(/\/manga\/([^/?#]+)/i);
+      if (slugMatch) {
+        const slug = slugMatch[1];
+        const titleMatch = html.match(/<h1 class="heading">([^<]+)<\/h1>/i) || html.match(/<title>([^<]+)<\/title>/i);
+        const imgMatch = html.match(/<div class="cover"[^>]*>\s*<img[^>]+src="([^"]+)"/i) || html.match(/<meta property="og:image" content="([^"]+)"/i);
+        const chMatches = [...html.matchAll(/<div class="chapter">\s*<a href="https:\/\/mangakatana\.com\/manga\/[^/]+\/([^"]+)"[^>]*>([^<]+)<\/a>/gi)];
+        const rawImg = imgMatch ? imgMatch[1] : '';
+        const title = titleMatch ? decodeHtml(titleMatch[1].replace(/\s*-\s*MangaKatana.*$/i, '').trim()) : slug;
+        const latestChStr = chMatches.length > 0 ? chMatches[0][2].trim() : 'Latest';
+        const numMatch = latestChStr.match(/(?:Chapter|Ch\.?)\s*([0-9.]+)/i);
+        const totalCh = numMatch ? parseFloat(numMatch[1]) : chMatches.length;
 
-    const items = listSection.split('<div class="item"').slice(1);
+        const singleResult = [{
+          id: `kat:${slug}`,
+          slug,
+          title: cleanTitle(title),
+          englishTitle: cleanTitle(title),
+          coverUrl: rawImg ? `/api/image-proxy?url=${encodeURIComponent(rawImg)}` : '',
+          rawCoverUrl: rawImg,
+          latestChapter: latestChStr,
+          totalChapters: totalCh,
+          status: html.includes('Completed') ? 'Completed' : 'Ongoing',
+          tags: ['Manga'],
+          provider: 'mangakatana',
+          sourceName: 'MangaKatana',
+        }];
+        setCache(cacheKey, singleResult);
+        return singleResult;
+      }
+    }
+
+    const listStart = html.indexOf('id="book_list"');
+    let items = [];
+    if (listStart !== -1) {
+      const listEnd = html.indexOf('class="uk-width-medium-1-3', listStart);
+      const listSection = listEnd !== -1 ? html.slice(listStart, listEnd) : html.slice(listStart);
+      items = listSection.split('<div class="item"').slice(1);
+    }
+
+    // Fallbacks if 0 results were found
+    if (items.length === 0) {
+      const fallbackQueries = [];
+      if (!q.includes("'") && /\b([a-zA-Z]+)s\b/i.test(q)) {
+        fallbackQueries.push(q.replace(/\b([a-zA-Z]+)s\b/gi, "$1's"));
+      }
+      if (q.includes("'") || q.includes("’")) {
+        fallbackQueries.push(q.replace(/['’]/g, ''));
+      }
+      if (/^(the|a|an)\s+/i.test(q)) {
+        fallbackQueries.push(q.replace(/^(the|a|an)\s+/i, ''));
+      }
+
+      for (const fbQ of fallbackQueries) {
+        if (!fbQ || fbQ === q) continue;
+        try {
+          const fbUrl = `${BASE_URL}/?search=${encodeURIComponent(fbQ)}&search_by=book_name`;
+          const fbRes = await fetchWithTimeout(fbUrl, { headers: HEADERS }, 6000);
+          if (fbRes.ok) {
+            if (fbRes.url && fbRes.url.includes('/manga/')) {
+              const fbSlugMatch = fbRes.url.match(/\/manga\/([^/?#]+)/i);
+              if (fbSlugMatch) {
+                const fbHtml = await fbRes.text();
+                const slug = fbSlugMatch[1];
+                const titleMatch = fbHtml.match(/<h1 class="heading">([^<]+)<\/h1>/i) || fbHtml.match(/<title>([^<]+)<\/title>/i);
+                const imgMatch = fbHtml.match(/<div class="cover"[^>]*>\s*<img[^>]+src="([^"]+)"/i) || fbHtml.match(/<meta property="og:image" content="([^"]+)"/i);
+                const chMatches = [...fbHtml.matchAll(/<div class="chapter">\s*<a href="https:\/\/mangakatana\.com\/manga\/[^/]+\/([^"]+)"[^>]*>([^<]+)<\/a>/gi)];
+                const rawImg = imgMatch ? imgMatch[1] : '';
+                const title = titleMatch ? decodeHtml(titleMatch[1].replace(/\s*-\s*MangaKatana.*$/i, '').trim()) : slug;
+                const latestChStr = chMatches.length > 0 ? chMatches[0][2].trim() : 'Latest';
+                const numMatch = latestChStr.match(/(?:Chapter|Ch\.?)\s*([0-9.]+)/i);
+                const totalCh = numMatch ? parseFloat(numMatch[1]) : chMatches.length;
+
+                const singleResult = [{
+                  id: `kat:${slug}`,
+                  slug,
+                  title: cleanTitle(title),
+                  englishTitle: cleanTitle(title),
+                  coverUrl: rawImg ? `/api/image-proxy?url=${encodeURIComponent(rawImg)}` : '',
+                  rawCoverUrl: rawImg,
+                  latestChapter: latestChStr,
+                  totalChapters: totalCh,
+                  status: fbHtml.includes('Completed') ? 'Completed' : 'Ongoing',
+                  tags: ['Manga'],
+                  provider: 'mangakatana',
+                  sourceName: 'MangaKatana',
+                }];
+                setCache(cacheKey, singleResult);
+                return singleResult;
+              }
+            }
+            const fbHtml = await fbRes.text();
+            const fbStart = fbHtml.indexOf('id="book_list"');
+            if (fbStart !== -1) {
+              const fbEnd = fbHtml.indexOf('class="uk-width-medium-1-3', fbStart);
+              const fbSection = fbEnd !== -1 ? fbHtml.slice(fbStart, fbEnd) : fbHtml.slice(fbStart);
+              const fbItems = fbSection.split('<div class="item"').slice(1);
+              if (fbItems.length > 0) {
+                items = fbItems;
+                break;
+              }
+            }
+          }
+        } catch {}
+      }
+    }
+
+    if (items.length === 0) return [];
+
     const list = [];
     const seen = new Set();
 

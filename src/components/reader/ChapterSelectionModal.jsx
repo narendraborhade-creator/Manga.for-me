@@ -15,11 +15,13 @@ export default function ChapterSelectionModal({
 }) {
   if (!isOpen) return null;
 
-  const filteredChapters = allChapters.filter((ch) => {
+  const filteredChapters = (allChapters || []).filter((ch) => {
+    if (!ch) return false;
     if (!chapterFilter) return true;
+    const filter = chapterFilter.toLowerCase().trim();
     return (
-      String(ch.chapter).toLowerCase().includes(chapterFilter.toLowerCase()) ||
-      (ch.title && ch.title.toLowerCase().includes(chapterFilter.toLowerCase()))
+      (ch.chapter && String(ch.chapter).toLowerCase().includes(filter)) ||
+      (ch.title && String(ch.title).toLowerCase().includes(filter))
     );
   });
 

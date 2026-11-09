@@ -256,6 +256,11 @@ export const KNOWN_CHAPTER_COUNTS = {
   'fortune-telling princess': 176,
   'fortune telling princess': 176,
   'a fortune-telling princess': 176,
+  'world\'s strongest troll': 197,
+  'worlds strongest troll': 197,
+  'the world\'s strongest troll': 197,
+  'the worlds strongest troll': 197,
+  'world-s-strongest-troll': 197,
   'damn reincarnation': 81,
   'surviving the game as a barbarian': 90,
   'the greatest estate developer': 180,
@@ -275,6 +280,75 @@ export function getKnownChapterCount(title) {
   }
   return null;
 }
+
+// Direct alias resolution for top series with verified unskipped chapter archives
+export const VERIFIED_COMPLETE_ALIASES = {
+  '2/one-piece': 'kat:one-piece.49',
+  'one-piece': 'kat:one-piece.49',
+  '1/berserk': 'kat:berserk.1',
+  'berserk': 'kat:berserk.1',
+  '5/naruto': 'kat:naruto.5',
+  'naruto': 'kat:naruto.5',
+  '3/bleach': 'kat:bleach.4',
+  'bleach': 'kat:bleach.4',
+  '2085/jujutsu-kaisen': 'kat:jujutsu-kaisen.2085',
+  'jujutsu-kaisen': 'kat:jujutsu-kaisen.2085',
+  '723/chainsaw-man': 'kat:chainsaw-man.2081',
+  'chainsaw-man': 'kat:chainsaw-man.2081',
+  'damn-reincarnation': 'kat:damn-reincarnation.26360',
+  'my-blasted-reincarnation': 'kat:damn-reincarnation.26360',
+  'my-blasted-reincarnated-life': 'kat:damn-reincarnation.26360',
+  'lookism': 'wc:01J76XYBD282Y3XKX0KRGD64Q5',
+  'webtoon:lookism': 'wc:01J76XYBD282Y3XKX0KRGD64Q5',
+  'tower-of-god': 'wc:01J76XY7M0W9WWJ55VJYYB2J1S',
+  'webtoon:tower-of-god': 'wc:01J76XY7M0W9WWJ55VJYYB2J1S',
+  'wind-breaker': 'wc:01J76XYA1TQYKV6W4BCMR2WD5M',
+  'webtoon:wind-breaker': 'wc:01J76XYA1TQYKV6W4BCMR2WD5M',
+  'eleceed': 'wc:01J76XYD3Q2Q7HYYMB3FSDPSKC',
+  'webtoon:eleceed': 'wc:01J76XYD3Q2Q7HYYMB3FSDPSKC',
+  'mercenary-enrollment': 'wc:01J76XYEA95PG5AVMCKC9TK492',
+  'webtoon:mercenary-enrollment': 'wc:01J76XYEA95PG5AVMCKC9TK492',
+  'teenage-mercenary': 'wc:01J76XYEA95PG5AVMCKC9TK492',
+  'nano-machine': 'asura:nano-machine-ab39de10',
+  'webtoon:nano-machine': 'asura:nano-machine-ab39de10',
+  'the-beginning-after-the-end': 'thunder:the-beginning-after-the-end',
+  'tbate': 'thunder:the-beginning-after-the-end',
+  'doom-breaker': 'asura:reincarnation-of-the-suicidal-battle-god-ab39de10',
+  'reincarnation-of-the-suicidal-battle-god': 'asura:reincarnation-of-the-suicidal-battle-god-ab39de10',
+  'mount-hua': 'asura:return-of-the-mount-hua-sect-ab39de10',
+  'return-of-the-mount-hua-sect': 'asura:return-of-the-mount-hua-sect-ab39de10',
+  'reaper-of-the-drifting-moon': 'asura:reaper-of-the-drifting-moon-ab39de10',
+  'murim-login': 'asura:murim-login-ab39de10',
+  'barbarian': 'asura:surviving-the-game-as-a-barbarian-ab39de10',
+  'a-fortune-telling-princess': 'webtoon:fortune-telling-princess',
+  'fortune-telling-princess': 'webtoon:fortune-telling-princess',
+  'md:0ba6b85e-3e87-454a-b81d-1040468248e1': 'webtoon:fortune-telling-princess',
+  'the-despised-stepmother-begins-her-second-life': 'webtoon:stepmother-second-life',
+  'the-despised-stepmother': 'webtoon:stepmother-second-life',
+  'stepmother-second-life': 'webtoon:stepmother-second-life',
+  'md:73f00a6a-dc33-49f6-beb0-98feb29ce0cc': 'webtoon:stepmother-second-life',
+  '73f00a6a-dc33-49f6-beb0-98feb29ce0cc': 'webtoon:stepmother-second-life',
+  'my-in-laws-are-obsessed-with-me': 'webtoon:ks:my-in-laws-are-obsessed-with-me',
+  'md:c44b5b1d-60cf-4faf-be2c-0a807200358f': 'webtoon:ks:my-in-laws-are-obsessed-with-me',
+  'c44b5b1d-60cf-4faf-be2c-0a807200358f': 'webtoon:ks:my-in-laws-are-obsessed-with-me',
+  'damn-reincarnation': 'asura:damn-reincarnation-ab39de10',
+  'surviving-the-game-as-a-barbarian': 'asura:surviving-the-game-as-a-barbarian-ab39de10',
+  'greatest-estate-developer': 'asura:the-greatest-estate-developer-ab39de10',
+  'the-greatest-estate-developer': 'asura:the-greatest-estate-developer-ab39de10',
+  'md:eee25eb6-591b-40a4-a2aa-f4ab68169795': 'thunder:forget-about-the-succession-im-here-to-heal',
+  'eee25eb6-591b-40a4-a2aa-f4ab68169795': 'thunder:forget-about-the-succession-im-here-to-heal',
+  'my-blasted-reincarnation': 'asura:damn-reincarnation-3ebcc5a9',
+  'my-blasted-reincarnated-life': 'asura:damn-reincarnation-3ebcc5a9',
+  'to-hell-with-being-heir': 'thunder:forget-about-the-succession-im-here-to-heal',
+  'asura:worlds-strongest-troll-f212c582': 'kat:worlds-strongest-troll.26644',
+  'asura:worlds-strongest-troll': 'kat:worlds-strongest-troll.26644',
+  'worlds-strongest-troll-f212c582': 'kat:worlds-strongest-troll.26644',
+  'worlds-strongest-troll': 'kat:worlds-strongest-troll.26644',
+  'world-s-strongest-troll': 'kat:worlds-strongest-troll.26644',
+  'the-worlds-strongest-troll': 'kat:worlds-strongest-troll.26644',
+  'the-world-s-strongest-troll': 'kat:worlds-strongest-troll.26644',
+  'wc:01J76XYGVNHEER7G6M90C6YCTW': 'kat:worlds-strongest-troll.26644',
+};
 
 export function normalizeTitleKey(str) {
   if (!str) return '';
@@ -388,6 +462,13 @@ export function groupAndSelectBestManga(list) {
     let maxCh = 0;
     let maxChStr = null;
     let bestItem = g.best;
+
+    for (const m of allMatches) {
+      if (m.id && VERIFIED_COMPLETE_ALIASES[bestItem.id] === m.id) {
+        bestItem = m;
+        break;
+      }
+    }
 
     for (const m of allMatches) {
       const num = extractNumericChapter(m.totalChapters) || extractNumericChapter(m.latestChapter);
@@ -1174,7 +1255,9 @@ export async function autoHealAndUpgradeChapters(details, bypassCache = false) {
 
           // 1. If candidate has significantly more chapters, adopt it as primary!
           // When currentCount === 0, ANY candidate with chapters is adopted to avoid leaving user with 0 chapters.
-          const isBetterOrZero = currentCount === 0 || (candidateChapters.length > maxFoundCount && candidateGaps.length <= Math.max(1, currentGaps.length));
+          const isBetterOrZero = currentCount === 0 || 
+            (candidateChapters.length > maxFoundCount && candidateGaps.length <= Math.max(1, currentGaps.length)) ||
+            (candidateChapters.length >= currentChapters.length + 15);
           if (isBetterOrZero) {
             maxFoundCount = candidateChapters.length;
             currentChapters = candidateChapters;
@@ -1206,14 +1289,16 @@ export async function autoHealAndUpgradeChapters(details, bypassCache = false) {
             }
           }
 
-          // If all gaps are sealed and chapters are complete, stop searching
-          if (currentGaps.length === 0 && currentChapters.length >= 40) {
+          // If all gaps are sealed and chapters meet known target or reach robust completeness, stop searching
+          const knownMin = getKnownChapterCount(details.englishTitle || details.title) || 80;
+          if (currentGaps.length === 0 && currentChapters.length >= knownMin) {
             break;
           }
         }
       }
 
-      if (currentGaps.length === 0 && currentChapters.length >= 40) {
+      const knownMin = getKnownChapterCount(details.englishTitle || details.title) || 80;
+      if (currentGaps.length === 0 && currentChapters.length >= knownMin) {
         break;
       }
     } catch (err) {
@@ -1260,68 +1345,6 @@ export async function getMangaDetails(mangaId, bypassCache = false) {
     }
   }
 
-  // Direct alias resolution for top series with verified 1000+ unskipped chapter archives
-  const VERIFIED_COMPLETE_ALIASES = {
-    '2/one-piece': 'kat:one-piece.49',
-    'one-piece': 'kat:one-piece.49',
-    '1/berserk': 'kat:berserk.1',
-    'berserk': 'kat:berserk.1',
-    '5/naruto': 'kat:naruto.5',
-    'naruto': 'kat:naruto.5',
-    '3/bleach': 'kat:bleach.4',
-    'bleach': 'kat:bleach.4',
-    '2085/jujutsu-kaisen': 'kat:jujutsu-kaisen.2085',
-    'jujutsu-kaisen': 'kat:jujutsu-kaisen.2085',
-    '723/chainsaw-man': 'kat:chainsaw-man.2081',
-    'chainsaw-man': 'kat:chainsaw-man.2081',
-    'damn-reincarnation': 'kat:damn-reincarnation.26360',
-    'my-blasted-reincarnation': 'kat:damn-reincarnation.26360',
-    'my-blasted-reincarnated-life': 'kat:damn-reincarnation.26360',
-    'lookism': 'wc:01J76XYBD282Y3XKX0KRGD64Q5',
-    'webtoon:lookism': 'wc:01J76XYBD282Y3XKX0KRGD64Q5',
-    'tower-of-god': 'wc:01J76XY7M0W9WWJ55VJYYB2J1S',
-    'webtoon:tower-of-god': 'wc:01J76XY7M0W9WWJ55VJYYB2J1S',
-    'wind-breaker': 'wc:01J76XYA1TQYKV6W4BCMR2WD5M',
-    'webtoon:wind-breaker': 'wc:01J76XYA1TQYKV6W4BCMR2WD5M',
-    'eleceed': 'wc:01J76XYD3Q2Q7HYYMB3FSDPSKC',
-    'webtoon:eleceed': 'wc:01J76XYD3Q2Q7HYYMB3FSDPSKC',
-    'mercenary-enrollment': 'wc:01J76XYEA95PG5AVMCKC9TK492',
-    'webtoon:mercenary-enrollment': 'wc:01J76XYEA95PG5AVMCKC9TK492',
-    'teenage-mercenary': 'wc:01J76XYEA95PG5AVMCKC9TK492',
-    'nano-machine': 'asura:nano-machine-ab39de10',
-    'webtoon:nano-machine': 'asura:nano-machine-ab39de10',
-    'the-beginning-after-the-end': 'thunder:the-beginning-after-the-end',
-    'tbate': 'thunder:the-beginning-after-the-end',
-    'doom-breaker': 'asura:reincarnation-of-the-suicidal-battle-god-ab39de10',
-    'reincarnation-of-the-suicidal-battle-god': 'asura:reincarnation-of-the-suicidal-battle-god-ab39de10',
-    'mount-hua': 'asura:return-of-the-mount-hua-sect-ab39de10',
-    'return-of-the-mount-hua-sect': 'asura:return-of-the-mount-hua-sect-ab39de10',
-    'reaper-of-the-drifting-moon': 'asura:reaper-of-the-drifting-moon-ab39de10',
-    'murim-login': 'asura:murim-login-ab39de10',
-    'barbarian': 'asura:surviving-the-game-as-a-barbarian-ab39de10',
-    'a-fortune-telling-princess': 'webtoon:fortune-telling-princess',
-    'fortune-telling-princess': 'webtoon:fortune-telling-princess',
-    'md:0ba6b85e-3e87-454a-b81d-1040468248e1': 'webtoon:fortune-telling-princess',
-    'the-despised-stepmother-begins-her-second-life': 'webtoon:stepmother-second-life',
-    'the-despised-stepmother': 'webtoon:stepmother-second-life',
-    'stepmother-second-life': 'webtoon:stepmother-second-life',
-    'md:73f00a6a-dc33-49f6-beb0-98feb29ce0cc': 'webtoon:stepmother-second-life',
-    '73f00a6a-dc33-49f6-beb0-98feb29ce0cc': 'webtoon:stepmother-second-life',
-    'my-in-laws-are-obsessed-with-me': 'webtoon:ks:my-in-laws-are-obsessed-with-me',
-    'md:c44b5b1d-60cf-4faf-be2c-0a807200358f': 'webtoon:ks:my-in-laws-are-obsessed-with-me',
-    'c44b5b1d-60cf-4faf-be2c-0a807200358f': 'webtoon:ks:my-in-laws-are-obsessed-with-me',
-    'damn-reincarnation': 'asura:damn-reincarnation-ab39de10',
-    'surviving-the-game-as-a-barbarian': 'asura:surviving-the-game-as-a-barbarian-ab39de10',
-    'greatest-estate-developer': 'asura:the-greatest-estate-developer-ab39de10',
-    'the-greatest-estate-developer': 'asura:the-greatest-estate-developer-ab39de10',
-    'md:eee25eb6-591b-40a4-a2aa-f4ab68169795': 'thunder:forget-about-the-succession-im-here-to-heal',
-    'eee25eb6-591b-40a4-a2aa-f4ab68169795': 'thunder:forget-about-the-succession-im-here-to-heal',
-    'my-blasted-reincarnation': 'asura:damn-reincarnation-3ebcc5a9',
-    'my-blasted-reincarnated-life': 'asura:damn-reincarnation-3ebcc5a9',
-    'damn-reincarnation': 'asura:damn-reincarnation-3ebcc5a9',
-    'to-hell-with-being-heir': 'thunder:forget-about-the-succession-im-here-to-heal',
-  };
-
   const lookupId = VERIFIED_COMPLETE_ALIASES[mangaId] || mangaId;
 
   let resolvedDetails = null;
@@ -1367,7 +1390,11 @@ export async function getMangaDetails(mangaId, bypassCache = false) {
 
   if (resolvedDetails) {
     const resolvedGaps = detectChapterGaps(resolvedDetails.chapters);
-    if (!resolvedDetails.chapters || resolvedDetails.chapters.length < 35 || resolvedGaps.length > 0) {
+    const knownTarget = getKnownChapterCount(resolvedDetails.englishTitle || resolvedDetails.title);
+    const isUnderChaptered = knownTarget && (resolvedDetails.chapters?.length || 0) < (knownTarget - 15);
+    const hasFewChapters = (resolvedDetails.chapters?.length || 0) < 60 && resolvedDetails.status !== 'Completed';
+
+    if (!resolvedDetails.chapters || resolvedDetails.chapters.length < 60 || resolvedGaps.length > 0 || isUnderChaptered || hasFewChapters) {
       resolvedDetails = await autoHealAndUpgradeChapters(resolvedDetails, bypassCache);
     }
     if (Array.isArray(resolvedDetails.chapters)) {

@@ -879,9 +879,11 @@ export function getReliableCoverUrl(title, currentUrl) {
     return currentUrl;
   }
   const t = (title || '').toLowerCase().trim();
-  for (const [key, url] of Object.entries(KNOWN_MANGA_COVERS)) {
-    if (t.includes(key) || key.includes(t)) {
-      return url;
+  if (t) {
+    for (const [key, url] of Object.entries(KNOWN_MANGA_COVERS)) {
+      if (t.includes(key) || key.includes(t)) {
+        return url;
+      }
     }
   }
   return currentUrl || getFallbackCover(title);
@@ -1113,9 +1115,9 @@ export async function searchManga(query = '') {
   const q = query.toLowerCase().trim();
   const matched = FALLBACK_MANGA_CATALOG.filter(
     (m) =>
-      m.title.toLowerCase().includes(q) ||
-      (m.englishTitle && m.englishTitle.toLowerCase().includes(q)) ||
-      (m.aliases && m.aliases.some((a) => a.toLowerCase().includes(q)))
+      (m.title && String(m.title).toLowerCase().includes(q)) ||
+      (m.englishTitle && String(m.englishTitle).toLowerCase().includes(q)) ||
+      (m.aliases && Array.isArray(m.aliases) && m.aliases.some((a) => a && String(a).toLowerCase().includes(q)))
   ).map(formatMangaItem);
 
   try {

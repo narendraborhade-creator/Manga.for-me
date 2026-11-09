@@ -108,7 +108,7 @@ export default function MangaDetailModal({
       .then((data) => {
         if (data) {
           setManga(data);
-          if (data.chapters && Array.isArray(data.chapters)) {
+          if (data.chapters && Array.isArray(data.chapters) && data.chapters.length > 0) {
             const uniqueChapters = deduplicateChapters(data.chapters);
             const sorted = uniqueChapters.sort((a, b) => {
               const numA = parseFloat(a.chapter);
@@ -121,6 +121,10 @@ export default function MangaDetailModal({
               return 0;
             });
             setChapters(sorted);
+          } else if (!forceRefresh) {
+            // Auto-heal 0-chapter state so user never sees empty synchronized box
+            loadMangaData(true);
+            return;
           }
 
           // Fetch suggestions & recommendations for this manga
@@ -171,12 +175,13 @@ export default function MangaDetailModal({
 
   // Filter chapters based on search query
   const filteredChapters = chapters.filter((c) => {
+    if (!c) return false;
     if (!chapterSearch) return true;
-    const q = chapterSearch.toLowerCase();
+    const q = chapterSearch.toLowerCase().trim();
     return (
-      c.chapter?.toString().toLowerCase().includes(q) ||
-      c.title?.toLowerCase().includes(q) ||
-      c.group?.toLowerCase().includes(q)
+      (c.chapter && String(c.chapter).toLowerCase().includes(q)) ||
+      (c.title && String(c.title).toLowerCase().includes(q)) ||
+      (c.group && String(c.group).toLowerCase().includes(q))
     );
   });
 

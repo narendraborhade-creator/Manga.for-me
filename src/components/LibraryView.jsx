@@ -69,10 +69,10 @@ export default function LibraryView({
       : filterStatus === 'updates'
       ? updatesByManga.has(item.id)
       : item.status === filterStatus;
-    const q = searchQuery.toLowerCase();
-    const matchesSearch = !searchQuery || 
-      item.title?.toLowerCase().includes(q) || 
-      item.englishTitle?.toLowerCase().includes(q);
+    const q = searchQuery.toLowerCase().trim();
+    const matchesSearch = !searchQuery.trim() || 
+      (item.title && String(item.title).toLowerCase().includes(q)) || 
+      (item.englishTitle && String(item.englishTitle).toLowerCase().includes(q));
     return matchesStatus && matchesSearch;
   });
 
