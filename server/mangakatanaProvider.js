@@ -166,7 +166,7 @@ export async function searchMangaKatana(query = '') {
     const seen = new Set();
 
     for (const item of items) {
-      const slugMatch = item.match(/href="https:\/\/mangakatana\.com\/manga\/([^"/]+)"/i);
+      const slugMatch = item.match(/href="(?:https:\/\/mangakatana\.com)?\/manga\/([^"/]+)"/i);
       const imgMatch = item.match(/<img[^>]+src="([^"]+)"/i);
       const titleMatch = item.match(/<h3 class="title">\s*<a[^>]*>([^<]+)<\/a>/i);
       const chMatch = item.match(/Update chapter\s*([0-9.]+)/i);
@@ -231,10 +231,19 @@ export async function getMangaKatanaDetails(mangaId, bypassCache = false) {
     const altTitles = altMatch ? altMatch[1].split(';').map(t => decodeHtml(t.trim())).filter(Boolean) : [];
     const englishTitle = altTitles.length > 0 ? altTitles[0] : null;
 
-    const descMatch = html.match(/<div class="summary">\s*<p>([\s\S]*?)<\/p>/i);
-    const description = descMatch ? decodeHtml(descMatch[1].replace(/<[^>]+>/g, '').trim()) : '';
+    const descMatch =
+      html.match(/class="summary"[\s\S]*?<p>([\s\S]*?)<\/p>/i) ||
+      html.match(/<meta\s+(?:name|property)="description"\s+content="([^"]+)"/i) ||
+      html.match(/<div class="summary">([\s\S]*?)<\/div>/i);
+    const description = descMatch
+      ? decodeHtml(descMatch[1].replace(/<div class="label">[\s\S]*?<\/div>/gi, '').replace(/<[^>]+>/g, '').trim())
+      : '';
 
-    const imgMatch = html.match(/<div class="media">[\s\S]*?<img src="([^"]+)"/i);
+    const imgMatch =
+      html.match(/<div class="cover"[^>]*>[\s\S]*?<img[^>]+src="([^"]+)"/i) ||
+      html.match(/property="og:image"\s+content="([^"]+)"/i) ||
+      html.match(/content="([^"]+)"\s+property="og:image"/i) ||
+      html.match(/<img[^>]+alt="\[Cover\]"[^>]+src="([^"]+)"/i);
     const rawCover = imgMatch ? imgMatch[1] : '';
     const coverUrl = rawCover ? `/api/image-proxy?url=${encodeURIComponent(rawCover)}` : '';
 
@@ -246,17 +255,21 @@ export async function getMangaKatanaDetails(mangaId, bypassCache = false) {
 
     const genreMatches = [...html.matchAll(/<a href="https:\/\/mangakatana\.com\/genre\/[^"]*">([^<]+)<\/a>/gi)].map(g => g[1]);
 
-    // Chapters
-    const chMatches = [...html.matchAll(/<div class="chapter"><a href="https:\/\/mangakatana\.com\/manga\/[^/]+\/([^"]+)">([^<]+)<\/a><\/div>/gi)];
+    // Chapters - extract from table rows including published update time
+    const trMatches = [...html.matchAll(/<tr[^>]*>\s*<td>\s*<div class="chapter">\s*<a href="https:\/\/mangakatana\.com\/manga\/[^/]+\/([^"]+)"[^>]*>([\s\S]*?)<\/a>\s*<\/div>\s*<\/td>(?:\s*<td>\s*<div class="update_time">([^<]*)<\/div>\s*<\/td>)?/gi)];
+    const chMatches = trMatches.length > 0 
+      ? trMatches.map(m => ({ slug: m[1], text: m[2], date: m[3] }))
+      : [...html.matchAll(/<div class="chapter"[^>]*>\s*<a href="https:\/\/mangakatana\.com\/manga\/[^/]+\/([^"]+)"[^>]*>([\s\S]*?)<\/a>/gi)].map(m => ({ slug: m[1], text: m[2], date: null }));
+
     const chapters = [];
     const seenCh = new Set();
 
     for (const cm of chMatches) {
-      const chSlug = cm[1];
+      const chSlug = cm.slug;
       if (seenCh.has(chSlug)) continue;
       seenCh.add(chSlug);
 
-      const chText = cm[2].trim();
+      const chText = cm.text.replace(/<[^>]+>/g, '').trim();
       const slugMatch = chSlug.match(/^c([0-9.]+)/i);
       const titleChMatch = chText.match(/(?:Chapter|Ch\.?|Ep\.?)\s*([0-9.]+)/i);
 
@@ -279,6 +292,7 @@ export async function getMangaKatanaDetails(mangaId, bypassCache = false) {
         id: `kat_ch:${slug}:${chSlug}`,
         chapter: chapterNum,
         title: decodeHtml(chText) || `Chapter ${chapterNum}`,
+        publishedAt: cm.date ? cm.date.trim() : null,
         sourceUrl: `${BASE_URL}/manga/${slug}/${chSlug}`,
       });
     }
@@ -405,7 +419,7 @@ export async function getPopularMangaKatana(limit = 24) {
 
     for (const item of items) {
       if (list.length >= limit) break;
-      const slugMatch = item.match(/href="https:\/\/mangakatana\.com\/manga\/([^"/]+)"/i);
+      const slugMatch = item.match(/href="(?:https:\/\/mangakatana\.com)?\/manga\/([^"/]+)"/i);
       const imgMatch = item.match(/<img[^>]+src="([^"]+)"/i);
       const titleMatch = item.match(/<h3 class="title">\s*<a[^>]*>([^<]+)<\/a>/i);
       const chMatch = item.match(/Update chapter\s*([0-9.]+)/i);

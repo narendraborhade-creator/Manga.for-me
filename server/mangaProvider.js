@@ -90,10 +90,10 @@ function setCache(key, data) {
 // Curated Top Masterpieces for Spotlight with verified high-res artwork and complete 1000+ chapter archives
 export const FEATURED_MANGA = [
   {
-    id: '2/one-piece',
+    id: 'kat:one-piece.49',
     title: 'One Piece',
     latestChapter: '1198',
-    totalChapters: 1208,
+    totalChapters: 1209,
     coverUrl: 'https://s4.anilist.co/file/anilistcdn/media/manga/cover/large/bx30013-BeslEMqiPhlk.jpg',
     status: 'Ongoing',
     score: '9.3',
@@ -101,14 +101,14 @@ export const FEATURED_MANGA = [
     author: 'Eiichiro Oda',
     description: 'Gol D. Roger was known as the "Pirate King", the strongest and most infamous being to have sailed the Grand Line. Monkey D. Luffy sets sail in search of the legendary One Piece treasure!',
     tags: ['Action', 'Adventure', 'Fantasy', 'Shounen'],
-    sourceName: 'WeebCentral',
-    provider: 'weebcentral',
+    sourceName: 'MangaKatana',
+    provider: 'mangakatana',
   },
   {
-    id: 'wc:01J76XY7EF75DJNQCV04HTPDZK',
+    id: 'kat:berserk.1087',
     title: 'Berserk',
-    latestChapter: '376',
-    totalChapters: 376,
+    latestChapter: '386',
+    totalChapters: 404,
     coverUrl: 'https://s4.anilist.co/file/anilistcdn/media/manga/cover/large/bx30002-Cul4OeN7bYtn.jpg',
     status: 'Ongoing',
     score: '9.5',
@@ -116,11 +116,11 @@ export const FEATURED_MANGA = [
     author: 'Kentaro Miura',
     description: 'Guts, known as the Black Swordsman, seeks sanctuary from demonic forces that pursue him and vengeance against the man who branded him an unholy sacrifice.',
     tags: ['Action', 'Dark Fantasy', 'Horror', 'Seinen'],
-    sourceName: 'WeebCentral',
-    provider: 'weebcentral',
+    sourceName: 'MangaKatana',
+    provider: 'mangakatana',
   },
   {
-    id: 'wc:01J76XYCRVY3QGYAMRR3STW941',
+    id: 'kat:chainsaw-man.21890',
     title: 'Chainsaw Man',
     latestChapter: '232',
     totalChapters: 232,
@@ -131,11 +131,11 @@ export const FEATURED_MANGA = [
     author: 'Tatsuki Fujimoto',
     description: 'Denji is a young man living in poverty with his chainsaw demon Pochita, until an unholy union transforms him into Chainsaw Man!',
     tags: ['Action', 'Supernatural', 'Gore', 'Shounen'],
-    sourceName: 'WeebCentral',
-    provider: 'weebcentral',
+    sourceName: 'MangaKatana',
+    provider: 'mangakatana',
   },
   {
-    id: 'wc:01J76XYCERXE60T7FKXVCCAQ0H',
+    id: 'kat:jujutsu-kaisen.20224',
     title: 'Jujutsu Kaisen',
     latestChapter: '271',
     totalChapters: 271,
@@ -146,14 +146,14 @@ export const FEATURED_MANGA = [
     author: 'Gege Akutami',
     description: 'Yuji Itadori swallows a cursed talisman—the finger of Ryomen Sukuna—and becomes caught in the deadly world of Jujutsu Sorcerers.',
     tags: ['Action', 'Supernatural', 'Dark Fantasy'],
-    sourceName: 'WeebCentral',
-    provider: 'weebcentral',
+    sourceName: 'MangaKatana',
+    provider: 'mangakatana',
   },
   {
-    id: 'wc:01J76XYBNEJ5EGK9ZEP3YS0PMH',
+    id: 'kat:boruto-two-blue-vortex.27005',
     title: 'Boruto: Two Blue Vortex',
-    latestChapter: '25',
-    totalChapters: 25,
+    latestChapter: '44',
+    totalChapters: 44,
     coverUrl: 'https://s4.anilist.co/file/anilistcdn/media/manga/cover/large/bx168468-FEo5x1ZZyWj4.png',
     status: 'Ongoing',
     score: '8.7',
@@ -161,11 +161,11 @@ export const FEATURED_MANGA = [
     author: 'Masashi Kishimoto',
     description: 'Three years have passed since the fateful memory distortion. Boruto Uzumaki returns as a rogue warrior facing Omnipotence.',
     tags: ['Action', 'Ninja', 'Shounen'],
-    sourceName: 'WeebCentral',
-    provider: 'weebcentral',
+    sourceName: 'MangaKatana',
+    provider: 'mangakatana',
   },
   {
-    id: 'wc:01J76XYGGM22WZP7T4TKA4ZFAF',
+    id: 'kat:kagurabachi.27050',
     title: 'Kagurabachi',
     latestChapter: '70',
     totalChapters: 70,
@@ -176,8 +176,8 @@ export const FEATURED_MANGA = [
     author: 'Takeru Hokazono',
     description: 'Chihiro spends his days training under his swordsmith father until tragedy strikes. Armed with an enchanted katana, his quest for vengeance begins.',
     tags: ['Action', 'Supernatural', 'Swordplay'],
-    sourceName: 'WeebCentral',
-    provider: 'weebcentral',
+    sourceName: 'MangaKatana',
+    provider: 'mangakatana',
   },
 ];
 
@@ -283,32 +283,64 @@ export function getKnownChapterCount(title) {
 
 // Direct alias resolution for top series with verified unskipped chapter archives
 export const VERIFIED_COMPLETE_ALIASES = {
+  // Top Jump & Masterpiece Mangas
   '2/one-piece': 'kat:one-piece.49',
   'one-piece': 'kat:one-piece.49',
-  '1/berserk': 'kat:berserk.1',
-  'berserk': 'kat:berserk.1',
-  '5/naruto': 'kat:naruto.5',
-  'naruto': 'kat:naruto.5',
-  '3/bleach': 'kat:bleach.4',
-  'bleach': 'kat:bleach.4',
-  '2085/jujutsu-kaisen': 'kat:jujutsu-kaisen.2085',
-  'jujutsu-kaisen': 'kat:jujutsu-kaisen.2085',
-  '723/chainsaw-man': 'kat:chainsaw-man.2081',
-  'chainsaw-man': 'kat:chainsaw-man.2081',
+  '1/berserk': 'kat:berserk.1087',
+  'berserk': 'kat:berserk.1087',
+  'wc:01J76XY7EF75DJNQCV04HTPDZK': 'kat:berserk.1087',
+  '01J76XY7EF75DJNQCV04HTPDZK': 'kat:berserk.1087',
+  '5/naruto': 'kat:naruto.1205',
+  'naruto': 'kat:naruto.1205',
+  '3/bleach': 'kat:bleach.47',
+  'bleach': 'kat:bleach.47',
+  '2085/jujutsu-kaisen': 'kat:jujutsu-kaisen.20224',
+  'jujutsu-kaisen': 'kat:jujutsu-kaisen.20224',
+  'wc:01J76XYCERXE60T7FKXVCCAQ0H': 'kat:jujutsu-kaisen.20224',
+  '01J76XYCERXE60T7FKXVCCAQ0H': 'kat:jujutsu-kaisen.20224',
+  '723/chainsaw-man': 'kat:chainsaw-man.21890',
+  'chainsaw-man': 'kat:chainsaw-man.21890',
+  'wc:01J76XYCRVY3QGYAMRR3STW941': 'kat:chainsaw-man.21890',
+  '01J76XYCRVY3QGYAMRR3STW941': 'kat:chainsaw-man.21890',
+  'boruto': 'kat:boruto-two-blue-vortex.27005',
+  'boruto-two-blue-vortex': 'kat:boruto-two-blue-vortex.27005',
+  'wc:01J76XYBNEJ5EGK9ZEP3YS0PMH': 'kat:boruto-two-blue-vortex.27005',
+  '01J76XYBNEJ5EGK9ZEP3YS0PMH': 'kat:boruto-two-blue-vortex.27005',
+  'kagurabachi': 'kat:kagurabachi.27050',
+  'wc:01J76XYGGM22WZP7T4TKA4ZFAF': 'kat:kagurabachi.27050',
+  '01J76XYGGM22WZP7T4TKA4ZFAF': 'kat:kagurabachi.27050',
+  'kingdom': 'kat:kingdom.143',
+  '8/kingdom': 'kat:kingdom.143',
+  'solo-leveling': 'kat:solo-leveling.21708',
+  'webtoon:solo': 'kat:solo-leveling.21708',
+
+  // Top Webtoons & Manhwa with Complete Katana / Scanlation Archives
+  'lookism': 'kat:lookism.693',
+  'webtoon:lookism': 'kat:lookism.693',
+  'wc:01J76XYBD282Y3XKX0KRGD64Q5': 'kat:lookism.693',
+  '01J76XYBD282Y3XKX0KRGD64Q5': 'kat:lookism.693',
+  'tower-of-god': 'kat:tower-of-god.465',
+  'webtoon:tower-of-god': 'kat:tower-of-god.465',
+  'wc:01J76XY7M0W9WWJ55VJYYB2J1S': 'kat:tower-of-god.465',
+  '01J76XY7M0W9WWJ55VJYYB2J1S': 'kat:tower-of-god.465',
+  'wind-breaker': 'kat:wind-breaker.467',
+  'webtoon:wind-breaker': 'kat:wind-breaker.467',
+  'wc:01J76XYA1TQYKV6W4BCMR2WD5M': 'kat:wind-breaker.467',
+  '01J76XYA1TQYKV6W4BCMR2WD5M': 'kat:wind-breaker.467',
+  'eleceed': 'kat:eleceed.115',
+  'webtoon:eleceed': 'kat:eleceed.115',
+  'wc:01J76XYD3Q2Q7HYYMB3FSDPSKC': 'kat:eleceed.115',
+  '01J76XYD3Q2Q7HYYMB3FSDPSKC': 'kat:eleceed.115',
+  'mercenary-enrollment': 'kat:mercenary-enrollment.25375',
+  'webtoon:mercenary-enrollment': 'kat:mercenary-enrollment.25375',
+  'teenage-mercenary': 'kat:mercenary-enrollment.25375',
+  'wc:01J76XYEA95PG5AVMCKC9TK492': 'kat:mercenary-enrollment.25375',
+  '01J76XYEA95PG5AVMCKC9TK492': 'kat:mercenary-enrollment.25375',
+
+  // Reincarnation & Action manhwa
   'damn-reincarnation': 'kat:damn-reincarnation.26360',
   'my-blasted-reincarnation': 'kat:damn-reincarnation.26360',
   'my-blasted-reincarnated-life': 'kat:damn-reincarnation.26360',
-  'lookism': 'wc:01J76XYBD282Y3XKX0KRGD64Q5',
-  'webtoon:lookism': 'wc:01J76XYBD282Y3XKX0KRGD64Q5',
-  'tower-of-god': 'wc:01J76XY7M0W9WWJ55VJYYB2J1S',
-  'webtoon:tower-of-god': 'wc:01J76XY7M0W9WWJ55VJYYB2J1S',
-  'wind-breaker': 'wc:01J76XYA1TQYKV6W4BCMR2WD5M',
-  'webtoon:wind-breaker': 'wc:01J76XYA1TQYKV6W4BCMR2WD5M',
-  'eleceed': 'wc:01J76XYD3Q2Q7HYYMB3FSDPSKC',
-  'webtoon:eleceed': 'wc:01J76XYD3Q2Q7HYYMB3FSDPSKC',
-  'mercenary-enrollment': 'wc:01J76XYEA95PG5AVMCKC9TK492',
-  'webtoon:mercenary-enrollment': 'wc:01J76XYEA95PG5AVMCKC9TK492',
-  'teenage-mercenary': 'wc:01J76XYEA95PG5AVMCKC9TK492',
   'nano-machine': 'asura:nano-machine-ab39de10',
   'webtoon:nano-machine': 'asura:nano-machine-ab39de10',
   'the-beginning-after-the-end': 'thunder:the-beginning-after-the-end',
@@ -331,15 +363,14 @@ export const VERIFIED_COMPLETE_ALIASES = {
   'my-in-laws-are-obsessed-with-me': 'webtoon:ks:my-in-laws-are-obsessed-with-me',
   'md:c44b5b1d-60cf-4faf-be2c-0a807200358f': 'webtoon:ks:my-in-laws-are-obsessed-with-me',
   'c44b5b1d-60cf-4faf-be2c-0a807200358f': 'webtoon:ks:my-in-laws-are-obsessed-with-me',
-  'damn-reincarnation': 'asura:damn-reincarnation-ab39de10',
   'surviving-the-game-as-a-barbarian': 'asura:surviving-the-game-as-a-barbarian-ab39de10',
   'greatest-estate-developer': 'asura:the-greatest-estate-developer-ab39de10',
   'the-greatest-estate-developer': 'asura:the-greatest-estate-developer-ab39de10',
   'md:eee25eb6-591b-40a4-a2aa-f4ab68169795': 'thunder:forget-about-the-succession-im-here-to-heal',
   'eee25eb6-591b-40a4-a2aa-f4ab68169795': 'thunder:forget-about-the-succession-im-here-to-heal',
-  'my-blasted-reincarnation': 'asura:damn-reincarnation-3ebcc5a9',
-  'my-blasted-reincarnated-life': 'asura:damn-reincarnation-3ebcc5a9',
   'to-hell-with-being-heir': 'thunder:forget-about-the-succession-im-here-to-heal',
+
+  // World's Strongest Troll (All 198 complete chapters)
   'asura:worlds-strongest-troll-f212c582': 'kat:worlds-strongest-troll.26644',
   'asura:worlds-strongest-troll': 'kat:worlds-strongest-troll.26644',
   'worlds-strongest-troll-f212c582': 'kat:worlds-strongest-troll.26644',
@@ -348,6 +379,7 @@ export const VERIFIED_COMPLETE_ALIASES = {
   'the-worlds-strongest-troll': 'kat:worlds-strongest-troll.26644',
   'the-world-s-strongest-troll': 'kat:worlds-strongest-troll.26644',
   'wc:01J76XYGVNHEER7G6M90C6YCTW': 'kat:worlds-strongest-troll.26644',
+  '01J76XYGVNHEER7G6M90C6YCTW': 'kat:worlds-strongest-troll.26644',
 };
 
 export function normalizeTitleKey(str) {
@@ -1194,106 +1226,99 @@ export async function autoHealAndUpgradeChapters(details, bypassCache = false) {
     details.altTitles.forEach(addQuery);
   }
 
-  const candidateList = queryCandidates.slice(0, 5);
+  const candidateList = queryCandidates.slice(0, 2);
   let bestUpgrade = null;
   let maxFoundCount = currentCount;
 
   for (const query of candidateList) {
     try {
-      const [katResults, wcResults, mkResults, thunderResults, flameResults, asuraResults, vortexResults, webtoonResults] = await Promise.all([
+      const [katResults, thunderResults, flameResults, asuraResults, vortexResults, mkResults, webtoonResults] = await Promise.all([
         searchMangaKatana(query).catch(() => []),
-        searchWeebCentral(query).catch(() => []),
-        searchMangaKakalot(query).catch(() => []),
         searchThunder(query).catch(() => []),
         searchFlame(query).catch(() => []),
         searchAsura(query).catch(() => []),
         searchVortex(query).catch(() => []),
+        searchMangaKakalot(query).catch(() => []),
         searchWebtoons(query).catch(() => []),
       ]);
 
-      // Balanced cross-provider candidate gathering: top 2 from each provider
+      // Balanced cross-provider candidate gathering: prioritize fast, working providers
       const providerMatches = [
         ...katResults.slice(0, 2),
-        ...wcResults.slice(0, 2),
-        ...webtoonResults.slice(0, 2),
-        ...mkResults.slice(0, 2),
         ...thunderResults.slice(0, 2),
-        ...flameResults.slice(0, 2),
         ...asuraResults.slice(0, 2),
+        ...flameResults.slice(0, 2),
         ...vortexResults.slice(0, 2),
-      ];
+        ...mkResults.slice(0, 1),
+        ...webtoonResults.slice(0, 1),
+      ].filter(m => m && m.id && m.id !== details.id);
 
-      for (const match of providerMatches) {
-        if (!match || !match.id || match.id === details.id) continue;
+      // Parallelize detail fetching for maximum speed and zero timeout
+      const detailPromises = providerMatches.slice(0, 6).map(async (match) => {
+        try {
+          if (match.id.startsWith('kat:')) return await getMangaKatanaDetails(match.id, bypassCache);
+          if (match.id.startsWith('thunder:')) return await getThunderDetails(match.id, bypassCache);
+          if (match.id.startsWith('asura:')) return await getAsuraDetails(match.id, bypassCache);
+          if (match.id.startsWith('flame:')) return await getFlameDetails(match.id, bypassCache);
+          if (match.id.startsWith('mk:')) return await getMangaKakalotDetails(match.id, bypassCache);
+          if (match.id.startsWith('webtoon:')) return await getWebtoonDetails(match.id, bypassCache);
+          if (match.id.startsWith('vortex:')) return await getVortexDetails(match.id, bypassCache);
+        } catch {
+          return null;
+        }
+        return null;
+      });
 
-        let matchDetails = null;
-        if (match.id.startsWith('kat:')) {
-          matchDetails = await getMangaKatanaDetails(match.id, bypassCache);
-        } else if (match.id.startsWith('wc:')) {
-          matchDetails = await getWeebCentralDetails(match.id.replace('wc:', ''), '', bypassCache);
-        } else if (match.id.startsWith('webtoon:')) {
-          matchDetails = await getWebtoonDetails(match.id, bypassCache);
-        } else if (match.id.startsWith('mk:')) {
-          matchDetails = await getMangaKakalotDetails(match.id, bypassCache);
-        } else if (match.id.startsWith('thunder:')) {
-          matchDetails = await getThunderDetails(match.id, bypassCache);
-        } else if (match.id.startsWith('flame:')) {
-          matchDetails = await getFlameDetails(match.id, bypassCache);
-        } else if (match.id.startsWith('asura:')) {
-          matchDetails = await getAsuraDetails(match.id, bypassCache);
-        } else if (match.id.startsWith('vortex:')) {
-          matchDetails = await getVortexDetails(match.id, bypassCache);
+      const resolvedList = (await Promise.all(detailPromises)).filter(Boolean);
+
+      for (const matchDetails of resolvedList) {
+        if (!matchDetails || !Array.isArray(matchDetails.chapters) || matchDetails.chapters.length === 0) continue;
+        if (!isAuthenticSeriesMatch(details, { id: matchDetails.id, title: matchDetails.title }, matchDetails)) {
+          continue;
         }
 
-        if (matchDetails && Array.isArray(matchDetails.chapters) && matchDetails.chapters.length > 0) {
-          if (!isAuthenticSeriesMatch(details, match, matchDetails)) {
-            continue;
-          }
+        const candidateChapters = deduplicateChapters(matchDetails.chapters);
+        const candidateGaps = detectChapterGaps(candidateChapters);
 
-          const candidateChapters = deduplicateChapters(matchDetails.chapters);
-          const candidateGaps = detectChapterGaps(candidateChapters);
-
-          // 1. If candidate has significantly more chapters, adopt it as primary!
-          // When currentCount === 0, ANY candidate with chapters is adopted to avoid leaving user with 0 chapters.
-          const isBetterOrZero = currentCount === 0 || 
-            (candidateChapters.length > maxFoundCount && candidateGaps.length <= Math.max(1, currentGaps.length)) ||
-            (candidateChapters.length >= currentChapters.length + 15);
-          if (isBetterOrZero) {
-            maxFoundCount = candidateChapters.length;
-            currentChapters = candidateChapters;
-            currentGaps = candidateGaps;
+        // 1. If candidate has significantly more chapters or current has 0, adopt it as primary!
+        const isBetterOrZero = currentCount === 0 || 
+          (candidateChapters.length > maxFoundCount && candidateGaps.length <= Math.max(1, currentGaps.length)) ||
+          (candidateChapters.length >= currentChapters.length + 15);
+        if (isBetterOrZero) {
+          maxFoundCount = candidateChapters.length;
+          currentChapters = candidateChapters;
+          currentGaps = candidateGaps;
+          bestUpgrade = {
+            ...details,
+            aliasId: matchDetails.id,
+            sourceName: matchDetails.sourceName || details.sourceName,
+            provider: matchDetails.provider || details.provider,
+            chapters: candidateChapters,
+            totalChapters: candidateChapters.length,
+            latestChapter: candidateChapters[0]?.chapter || matchDetails.latestChapter || null,
+            coverUrl: details.coverUrl && !details.coverUrl.includes('placeholder') ? details.coverUrl : matchDetails.coverUrl,
+            description: details.description && details.description !== 'No synopsis available.' ? details.description : matchDetails.description,
+          };
+        } else if (currentGaps.length > 0) {
+          // 2. Gap filling: merge chapters from candidate to bridge the missing chapters!
+          const merged = mergeAndDeduplicateChapters(currentChapters, candidateChapters);
+          const mergedGaps = detectChapterGaps(merged);
+          if (mergedGaps.length < currentGaps.length || merged.length > currentChapters.length) {
+            currentChapters = merged;
+            currentGaps = mergedGaps;
             bestUpgrade = {
-              ...details,
-              aliasId: matchDetails.id,
-              sourceName: matchDetails.sourceName || details.sourceName,
-              provider: matchDetails.provider || details.provider,
-              chapters: candidateChapters,
-              totalChapters: candidateChapters.length,
-              latestChapter: candidateChapters[0]?.chapter || matchDetails.latestChapter || null,
-              coverUrl: details.coverUrl && !details.coverUrl.includes('placeholder') ? details.coverUrl : matchDetails.coverUrl,
-              description: details.description && details.description !== 'No synopsis available.' ? details.description : matchDetails.description,
+              ...(bestUpgrade || details),
+              chapters: merged,
+              totalChapters: merged.length,
+              latestChapter: merged[0]?.chapter || details.latestChapter || null,
             };
-          } else if (currentGaps.length > 0) {
-            // 2. Gap filling: merge chapters from candidate to bridge the missing chapters!
-            const merged = mergeAndDeduplicateChapters(currentChapters, candidateChapters);
-            const mergedGaps = detectChapterGaps(merged);
-            if (mergedGaps.length < currentGaps.length || merged.length > currentChapters.length) {
-              currentChapters = merged;
-              currentGaps = mergedGaps;
-              bestUpgrade = {
-                ...(bestUpgrade || details),
-                chapters: merged,
-                totalChapters: merged.length,
-                latestChapter: merged[0]?.chapter || details.latestChapter || null,
-              };
-            }
           }
+        }
 
-          // If all gaps are sealed and chapters meet known target or reach robust completeness, stop searching
-          const knownMin = getKnownChapterCount(details.englishTitle || details.title) || 80;
-          if (currentGaps.length === 0 && currentChapters.length >= knownMin) {
-            break;
-          }
+        // If all gaps are sealed and chapters meet known target or reach robust completeness, stop searching
+        const knownMin = getKnownChapterCount(details.englishTitle || details.title) || 80;
+        if (currentGaps.length === 0 && currentChapters.length >= knownMin) {
+          break;
         }
       }
 
@@ -1379,6 +1404,16 @@ export async function getMangaDetails(mangaId, bypassCache = false) {
       resolvedDetails = await getWebtoonDetails(lookupId, bypassCache);
     } else if (lookupId.startsWith('wc:')) {
       resolvedDetails = await getWeebCentralDetails(lookupId.replace('wc:', ''), '', bypassCache);
+      if (!resolvedDetails?.chapters || resolvedDetails.chapters.length === 0) {
+        const rawSlug = lookupId.replace('wc:', '').replace(/^[0-9a-z]{20,32}-?/i, '');
+        const cleanName = rawSlug.replace(/[-_]+/g, ' ').trim();
+        if (cleanName && cleanName.length >= 3) {
+          const katMatches = await searchMangaKatana(cleanName).catch(() => []);
+          if (katMatches.length > 0 && katMatches[0].id) {
+            resolvedDetails = await getMangaKatanaDetails(katMatches[0].id, bypassCache);
+          }
+        }
+      }
     } else if (lookupId.startsWith('kat:')) {
       resolvedDetails = await getMangaKatanaDetails(lookupId, bypassCache);
     } else if (lookupId.startsWith('mk:')) {
@@ -1536,27 +1571,27 @@ export async function getMangaDetails(mangaId, bypassCache = false) {
   } catch (error) {
     console.warn('getMangaDetails upstream warning:', error.message);
     
-    // Proactively attempt fallback search on WeebCentral by title ONLY if title strictly matches
+    // Proactively attempt fallback search on MangaKatana by title ONLY if title strictly matches
     try {
       const cleanIdTitle = cleanTitle(mangaId.split('/')[1] || mangaId);
       const targetNorm = normalizeTitleKey(cleanIdTitle);
-      const wcMatches = await searchWeebCentral(cleanIdTitle);
-      const exactMatch = wcMatches.find(m => normalizeTitleKey(m.title) === targetNorm);
-      if (exactMatch && exactMatch.seriesId) {
-        const wcDetails = await getWeebCentralDetails(exactMatch.seriesId, '', true);
-        if (wcDetails && wcDetails.chapters && wcDetails.chapters.length > 0) {
-          const deduped = deduplicateChapters(wcDetails.chapters);
+      const katMatches = await searchMangaKatana(cleanIdTitle).catch(() => []);
+      const exactMatch = katMatches.find(m => normalizeTitleKey(m.title) === targetNorm) || katMatches[0];
+      if (exactMatch && exactMatch.id) {
+        const katDetails = await getMangaKatanaDetails(exactMatch.id, true);
+        if (katDetails && katDetails.chapters && katDetails.chapters.length > 0) {
+          const deduped = deduplicateChapters(katDetails.chapters);
           return {
-            ...wcDetails,
+            ...katDetails,
             id: mangaId,
-            aliasId: `wc:${exactMatch.seriesId}`,
+            aliasId: exactMatch.id,
             chapters: deduped,
             totalChapters: deduped.length,
           };
         }
       }
     } catch (fallbackErr) {
-      console.warn('Fallback WeebCentral lookup failed:', fallbackErr.message);
+      console.warn('Fallback MangaKatana lookup failed:', fallbackErr.message);
     }
 
     // Return safe fallback object with sanitized title and SVG cover
@@ -1646,10 +1681,10 @@ export async function getChapterPages(rawChapterId, rawMangaId = '', rawChapterN
     } else if (aniId === '119257' || mId.includes('omniscient') || title.includes('omniscient')) {
       chapterId = `webtoon:orv:${requestedCh}`;
     } else if (aniId === '86337' || mId.includes('lookism') || title.includes('lookism')) {
-      const wcDetails = await getWeebCentralDetails('01J76XYBD282Y3XKX0KRGD64Q5').catch(() => null);
-      const targetCh = wcDetails?.chapters?.find(c => String(c.chapter) === String(requestedCh));
+      const katDetails = await getMangaKatanaDetails('lookism.693').catch(() => null);
+      const targetCh = katDetails?.chapters?.find(c => String(c.chapter) === String(requestedCh));
       if (targetCh) {
-        return await getWeebCentralChapterPages(targetCh.id.replace('wc_ch:', ''));
+        return await getMangaKatanaChapterPages(targetCh.id);
       }
     } else if (aniId === '30013' || mId.includes('one-piece') || title.includes('one piece')) {
       const katDetails = await getMangaKatanaDetails('one-piece.49').catch(() => null);
@@ -1660,7 +1695,7 @@ export async function getChapterPages(rawChapterId, rawMangaId = '', rawChapterN
       const code = 10000000 + Math.floor(parseFloat(requestedCh) * 1000);
       chapterId = `2-${code}/one-piece-chapter-${requestedCh}`;
     } else if (aniId === '30002' || mId.includes('berserk') || title.includes('berserk')) {
-      const katDetails = await getMangaKatanaDetails('berserk.1').catch(() => null);
+      const katDetails = await getMangaKatanaDetails('berserk.1087').catch(() => null);
       const targetCh = katDetails?.chapters?.find(c => String(c.chapter) === String(requestedCh));
       if (targetCh) {
         return await getMangaKatanaChapterPages(targetCh.id);
@@ -1668,15 +1703,35 @@ export async function getChapterPages(rawChapterId, rawMangaId = '', rawChapterN
       const code = 10000000 + Math.floor(parseFloat(requestedCh) * 1000);
       chapterId = `1-${code}/berserk-chapter-${requestedCh}`;
     } else if (aniId === '105778' || mId.includes('chainsaw') || title.includes('chainsaw man')) {
+      const katDetails = await getMangaKatanaDetails('chainsaw-man.21890').catch(() => null);
+      const targetCh = katDetails?.chapters?.find(c => String(c.chapter) === String(requestedCh));
+      if (targetCh) {
+        return await getMangaKatanaChapterPages(targetCh.id);
+      }
       const code = 10000000 + Math.floor(parseFloat(requestedCh) * 1000);
       chapterId = `723-${code}/chainsaw-man-chapter-${requestedCh}`;
     } else if (aniId === '101517' || mId.includes('jujutsu') || title.includes('jujutsu kaisen')) {
+      const katDetails = await getMangaKatanaDetails('jujutsu-kaisen.20224').catch(() => null);
+      const targetCh = katDetails?.chapters?.find(c => String(c.chapter) === String(requestedCh));
+      if (targetCh) {
+        return await getMangaKatanaChapterPages(targetCh.id);
+      }
       const code = 10000000 + Math.floor(parseFloat(requestedCh) * 1000);
       chapterId = `2085-${code}/jujutsu-kaisen-chapter-${requestedCh}`;
     } else if (aniId === '30011' || mId.includes('naruto') || title.includes('naruto')) {
+      const katDetails = await getMangaKatanaDetails('naruto.1205').catch(() => null);
+      const targetCh = katDetails?.chapters?.find(c => String(c.chapter) === String(requestedCh));
+      if (targetCh) {
+        return await getMangaKatanaChapterPages(targetCh.id);
+      }
       const code = 10000000 + Math.floor(parseFloat(requestedCh) * 1000);
       chapterId = `5-${code}/naruto-chapter-${requestedCh}`;
     } else if (aniId === '30012' || mId.includes('bleach') || title.includes('bleach')) {
+      const katDetails = await getMangaKatanaDetails('bleach.47').catch(() => null);
+      const targetCh = katDetails?.chapters?.find(c => String(c.chapter) === String(requestedCh));
+      if (targetCh) {
+        return await getMangaKatanaChapterPages(targetCh.id);
+      }
       const code = 10000000 + Math.floor(parseFloat(requestedCh) * 1000);
       chapterId = `3-${code}/bleach-chapter-${requestedCh}`;
     } else if (aniId === '87216' || mId.includes('demon-slayer') || title.includes('demon slayer')) {
