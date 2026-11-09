@@ -56,7 +56,9 @@ import {
   SlidersHorizontal,
   Search,
   Newspaper,
-  ExternalLink
+  ExternalLink,
+  Tv,
+  Compass
 } from 'lucide-react';
 
 const GENRES = [
@@ -922,6 +924,51 @@ export default function App() {
         {/* --------------------- TAB 2: ANIME HUB --------------------- */}
         {activeTab === 'anime' && (
           <div className="space-y-10 animate-fadeIn">
+            {/* Awesome Anime Sources Streaming & Directory Bar */}
+            <div className="relative overflow-hidden rounded-2xl glass-panel-elevated p-3.5 sm:p-4 border border-cyan-500/30 bg-gradient-to-r from-cyan-950/20 via-slate-900/60 to-slate-950/80 hud-corner holo-sheen">
+              <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
+                <div className="flex items-center gap-2.5">
+                  <span className="p-2 rounded-xl bg-cyan-500/20 text-cyan-400 border border-cyan-500/40">
+                    <Tv className="w-4 h-4 text-cyan-400" />
+                  </span>
+                  <div>
+                    <h3 className="text-xs font-mono font-bold text-white tracking-wider uppercase flex items-center gap-1.5">
+                      <span>STREAM_FEEDS // AWESOME_ANIME_SOURCES</span>
+                      <span className="w-1.5 h-1.5 rounded-full bg-cyan-400 animate-ping" />
+                    </h3>
+                    <p className="text-[11px] text-slate-400">
+                      Community-curated top streaming networks, legal simulcasts & schedule trackers
+                    </p>
+                  </div>
+                </div>
+
+                <div className="flex items-center gap-1.5 flex-wrap">
+                  {[
+                    { name: 'AniWatch', url: 'https://aniwatchtv.to/', badge: 'Sub/Dub HD' },
+                    { name: 'AnimePahe', url: 'https://animepahe.ru/', badge: 'Fast Stream' },
+                    { name: 'Crunchyroll', url: 'https://www.crunchyroll.com/', badge: 'Simulcast' },
+                    { name: 'Anime-Planet', url: 'https://www.anime-planet.com/', badge: 'Legal Index' },
+                    { name: 'LiveChart', url: 'https://www.livechart.me/', badge: 'Broadcasts' },
+                    { name: 'AniChart', url: 'https://anichart.net/', badge: 'Schedules' },
+                  ].map((s) => (
+                    <a
+                      key={s.name}
+                      href={s.url}
+                      target="_blank"
+                      rel="noopener noreferrer"
+                      className="px-2.5 py-1 rounded-xl bg-slate-900/90 hover:bg-slate-800 text-[11px] font-mono font-medium text-slate-300 hover:text-cyan-300 border border-white/10 hover:border-cyan-500/40 transition-all flex items-center gap-1.5 shadow-sm"
+                      title={`Open ${s.name} (${s.badge})`}
+                    >
+                      <span>{s.name}</span>
+                      <span className="text-[9px] text-cyan-400/80 bg-cyan-950/50 px-1 rounded border border-cyan-500/20 hidden sm:inline">
+                        {s.badge}
+                      </span>
+                      <ExternalLink className="w-2.5 h-2.5 opacity-60" />
+                    </a>
+                  ))}
+                </div>
+              </div>
+            </div>
             {/* If Not Searching: Show Anime Spotlight & Categories */}
             {!searchQuery.trim() ? (
               <>

@@ -1,5 +1,5 @@
 import React, { useEffect } from 'react';
-import { X, Star, Film, Sparkles } from 'lucide-react';
+import { X, Star, Film, Sparkles, Tv, ExternalLink, Play, Compass } from 'lucide-react';
 
 export default function AnimeDetailModal({ anime, onClose }) {
   // Close modal on Escape key press
@@ -16,6 +16,69 @@ export default function AnimeDetailModal({ anime, onClose }) {
   }, [onClose]);
 
   if (!anime) return null;
+
+  const cleanSearchTitle = (anime.title || '')
+    .replace(/[:;!?\(\)\[\]]/g, ' ')
+    .replace(/\s+/g, ' ')
+    .trim();
+
+  // Curated verified streaming and database sources from awesome-anime-sources
+  const streamingSources = [
+    {
+      id: 'aniwatch',
+      name: 'AniWatch (Zoro)',
+      badge: 'Free HD Sub/Dub',
+      borderColor: 'border-amber-500/40',
+      textColor: 'text-amber-300',
+      url: `https://aniwatchtv.to/search?keyword=${encodeURIComponent(cleanSearchTitle)}`,
+      description: 'Stream all sub & dub episodes directly with high-speed playback',
+    },
+    {
+      id: 'animepahe',
+      name: 'AnimePahe',
+      badge: 'Fast & Compact',
+      borderColor: 'border-rose-500/40',
+      textColor: 'text-rose-300',
+      url: `https://animepahe.ru/?q=${encodeURIComponent(cleanSearchTitle)}`,
+      description: 'Ultra-compressed fast video encodes and multi-quality releases',
+    },
+    {
+      id: 'crunchyroll',
+      name: 'Crunchyroll',
+      badge: 'Official Simulcast',
+      borderColor: 'border-orange-500/40',
+      textColor: 'text-orange-300',
+      url: `https://www.crunchyroll.com/search?q=${encodeURIComponent(cleanSearchTitle)}`,
+      description: 'Official licensed simulcast streaming with high-fidelity audio',
+    },
+    {
+      id: 'animeplanet',
+      name: 'Anime-Planet',
+      badge: 'Legal Aggregator',
+      borderColor: 'border-emerald-500/40',
+      textColor: 'text-emerald-300',
+      url: `https://www.anime-planet.com/anime/all?name=${encodeURIComponent(cleanSearchTitle)}`,
+      description: 'Catalog of legal online video streams & anime reviews',
+    },
+    {
+      id: 'anilist',
+      name: 'AniList',
+      badge: 'Database & Tracker',
+      borderColor: 'border-cyan-500/40',
+      textColor: 'text-cyan-300',
+      url: `https://anilist.co/anime/${anime.id}`,
+      description: 'Track your episodes, progress score, voice actors & studio staff',
+    },
+    {
+      id: 'myanimelist',
+      name: 'MyAnimeList',
+      badge: 'Global Community',
+      borderColor: 'border-blue-500/40',
+      textColor: 'text-blue-300',
+      url: `https://myanimelist.net/anime.php?q=${encodeURIComponent(cleanSearchTitle)}`,
+      description: 'Global anime database ratings, discussions & character rankings',
+    },
+  ];
 
   return (
     <div 
@@ -132,6 +195,53 @@ export default function AnimeDetailModal({ anime, onClose }) {
             <div>
               <span className="text-slate-500 block">Popularity</span>
               <span className="font-semibold text-slate-200">#{anime.popularity?.toLocaleString() || 'N/A'}</span>
+            </div>
+          </div>
+
+          {/* Verified Stream Sources Hub (awesome-anime-sources) */}
+          <div className="space-y-3 p-4 rounded-2xl bg-slate-950/70 border border-cyan-500/30 hud-corner">
+            <div className="flex items-center justify-between border-b border-cyan-500/20 pb-2">
+              <h4 className="text-xs font-bold uppercase tracking-wider text-cyan-300 font-mono flex items-center gap-2">
+                <Tv className="w-4 h-4 text-cyan-400" />
+                <span>Streaming & Tracking Hub // Awesome Anime Sources</span>
+              </h4>
+              <span className="text-[10px] font-mono text-cyan-400/80">
+                Verified Feeds
+              </span>
+            </div>
+
+            <p className="text-xs text-slate-400">
+              Launch directly into popular streaming players or track community ratings for this series:
+            </p>
+
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-2.5">
+              {streamingSources.map((source) => (
+                <a
+                  key={source.id}
+                  href={source.url}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className="group flex items-center justify-between p-3 rounded-xl bg-slate-900/90 hover:bg-slate-800/90 border border-white/10 hover:border-cyan-400/50 transition-all shadow-md hover:shadow-cyan-950/40 cursor-pointer"
+                  title={`Open ${source.name}`}
+                >
+                  <div className="min-w-0 pr-2">
+                    <div className="flex items-center gap-2 mb-0.5">
+                      <span className="font-bold text-xs text-white group-hover:text-cyan-300 transition-colors">
+                        {source.name}
+                      </span>
+                      <span className={`text-[9px] font-mono font-bold px-1.5 py-0.2 rounded border ${source.borderColor} ${source.textColor} bg-black/40`}>
+                        {source.badge}
+                      </span>
+                    </div>
+                    <p className="text-[11px] text-slate-400 truncate">
+                      {source.description}
+                    </p>
+                  </div>
+                  <div className="p-2 rounded-xl bg-white/5 group-hover:bg-cyan-500/20 text-slate-400 group-hover:text-cyan-300 transition-all flex-shrink-0">
+                    <ExternalLink className="w-3.5 h-3.5" />
+                  </div>
+                </a>
+              ))}
             </div>
           </div>
 
