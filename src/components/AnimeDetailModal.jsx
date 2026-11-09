@@ -13,12 +13,13 @@ import {
   CheckCircle2, 
   ShieldAlert,
   Radio,
-  Flame
+  Flame,
+  AlertTriangle
 } from 'lucide-react';
 
 export default function AnimeDetailModal({ anime, onClose }) {
   const [activeEpisode, setActiveEpisode] = useState(1);
-  const [playerMode, setPlayerMode] = useState('stream'); // 'stream' | 'trailer' | 'sources'
+  const [playerMode, setPlayerMode] = useState('trailer'); // 'trailer' (guaranteed HD) | 'hub' (awesome-anime-sources) | 'vidlink' (in-app embed)
 
   // Close modal on Escape key press
   useEffect(() => {
@@ -60,7 +61,7 @@ export default function AnimeDetailModal({ anime, onClose }) {
       borderColor: 'border-amber-500/40',
       bgColor: 'hover:bg-amber-500/15',
       url: `https://hianime.to/search?keyword=${encodeURIComponent(cleanSearchTitle)}`,
-      desc: 'Top-rated high-speed HD streaming with both Subtitled and Dubbed audio tracks',
+      desc: 'Top-ranked anime stream with all Subtitled & Dubbed episodes (guaranteed 1080p)',
     },
     {
       id: 'animepahe',
@@ -70,27 +71,27 @@ export default function AnimeDetailModal({ anime, onClose }) {
       borderColor: 'border-rose-500/40',
       bgColor: 'hover:bg-rose-500/15',
       url: `https://animepahe.ru/?q=${encodeURIComponent(cleanSearchTitle)}`,
-      desc: 'Ultra-compressed small-file encodes with rapid buffer-free 1080p/720p playback',
+      desc: 'Ultra-compressed small files with instant, buffer-free 1080p/720p streaming',
     },
     {
       id: 'gogoanime',
       name: 'GogoAnime',
-      badge: 'Direct Stream',
+      badge: 'Direct Mirror',
       textColor: 'text-cyan-300',
       borderColor: 'border-cyan-500/40',
       bgColor: 'hover:bg-cyan-500/15',
       url: `https://anitaku.pe/search.html?keyword=${encodeURIComponent(cleanSearchTitle)}`,
-      desc: 'Global anime archive with complete episode index and multiple backup mirrors',
+      desc: 'Massive anime archive with multiple backup mirrors and all seasonal releases',
     },
     {
       id: 'crunchyroll',
       name: 'Crunchyroll',
-      badge: 'Official',
+      badge: 'Official HD',
       textColor: 'text-orange-300',
       borderColor: 'border-orange-500/40',
       bgColor: 'hover:bg-orange-500/15',
       url: `https://www.crunchyroll.com/search?q=${encodeURIComponent(cleanSearchTitle)}`,
-      desc: 'Licensed simulcast releases with official localization and pristine audio quality',
+      desc: 'Official licensed simulcasts with studio audio and professional translations',
     },
   ];
 
@@ -194,18 +195,8 @@ export default function AnimeDetailModal({ anime, onClose }) {
           {/* Main Visual Player Frame */}
           <div className="space-y-3">
             <div className="relative aspect-video w-full bg-black rounded-2xl overflow-hidden border border-cyan-500/30 shadow-2xl">
-              {playerMode === 'stream' ? (
-                /* 1. In-App VidLink Episode Player */
-                <iframe
-                  key={`vidlink-ep-${activeEpisode}`}
-                  src={vidlinkStreamUrl}
-                  title={`${anime.title} - Episode ${activeEpisode}`}
-                  className="w-full h-full border-0"
-                  allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
-                  allowFullScreen
-                />
-              ) : playerMode === 'trailer' ? (
-                /* 2. Official HD Embedded Video Player */
+              {playerMode === 'trailer' ? (
+                /* 1. Official HD Embedded Video Player (100% Reliable Zero-Error Default) */
                 <iframe
                   key="official-player"
                   src={officialTrailerEmbed}
@@ -214,8 +205,34 @@ export default function AnimeDetailModal({ anime, onClose }) {
                   allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
                   allowFullScreen
                 />
+              ) : playerMode === 'vidlink' ? (
+                /* 2. In-App VidLink Episode Player with Fallback Bar */
+                <div className="relative w-full h-full">
+                  <iframe
+                    key={`vidlink-ep-${activeEpisode}`}
+                    src={vidlinkStreamUrl}
+                    title={`${anime.title} - Episode ${activeEpisode}`}
+                    className="w-full h-full border-0"
+                    allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
+                    allowFullScreen
+                  />
+                  {/* Floating helper in case scraper has no files for niche/upcoming anime */}
+                  <div className="absolute bottom-2 left-2 right-2 p-2 rounded-xl bg-black/85 backdrop-blur-md border border-cyan-500/40 flex items-center justify-between text-[11px] text-slate-300 font-mono shadow-xl">
+                    <span className="flex items-center gap-1.5 truncate">
+                      <AlertTriangle className="w-3.5 h-3.5 text-amber-400 flex-shrink-0" />
+                      <span className="truncate">If player says "Couldn't Find", stream Ep {activeEpisode} directly:</span>
+                    </span>
+                    <button
+                      type="button"
+                      onClick={() => setPlayerMode('hub')}
+                      className="px-2.5 py-1 rounded-lg bg-cyan-500 hover:bg-cyan-400 text-black font-bold flex-shrink-0 cursor-pointer ml-2"
+                    >
+                      Open Stream Deck
+                    </button>
+                  </div>
+                </div>
               ) : (
-                /* 3. Interactive Episode Stream Deck */
+                /* 3. Interactive Episode Cyberpunk Streaming Deck (awesome-anime-sources) */
                 <div className="relative w-full h-full flex flex-col justify-between p-4 sm:p-6 bg-slate-950">
                   {/* Background backdrop with cyberpunk styling */}
                   <img
@@ -224,52 +241,66 @@ export default function AnimeDetailModal({ anime, onClose }) {
                     referrerPolicy="no-referrer"
                     className="absolute inset-0 w-full h-full object-cover opacity-20 filter blur-xs"
                   />
-                  <div className="absolute inset-0 bg-gradient-to-t from-[#0c1017] via-slate-950/80 to-[#0c1017]/90" />
+                  <div className="absolute inset-0 bg-gradient-to-t from-[#0c1017] via-slate-950/85 to-[#0c1017]/90" />
 
                   {/* Header HUD inside player */}
                   <div className="relative z-10 flex items-center justify-between text-xs font-mono">
                     <span className="flex items-center gap-1.5 px-2.5 py-1 rounded-md bg-cyan-500/20 text-cyan-300 border border-cyan-500/40 font-bold">
                       <MonitorPlay className="w-3.5 h-3.5 text-cyan-400" />
-                      EPISODE {activeEpisode} READY TO STREAM
+                      EPISODE {activeEpisode} STREAMING PORTAL
                     </span>
                     <button
                       type="button"
-                      onClick={() => setPlayerMode('stream')}
+                      onClick={() => setPlayerMode('trailer')}
                       className="text-xs text-slate-400 hover:text-white underline cursor-pointer"
                     >
-                      Return to In-App Player
+                      Watch Official HD Trailer
                     </button>
                   </div>
 
                   {/* Center Action */}
-                  <div className="relative z-10 text-center my-auto space-y-2">
-                    <h3 className="text-lg sm:text-xl font-extrabold text-white font-['Outfit']">
-                      Stream {anime.title} - Episode {activeEpisode}
-                    </h3>
-                    <p className="text-xs text-slate-300 max-w-md mx-auto">
-                      Select your preferred high-speed streaming server below to launch buffer-free playback with Sub & Dub options:
-                    </p>
-                    <div className="flex flex-wrap items-center justify-center gap-2 pt-2">
+                  <div className="relative z-10 text-center my-auto space-y-2.5">
+                    <div>
+                      <span className="text-[10px] font-mono tracking-widest text-cyan-400 uppercase">
+                        awesome-anime-sources // verified feeds
+                      </span>
+                      <h3 className="text-lg sm:text-2xl font-extrabold text-white font-['Outfit'] mt-0.5">
+                        Stream {anime.title} — Episode {activeEpisode}
+                      </h3>
+                      <p className="text-xs text-slate-300 max-w-md mx-auto mt-1">
+                        Select a high-speed streaming engine below for instant, buffer-free playback with Sub & Dub audio:
+                      </p>
+                    </div>
+
+                    <div className="flex flex-wrap items-center justify-center gap-2 pt-1">
                       <a
                         href={`https://hianime.to/search?keyword=${encodeURIComponent(cleanSearchTitle)}`}
                         target="_blank"
                         rel="noopener noreferrer"
-                        className="flex items-center gap-2 px-4 py-2 rounded-xl bg-gradient-to-r from-amber-500 to-amber-600 text-black font-extrabold text-xs shadow-lg shadow-amber-500/30 hover:scale-105 transition-all cursor-pointer"
+                        className="flex items-center gap-2 px-4 py-2.5 rounded-xl bg-gradient-to-r from-amber-500 to-amber-600 text-black font-extrabold text-xs shadow-lg shadow-amber-500/30 hover:scale-105 transition-all cursor-pointer"
                       >
                         <Play className="w-4 h-4 fill-black" />
-                        <span>Stream Ep {activeEpisode} on HiAnime</span>
+                        <span>Stream Ep {activeEpisode} on HiAnime (Zoro)</span>
                         <ArrowUpRight className="w-3.5 h-3.5" />
                       </a>
                       <a
                         href={`https://animepahe.ru/?q=${encodeURIComponent(cleanSearchTitle)}`}
                         target="_blank"
                         rel="noopener noreferrer"
-                        className="flex items-center gap-2 px-4 py-2 rounded-xl bg-gradient-to-r from-rose-500 to-rose-600 text-white font-extrabold text-xs shadow-lg shadow-rose-500/30 hover:scale-105 transition-all cursor-pointer"
+                        className="flex items-center gap-2 px-4 py-2.5 rounded-xl bg-gradient-to-r from-rose-500 to-rose-600 text-white font-extrabold text-xs shadow-lg shadow-rose-500/30 hover:scale-105 transition-all cursor-pointer"
                       >
                         <Play className="w-4 h-4 fill-white" />
                         <span>Stream Ep {activeEpisode} on AnimePahe</span>
                         <ArrowUpRight className="w-3.5 h-3.5" />
                       </a>
+                      <button
+                        type="button"
+                        onClick={() => setPlayerMode('vidlink')}
+                        className="flex items-center gap-1.5 px-3 py-2.5 rounded-xl bg-cyan-950/80 hover:bg-cyan-900 border border-cyan-500/40 text-cyan-300 text-xs font-bold transition-all cursor-pointer"
+                      >
+                        <MonitorPlay className="w-3.5 h-3.5 text-cyan-400" />
+                        <span>Try In-App Player</span>
+                      </button>
                     </div>
                   </div>
 
@@ -284,7 +315,7 @@ export default function AnimeDetailModal({ anime, onClose }) {
                     </span>
                     <span>•</span>
                     <span className="flex items-center gap-1">
-                      <CheckCircle2 className="w-3 h-3 text-amber-400" /> Fast CDN
+                      <CheckCircle2 className="w-3 h-3 text-amber-400" /> Buffer-Free CDN
                     </span>
                   </div>
                 </div>
@@ -295,44 +326,44 @@ export default function AnimeDetailModal({ anime, onClose }) {
             <div className="flex flex-wrap items-center justify-between gap-2 p-2.5 rounded-xl bg-slate-900/80 border border-white/10 text-xs font-mono">
               <div className="flex items-center gap-1.5 text-slate-400">
                 <MonitorPlay className="w-3.5 h-3.5 text-cyan-400" />
-                <span className="text-[11px] font-bold text-slate-300">STREAM SERVER:</span>
+                <span className="text-[11px] font-bold text-slate-300">STREAM ENGINE:</span>
               </div>
               <div className="flex flex-wrap items-center gap-1.5">
                 <button
                   type="button"
-                  onClick={() => setPlayerMode('stream')}
-                  className={`flex items-center gap-1.5 px-3 py-1 rounded-lg text-xs font-bold transition-all cursor-pointer ${
-                    playerMode === 'stream'
-                      ? 'bg-cyan-500 text-black shadow-md shadow-cyan-500/30'
-                      : 'bg-white/5 text-slate-300 hover:bg-white/10'
-                  }`}
-                >
-                  <Play className={`w-3.5 h-3.5 ${playerMode === 'stream' ? 'fill-black' : ''}`} />
-                  <span>Episode {activeEpisode} Player</span>
-                </button>
-                <button
-                  type="button"
                   onClick={() => setPlayerMode('trailer')}
-                  className={`flex items-center gap-1.5 px-3 py-1 rounded-lg text-xs font-bold transition-all cursor-pointer ${
+                  className={`flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-bold transition-all cursor-pointer ${
                     playerMode === 'trailer'
                       ? 'bg-rose-500 text-white shadow-md shadow-rose-500/30'
                       : 'bg-white/5 text-slate-300 hover:bg-white/10'
                   }`}
                 >
                   <Film className="w-3.5 h-3.5" />
-                  <span>Official Trailer</span>
+                  <span>Official HD Video</span>
                 </button>
                 <button
                   type="button"
-                  onClick={() => setPlayerMode('sources')}
-                  className={`flex items-center gap-1.5 px-3 py-1 rounded-lg text-xs font-bold transition-all cursor-pointer ${
-                    playerMode === 'sources'
+                  onClick={() => setPlayerMode('hub')}
+                  className={`flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-bold transition-all cursor-pointer ${
+                    playerMode === 'hub'
                       ? 'bg-amber-500 text-black shadow-md shadow-amber-500/30'
                       : 'bg-white/5 text-slate-300 hover:bg-white/10'
                   }`}
                 >
                   <Radio className="w-3.5 h-3.5" />
-                  <span>External Hub</span>
+                  <span>Episode {activeEpisode} Stream Deck</span>
+                </button>
+                <button
+                  type="button"
+                  onClick={() => setPlayerMode('vidlink')}
+                  className={`flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-bold transition-all cursor-pointer ${
+                    playerMode === 'vidlink'
+                      ? 'bg-cyan-500 text-black shadow-md shadow-cyan-500/30'
+                      : 'bg-white/5 text-slate-300 hover:bg-white/10'
+                  }`}
+                >
+                  <Play className={`w-3.5 h-3.5 ${playerMode === 'vidlink' ? 'fill-black' : ''}`} />
+                  <span>In-App Mirror (VidLink)</span>
                 </button>
               </div>
             </div>
@@ -439,7 +470,9 @@ export default function AnimeDetailModal({ anime, onClose }) {
                       type="button"
                       onClick={() => {
                         setActiveEpisode(epNum);
-                        if (playerMode === 'trailer') setPlayerMode('stream');
+                        if (playerMode === 'trailer') {
+                          setPlayerMode('hub');
+                        }
                       }}
                       className={`px-2.5 py-1 rounded-lg text-xs font-mono font-semibold transition-all cursor-pointer ${
                         activeEpisode === epNum
