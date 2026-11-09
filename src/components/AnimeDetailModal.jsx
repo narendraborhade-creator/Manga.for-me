@@ -1,9 +1,9 @@
 import React, { useState, useEffect } from 'react';
-import { X, Star, Film, Sparkles, Tv, ExternalLink, Play, MonitorPlay, Layers } from 'lucide-react';
+import { X, Star, Film, Sparkles, Tv, ExternalLink, Play, MonitorPlay, Layers, AlertCircle, ArrowUpRight } from 'lucide-react';
 
 export default function AnimeDetailModal({ anime, onClose }) {
   const [activeEpisode, setActiveEpisode] = useState(1);
-  const [selectedServer, setSelectedServer] = useState(anime?.trailerUrl ? 'vidsrc' : 'vidsrc');
+  const [selectedServer, setSelectedServer] = useState('trailer');
 
   // Close modal on Escape key press
   useEffect(() => {
@@ -30,28 +30,64 @@ export default function AnimeDetailModal({ anime, onClose }) {
 
   // Dynamic player embed resolver (from awesome-anime-sources)
   const getPlayerEmbedUrl = () => {
-    if (selectedServer === 'trailer' && anime.trailerUrl) {
-      return anime.trailerUrl;
+    if (selectedServer === 'trailer') {
+      if (anime.trailerUrl) return anime.trailerUrl;
+      return `https://www.youtube.com/embed?listType=search&list=${encodeURIComponent(cleanSearchTitle + ' official trailer')}`;
+    }
+    if (selectedServer === 'vidsrc') {
+      return `https://vidsrc.pm/embed/anime/${anime.id}/${activeEpisode}`;
     }
     if (selectedServer === 'twoembed') {
       return `https://www.2embed.cc/embedtv/${anime.id}&s=1&e=${activeEpisode}`;
     }
-    if (selectedServer === 'embedsu') {
-      return `https://embed.su/embed/anime/${anime.id}/${activeEpisode}`;
-    }
-    // Default: vidsrc
-    return `https://vidsrc.to/embed/anime/${anime.id}/${activeEpisode}`;
+    return anime.trailerUrl || `https://www.youtube.com/embed?listType=search&list=${encodeURIComponent(cleanSearchTitle + ' official trailer')}`;
   };
 
-  // Curated verified streaming and database sources from awesome-anime-sources
+  // Direct Episode Stream Launchers (awesome-anime-sources)
+  const directEpisodeStreamers = [
+    {
+      id: 'hianime',
+      name: 'HiAnime (Zoro)',
+      badge: 'Sub/Dub HD',
+      textColor: 'text-amber-300',
+      bgColor: 'hover:bg-amber-500/10 hover:border-amber-500/40',
+      url: `https://hianime.to/search?keyword=${encodeURIComponent(cleanSearchTitle)}`,
+    },
+    {
+      id: 'animepahe',
+      name: 'AnimePahe',
+      badge: 'Fast 1080p',
+      textColor: 'text-rose-300',
+      bgColor: 'hover:bg-rose-500/10 hover:border-rose-500/40',
+      url: `https://animepahe.ru/?q=${encodeURIComponent(cleanSearchTitle)}`,
+    },
+    {
+      id: 'gogoanime',
+      name: 'GogoAnime',
+      badge: 'Direct Stream',
+      textColor: 'text-cyan-300',
+      bgColor: 'hover:bg-cyan-500/10 hover:border-cyan-500/40',
+      url: `https://anitaku.pe/search.html?keyword=${encodeURIComponent(cleanSearchTitle)}`,
+    },
+    {
+      id: 'crunchyroll',
+      name: 'Crunchyroll',
+      badge: 'Official',
+      textColor: 'text-orange-300',
+      bgColor: 'hover:bg-orange-500/10 hover:border-orange-500/40',
+      url: `https://www.crunchyroll.com/search?q=${encodeURIComponent(cleanSearchTitle)}`,
+    },
+  ];
+
+  // Full Directory from awesome-anime-sources
   const streamingSources = [
     {
       id: 'aniwatch',
-      name: 'AniWatch (Zoro)',
+      name: 'HiAnime / AniWatch (Zoro)',
       badge: 'Free HD Sub/Dub',
       borderColor: 'border-amber-500/40',
       textColor: 'text-amber-300',
-      url: `https://aniwatchtv.to/search?keyword=${encodeURIComponent(cleanSearchTitle)}`,
+      url: `https://hianime.to/search?keyword=${encodeURIComponent(cleanSearchTitle)}`,
       description: 'Stream all sub & dub episodes directly with high-speed playback',
     },
     {
@@ -158,15 +194,26 @@ export default function AnimeDetailModal({ anime, onClose }) {
             <div className="flex flex-wrap items-center justify-between gap-2 p-2.5 rounded-xl bg-slate-900/80 border border-white/10 text-xs font-mono">
               <div className="flex items-center gap-1.5 text-slate-400">
                 <MonitorPlay className="w-3.5 h-3.5 text-cyan-400" />
-                <span className="text-[11px] font-bold text-slate-300">STREAM SERVER:</span>
+                <span className="text-[11px] font-bold text-slate-300">PLAYER MODE:</span>
               </div>
               <div className="flex flex-wrap items-center gap-1.5">
+                <button
+                  type="button"
+                  onClick={() => setSelectedServer('trailer')}
+                  className={`px-3 py-1 rounded-lg text-xs font-bold transition-all cursor-pointer ${
+                    selectedServer === 'trailer'
+                      ? 'bg-rose-500 text-white shadow-md shadow-rose-500/30'
+                      : 'bg-white/5 text-slate-300 hover:bg-white/10'
+                  }`}
+                >
+                  Official HD Stream
+                </button>
                 <button
                   type="button"
                   onClick={() => setSelectedServer('vidsrc')}
                   className={`px-3 py-1 rounded-lg text-xs font-bold transition-all cursor-pointer ${
                     selectedServer === 'vidsrc'
-                      ? 'bg-cyan-500 text-black shadow-md shadow-cyan-500/20'
+                      ? 'bg-cyan-500 text-black shadow-md shadow-cyan-500/30'
                       : 'bg-white/5 text-slate-300 hover:bg-white/10'
                   }`}
                 >
@@ -177,61 +224,79 @@ export default function AnimeDetailModal({ anime, onClose }) {
                   onClick={() => setSelectedServer('twoembed')}
                   className={`px-3 py-1 rounded-lg text-xs font-bold transition-all cursor-pointer ${
                     selectedServer === 'twoembed'
-                      ? 'bg-cyan-500 text-black shadow-md shadow-cyan-500/20'
+                      ? 'bg-cyan-500 text-black shadow-md shadow-cyan-500/30'
                       : 'bg-white/5 text-slate-300 hover:bg-white/10'
                   }`}
                 >
                   Server 2 (2Embed)
                 </button>
-                <button
-                  type="button"
-                  onClick={() => setSelectedServer('embedsu')}
-                  className={`px-3 py-1 rounded-lg text-xs font-bold transition-all cursor-pointer ${
-                    selectedServer === 'embedsu'
-                      ? 'bg-cyan-500 text-black shadow-md shadow-cyan-500/20'
-                      : 'bg-white/5 text-slate-300 hover:bg-white/10'
-                  }`}
-                >
-                  Server 3 (EmbedSU)
-                </button>
-                {anime.trailerUrl && (
-                  <button
-                    type="button"
-                    onClick={() => setSelectedServer('trailer')}
-                    className={`px-3 py-1 rounded-lg text-xs font-bold transition-all cursor-pointer ${
-                      selectedServer === 'trailer'
-                        ? 'bg-rose-500 text-white shadow-md shadow-rose-500/20'
-                        : 'bg-white/5 text-slate-300 hover:bg-white/10'
-                    }`}
-                  >
-                    Official Trailer
-                  </button>
-                )}
               </div>
             </div>
 
+            {/* Adblock / Iframe Warning & Direct Launch Bar (when on external server) */}
+            {selectedServer !== 'trailer' && (
+              <div className="flex flex-wrap items-center justify-between gap-2 p-2.5 rounded-xl bg-amber-500/10 border border-amber-500/30 text-xs text-amber-200">
+                <div className="flex items-center gap-2">
+                  <AlertCircle className="w-4 h-4 text-amber-400 flex-shrink-0" />
+                  <span>
+                    If browser security blocks the embed frame, open the stream directly:
+                  </span>
+                </div>
+                <a
+                  href={getPlayerEmbedUrl()}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className="flex items-center gap-1 px-3 py-1 rounded-lg bg-amber-500 text-black font-bold text-xs hover:bg-amber-400 transition-colors flex-shrink-0 shadow-md"
+                >
+                  <span>Open Stream in Tab</span>
+                  <ArrowUpRight className="w-3.5 h-3.5" />
+                </a>
+              </div>
+            )}
+
             {/* Episode Grid / Selector */}
-            <div className="p-3 sm:p-4 rounded-xl bg-slate-950/60 border border-white/5 space-y-2">
+            <div className="p-3 sm:p-4 rounded-xl bg-slate-950/60 border border-white/5 space-y-2.5">
               <div className="flex items-center justify-between text-xs font-mono">
                 <span className="font-bold text-slate-300 flex items-center gap-1.5">
                   <Layers className="w-3.5 h-3.5 text-cyan-400" />
                   Select Episode ({totalEps} Available):
                 </span>
-                <span className="text-[11px] text-cyan-400">
-                  Playing: Ep {activeEpisode}
+                <span className="text-[11px] text-cyan-400 font-semibold">
+                  Selected: Episode {activeEpisode}
                 </span>
               </div>
-              <div className="flex flex-wrap gap-1.5 max-h-32 overflow-y-auto pr-1 scrollbar-thin scrollbar-thumb-cyan-500/30">
+
+              {/* Fast 1-Click Streamers for Selected Episode */}
+              <div className="grid grid-cols-2 sm:grid-cols-4 gap-2 pt-1">
+                {directEpisodeStreamers.map((st) => (
+                  <a
+                    key={st.id}
+                    href={st.url}
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    className={`flex items-center justify-between p-2 rounded-xl bg-slate-900/90 border border-white/10 ${st.bgColor} transition-all text-xs cursor-pointer group`}
+                    title={`Watch Episode ${activeEpisode} on ${st.name}`}
+                  >
+                    <div className="min-w-0 pr-1">
+                      <div className="text-[11px] font-bold text-white group-hover:text-cyan-300 truncate">
+                        {st.name}
+                      </div>
+                      <div className={`text-[10px] font-mono ${st.textColor}`}>
+                        Ep {activeEpisode} • {st.badge}
+                      </div>
+                    </div>
+                    <Play className="w-3.5 h-3.5 text-slate-400 group-hover:text-cyan-400 flex-shrink-0" />
+                  </a>
+                ))}
+              </div>
+
+              {/* Episode Numbers Badges */}
+              <div className="flex flex-wrap gap-1.5 max-h-28 overflow-y-auto pr-1 scrollbar-thin scrollbar-thumb-cyan-500/30 pt-1">
                 {epArray.map((epNum) => (
                   <button
                     key={epNum}
                     type="button"
-                    onClick={() => {
-                      setActiveEpisode(epNum);
-                      if (selectedServer === 'trailer') {
-                        setSelectedServer('vidsrc');
-                      }
-                    }}
+                    onClick={() => setActiveEpisode(epNum)}
                     className={`px-2.5 py-1 rounded-lg text-xs font-mono font-semibold transition-all cursor-pointer ${
                       activeEpisode === epNum
                         ? 'bg-cyan-500 text-black font-bold shadow-sm shadow-cyan-500/40'
