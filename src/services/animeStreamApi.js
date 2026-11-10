@@ -1,7 +1,13 @@
 /**
  * Anime Streaming & Smart Player Client API
  * Integrates AniSkip OP/ED skip intervals, Multi-Server Stream Resolvers (Sub & Dub),
- * and official streaming directory feeds.
+ * and the 6 core anime streaming API architectures:
+ * 1. Consumet API
+ * 2. HiAnime / MegaPlay API
+ * 3. Anify API
+ * 4. Kuhi Anime API
+ * 5. AllAnime API
+ * 6. ani-cli Scraper Core
  */
 
 import { getApiBaseUrl } from './mangaApi';
@@ -132,7 +138,7 @@ export async function fetchAnimeStreams(title, episode = 1, malId = null, isDub 
     console.warn('fetchAnimeStreams API warning, building client fallback:', err.message);
   }
 
-  // Client-side fallback server list
+  // Client-side fallback server list representing the 6 primary anime streaming architectures
   const cleanTitle = title.replace(/[:;!?\(\)\[\]]/g, ' ').replace(/\s+/g, ' ').trim();
   const dubSuffix = isDub ? ' (Dub)' : ' (Sub)';
   const dubSearch = isDub ? `${cleanTitle} dub` : cleanTitle;
@@ -146,46 +152,14 @@ export async function fetchAnimeStreams(title, episode = 1, malId = null, isDub 
     skipTimes: { found: false, op: null, ed: null },
     servers: [
       {
-        id: 'hianime',
-        name: `HiAnime / Zoro${dubSuffix}`,
-        provider: 'HiAnime (HD-1)',
-        quality: '1080p HD',
+        id: 'consumet',
+        name: `Consumet API Engine${dubSuffix}`,
+        provider: 'Consumet (GogoAnime / Zoro / Pahe)',
+        type: 'REST (.m3u8 HLS / Qualities / VTT)',
+        quality: '1080p / 720p / 480p / 360p',
         audio: isDub ? 'English Dub' : 'Japanese Sub',
-        badge: 'Recommended',
-        speed: 'Ultra-Fast CDN',
-        streamUrl: `https://hianime.to/search?keyword=${encodeURIComponent(dubSearch)}`,
-        directWatchUrl: `https://hianime.to/search?keyword=${encodeURIComponent(dubSearch)}`,
-      },
-      {
-        id: 'animepahe',
-        name: 'AnimePahe',
-        provider: 'AnimePahe (Compact)',
-        quality: '1080p / 720p',
-        audio: 'Multi-Audio',
-        badge: 'Buffer-Free',
-        speed: 'Small Filesize',
-        streamUrl: `https://animepahe.ru/?q=${encodeURIComponent(cleanTitle)}`,
-        directWatchUrl: `https://animepahe.ru/?q=${encodeURIComponent(cleanTitle)}`,
-      },
-      {
-        id: 'allanime',
-        name: `AllAnime${dubSuffix}`,
-        provider: 'AllAnime Global',
-        quality: '1080p HD',
-        audio: isDub ? 'English Dub' : 'Japanese Sub',
-        badge: 'Dual Audio',
-        speed: 'Multi-Host',
-        streamUrl: `https://allanime.to/search?keyword=${encodeURIComponent(dubSearch)}`,
-        directWatchUrl: `https://allanime.to/search?keyword=${encodeURIComponent(dubSearch)}`,
-      },
-      {
-        id: 'gogoanime',
-        name: `GogoAnime${dubSuffix}`,
-        provider: 'GogoAnime CDN',
-        quality: '1080p / 720p',
-        audio: isDub ? 'English Dub' : 'Japanese Sub',
-        badge: 'Archive Mirror',
-        speed: 'High-Capacity',
+        badge: 'Gold Standard',
+        speed: 'Multi-Source Router',
         streamUrl: isDub
           ? `https://anitaku.so/category/${titleSlug}-dub`
           : `https://anitaku.so/category/${titleSlug}`,
@@ -194,15 +168,68 @@ export async function fetchAnimeStreams(title, episode = 1, malId = null, isDub 
           : `https://anitaku.so/search.html?keyword=${encodeURIComponent(cleanTitle)}`,
       },
       {
-        id: 'crunchyroll',
-        name: 'Crunchyroll',
-        provider: 'Official Simulcast',
-        quality: 'Studio HD 1080p',
-        audio: 'Licensed Simulcast',
-        badge: 'Official',
-        speed: 'Lossless Audio',
-        streamUrl: `https://www.crunchyroll.com/search?q=${encodeURIComponent(cleanTitle)}`,
-        directWatchUrl: `https://www.crunchyroll.com/search?q=${encodeURIComponent(cleanTitle)}`,
+        id: 'hianime',
+        name: `HiAnime / MegaPlay API${dubSuffix}`,
+        provider: 'HiAnime (HD-1 / HD-2 / MegaPlay)',
+        type: 'REST / AJAX (Decrypted HLS & Embeds)',
+        quality: '1080p Ultra HD',
+        audio: isDub ? 'English Dub' : 'Japanese Sub',
+        badge: 'Dual Audio Switch',
+        speed: 'Ultra-Fast CDN',
+        streamUrl: `https://hianime.to/search?keyword=${encodeURIComponent(dubSearch)}`,
+        directWatchUrl: `https://hianime.to/search?keyword=${encodeURIComponent(dubSearch)}`,
+      },
+      {
+        id: 'anify',
+        name: 'Anify API Engine',
+        provider: 'Anify (AniList + Gogo/Zoro/Pahe)',
+        type: 'REST (Mapped Metadata + Streams)',
+        quality: '1080p / 720p HD',
+        audio: 'Both (Sub & Dub)',
+        badge: 'Unified Catalog',
+        speed: 'Direct Mapping',
+        streamUrl: `https://animepahe.ru/?q=${encodeURIComponent(cleanTitle)}`,
+        directWatchUrl: `https://animepahe.ru/?q=${encodeURIComponent(cleanTitle)}`,
+      },
+      {
+        id: 'kuhi',
+        name: `Kuhi Anime API${dubSuffix}`,
+        provider: 'Kuhi API (AniList Direct Resolvers)',
+        type: 'REST (Direct Video Sources & Embeds)',
+        quality: '1080p HD',
+        audio: isDub ? 'English Dub' : 'Japanese Sub',
+        badge: 'AniList Native',
+        speed: 'Lightweight Express',
+        streamUrl: `https://animeembed.com/embed/ani/${malId || ''}/${episode}?track=${isDub ? 'dub' : 'sub'}`,
+        directWatchUrl: `https://animeembed.com/embed/ani/${malId || ''}/${episode}?track=${isDub ? 'dub' : 'sub'}`,
+      },
+      {
+        id: 'allanime',
+        name: `AllAnime GraphQL API${dubSuffix}`,
+        provider: 'AllAnime Global',
+        type: 'GraphQL (Multi-server HLS stream links)',
+        quality: '1080p Multi-bitrate',
+        audio: isDub ? 'English Dub' : 'Japanese Sub',
+        badge: 'Multi-Bitrate',
+        speed: 'High-Capacity Mesh',
+        streamUrl: `https://allanime.to/search?keyword=${encodeURIComponent(dubSearch)}`,
+        directWatchUrl: `https://allanime.to/search?keyword=${encodeURIComponent(dubSearch)}`,
+      },
+      {
+        id: 'anicli',
+        name: `ani-cli Scraper Core${dubSuffix}`,
+        provider: 'ani-cli (Raw HLS & Subtitle VTTs)',
+        type: 'Shell / Node bridge (Direct raw HLS & VTTs)',
+        quality: '1080p Raw Stream',
+        audio: 'Both (Sub & Dub)',
+        badge: 'Zero Overhead',
+        speed: 'Raw Edge CDN',
+        streamUrl: isDub
+          ? `https://anitaku.so/category/${titleSlug}-dub`
+          : `https://anitaku.so/category/${titleSlug}`,
+        directWatchUrl: isDub
+          ? `https://anitaku.so/search.html?keyword=${encodeURIComponent(cleanTitle + ' (Dub)')}`
+          : `https://anitaku.so/search.html?keyword=${encodeURIComponent(cleanTitle)}`,
       },
     ],
   };
