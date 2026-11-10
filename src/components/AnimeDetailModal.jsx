@@ -34,13 +34,25 @@ export default function AnimeDetailModal({ anime, onClose }) {
   const [activeServerId, setActiveServerId] = useState('hianime');
   const playerContainerRef = useRef(null);
 
+  // Anti-redirect protection: intercepts rogue external redirect attempts
+  useEffect(() => {
+    const handleBeforeUnload = (e) => {
+      e.preventDefault();
+      return (e.returnValue = '');
+    };
+    window.addEventListener('beforeunload', handleBeforeUnload);
+    return () => {
+      window.removeEventListener('beforeunload', handleBeforeUnload);
+    };
+  }, []);
+
   const handlePlayInApp = (serverId = null) => {
-    if (serverId === 'kuhi' || serverId === 'anify') {
+    if (serverId === 'hianime' || serverId === 'allanime' || serverId === 'consumet') {
       setInAppServer('server1');
-    } else if (serverId === 'hianime' || serverId === 'allanime') {
+    } else if (serverId === 'kuhi' || serverId === 'anify') {
       setInAppServer('server2');
-    } else if (serverId === 'consumet' || serverId === 'anicli') {
-      setInAppServer('server3');
+    } else if (serverId === 'anicli') {
+      setInAppServer('server1');
     }
     setPlayerMode('stream');
     if (playerContainerRef.current) {
@@ -118,31 +130,31 @@ export default function AnimeDetailModal({ anime, onClose }) {
   const malId = anime.malId || anime.id;
   const subDubParam = isDub ? 'dub' : 'sub';
 
-  // Dedicated In-App Anime Players (No YouTube Error 153, full HLS & audio track support)
+  // Dedicated In-App Anime Players (VidLink Ultra primary with clean HLS & multi-audio, plus mirrors)
   const inAppServers = [
     {
       id: 'server1',
-      name: 'Server 1 (AnimeEmbed HD)',
-      badge: '1080p HLS',
-      url: `https://animeembed.com/embed/ani/${aniListId || malId}/${activeEpisode}?track=${subDubParam}`,
-      directUrl: `https://animeembed.com/embed/ani/${aniListId || malId}/${activeEpisode}?track=${subDubParam}`,
-      speed: 'Ultra Fast',
+      name: 'Server 1 (VidLink Ultra)',
+      badge: 'Ad-Free 1080p',
+      url: `https://vidlink.pro/anime/${malId}/${activeEpisode}/${subDubParam}?fallback=true&primaryColor=06b6d4&secondaryColor=3b82f6`,
+      directUrl: `https://vidlink.pro/anime/${malId}/${activeEpisode}/${subDubParam}?fallback=true`,
+      speed: 'Direct HLS Stream',
     },
     {
       id: 'server2',
-      name: 'Server 2 (VidLink Ultra)',
-      badge: 'Adaptive',
-      url: `https://vidlink.pro/anime/${malId}/${activeEpisode}/${subDubParam}?fallback=true`,
-      directUrl: `https://vidlink.pro/anime/${malId}/${activeEpisode}/${subDubParam}?fallback=true`,
-      speed: 'Buffer-Free',
+      name: 'Server 2 (VidLink Mirror)',
+      badge: 'Dual Audio',
+      url: `https://vidlink.pro/anime/${anime.id || malId}/${activeEpisode}/${subDubParam}?fallback=true`,
+      directUrl: `https://vidlink.pro/anime/${anime.id || malId}/${activeEpisode}/${subDubParam}?fallback=true`,
+      speed: 'Buffer-Free CDN',
     },
     {
       id: 'server3',
       name: 'Server 3 (AnimeEmbed Alt)',
-      badge: 'Mirror HD',
-      url: `https://animeembed.com/embed/ani/${malId || aniListId}/${activeEpisode}?track=${subDubParam}`,
-      directUrl: `https://animeembed.com/embed/ani/${malId || aniListId}/${activeEpisode}?track=${subDubParam}`,
-      speed: 'Backup CDN',
+      badge: 'Backup Mirror',
+      url: `https://animeembed.com/embed/ani/${aniListId || malId}/${activeEpisode}?track=${subDubParam}`,
+      directUrl: `https://animeembed.com/embed/ani/${aniListId || malId}/${activeEpisode}?track=${subDubParam}`,
+      speed: 'Secondary Host',
     },
   ];
 
@@ -492,6 +504,7 @@ export default function AnimeDetailModal({ anime, onClose }) {
                       src={inAppEpisodeEmbed}
                       title={`${anime.title} - Episode ${activeEpisode} Stream`}
                       className="w-full h-full border-0"
+                      {...(inAppServer !== 'server3' ? { sandbox: 'allow-scripts allow-same-origin allow-forms allow-presentation' } : {})}
                       allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture; web-share"
                       allowFullScreen
                     />
