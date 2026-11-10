@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import { 
   X, 
   Star, 
@@ -32,6 +32,21 @@ export default function AnimeDetailModal({ anime, onClose }) {
   const [loadingSkip, setLoadingSkip] = useState(false);
   const [streamDeck, setStreamDeck] = useState(null);
   const [activeServerId, setActiveServerId] = useState('hianime');
+  const playerContainerRef = useRef(null);
+
+  const handlePlayInApp = (serverId = null) => {
+    if (serverId === 'kuhi' || serverId === 'anify') {
+      setInAppServer('server1');
+    } else if (serverId === 'hianime' || serverId === 'allanime') {
+      setInAppServer('server2');
+    } else if (serverId === 'consumet' || serverId === 'anicli') {
+      setInAppServer('server3');
+    }
+    setPlayerMode('stream');
+    if (playerContainerRef.current) {
+      playerContainerRef.current.scrollIntoView({ behavior: 'smooth', block: 'start' });
+    }
+  };
 
   // Close modal on Escape key press
   useEffect(() => {
@@ -367,7 +382,7 @@ export default function AnimeDetailModal({ anime, onClose }) {
           style={{ WebkitOverflowScrolling: 'touch', touchAction: 'pan-y' }}
         >
           {/* Main Visual Player Frame */}
-          <div className="space-y-3">
+          <div ref={playerContainerRef} className="space-y-3">
             <div className="relative aspect-video w-full bg-black rounded-2xl overflow-hidden border border-cyan-500/30 shadow-2xl flex flex-col">
               {playerMode === 'trailer' ? (
                 /* 1. Official HD Embedded Video Player */
@@ -477,6 +492,7 @@ export default function AnimeDetailModal({ anime, onClose }) {
                       src={inAppEpisodeEmbed}
                       title={`${anime.title} - Episode ${activeEpisode} Stream`}
                       className="w-full h-full border-0"
+                      sandbox="allow-scripts allow-same-origin allow-forms allow-presentation"
                       allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture; web-share"
                       allowFullScreen
                     />
@@ -580,7 +596,7 @@ export default function AnimeDetailModal({ anime, onClose }) {
                     <div className="flex flex-wrap items-center justify-center gap-2 pt-1">
                       <button
                         type="button"
-                        onClick={() => setPlayerMode('stream')}
+                        onClick={() => handlePlayInApp()}
                         className="flex items-center gap-2 px-5 py-2.5 rounded-xl bg-gradient-to-r from-cyan-500 to-cyan-400 text-black font-extrabold text-xs shadow-lg shadow-cyan-500/30 hover:scale-105 transition-all cursor-pointer"
                       >
                         <Play className="w-4 h-4 fill-black" />
@@ -723,19 +739,16 @@ export default function AnimeDetailModal({ anime, onClose }) {
                 </span>
               </div>
 
-              {/* Fast 1-Click Streamers for Selected Episode */}
+              {/* Fast In-App Streamers & Multi-Source Deck for Selected Episode */}
               <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
                 {episodeStreamServers.map((st) => (
-                  <a
+                  <div
                     key={st.id}
-                    href={st.directWatchUrl || st.url}
-                    target="_blank"
-                    rel="noopener noreferrer"
-                    onClick={() => setActiveServerId(st.id)}
+                    onClick={() => handlePlayInApp(st.id)}
                     className={`flex items-center justify-between p-2.5 rounded-xl bg-slate-900/90 border ${
                       activeServerId === st.id ? 'border-cyan-400/80 shadow-md shadow-cyan-950/40' : (st.borderColor || 'border-white/10')
                     } ${st.bgColor || 'hover:bg-slate-800'} transition-all text-xs cursor-pointer group`}
-                    title={`Watch Episode ${activeEpisode} on ${st.name}`}
+                    title={`Play Episode ${activeEpisode} on ${st.name}`}
                   >
                     <div className="min-w-0 pr-2">
                       <div className="flex items-center gap-1.5">
@@ -750,11 +763,30 @@ export default function AnimeDetailModal({ anime, onClose }) {
                         {st.desc}
                       </p>
                     </div>
-                    <div className="flex items-center gap-1 px-2.5 py-1.5 rounded-lg bg-white/5 group-hover:bg-cyan-500 group-hover:text-black text-slate-300 transition-colors flex-shrink-0 font-bold text-[11px]">
-                      <span>Play Ep {activeEpisode}</span>
-                      <ArrowUpRight className="w-3 h-3" />
+                    <div className="flex items-center gap-1.5 flex-shrink-0">
+                      <button
+                        type="button"
+                        onClick={(e) => {
+                          e.stopPropagation();
+                          handlePlayInApp(st.id);
+                        }}
+                        className="flex items-center gap-1 px-2.5 py-1.5 rounded-lg bg-cyan-500 hover:bg-cyan-400 text-black font-bold text-[11px] shadow-sm transition-all cursor-pointer"
+                      >
+                        <Play className="w-3 h-3 fill-black" />
+                        <span>Play Ep {activeEpisode}</span>
+                      </button>
+                      <a
+                        href={st.directWatchUrl || st.url}
+                        target="_blank"
+                        rel="noopener noreferrer"
+                        onClick={(e) => e.stopPropagation()}
+                        className="p-1.5 rounded-lg bg-white/5 hover:bg-white/15 text-slate-400 hover:text-white transition-colors"
+                        title={`Open ${st.name} external mirror`}
+                      >
+                        <ArrowUpRight className="w-3.5 h-3.5" />
+                      </a>
                     </div>
-                  </a>
+                  </div>
                 ))}
               </div>
 
@@ -770,6 +802,7 @@ export default function AnimeDetailModal({ anime, onClose }) {
                       type="button"
                       onClick={() => {
                         setActiveEpisode(epNum);
+                        handlePlayInApp();
                       }}
                       className={`px-2.5 py-1 rounded-lg text-xs font-mono font-semibold transition-all cursor-pointer ${
                         activeEpisode === epNum
