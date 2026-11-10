@@ -14,12 +14,23 @@ import {
   ShieldAlert,
   Radio,
   Flame,
-  Info
+  Info,
+  Zap,
+  Volume2,
+  Headphones,
+  Clock,
+  RotateCcw
 } from 'lucide-react';
+import { fetchAnimeSkipTimes, fetchAnimeStreams, formatSecondsToTime } from '../services/animeStreamApi';
 
 export default function AnimeDetailModal({ anime, onClose }) {
   const [activeEpisode, setActiveEpisode] = useState(1);
-  const [playerMode, setPlayerMode] = useState('trailer'); // 'trailer' | 'hub' | 'episode_video'
+  const [isDub, setIsDub] = useState(false);
+  const [playerMode, setPlayerMode] = useState('hub'); // 'hub' | 'stream' | 'trailer'
+  const [skipTimes, setSkipTimes] = useState(null);
+  const [loadingSkip, setLoadingSkip] = useState(false);
+  const [streamDeck, setStreamDeck] = useState(null);
+  const [activeServerId, setActiveServerId] = useState('hianime');
 
   // Close modal on Escape key press
   useEffect(() => {
@@ -34,6 +45,45 @@ export default function AnimeDetailModal({ anime, onClose }) {
     };
   }, [onClose]);
 
+  // Fetch AniSkip intervals when malId or activeEpisode changes
+  useEffect(() => {
+    let isMounted = true;
+    async function loadSkip() {
+      setLoadingSkip(true);
+      try {
+        const data = await fetchAnimeSkipTimes(anime?.malId || anime?.id, activeEpisode);
+        if (isMounted) setSkipTimes(data);
+      } catch (e) {
+        if (isMounted) setSkipTimes({ found: false, op: null, ed: null });
+      } finally {
+        if (isMounted) setLoadingSkip(false);
+      }
+    }
+    if (anime) {
+      loadSkip();
+    }
+    return () => { isMounted = false; };
+  }, [anime?.malId, anime?.id, activeEpisode]);
+
+  // Fetch Stream Servers when title, activeEpisode, or isDub changes
+  useEffect(() => {
+    let isMounted = true;
+    async function loadStreams() {
+      try {
+        const data = await fetchAnimeStreams(anime?.title, activeEpisode, anime?.malId || anime?.id, isDub);
+        if (isMounted && data) {
+          setStreamDeck(data);
+        }
+      } catch (e) {
+        console.warn('Anime stream loading warning:', e);
+      }
+    }
+    if (anime?.title) {
+      loadStreams();
+    }
+    return () => { isMounted = false; };
+  }, [anime?.title, anime?.malId, anime?.id, activeEpisode, isDub]);
+
   if (!anime) return null;
 
   const cleanSearchTitle = (anime.title || '')
@@ -44,55 +94,102 @@ export default function AnimeDetailModal({ anime, onClose }) {
   const totalEps = Math.max(1, parseInt(anime.episodes, 10) || 12);
   const epArray = Array.from({ length: Math.min(totalEps, 150) }, (_, i) => i + 1);
 
+  const dubSuffix = isDub ? ' (Dub)' : ' (Sub)';
+  const dubSearch = isDub ? `${cleanSearchTitle} dub` : cleanSearchTitle;
+  const titleSlug = cleanSearchTitle.toLowerCase().replace(/[^a-z0-9]+/g, '-').replace(/^-|-$/g, '');
+
   // Official Verified Video Stream (from AniList trailer or YouTube HD search)
   const officialTrailerEmbed = anime.trailerUrl || `https://www.youtube.com/embed?listType=search&list=${encodeURIComponent(cleanSearchTitle + ' official trailer')}`;
 
-  // In-App Episode Video Stream (Verified YouTube search stream without third-party errors)
-  const inAppEpisodeEmbed = `https://www.youtube.com/embed?listType=search&list=${encodeURIComponent(cleanSearchTitle + ' episode ' + activeEpisode)}`;
+  // In-App Episode Video Stream
+  const inAppEpisodeEmbed = `https://www.youtube.com/embed?listType=search&list=${encodeURIComponent(cleanSearchTitle + (isDub ? ' dub' : '') + ' episode ' + activeEpisode)}`;
 
-  // Direct Episode Stream Launchers (awesome-anime-sources verified index)
-  const episodeStreamServers = [
+  // Multi-server list combining streamDeck or default curated providers
+  const episodeStreamServers = streamDeck?.servers || [
     {
       id: 'hianime',
-      name: 'HiAnime (Zoro)',
+      name: `HiAnime (Zoro)${dubSuffix}`,
+      provider: 'HiAnime (HD-1)',
       badge: 'Sub/Dub HD',
       textColor: 'text-amber-300',
       borderColor: 'border-amber-500/40',
       bgColor: 'hover:bg-amber-500/15',
-      url: `https://hianime.to/search?keyword=${encodeURIComponent(cleanSearchTitle)}`,
+      url: `https://hianime.to/search?keyword=${encodeURIComponent(dubSearch)}`,
+      streamUrl: `https://hianime.to/search?keyword=${encodeURIComponent(dubSearch)}`,
+      directWatchUrl: `https://hianime.to/search?keyword=${encodeURIComponent(dubSearch)}`,
       desc: 'Top-ranked anime stream with all Subtitled & Dubbed episodes (guaranteed 1080p)',
+      quality: '1080p HD',
+      speed: 'Ultra-Fast CDN',
     },
     {
       id: 'animepahe',
       name: 'AnimePahe',
+      provider: 'AnimePahe (Compact)',
       badge: 'Fast 1080p',
       textColor: 'text-rose-300',
       borderColor: 'border-rose-500/40',
       bgColor: 'hover:bg-rose-500/15',
       url: `https://animepahe.ru/?q=${encodeURIComponent(cleanSearchTitle)}`,
+      streamUrl: `https://animepahe.ru/?q=${encodeURIComponent(cleanSearchTitle)}`,
+      directWatchUrl: `https://animepahe.ru/?q=${encodeURIComponent(cleanSearchTitle)}`,
       desc: 'Ultra-compressed small files with instant, buffer-free 1080p/720p streaming',
+      quality: '1080p / 720p',
+      speed: 'Buffer-Free',
+    },
+    {
+      id: 'allanime',
+      name: `AllAnime${dubSuffix}`,
+      provider: 'AllAnime Global',
+      badge: 'Dual Audio',
+      textColor: 'text-purple-300',
+      borderColor: 'border-purple-500/40',
+      bgColor: 'hover:bg-purple-500/15',
+      url: `https://allanime.to/search?keyword=${encodeURIComponent(dubSearch)}`,
+      streamUrl: `https://allanime.to/search?keyword=${encodeURIComponent(dubSearch)}`,
+      directWatchUrl: `https://allanime.to/search?keyword=${encodeURIComponent(dubSearch)}`,
+      desc: 'Multi-server HLS streaming with dual Japanese and English audio channels',
+      quality: '1080p HD',
+      speed: 'Multi-Host',
     },
     {
       id: 'gogoanime',
-      name: 'GogoAnime',
-      badge: 'Direct Mirror',
+      name: `GogoAnime${dubSuffix}`,
+      provider: 'GogoAnime CDN',
+      badge: 'Archive Mirror',
       textColor: 'text-cyan-300',
       borderColor: 'border-cyan-500/40',
       bgColor: 'hover:bg-cyan-500/15',
-      url: `https://anitaku.pe/search.html?keyword=${encodeURIComponent(cleanSearchTitle)}`,
-      desc: 'Massive anime archive with multiple backup mirrors and all seasonal releases',
+      url: isDub
+        ? `https://anitaku.so/search.html?keyword=${encodeURIComponent(cleanSearchTitle + ' (Dub)')}`
+        : `https://anitaku.so/search.html?keyword=${encodeURIComponent(cleanSearchTitle)}`,
+      streamUrl: isDub
+        ? `https://anitaku.so/category/${titleSlug}-dub`
+        : `https://anitaku.so/category/${titleSlug}`,
+      directWatchUrl: isDub
+        ? `https://anitaku.so/search.html?keyword=${encodeURIComponent(cleanSearchTitle + ' (Dub)')}`
+        : `https://anitaku.so/search.html?keyword=${encodeURIComponent(cleanSearchTitle)}`,
+      desc: 'Massive anime archive with active CDN mirrors and all seasonal releases',
+      quality: '1080p / 720p',
+      speed: 'High-Capacity',
     },
     {
       id: 'crunchyroll',
       name: 'Crunchyroll',
+      provider: 'Official Simulcast',
       badge: 'Official HD',
       textColor: 'text-orange-300',
       borderColor: 'border-orange-500/40',
       bgColor: 'hover:bg-orange-500/15',
       url: `https://www.crunchyroll.com/search?q=${encodeURIComponent(cleanSearchTitle)}`,
+      streamUrl: `https://www.crunchyroll.com/search?q=${encodeURIComponent(cleanSearchTitle)}`,
+      directWatchUrl: `https://www.crunchyroll.com/search?q=${encodeURIComponent(cleanSearchTitle)}`,
       desc: 'Official licensed simulcasts with studio audio and professional translations',
+      quality: 'Studio HD 1080p',
+      speed: 'Lossless Audio',
     },
   ];
+
+  const selectedServer = episodeStreamServers.find((s) => s.id === activeServerId) || episodeStreamServers[0];
 
   // Full Directory from awesome-anime-sources
   const streamingSources = [
@@ -102,7 +199,7 @@ export default function AnimeDetailModal({ anime, onClose }) {
       badge: 'Free HD Sub/Dub',
       borderColor: 'border-amber-500/40',
       textColor: 'text-amber-300',
-      url: `https://hianime.to/search?keyword=${encodeURIComponent(cleanSearchTitle)}`,
+      url: `https://hianime.to/search?keyword=${encodeURIComponent(dubSearch)}`,
       description: 'Stream all sub & dub episodes directly with high-speed playback',
     },
     {
@@ -115,6 +212,24 @@ export default function AnimeDetailModal({ anime, onClose }) {
       description: 'Ultra-compressed fast video encodes and multi-quality releases',
     },
     {
+      id: 'allanime',
+      name: 'AllAnime',
+      badge: 'Dual Audio Stream',
+      borderColor: 'border-purple-500/40',
+      textColor: 'text-purple-300',
+      url: `https://allanime.to/search?keyword=${encodeURIComponent(dubSearch)}`,
+      description: 'Multi-host streaming with fast Sub and English Dub video sources',
+    },
+    {
+      id: 'gogoanime',
+      name: 'GogoAnime',
+      badge: 'Archive CDN',
+      borderColor: 'border-cyan-500/40',
+      textColor: 'text-cyan-300',
+      url: `https://anitaku.so/search.html?keyword=${encodeURIComponent(dubSearch)}`,
+      description: 'Active mirror network for all subbed and dubbed anime episodes',
+    },
+    {
       id: 'crunchyroll',
       name: 'Crunchyroll',
       badge: 'Official Simulcast',
@@ -122,15 +237,6 @@ export default function AnimeDetailModal({ anime, onClose }) {
       textColor: 'text-orange-300',
       url: `https://www.crunchyroll.com/search?q=${encodeURIComponent(cleanSearchTitle)}`,
       description: 'Official licensed simulcast streaming with high-fidelity audio',
-    },
-    {
-      id: 'animeplanet',
-      name: 'Anime-Planet',
-      badge: 'Legal Aggregator',
-      borderColor: 'border-emerald-500/40',
-      textColor: 'text-emerald-300',
-      url: `https://www.anime-planet.com/anime/all?name=${encodeURIComponent(cleanSearchTitle)}`,
-      description: 'Catalog of legal online video streams & anime reviews',
     },
     {
       id: 'anilist',
@@ -172,6 +278,10 @@ export default function AnimeDetailModal({ anime, onClose }) {
             <span className="text-slate-400 hidden xs:inline">STATUS: {anime.status || 'READY'}</span>
             <span className="text-slate-600 hidden sm:inline">•</span>
             <span className="text-cyan-300 font-bold hidden sm:inline">EPISODE {activeEpisode}</span>
+            <span className="text-slate-600 hidden md:inline">•</span>
+            <span className={`hidden md:inline px-1.5 py-0.5 rounded text-[9px] font-bold ${isDub ? 'bg-amber-500/20 text-amber-300 border border-amber-500/40' : 'bg-cyan-500/20 text-cyan-300 border border-cyan-500/40'}`}>
+              {isDub ? 'ENGLISH DUB' : 'JAPANESE SUB'}
+            </span>
           </div>
 
           <button
@@ -188,7 +298,7 @@ export default function AnimeDetailModal({ anime, onClose }) {
 
         {/* Unified Scrollable Body */}
         <div 
-          className="flex-1 min-h-0 overflow-y-auto overscroll-contain scrollbar-thin scrollbar-thumb-cyan-500/40 scrollbar-track-transparent space-y-5 p-4 sm:p-6 md:p-8 pb-14 sm:pb-16"
+          className="flex-1 min-h-0 overflow-y-auto overscroll-contain scrollbar-thin scrollbar-thumb-cyan-500/40 scrollbar-track-transparent space-y-4 p-4 sm:p-6 md:p-8 pb-14 sm:pb-16"
           style={{ WebkitOverflowScrolling: 'touch', touchAction: 'pan-y' }}
         >
           {/* Main Visual Player Frame */}
@@ -204,198 +314,260 @@ export default function AnimeDetailModal({ anime, onClose }) {
                   allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
                   allowFullScreen
                 />
-              ) : playerMode === 'episode_video' ? (
-                /* 2. In-App Episode Video Stream (Direct Verified Stream) */
-                <iframe
-                  key={`episode-video-ep-${activeEpisode}`}
-                  src={inAppEpisodeEmbed}
-                  title={`${anime.title} - Episode ${activeEpisode} Stream`}
-                  className="w-full h-full border-0"
-                  allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
-                  allowFullScreen
-                />
+              ) : playerMode === 'stream' ? (
+                /* 2. In-App Episode Video Stream with Direct Fallback Protection */
+                <div className="relative w-full h-full flex flex-col">
+                  <iframe
+                    key={`episode-stream-ep-${activeEpisode}-${isDub ? 'dub' : 'sub'}`}
+                    src={inAppEpisodeEmbed}
+                    title={`${anime.title} - Episode ${activeEpisode} Stream`}
+                    className="w-full flex-1 border-0"
+                    allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
+                    allowFullScreen
+                  />
+                  {/* Top-right quick launch overlay in case browser blocks iframe frame */}
+                  <div className="absolute top-2 right-2 z-20 flex items-center gap-2 bg-slate-950/85 backdrop-blur-md px-3 py-1.5 rounded-xl border border-white/10 text-xs shadow-lg">
+                    <span className="text-[11px] text-slate-300 hidden sm:inline">Having playback issues?</span>
+                    <a
+                      href={selectedServer.directWatchUrl || selectedServer.url}
+                      target="_blank"
+                      rel="noopener noreferrer"
+                      className="flex items-center gap-1 text-cyan-400 hover:text-cyan-300 font-bold"
+                    >
+                      <span>Open in Tab</span>
+                      <ArrowUpRight className="w-3.5 h-3.5" />
+                    </a>
+                  </div>
+                </div>
               ) : (
-                /* 3. Interactive Episode Cyberpunk Streaming Deck (awesome-anime-sources) */
+                /* 3. Cyberpunk High-Speed Streaming Deck & Smart Player (Default, Zero Broken Frames) */
                 <div className="relative w-full h-full flex flex-col justify-between p-4 sm:p-6 bg-slate-950">
-                  {/* Background backdrop with cyberpunk styling */}
+                  {/* Background backdrop with poster styling */}
                   <img
                     src={anime.bannerUrl || anime.coverUrl}
                     alt={anime.title}
                     referrerPolicy="no-referrer"
-                    className="absolute inset-0 w-full h-full object-cover opacity-20 filter blur-xs"
+                    className="absolute inset-0 w-full h-full object-cover opacity-25 filter blur-xs"
                   />
-                  <div className="absolute inset-0 bg-gradient-to-t from-[#0c1017] via-slate-950/85 to-[#0c1017]/90" />
+                  <div className="absolute inset-0 bg-gradient-to-t from-[#0c1017] via-slate-950/90 to-[#0c1017]/90" />
 
                   {/* Header HUD inside player */}
-                  <div className="relative z-10 flex items-center justify-between text-xs font-mono">
-                    <span className="flex items-center gap-1.5 px-2.5 py-1 rounded-md bg-cyan-500/20 text-cyan-300 border border-cyan-500/40 font-bold">
-                      <MonitorPlay className="w-3.5 h-3.5 text-cyan-400" />
-                      EPISODE {activeEpisode} STREAMING PORTAL
-                    </span>
+                  <div className="relative z-10 flex flex-wrap items-center justify-between gap-2 text-xs font-mono">
+                    <div className="flex items-center gap-2">
+                      <span className="flex items-center gap-1.5 px-2.5 py-1 rounded-md bg-cyan-500/20 text-cyan-300 border border-cyan-500/40 font-bold">
+                        <MonitorPlay className="w-3.5 h-3.5 text-cyan-400" />
+                        EPISODE {activeEpisode} STREAM DECK
+                      </span>
+                      <span className={`px-2 py-0.5 rounded text-[10px] font-bold ${isDub ? 'bg-amber-500/20 text-amber-300 border border-amber-500/40' : 'bg-cyan-500/20 text-cyan-300 border border-cyan-500/40'}`}>
+                        {isDub ? 'ENGLISH DUB' : 'JAPANESE SUB'}
+                      </span>
+                    </div>
+
                     <button
                       type="button"
                       onClick={() => setPlayerMode('trailer')}
-                      className="text-xs text-slate-400 hover:text-white underline cursor-pointer"
+                      className="text-xs text-slate-400 hover:text-white underline cursor-pointer flex items-center gap-1"
                     >
-                      Watch Official HD Trailer
+                      <Film className="w-3 h-3" />
+                      <span>Watch Official Trailer</span>
                     </button>
                   </div>
 
                   {/* Center Action */}
-                  <div className="relative z-10 text-center my-auto space-y-2.5">
+                  <div className="relative z-10 text-center my-auto space-y-3 max-w-xl mx-auto">
                     <div>
                       <span className="text-[10px] font-mono tracking-widest text-cyan-400 uppercase">
-                        awesome-anime-sources // verified feeds
+                        awesome-anime-sources // multi-server pipeline
                       </span>
                       <h3 className="text-lg sm:text-2xl font-extrabold text-white font-['Outfit'] mt-0.5">
-                        Stream {anime.title} — Episode {activeEpisode}
+                        {anime.title} — Episode {activeEpisode}
                       </h3>
                       <p className="text-xs text-slate-300 max-w-md mx-auto mt-1">
-                        Select a high-speed streaming engine below for instant, buffer-free playback with Sub & Dub audio:
+                        Select your preferred audio feed and high-speed streaming server below for instant 1080p playback:
                       </p>
                     </div>
 
+                    {/* Dual Audio Switcher in Player Deck */}
+                    <div className="inline-flex items-center p-1 rounded-xl bg-slate-900/90 border border-white/10 shadow-inner">
+                      <button
+                        type="button"
+                        onClick={() => setIsDub(false)}
+                        className={`flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-bold transition-all cursor-pointer ${
+                          !isDub
+                            ? 'bg-cyan-500 text-black shadow-md shadow-cyan-500/30'
+                            : 'text-slate-400 hover:text-white'
+                        }`}
+                      >
+                        <Volume2 className="w-3.5 h-3.5" />
+                        <span>Sub (Japanese)</span>
+                      </button>
+                      <button
+                        type="button"
+                        onClick={() => setIsDub(true)}
+                        className={`flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-bold transition-all cursor-pointer ${
+                          isDub
+                            ? 'bg-amber-500 text-black shadow-md shadow-amber-500/30'
+                            : 'text-slate-400 hover:text-white'
+                        }`}
+                      >
+                        <Headphones className="w-3.5 h-3.5" />
+                        <span>English Dub</span>
+                      </button>
+                    </div>
+
+                    {/* AniSkip Smart Player HUD */}
+                    {skipTimes && (skipTimes.op || skipTimes.ed) ? (
+                      <div className="flex flex-wrap items-center justify-center gap-2 pt-0.5">
+                        {skipTimes.op && (
+                          <div className="flex items-center gap-1.5 px-2.5 py-1 rounded-lg bg-emerald-500/15 border border-emerald-500/30 text-emerald-300 text-[11px] font-mono">
+                            <Zap className="w-3 h-3 text-emerald-400 fill-emerald-400" />
+                            <span>OP INTRO: {formatSecondsToTime(skipTimes.op.startTime)} - {formatSecondsToTime(skipTimes.op.endTime)} ({skipTimes.op.duration}s)</span>
+                          </div>
+                        )}
+                        {skipTimes.ed && (
+                          <div className="flex items-center gap-1.5 px-2.5 py-1 rounded-lg bg-purple-500/15 border border-purple-500/30 text-purple-300 text-[11px] font-mono">
+                            <Clock className="w-3 h-3 text-purple-400" />
+                            <span>ED OUTRO: {formatSecondsToTime(skipTimes.ed.startTime)} - {formatSecondsToTime(skipTimes.ed.endTime)} ({skipTimes.ed.duration}s)</span>
+                          </div>
+                        )}
+                      </div>
+                    ) : null}
+
+                    {/* Primary Direct Streamers */}
                     <div className="flex flex-wrap items-center justify-center gap-2 pt-1">
                       <a
-                        href={`https://hianime.to/search?keyword=${encodeURIComponent(cleanSearchTitle)}`}
+                        href={selectedServer.directWatchUrl || selectedServer.url}
                         target="_blank"
                         rel="noopener noreferrer"
-                        className="flex items-center gap-2 px-4 py-2.5 rounded-xl bg-gradient-to-r from-amber-500 to-amber-600 text-black font-extrabold text-xs shadow-lg shadow-amber-500/30 hover:scale-105 transition-all cursor-pointer"
+                        className="flex items-center gap-2 px-5 py-2.5 rounded-xl bg-gradient-to-r from-amber-500 via-amber-400 to-amber-500 text-black font-extrabold text-xs shadow-lg shadow-amber-500/30 hover:scale-105 transition-all cursor-pointer"
                       >
                         <Play className="w-4 h-4 fill-black" />
-                        <span>Stream Ep {activeEpisode} on HiAnime (Zoro)</span>
-                        <ArrowUpRight className="w-3.5 h-3.5" />
-                      </a>
-                      <a
-                        href={`https://animepahe.ru/?q=${encodeURIComponent(cleanSearchTitle)}`}
-                        target="_blank"
-                        rel="noopener noreferrer"
-                        className="flex items-center gap-2 px-4 py-2.5 rounded-xl bg-gradient-to-r from-rose-500 to-rose-600 text-white font-extrabold text-xs shadow-lg shadow-rose-500/30 hover:scale-105 transition-all cursor-pointer"
-                      >
-                        <Play className="w-4 h-4 fill-white" />
-                        <span>Stream Ep {activeEpisode} on AnimePahe</span>
+                        <span>Stream Ep {activeEpisode} on {selectedServer.name}</span>
                         <ArrowUpRight className="w-3.5 h-3.5" />
                       </a>
                       <button
                         type="button"
-                        onClick={() => setPlayerMode('episode_video')}
-                        className="flex items-center gap-1.5 px-3.5 py-2.5 rounded-xl bg-cyan-950/80 hover:bg-cyan-900 border border-cyan-500/40 text-cyan-300 text-xs font-bold transition-all cursor-pointer"
+                        onClick={() => setPlayerMode('stream')}
+                        className="flex items-center gap-1.5 px-4 py-2.5 rounded-xl bg-cyan-950/80 hover:bg-cyan-900 border border-cyan-500/40 text-cyan-300 text-xs font-bold transition-all cursor-pointer"
                       >
                         <Film className="w-3.5 h-3.5 text-cyan-400" />
-                        <span>In-App Stream</span>
+                        <span>In-App Player</span>
                       </button>
                     </div>
                   </div>
 
                   {/* Footer status */}
-                  <div className="relative z-10 flex items-center justify-center gap-4 text-[11px] font-mono text-slate-400">
+                  <div className="relative z-10 flex flex-wrap items-center justify-center gap-3 text-[11px] font-mono text-slate-400">
                     <span className="flex items-center gap-1">
-                      <CheckCircle2 className="w-3 h-3 text-emerald-400" /> 1080p / 720p HD
+                      <CheckCircle2 className="w-3 h-3 text-emerald-400" /> 1080p Ultra HD
                     </span>
                     <span>•</span>
                     <span className="flex items-center gap-1">
-                      <CheckCircle2 className="w-3 h-3 text-cyan-400" /> Multi-Audio Sub/Dub
+                      <CheckCircle2 className="w-3 h-3 text-cyan-400" /> Dual Audio Sub & Dub
                     </span>
                     <span>•</span>
                     <span className="flex items-center gap-1">
-                      <CheckCircle2 className="w-3 h-3 text-amber-400" /> Buffer-Free CDN
+                      <CheckCircle2 className="w-3 h-3 text-amber-400" /> AniSkip OP/ED Ready
                     </span>
                   </div>
                 </div>
               )}
             </div>
 
-            {/* Mode Switcher Bar */}
+            {/* Mode & Audio Controls Bar */}
             <div className="flex flex-wrap items-center justify-between gap-2 p-2.5 rounded-xl bg-slate-900/80 border border-white/10 text-xs font-mono">
-              <div className="flex items-center gap-1.5 text-slate-400">
-                <MonitorPlay className="w-3.5 h-3.5 text-cyan-400" />
-                <span className="text-[11px] font-bold text-slate-300">STREAM ENGINE:</span>
+              <div className="flex items-center gap-2">
+                <span className="text-[11px] font-bold text-slate-300 flex items-center gap-1">
+                  <MonitorPlay className="w-3.5 h-3.5 text-cyan-400" />
+                  PLAYER:
+                </span>
+                <div className="flex items-center gap-1">
+                  <button
+                    type="button"
+                    onClick={() => setPlayerMode('hub')}
+                    className={`px-2.5 py-1 rounded-lg text-xs font-bold transition-all cursor-pointer ${
+                      playerMode === 'hub'
+                        ? 'bg-amber-500 text-black shadow-md shadow-amber-500/30'
+                        : 'bg-white/5 text-slate-300 hover:bg-white/10'
+                    }`}
+                  >
+                    <span>Stream Deck</span>
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => setPlayerMode('stream')}
+                    className={`px-2.5 py-1 rounded-lg text-xs font-bold transition-all cursor-pointer ${
+                      playerMode === 'stream'
+                        ? 'bg-cyan-500 text-black shadow-md shadow-cyan-500/30'
+                        : 'bg-white/5 text-slate-300 hover:bg-white/10'
+                    }`}
+                  >
+                    <span>In-App Player</span>
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => setPlayerMode('trailer')}
+                    className={`px-2.5 py-1 rounded-lg text-xs font-bold transition-all cursor-pointer ${
+                      playerMode === 'trailer'
+                        ? 'bg-rose-500 text-white shadow-md shadow-rose-500/30'
+                        : 'bg-white/5 text-slate-300 hover:bg-white/10'
+                    }`}
+                  >
+                    <span>Trailer</span>
+                  </button>
+                </div>
               </div>
-              <div className="flex flex-wrap items-center gap-1.5">
+
+              {/* Audio Track Selector */}
+              <div className="flex items-center gap-1.5">
+                <span className="text-slate-400 text-[11px]">AUDIO:</span>
                 <button
                   type="button"
-                  onClick={() => setPlayerMode('trailer')}
-                  className={`flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-bold transition-all cursor-pointer ${
-                    playerMode === 'trailer'
-                      ? 'bg-rose-500 text-white shadow-md shadow-rose-500/30'
-                      : 'bg-white/5 text-slate-300 hover:bg-white/10'
+                  onClick={() => setIsDub(false)}
+                  className={`px-2 py-0.5 rounded text-[11px] font-bold transition-all cursor-pointer ${
+                    !isDub
+                      ? 'bg-cyan-500 text-black font-extrabold shadow-sm'
+                      : 'bg-white/5 text-slate-400 hover:text-white'
                   }`}
                 >
-                  <Film className="w-3.5 h-3.5" />
-                  <span>Official HD Video</span>
+                  Sub (JP)
                 </button>
                 <button
                   type="button"
-                  onClick={() => setPlayerMode('hub')}
-                  className={`flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-bold transition-all cursor-pointer ${
-                    playerMode === 'hub'
-                      ? 'bg-amber-500 text-black shadow-md shadow-amber-500/30'
-                      : 'bg-white/5 text-slate-300 hover:bg-white/10'
+                  onClick={() => setIsDub(true)}
+                  className={`px-2 py-0.5 rounded text-[11px] font-bold transition-all cursor-pointer ${
+                    isDub
+                      ? 'bg-amber-500 text-black font-extrabold shadow-sm'
+                      : 'bg-white/5 text-slate-400 hover:text-white'
                   }`}
                 >
-                  <Radio className="w-3.5 h-3.5" />
-                  <span>Episode {activeEpisode} Stream Deck</span>
-                </button>
-                <button
-                  type="button"
-                  onClick={() => setPlayerMode('episode_video')}
-                  className={`flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-bold transition-all cursor-pointer ${
-                    playerMode === 'episode_video'
-                      ? 'bg-cyan-500 text-black shadow-md shadow-cyan-500/30'
-                      : 'bg-white/5 text-slate-300 hover:bg-white/10'
-                  }`}
-                >
-                  <Play className={`w-3.5 h-3.5 ${playerMode === 'episode_video' ? 'fill-black' : ''}`} />
-                  <span>In-App Episode Stream</span>
+                  Dub (EN)
                 </button>
               </div>
             </div>
 
-            {/* Quick 1-Click Launchers for Selected Episode */}
-            <div className="p-2.5 rounded-xl bg-cyan-950/20 border border-cyan-500/20 flex flex-wrap items-center justify-between gap-2 text-xs">
-              <span className="text-slate-400 flex items-center gap-1.5 text-[11px] font-mono">
-                <ShieldAlert className="w-3.5 h-3.5 text-cyan-400 flex-shrink-0" />
-                <span>Fast Direct Streamers for Ep {activeEpisode}:</span>
-              </span>
-              <div className="flex flex-wrap items-center gap-1.5">
-                <a
-                  href={`https://hianime.to/search?keyword=${encodeURIComponent(cleanSearchTitle)}`}
-                  target="_blank"
-                  rel="noopener noreferrer"
-                  className="px-2.5 py-1 rounded-lg bg-amber-500/20 hover:bg-amber-500 text-amber-300 hover:text-black border border-amber-500/40 text-[11px] font-bold transition-all flex items-center gap-1"
-                >
-                  <span>HiAnime (Zoro)</span>
-                  <ArrowUpRight className="w-3 h-3" />
-                </a>
-                <a
-                  href={`https://animepahe.ru/?q=${encodeURIComponent(cleanSearchTitle)}`}
-                  target="_blank"
-                  rel="noopener noreferrer"
-                  className="px-2.5 py-1 rounded-lg bg-rose-500/20 hover:bg-rose-500 text-rose-300 hover:text-white border border-rose-500/40 text-[11px] font-bold transition-all flex items-center gap-1"
-                >
-                  <span>AnimePahe</span>
-                  <ArrowUpRight className="w-3 h-3" />
-                </a>
-                <a
-                  href={`https://anitaku.pe/search.html?keyword=${encodeURIComponent(cleanSearchTitle)}`}
-                  target="_blank"
-                  rel="noopener noreferrer"
-                  className="px-2.5 py-1 rounded-lg bg-cyan-500/20 hover:bg-cyan-500 text-cyan-300 hover:text-black border border-cyan-500/40 text-[11px] font-bold transition-all flex items-center gap-1"
-                >
-                  <span>GogoAnime</span>
-                  <ArrowUpRight className="w-3 h-3" />
-                </a>
-                <a
-                  href={`https://www.crunchyroll.com/search?q=${encodeURIComponent(cleanSearchTitle)}`}
-                  target="_blank"
-                  rel="noopener noreferrer"
-                  className="px-2.5 py-1 rounded-lg bg-orange-500/20 hover:bg-orange-500 text-orange-300 hover:text-black border border-orange-500/40 text-[11px] font-bold transition-all flex items-center gap-1"
-                >
-                  <span>Crunchyroll</span>
-                  <ArrowUpRight className="w-3 h-3" />
-                </a>
+            {/* Smart AniSkip Notification Badge */}
+            {skipTimes?.found && (
+              <div className="p-2 px-3 rounded-xl bg-cyan-950/30 border border-cyan-500/30 flex flex-wrap items-center justify-between gap-2 text-xs">
+                <div className="flex items-center gap-2 text-cyan-300 text-[11px] font-mono">
+                  <Zap className="w-3.5 h-3.5 text-cyan-400 fill-cyan-400" />
+                  <span className="font-bold">ANISKIP INTRO / OUTRO DETECTION:</span>
+                  {skipTimes.op && (
+                    <span className="bg-cyan-500/20 text-cyan-300 px-2 py-0.5 rounded border border-cyan-500/40">
+                      Intro: {formatSecondsToTime(skipTimes.op.startTime)} - {formatSecondsToTime(skipTimes.op.endTime)}
+                    </span>
+                  )}
+                  {skipTimes.ed && (
+                    <span className="bg-purple-500/20 text-purple-300 px-2 py-0.5 rounded border border-purple-500/40">
+                      Outro: {formatSecondsToTime(skipTimes.ed.startTime)} - {formatSecondsToTime(skipTimes.ed.endTime)}
+                    </span>
+                  )}
+                </div>
+                <span className="text-[10px] font-mono text-slate-400">
+                  Millisecond Precision
+                </span>
               </div>
-            </div>
+            )}
 
             {/* Episode Grid / Selector */}
             <div className="p-3 sm:p-4 rounded-xl bg-slate-950/60 border border-white/5 space-y-3">
@@ -405,7 +577,7 @@ export default function AnimeDetailModal({ anime, onClose }) {
                   Select Episode ({totalEps} Available):
                 </span>
                 <span className="text-[11px] text-cyan-400 font-semibold">
-                  Selected: Episode {activeEpisode}
+                  Playing: Ep {activeEpisode} • {isDub ? 'English Dub' : 'Japanese Sub'}
                 </span>
               </div>
 
@@ -414,10 +586,13 @@ export default function AnimeDetailModal({ anime, onClose }) {
                 {episodeStreamServers.map((st) => (
                   <a
                     key={st.id}
-                    href={st.url}
+                    href={st.directWatchUrl || st.url}
                     target="_blank"
                     rel="noopener noreferrer"
-                    className={`flex items-center justify-between p-2.5 rounded-xl bg-slate-900/90 border ${st.borderColor} ${st.bgColor} transition-all text-xs cursor-pointer group shadow-sm`}
+                    onClick={() => setActiveServerId(st.id)}
+                    className={`flex items-center justify-between p-2.5 rounded-xl bg-slate-900/90 border ${
+                      activeServerId === st.id ? 'border-cyan-400/80 shadow-md shadow-cyan-950/40' : (st.borderColor || 'border-white/10')
+                    } ${st.bgColor || 'hover:bg-slate-800'} transition-all text-xs cursor-pointer group`}
                     title={`Watch Episode ${activeEpisode} on ${st.name}`}
                   >
                     <div className="min-w-0 pr-2">
@@ -425,7 +600,7 @@ export default function AnimeDetailModal({ anime, onClose }) {
                         <span className="text-xs font-bold text-white group-hover:text-cyan-300 truncate">
                           {st.name}
                         </span>
-                        <span className={`text-[9px] font-mono px-1.5 py-0.2 rounded border ${st.borderColor} ${st.textColor} bg-black/40`}>
+                        <span className={`text-[9px] font-mono px-1.5 py-0.2 rounded border ${st.borderColor || 'border-cyan-500/40'} ${st.textColor || 'text-cyan-300'} bg-black/40`}>
                           {st.badge}
                         </span>
                       </div>
@@ -433,7 +608,7 @@ export default function AnimeDetailModal({ anime, onClose }) {
                         {st.desc}
                       </p>
                     </div>
-                    <div className="flex items-center gap-1 px-2 py-1 rounded-lg bg-white/5 group-hover:bg-cyan-500 group-hover:text-black text-slate-300 transition-colors flex-shrink-0 font-bold text-[11px]">
+                    <div className="flex items-center gap-1 px-2.5 py-1.5 rounded-lg bg-white/5 group-hover:bg-cyan-500 group-hover:text-black text-slate-300 transition-colors flex-shrink-0 font-bold text-[11px]">
                       <span>Play Ep {activeEpisode}</span>
                       <ArrowUpRight className="w-3 h-3" />
                     </div>
@@ -453,9 +628,6 @@ export default function AnimeDetailModal({ anime, onClose }) {
                       type="button"
                       onClick={() => {
                         setActiveEpisode(epNum);
-                        if (playerMode === 'trailer') {
-                          setPlayerMode('hub');
-                        }
                       }}
                       className={`px-2.5 py-1 rounded-lg text-xs font-mono font-semibold transition-all cursor-pointer ${
                         activeEpisode === epNum
