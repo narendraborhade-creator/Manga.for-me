@@ -140,39 +140,31 @@ export default function AnimeDetailModal({ anime, onClose }) {
   const inAppServers = [
     {
       id: 'server1',
-      name: 'Server 1 (VidLink Ultra)',
-      badge: 'Ad-Free 1080p',
-      url: `https://vidlink.pro/anime/${malId}/${activeEpisode}/${subDubParam}?fallback=true&primaryColor=06b6d4&secondaryColor=3b82f6`,
-      directUrl: `https://vidlink.pro/anime/${malId}/${activeEpisode}/${subDubParam}?fallback=true`,
-      speed: 'Direct HLS Stream',
+      name: 'Server 1 (MegaPlay Ultra)',
+      badge: 'Fast 1080p HD',
+      url: `https://megavid.buzz/ani/${aniListId || malId}/${activeEpisode}/${subDubParam}?color=%2306b6d4&autoplay=true`,
+      directUrl: `https://megavid.buzz/ani/${aniListId || malId}/${activeEpisode}/${subDubParam}?color=%2306b6d4`,
+      speed: 'Direct Fast CDN',
     },
     {
       id: 'server2',
-      name: 'Server 2 (VidSrc Stream)',
-      badge: 'Fast Mirror',
-      url: `https://vidsrc.pm/embed/anime?mal=${malId}&ep=${activeEpisode}`,
-      directUrl: `https://vidsrc.pm/embed/anime?mal=${malId}&ep=${activeEpisode}`,
+      name: 'Server 2 (MegaPlay Mirror)',
+      badge: 'MAL Engine',
+      url: `https://megavid.buzz/mal/${malId || aniListId}/${activeEpisode}/${subDubParam}?color=%2306b6d4&autoplay=true`,
+      directUrl: `https://megavid.buzz/mal/${malId || aniListId}/${activeEpisode}/${subDubParam}?color=%2306b6d4`,
       speed: 'Cloud Mirror',
     },
     {
       id: 'server3',
-      name: 'Server 3 (SmashyStream HD)',
-      badge: 'Backup Fast Host',
-      url: `https://player.smashy.stream/anime/${malId}?s=1&e=${activeEpisode}`,
-      directUrl: `https://player.smashy.stream/anime/${malId}?s=1&e=${activeEpisode}`,
-      speed: 'Secondary Host',
-    },
-    {
-      id: 'server4',
-      name: 'Server 4 (2Embed Mirror)',
-      badge: 'High Compatibility',
-      url: `https://www.2embed.skin/embed/anime/${malId}/${activeEpisode}`,
-      directUrl: `https://www.2embed.skin/embed/anime/${malId}/${activeEpisode}`,
+      name: 'Server 3 (2Embed HD)',
+      badge: 'Backup Host',
+      url: `https://www.2embed.skin/embed/anime/${malId || aniListId}/${activeEpisode}`,
+      directUrl: `https://www.2embed.skin/embed/anime/${malId || aniListId}/${activeEpisode}`,
       speed: 'Global Edge',
     },
     {
       id: 'native',
-      name: 'Native HLS Player',
+      name: 'Native Player (HLS Engine)',
       badge: 'Zero Ads & AniSkip',
       url: null,
       directUrl: `https://hianime.to/search?keyword=${encodeURIComponent(dubSearch)}`,
@@ -247,9 +239,9 @@ export default function AnimeDetailModal({ anime, onClose }) {
       textColor: 'text-teal-300',
       borderColor: 'border-teal-500/40',
       bgColor: 'hover:bg-teal-500/15',
-      url: `https://vidsrc.pm/embed/anime?mal=${malId || ''}&ep=${activeEpisode}`,
-      streamUrl: `https://vidsrc.pm/embed/anime?mal=${malId || ''}&ep=${activeEpisode}`,
-      directWatchUrl: `https://vidsrc.pm/embed/anime?mal=${malId || ''}&ep=${activeEpisode}`,
+      url: `https://megavid.buzz/ani/${aniListId || malId}/${activeEpisode}/${isDub ? 'dub' : 'sub'}?color=%2306b6d4`,
+      streamUrl: `https://megavid.buzz/ani/${aniListId || malId}/${activeEpisode}/${isDub ? 'dub' : 'sub'}?color=%2306b6d4`,
+      directWatchUrl: `https://megavid.buzz/ani/${aniListId || malId}/${activeEpisode}/${isDub ? 'dub' : 'sub'}?color=%2306b6d4`,
       desc: 'Lightweight API that accepts AniList IDs and returns playable stream sources & embeds',
       quality: '1080p HD',
       speed: 'Lightweight Express',
@@ -329,7 +321,7 @@ export default function AnimeDetailModal({ anime, onClose }) {
       badge: 'Direct Video & Embeds',
       borderColor: 'border-teal-500/40',
       textColor: 'text-teal-300',
-      url: `https://vidsrc.pm/embed/anime?mal=${malId || ''}&ep=${activeEpisode}`,
+      url: `https://megavid.buzz/ani/${aniListId || malId}/${activeEpisode}/${isDub ? 'dub' : 'sub'}?color=%2306b6d4`,
       description: 'Lightweight Express API that accepts AniList IDs and returns playable stream sources & embeds.',
     },
     {
@@ -549,7 +541,7 @@ export default function AnimeDetailModal({ anime, onClose }) {
                         src={inAppEpisodeEmbed}
                         title={`${anime.title} - Episode ${activeEpisode} Stream`}
                         className="w-full flex-1 border-0"
-                        sandbox="allow-scripts allow-same-origin allow-forms allow-presentation"
+                        referrerPolicy="origin" sandbox="allow-scripts allow-same-origin allow-forms allow-presentation"
                         allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture; web-share"
                         allowFullScreen
                       />
@@ -564,7 +556,7 @@ export default function AnimeDetailModal({ anime, onClose }) {
                           <button
                             type="button"
                             onClick={() => {
-                              const order = ['server1', 'server2', 'server3', 'server4', 'native'];
+                              const order = ['server1', 'server2', 'server3', 'native'];
                               const currIdx = order.indexOf(inAppServer);
                               const nextId = order[(currIdx + 1) % order.length];
                               setInAppServer(nextId);

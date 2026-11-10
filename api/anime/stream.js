@@ -143,8 +143,8 @@ export default async function handler(req, res) {
         audio: isDub ? 'English Dub' : 'Japanese Sub',
         badge: 'AniList Native',
         speed: 'Lightweight Express',
-        streamUrl: `https://vidsrc.pm/embed/anime?mal=${malId || ''}&ep=${ep}`,
-        directWatchUrl: `https://vidsrc.pm/embed/anime?mal=${malId || ''}&ep=${ep}`,
+        streamUrl: `https://megavid.buzz/mal/${malId || ''}/${ep}/${isDub ? 'dub' : 'sub'}?color=%2306b6d4`,
+        directWatchUrl: `https://megavid.buzz/mal/${malId || ''}/${ep}/${isDub ? 'dub' : 'sub'}?color=%2306b6d4`,
       },
       {
         id: 'allanime',

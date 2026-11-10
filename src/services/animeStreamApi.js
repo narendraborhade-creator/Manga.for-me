@@ -200,8 +200,8 @@ export async function fetchAnimeStreams(title, episode = 1, malId = null, isDub 
         audio: isDub ? 'English Dub' : 'Japanese Sub',
         badge: 'AniList Native',
         speed: 'Lightweight Express',
-        streamUrl: `https://vidsrc.pm/embed/anime?mal=${malId || ''}&ep=${episode}`,
-        directWatchUrl: `https://vidsrc.pm/embed/anime?mal=${malId || ''}&ep=${episode}`,
+        streamUrl: `https://megavid.buzz/mal/${malId || ''}/${episode}/${isDub ? 'dub' : 'sub'}?color=%2306b6d4`,
+        directWatchUrl: `https://megavid.buzz/mal/${malId || ''}/${episode}/${isDub ? 'dub' : 'sub'}?color=%2306b6d4`,
       },
       {
         id: 'allanime',
