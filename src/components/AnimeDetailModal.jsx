@@ -492,7 +492,6 @@ export default function AnimeDetailModal({ anime, onClose }) {
                       src={inAppEpisodeEmbed}
                       title={`${anime.title} - Episode ${activeEpisode} Stream`}
                       className="w-full h-full border-0"
-                      sandbox="allow-scripts allow-same-origin allow-forms allow-presentation"
                       allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture; web-share"
                       allowFullScreen
                     />
