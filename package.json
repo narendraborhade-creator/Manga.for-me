@@ -12,7 +12,9 @@
     "preview": "vite preview --host"
   },
   "dependencies": {
+    "@consumet/extensions": "^1.8.8",
     "@tailwindcss/vite": "^4.3.3",
+    "hls.js": "^1.7.4",
     "lucide-react": "^1.59.0",
     "react": "^19.2.8",
     "react-dom": "^19.2.8",

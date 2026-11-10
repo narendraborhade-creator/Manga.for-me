@@ -22,6 +22,7 @@ import {
   RotateCcw
 } from 'lucide-react';
 import { fetchAnimeSkipTimes, fetchAnimeStreams, formatSecondsToTime } from '../services/animeStreamApi';
+import AnimeNativePlayer from './AnimeNativePlayer';
 
 export default function AnimeDetailModal({ anime, onClose }) {
   const [activeEpisode, setActiveEpisode] = useState(1);
@@ -32,6 +33,7 @@ export default function AnimeDetailModal({ anime, onClose }) {
   const [loadingSkip, setLoadingSkip] = useState(false);
   const [streamDeck, setStreamDeck] = useState(null);
   const [activeServerId, setActiveServerId] = useState('hianime');
+  const [customStreamUrl, setCustomStreamUrl] = useState('');
   const playerContainerRef = useRef(null);
 
   // Anti-redirect protection: intercepts rogue external redirect attempts
@@ -47,11 +49,15 @@ export default function AnimeDetailModal({ anime, onClose }) {
   }, []);
 
   const handlePlayInApp = (serverId = null) => {
-    if (serverId === 'hianime' || serverId === 'allanime' || serverId === 'consumet') {
+    if (serverId === 'native') {
+      setInAppServer('native');
+    } else if (serverId === 'hianime' || serverId === 'allanime' || serverId === 'consumet') {
       setInAppServer('server1');
     } else if (serverId === 'kuhi' || serverId === 'anify') {
       setInAppServer('server2');
     } else if (serverId === 'anicli') {
+      setInAppServer('server3');
+    } else {
       setInAppServer('server1');
     }
     setPlayerMode('stream');
@@ -115,7 +121,7 @@ export default function AnimeDetailModal({ anime, onClose }) {
   if (!anime) return null;
 
   const cleanSearchTitle = (anime.title || '')
-    .replace(/[:;!?\(\)\[\]]/g, ' ')
+    .replace(/[:;!?()[\]]/g, ' ')
     .replace(/\s+/g, ' ')
     .trim();
 
@@ -142,19 +148,35 @@ export default function AnimeDetailModal({ anime, onClose }) {
     },
     {
       id: 'server2',
-      name: 'Server 2 (VidLink Mirror)',
-      badge: 'Dual Audio',
-      url: `https://vidlink.pro/anime/${anime.id || malId}/${activeEpisode}/${subDubParam}?fallback=true`,
-      directUrl: `https://vidlink.pro/anime/${anime.id || malId}/${activeEpisode}/${subDubParam}?fallback=true`,
-      speed: 'Buffer-Free CDN',
+      name: 'Server 2 (VidSrc Stream)',
+      badge: 'Fast Mirror',
+      url: `https://vidsrc.pm/embed/anime?mal=${malId}&ep=${activeEpisode}`,
+      directUrl: `https://vidsrc.pm/embed/anime?mal=${malId}&ep=${activeEpisode}`,
+      speed: 'Cloud Mirror',
     },
     {
       id: 'server3',
-      name: 'Server 3 (AnimeEmbed Alt)',
-      badge: 'Backup Mirror',
-      url: `https://animeembed.com/embed/ani/${aniListId || malId}/${activeEpisode}?track=${subDubParam}`,
-      directUrl: `https://animeembed.com/embed/ani/${aniListId || malId}/${activeEpisode}?track=${subDubParam}`,
+      name: 'Server 3 (SmashyStream HD)',
+      badge: 'Backup Fast Host',
+      url: `https://player.smashy.stream/anime/${malId}?s=1&e=${activeEpisode}`,
+      directUrl: `https://player.smashy.stream/anime/${malId}?s=1&e=${activeEpisode}`,
       speed: 'Secondary Host',
+    },
+    {
+      id: 'server4',
+      name: 'Server 4 (2Embed Mirror)',
+      badge: 'High Compatibility',
+      url: `https://www.2embed.skin/embed/anime/${malId}/${activeEpisode}`,
+      directUrl: `https://www.2embed.skin/embed/anime/${malId}/${activeEpisode}`,
+      speed: 'Global Edge',
+    },
+    {
+      id: 'native',
+      name: 'Native HLS Player',
+      badge: 'Zero Ads & AniSkip',
+      url: null,
+      directUrl: `https://hianime.to/search?keyword=${encodeURIComponent(dubSearch)}`,
+      speed: 'Native HTML5',
     },
   ];
 
@@ -225,9 +247,9 @@ export default function AnimeDetailModal({ anime, onClose }) {
       textColor: 'text-teal-300',
       borderColor: 'border-teal-500/40',
       bgColor: 'hover:bg-teal-500/15',
-      url: `https://animeembed.com/embed/ani/${malId || ''}/${activeEpisode}?track=${isDub ? 'dub' : 'sub'}`,
-      streamUrl: `https://animeembed.com/embed/ani/${malId || ''}/${activeEpisode}?track=${isDub ? 'dub' : 'sub'}`,
-      directWatchUrl: `https://animeembed.com/embed/ani/${malId || ''}/${activeEpisode}?track=${isDub ? 'dub' : 'sub'}`,
+      url: `https://vidsrc.pm/embed/anime?mal=${malId || ''}&ep=${activeEpisode}`,
+      streamUrl: `https://vidsrc.pm/embed/anime?mal=${malId || ''}&ep=${activeEpisode}`,
+      directWatchUrl: `https://vidsrc.pm/embed/anime?mal=${malId || ''}&ep=${activeEpisode}`,
       desc: 'Lightweight API that accepts AniList IDs and returns playable stream sources & embeds',
       quality: '1080p HD',
       speed: 'Lightweight Express',
@@ -307,7 +329,7 @@ export default function AnimeDetailModal({ anime, onClose }) {
       badge: 'Direct Video & Embeds',
       borderColor: 'border-teal-500/40',
       textColor: 'text-teal-300',
-      url: `https://animeembed.com/embed/ani/${malId || ''}/${activeEpisode}?track=${isDub ? 'dub' : 'sub'}`,
+      url: `https://vidsrc.pm/embed/anime?mal=${malId || ''}&ep=${activeEpisode}`,
       description: 'Lightweight Express API that accepts AniList IDs and returns playable stream sources & embeds.',
     },
     {
@@ -374,6 +396,15 @@ export default function AnimeDetailModal({ anime, onClose }) {
             <span className={`hidden md:inline px-1.5 py-0.5 rounded text-[9px] font-bold ${isDub ? 'bg-amber-500/20 text-amber-300 border border-amber-500/40' : 'bg-cyan-500/20 text-cyan-300 border border-cyan-500/40'}`}>
               {isDub ? 'ENGLISH DUB' : 'JAPANESE SUB'}
             </span>
+            {skipTimes?.found && (
+              <>
+                <span className="text-slate-600 hidden lg:inline">•</span>
+                <span className="hidden lg:flex items-center gap-1 px-1.5 py-0.5 rounded text-[9px] font-bold bg-cyan-500/20 text-cyan-300 border border-cyan-500/40">
+                  <Zap className="w-2.5 h-2.5 fill-cyan-400 text-cyan-400" />
+                  ANISKIP OP/ED
+                </span>
+              </>
+            )}
           </div>
 
           <button
@@ -497,18 +528,55 @@ export default function AnimeDetailModal({ anime, onClose }) {
                     </div>
                   </div>
 
-                  {/* Main Iframe Player */}
-                  <div className="relative flex-1 w-full h-full min-h-0 bg-black">
-                    <iframe
-                      key={`episode-stream-${inAppServer}-${activeEpisode}-${isDub ? 'dub' : 'sub'}`}
-                      src={inAppEpisodeEmbed}
-                      title={`${anime.title} - Episode ${activeEpisode} Stream`}
-                      className="w-full h-full border-0"
-                      {...(inAppServer !== 'server3' ? { sandbox: 'allow-scripts allow-same-origin allow-forms allow-presentation' } : {})}
-                      allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture; web-share"
-                      allowFullScreen
-                    />
-                  </div>
+                  {/* Main Player Area: Native HLS or Secure Anti-Redirect Iframe */}
+                  {inAppServer === 'native' ? (
+                    <div className="relative flex-1 w-full h-full min-h-0 bg-black">
+                      <AnimeNativePlayer
+                        streamUrl={customStreamUrl}
+                        title={anime.title}
+                        episode={activeEpisode}
+                        isDub={isDub}
+                        skipTimes={skipTimes}
+                        posterUrl={anime.bannerUrl || anime.coverUrl}
+                        onNextEpisode={() => setActiveEpisode((prev) => Math.min(prev + 1, totalEps))}
+                        hasNextEpisode={activeEpisode < totalEps}
+                      />
+                    </div>
+                  ) : (
+                    <div className="relative flex-1 w-full h-full min-h-0 bg-black flex flex-col">
+                      <iframe
+                        key={`episode-stream-${inAppServer}-${activeEpisode}-${isDub ? 'dub' : 'sub'}`}
+                        src={inAppEpisodeEmbed}
+                        title={`${anime.title} - Episode ${activeEpisode} Stream`}
+                        className="w-full flex-1 border-0"
+                        sandbox="allow-scripts allow-same-origin allow-forms allow-presentation"
+                        allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture; web-share"
+                        allowFullScreen
+                      />
+                      {/* Anti-Redirect Protection & Fast Switcher Helper Bar */}
+                      <div className="flex flex-wrap items-center justify-between gap-2 px-3 py-1.5 bg-slate-950/95 border-t border-cyan-500/20 text-[10px] font-mono text-slate-400 flex-shrink-0">
+                        <span className="flex items-center gap-1.5 text-cyan-300/90 font-bold">
+                          <CheckCircle2 className="w-3.5 h-3.5 text-cyan-400" />
+                          Zero-Redirect Protection Active (Ads & Popups Blocked)
+                        </span>
+                        <div className="flex items-center gap-2">
+                          <span className="text-slate-500 hidden sm:inline">Having issues?</span>
+                          <button
+                            type="button"
+                            onClick={() => {
+                              const order = ['server1', 'server2', 'server3', 'server4', 'native'];
+                              const currIdx = order.indexOf(inAppServer);
+                              const nextId = order[(currIdx + 1) % order.length];
+                              setInAppServer(nextId);
+                            }}
+                            className="px-2 py-0.5 rounded bg-cyan-500/15 text-cyan-300 hover:bg-cyan-500/25 border border-cyan-500/30 font-bold cursor-pointer transition-all"
+                          >
+                            Switch Server ↻
+                          </button>
+                        </div>
+                      </div>
+                    </div>
+                  )}
                 </div>
               ) : (
                 /* 3. Cyberpunk High-Speed Streaming Deck & Smart Player */

@@ -139,7 +139,7 @@ export async function fetchAnimeStreams(title, episode = 1, malId = null, isDub 
   }
 
   // Client-side fallback server list representing the 6 primary anime streaming architectures
-  const cleanTitle = title.replace(/[:;!?\(\)\[\]]/g, ' ').replace(/\s+/g, ' ').trim();
+  const cleanTitle = title.replace(/[:;!?()[\]]/g, ' ').replace(/\s+/g, ' ').trim();
   const dubSuffix = isDub ? ' (Dub)' : ' (Sub)';
   const dubSearch = isDub ? `${cleanTitle} dub` : cleanTitle;
   const titleSlug = cleanTitle.toLowerCase().replace(/[^a-z0-9]+/g, '-').replace(/^-|-$/g, '');
@@ -200,8 +200,8 @@ export async function fetchAnimeStreams(title, episode = 1, malId = null, isDub 
         audio: isDub ? 'English Dub' : 'Japanese Sub',
         badge: 'AniList Native',
         speed: 'Lightweight Express',
-        streamUrl: `https://animeembed.com/embed/ani/${malId || ''}/${episode}?track=${isDub ? 'dub' : 'sub'}`,
-        directWatchUrl: `https://animeembed.com/embed/ani/${malId || ''}/${episode}?track=${isDub ? 'dub' : 'sub'}`,
+        streamUrl: `https://vidsrc.pm/embed/anime?mal=${malId || ''}&ep=${episode}`,
+        directWatchUrl: `https://vidsrc.pm/embed/anime?mal=${malId || ''}&ep=${episode}`,
       },
       {
         id: 'allanime',

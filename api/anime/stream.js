@@ -39,7 +39,7 @@ export default async function handler(req, res) {
     const isDub = (req.query?.dub || urlObj.searchParams.get('dub')) === 'true';
 
     const cleanTitle = (rawTitle || '')
-      .replace(/[:;!?\(\)\[\]]/g, ' ')
+      .replace(/[:;!?()[\]]/g, ' ')
       .replace(/\s+/g, ' ')
       .trim();
 
@@ -143,8 +143,8 @@ export default async function handler(req, res) {
         audio: isDub ? 'English Dub' : 'Japanese Sub',
         badge: 'AniList Native',
         speed: 'Lightweight Express',
-        streamUrl: `https://animeembed.com/embed/ani/${malId || ''}/${ep}?track=${isDub ? 'dub' : 'sub'}`,
-        directWatchUrl: `https://animeembed.com/embed/ani/${malId || ''}/${ep}?track=${isDub ? 'dub' : 'sub'}`,
+        streamUrl: `https://vidsrc.pm/embed/anime?mal=${malId || ''}&ep=${ep}`,
+        directWatchUrl: `https://vidsrc.pm/embed/anime?mal=${malId || ''}&ep=${ep}`,
       },
       {
         id: 'allanime',
