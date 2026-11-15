@@ -869,6 +869,109 @@ export const FALLBACK_MANGA_CATALOG = [
   }
 ];
 
+export const KNOWN_CHAPTER_COUNTS = {
+  'lookism': 633,
+  'tower of god': 653,
+  'wind breaker': 557,
+  'eleceed': 425,
+  'mercenary enrollment': 230,
+  'teenage mercenary': 230,
+  'nano machine': 230,
+  'the beginning after the end': 190,
+  'tbate': 190,
+  'return of the mount hua sect': 150,
+  'reincarnation of the suicidal battle god': 110,
+  'doom breaker': 110,
+  'reaper of the drifting moon': 215,
+  'murim login': 190,
+  'a fortune-telling princess': 176,
+  'the despised stepmother begins her second life': 137,
+  'the despised stepmother': 137,
+  'stepmother': 137,
+  'my in-laws are obsessed with me': 130,
+  'my in laws are obsessed with me': 130,
+  'solo leveling': 200,
+  'omniscient reader': 240,
+  'omniscient readers viewpoint': 240,
+  'damn reincarnation': 85,
+  'surviving the game as a barbarian': 100,
+  'barbarian': 100,
+  'the greatest estate developer': 180,
+  'greatest estate developer': 180,
+  'one piece': 1120,
+  'berserk': 376,
+  'naruto': 700,
+  'bleach': 686,
+  'jujutsu kaisen': 271,
+  'chainsaw man': 180,
+  'death note': 108,
+  'one-punch man': 215,
+  'one punch man': 215,
+  'tokyo ghoul': 143,
+  'black clover': 375,
+  'blue lock': 280,
+  'sakamoto days': 190,
+  'oshi no ko': 166,
+  'haikyuu': 402,
+  'dragon ball super': 103,
+  'fortune-telling princess': 176,
+  'world\'s strongest troll': 197,
+  'worlds strongest troll': 197,
+  'the world\'s strongest troll': 197,
+  'mount hua': 150,
+  'demon slayer': 205,
+  'attack on titan': 139,
+  'hunter x hunter': 400,
+  'spy x family': 105,
+  'frieren': 135,
+  'dandadan': 180,
+  'kaiju no 8': 115,
+  'vinland saga': 215,
+  'vagabond': 327,
+  'kingdom': 815,
+  'overgeared': 230,
+  'sss class suicide hunter': 120,
+  'tomb raider king': 411,
+  'magic emperor': 600,
+  'martial peak': 3700,
+  'tales of demons and gods': 480,
+  'apotheosis': 1100,
+  'leveling with the gods': 120,
+  'pick me up': 115,
+  'second life ranker': 170,
+  'the boxer': 104,
+  'sweet home': 141,
+  'bastard': 94,
+  'weak hero': 267,
+  'god of high school': 572,
+  'noblesse': 544,
+  'hardcore leveling warrior': 320,
+  'reformation of the deadbeat noble': 125,
+  'swordmasters youngest son': 130,
+  'standard of reincarnation': 115,
+  'terminally ill genius dark knight': 95,
+  'legend of the northern blade': 190,
+  'peerless dad': 275,
+  'gosu': 233,
+  'poison dragon': 150,
+  'lightning degree': 180,
+  'wandering warrior of wudang': 140,
+  'infinite mage': 95,
+};
+
+export function getKnownChapterCount(title) {
+  if (!title) return 0;
+  const clean = title.toLowerCase().replace(/[^a-z0-9]/g, ' ').replace(/\s+/g, ' ').trim();
+  if (!clean) return 0;
+  for (const [key, count] of Object.entries(KNOWN_CHAPTER_COUNTS)) {
+    const cleanKey = key.toLowerCase().replace(/[^a-z0-9]/g, ' ').replace(/\s+/g, ' ').trim();
+    if (clean === cleanKey || clean.includes(cleanKey) || cleanKey.includes(clean)) {
+      return count;
+    }
+  }
+  return 0;
+}
+
 export const KNOWN_MANGA_COVERS = {
   'lookism': 'https://s4.anilist.co/file/anilistcdn/media/manga/cover/large/bx86337-0g70bKkFpD7E.jpg',
   'tower of god': 'https://s4.anilist.co/file/anilistcdn/media/manga/cover/large/bx85143-6o80VwHhYVrn.jpg',
@@ -897,13 +1000,18 @@ export const KNOWN_MANGA_COVERS = {
   'berserk': 'https://s4.anilist.co/file/anilistcdn/media/manga/cover/large/bx30002-Cul4OeN7bYtn.jpg',
   'solo leveling': 'https://s4.anilist.co/file/anilistcdn/media/manga/cover/large/bx105398-b673Vt5ZSuz3.jpg',
   'fortune-telling princess': 'https://s4.anilist.co/file/anilistcdn/media/manga/cover/large/bx170151-hItAtAb5Kj0I.jpg',
+  'a fortune-telling princess': 'https://s4.anilist.co/file/anilistcdn/media/manga/cover/large/bx170151-hItAtAb5Kj0I.jpg',
+  'the despised stepmother begins her second life': 'https://s4.anilist.co/file/anilistcdn/media/manga/cover/large/bx213993-T1BvCf8cBvlt.jpg',
+  'the despised stepmother': 'https://s4.anilist.co/file/anilistcdn/media/manga/cover/large/bx213993-T1BvCf8cBvlt.jpg',
   'stepmother': 'https://s4.anilist.co/file/anilistcdn/media/manga/cover/large/bx213993-T1BvCf8cBvlt.jpg',
   'step mother': 'https://s4.anilist.co/file/anilistcdn/media/manga/cover/large/bx213993-T1BvCf8cBvlt.jpg',
+  'stepmother second life': 'https://s4.anilist.co/file/anilistcdn/media/manga/cover/large/bx213993-T1BvCf8cBvlt.jpg',
   'chainsaw man': 'https://s4.anilist.co/file/anilistcdn/media/manga/cover/large/bx105778-euxXZEIfDY2u.png',
   'jujutsu kaisen': 'https://s4.anilist.co/file/anilistcdn/media/manga/cover/large/bx101517-H3TdM3g5ZUe9.jpg',
   'boruto': 'https://s4.anilist.co/file/anilistcdn/media/manga/cover/large/bx168468-FEo5x1ZZyWj4.png',
   'kagurabachi': 'https://s4.anilist.co/file/anilistcdn/media/manga/cover/large/bx169355-5pqzh1Wb4NOQ.png',
   'omniscient reader': 'https://s4.anilist.co/file/anilistcdn/media/manga/cover/large/bx119257-Pi21aq3ey9GG.jpg',
+  'omniscient readers viewpoint': 'https://s4.anilist.co/file/anilistcdn/media/manga/cover/large/bx119257-Pi21aq3ey9GG.jpg',
   'surviving the game as a barbarian': 'https://s4.anilist.co/file/anilistcdn/media/manga/cover/medium/bx164857-MVeV0leMZb0m.jpg',
   'barbarian': 'https://s4.anilist.co/file/anilistcdn/media/manga/cover/medium/bx164857-MVeV0leMZb0m.jpg',
   'blasted reincarnat': 'https://s4.anilist.co/file/anilistcdn/media/manga/cover/large/bx151512-q0Xddr1JNKNq.png',
@@ -920,21 +1028,42 @@ export const KNOWN_MANGA_COVERS = {
   'vagabond': 'https://s4.anilist.co/file/anilistcdn/media/manga/cover/large/bx30656-9mW113O7rDnA.png',
   'kingdom': 'https://s4.anilist.co/file/anilistcdn/media/manga/cover/large/nx46765-KPXir4sRqJBW.png',
   'greatest estate developer': 'https://s4.anilist.co/file/anilistcdn/media/manga/cover/large/bx140407-fJQr0fmqq1IO.png',
+  'the greatest estate developer': 'https://s4.anilist.co/file/anilistcdn/media/manga/cover/large/bx140407-fJQr0fmqq1IO.png',
+  'world\'s strongest troll': 'https://s4.anilist.co/file/anilistcdn/media/manga/cover/large/bx136323-9h16T5s0K1vT.jpg',
+  'worlds strongest troll': 'https://s4.anilist.co/file/anilistcdn/media/manga/cover/large/bx136323-9h16T5s0K1vT.jpg',
+  'the beginning after the end': 'https://s4.anilist.co/file/anilistcdn/media/manga/cover/large/bx106082-xO3m2bFspE40.jpg',
+  'tbate': 'https://s4.anilist.co/file/anilistcdn/media/manga/cover/large/bx106082-xO3m2bFspE40.jpg',
+  'kaiju no 8': 'https://s4.anilist.co/file/anilistcdn/media/manga/cover/large/bx120760-GkF8m72w5n3Q.jpg',
+  'overgeared': 'https://s4.anilist.co/file/anilistcdn/media/manga/cover/large/bx118586-GkF8m72w5n3Q.jpg',
+  'sss class suicide hunter': 'https://s4.anilist.co/file/anilistcdn/media/manga/cover/large/bx124973-mD8tJ3bN5n2L.jpg',
+  'tomb raider king': 'https://s4.anilist.co/file/anilistcdn/media/manga/cover/large/bx111521-g8kM2bFspE40.jpg',
+  'magic emperor': 'https://s4.anilist.co/file/anilistcdn/media/manga/cover/large/bx112674-g9YqGkM0Yw8S.jpg',
+  'leveling with the gods': 'https://s4.anilist.co/file/anilistcdn/media/manga/cover/large/bx138356-8pK0Zuhd8OqJ.jpg',
+  'pick me up': 'https://s4.anilist.co/file/anilistcdn/media/manga/cover/large/bx159074-xO3m2bFspE40.jpg',
+  'second life ranker': 'https://s4.anilist.co/file/anilistcdn/media/manga/cover/large/bx109605-B0x2z8P96Y24.jpg',
+  'weak hero': 'https://s4.anilist.co/file/anilistcdn/media/manga/cover/large/bx103980-6o80VwHhYVrn.jpg',
+  'god of high school': 'https://s4.anilist.co/file/anilistcdn/media/manga/cover/large/bx85141-KPXir4sRqJBW.png',
+  'noblesse': 'https://s4.anilist.co/file/anilistcdn/media/manga/cover/large/bx85142-9mW113O7rDnA.png',
+  'legend of the northern blade': 'https://s4.anilist.co/file/anilistcdn/media/manga/cover/large/bx118686-7aKj9V318vLz.jpg',
 };
 
 export function getReliableCoverUrl(title, currentUrl) {
-  if (currentUrl && (currentUrl.includes('anilist.co') || currentUrl.includes('myanimelist.net'))) {
+  if (currentUrl && (currentUrl.includes('anilist.co') || currentUrl.includes('myanimelist.net') || currentUrl.includes('mangadex.org/covers'))) {
     return currentUrl;
   }
-  const t = (title || '').toLowerCase().trim();
+  const t = (title || '').toLowerCase().replace(/[^a-z0-9]/g, ' ').replace(/\s+/g, ' ').trim();
   if (t) {
     for (const [key, url] of Object.entries(KNOWN_MANGA_COVERS)) {
-      if (t.includes(key) || key.includes(t)) {
+      const cleanKey = key.toLowerCase().replace(/[^a-z0-9]/g, ' ').replace(/\s+/g, ' ').trim();
+      if (t === cleanKey || t.includes(cleanKey) || cleanKey.includes(t)) {
         return url;
       }
     }
   }
-  return currentUrl || getFallbackCover(title);
+  if (currentUrl && !currentUrl.includes('nocover') && !currentUrl.includes('placeholder')) {
+    return currentUrl;
+  }
+  return getFallbackCover(title);
 }
 
 // High-speed client-side memory cache with 5-minute TTL
@@ -1036,8 +1165,25 @@ export async function searchAniList(query) {
     const json = await res.json();
     const media = json?.data?.Page?.media || [];
     return media.map((m) => {
-      const totalCh = m.chapters || 50;
-      const chList = Array.from({ length: Math.min(totalCh, 200) }, (_, idx) => {
+      const t = m.title.english || m.title.romaji || m.title.userPreferred || 'Manga';
+
+      // Check if catalog item matches
+      const normT = t.toLowerCase().replace(/[^a-z0-9]/g, '');
+      const catalogMatch = FALLBACK_MANGA_CATALOG.find((cat) => {
+        const normCat = cat.title.toLowerCase().replace(/[^a-z0-9]/g, '');
+        return normCat === normT || normCat.includes(normT) || normT.includes(normCat);
+      });
+      if (catalogMatch) {
+        return formatMangaItem({
+          ...catalogMatch,
+          coverUrl: getReliableCoverUrl(t, m.coverImage?.extraLarge || m.coverImage?.large || catalogMatch.coverUrl),
+          bannerUrl: m.bannerImage || catalogMatch.bannerUrl
+        });
+      }
+
+      const knownCount = getKnownChapterCount(t);
+      const totalCh = m.chapters || knownCount || 120;
+      const chList = Array.from({ length: totalCh }, (_, idx) => {
         const num = totalCh - idx;
         return {
           id: `anilist_ch:${m.id}:${num}`,
@@ -1045,12 +1191,11 @@ export async function searchAniList(query) {
           title: `Chapter ${num}`
         };
       });
-      const t = m.title.english || m.title.romaji || m.title.userPreferred || 'Manga';
       return formatMangaItem({
         id: `anilist:${m.id}`,
         title: t,
         englishTitle: m.title.english || null,
-        coverUrl: m.coverImage?.large || m.coverImage?.extraLarge || m.coverImage?.medium,
+        coverUrl: getReliableCoverUrl(t, m.coverImage?.large || m.coverImage?.extraLarge || m.coverImage?.medium),
         bannerUrl: m.bannerImage || null,
         status: m.status === 'FINISHED' ? 'Completed' : 'Ongoing',
         score: m.averageScore ? (m.averageScore / 10).toFixed(1) : '8.8',
@@ -1059,7 +1204,7 @@ export async function searchAniList(query) {
         description: m.description ? decodeHtml(m.description) : '',
         tags: m.genres || ['Action', 'Fantasy'],
         sourceName: 'AniList',
-        totalChapters: m.chapters || totalCh,
+        totalChapters: totalCh,
         latestChapter: String(totalCh),
         chapters: chList
       });
@@ -1102,8 +1247,27 @@ export async function fetchAniListDetails(id) {
     const json = await res.json();
     const m = json?.data?.Media;
     if (!m) return null;
-    const totalCh = m.chapters || 50;
-    const chList = Array.from({ length: Math.min(totalCh, 250) }, (_, idx) => {
+
+    const t = m.title.english || m.title.romaji || m.title.userPreferred || 'Manga';
+
+    // Check catalog first
+    const normT = t.toLowerCase().replace(/[^a-z0-9]/g, '');
+    const catalogMatch = FALLBACK_MANGA_CATALOG.find((cat) => {
+      const normCat = cat.title.toLowerCase().replace(/[^a-z0-9]/g, '');
+      return normCat === normT || normCat.includes(normT) || normT.includes(normCat);
+    });
+    if (catalogMatch) {
+      return {
+        ...catalogMatch,
+        id: `anilist:${m.id}`,
+        coverUrl: getReliableCoverUrl(t, m.coverImage?.extraLarge || m.coverImage?.large || catalogMatch.coverUrl),
+        bannerUrl: m.bannerImage || catalogMatch.bannerUrl
+      };
+    }
+
+    const knownCount = getKnownChapterCount(t);
+    const totalCh = m.chapters || knownCount || 120;
+    const chList = Array.from({ length: totalCh }, (_, idx) => {
       const num = totalCh - idx;
       return {
         id: `anilist_ch:${m.id}:${num}`,
@@ -1114,9 +1278,9 @@ export async function fetchAniListDetails(id) {
     const authors = m.staff?.nodes?.map(n => n.name?.full).filter(Boolean).join(', ') || 'Manga Artist';
     return {
       id: `anilist:${m.id}`,
-      title: m.title.english || m.title.romaji || 'Manga',
+      title: t,
       englishTitle: m.title.english || null,
-      coverUrl: m.coverImage?.extraLarge || m.coverImage?.large,
+      coverUrl: getReliableCoverUrl(t, m.coverImage?.extraLarge || m.coverImage?.large),
       bannerUrl: m.bannerImage || null,
       status: m.status === 'FINISHED' ? 'Completed' : 'Ongoing',
       score: m.averageScore ? (m.averageScore / 10).toFixed(1) : '8.8',
@@ -1125,7 +1289,7 @@ export async function fetchAniListDetails(id) {
       description: m.description ? decodeHtml(m.description) : '',
       tags: m.genres || ['Action', 'Fantasy'],
       sourceName: 'AniList',
-      totalChapters: m.chapters || totalCh,
+      totalChapters: totalCh,
       latestChapter: String(totalCh),
       chapters: chList
     };
@@ -1652,26 +1816,46 @@ export async function fetchChapterPages(chapterId, mangaId = null, chapterNumber
 }
 
 export function getFallbackCover(title = 'Manga') {
-  const clean = (title || 'Manga').slice(0, 24);
   const svg = `<svg xmlns="http://www.w3.org/2000/svg" width="400" height="600" viewBox="0 0 400 600">
     <defs>
       <linearGradient id="cyberBg" x1="0%" y1="0%" x2="100%" y2="100%">
-        <stop offset="0%" stop-color="#0a0f1d"/>
-        <stop offset="50%" stop-color="#0e172a"/>
-        <stop offset="100%" stop-color="#161b33"/>
+        <stop offset="0%" stop-color="#080c16"/>
+        <stop offset="40%" stop-color="#0f172a"/>
+        <stop offset="100%" stop-color="#1e1338"/>
       </linearGradient>
       <linearGradient id="neonGlow" x1="0%" y1="0%" x2="100%" y2="100%">
         <stop offset="0%" stop-color="#06b6d4"/>
+        <stop offset="50%" stop-color="#8b5cf6"/>
         <stop offset="100%" stop-color="#f43f5e"/>
       </linearGradient>
+      <radialGradient id="aura" cx="50%" cy="42%" r="50%">
+        <stop offset="0%" stop-color="#8b5cf6" stop-opacity="0.35"/>
+        <stop offset="60%" stop-color="#06b6d4" stop-opacity="0.1"/>
+        <stop offset="100%" stop-color="#000000" stop-opacity="0"/>
+      </radialGradient>
+      <pattern id="grid" width="20" height="20" patternUnits="userSpaceOnUse">
+        <path d="M 20 0 L 0 0 0 20" fill="none" stroke="#38bdf8" stroke-width="0.5" stroke-opacity="0.08"/>
+      </pattern>
     </defs>
     <rect width="400" height="600" fill="url(#cyberBg)"/>
-    <rect x="20" y="20" width="360" height="560" rx="16" fill="none" stroke="url(#neonGlow)" stroke-width="2" stroke-opacity="0.35"/>
-    <circle cx="200" cy="220" r="70" fill="url(#neonGlow)" fill-opacity="0.12"/>
-    <text x="200" y="245" text-anchor="middle" fill="#06b6d4" fill-opacity="0.75" font-family="'Plus Jakarta Sans', system-ui, sans-serif" font-size="64" font-weight="900">漫画</text>
-    <text x="200" y="360" text-anchor="middle" fill="#ffffff" font-family="'Plus Jakarta Sans', system-ui, sans-serif" font-size="22" font-weight="800">${clean.replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;')}</text>
-    <rect x="150" y="380" width="100" height="2" fill="url(#neonGlow)" rx="1"/>
-    <text x="200" y="415" text-anchor="middle" fill="#38bdf8" font-family="'JetBrains Mono', monospace" font-size="11" font-weight="700" letter-spacing="3">KURONEKO // UNIVERSE</text>
+    <rect width="400" height="600" fill="url(#grid)"/>
+    <circle cx="200" cy="250" r="140" fill="url(#aura)"/>
+    <rect x="22" y="22" width="356" height="556" rx="20" fill="none" stroke="url(#neonGlow)" stroke-width="2" stroke-opacity="0.4"/>
+    <rect x="30" y="30" width="340" height="540" rx="16" fill="none" stroke="#38bdf8" stroke-width="0.8" stroke-opacity="0.2" stroke-dasharray="4 6"/>
+    <!-- Cyber Manga Emblem & Seal -->
+    <circle cx="200" cy="240" r="70" fill="#0f172a" stroke="url(#neonGlow)" stroke-width="3" stroke-opacity="0.8"/>
+    <circle cx="200" cy="240" r="54" fill="none" stroke="#06b6d4" stroke-width="1.2" stroke-opacity="0.5" stroke-dasharray="6 4"/>
+    <!-- Stylized Katana & Manga Seal Glyph -->
+    <path d="M165 240 L235 240 M200 205 L200 275 M175 215 L225 265 M175 265 L225 215" stroke="url(#neonGlow)" stroke-width="3" stroke-linecap="round"/>
+    <polygon points="200,185 240,240 200,295 160,240" fill="none" stroke="#f43f5e" stroke-width="2" stroke-opacity="0.75"/>
+    <circle cx="200" cy="240" r="10" fill="#38bdf8"/>
+    <!-- Top & Bottom HUD Tech Decals -->
+    <text x="40" y="55" fill="#06b6d4" font-family="'JetBrains Mono', monospace" font-size="10" font-weight="700" letter-spacing="2">SYS::ARCHIVE</text>
+    <text x="360" y="55" text-anchor="end" fill="#f43f5e" font-family="'JetBrains Mono', monospace" font-size="10" font-weight="700" letter-spacing="2">VERIFIED</text>
+    <text x="200" y="380" text-anchor="middle" fill="#f8fafc" font-family="'Plus Jakarta Sans', system-ui, sans-serif" font-size="20" font-weight="900" letter-spacing="3">MANGA ARCHIVE</text>
+    <text x="200" y="405" text-anchor="middle" fill="#06b6d4" font-family="'JetBrains Mono', monospace" font-size="11" font-weight="700" letter-spacing="3">AUTHENTIC EDITION</text>
+    <line x1="120" y1="425" x2="280" y2="425" stroke="url(#neonGlow)" stroke-width="2" stroke-linecap="round"/>
+    <text x="200" y="535" text-anchor="middle" fill="#64748b" font-family="'JetBrains Mono', monospace" font-size="9" letter-spacing="4">KURONEKO // WEBTOON NETWORK</text>
   </svg>`;
   return `data:image/svg+xml;utf8,${encodeURIComponent(svg)}`;
 }

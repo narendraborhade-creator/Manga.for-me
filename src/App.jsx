@@ -3,9 +3,7 @@ import Navbar from './components/Navbar';
 import ContinueReadingBanner from './components/ContinueReadingBanner';
 import HeroCarousel from './components/HeroCarousel';
 import MangaCard from './components/MangaCard';
-import AnimeCard from './components/AnimeCard';
 import MangaDetailModal from './components/MangaDetailModal';
-import AnimeDetailModal from './components/AnimeDetailModal';
 import MangaReader from './components/MangaReader';
 import LibraryView from './components/LibraryView';
 import HistoryView from './components/HistoryView';
@@ -19,19 +17,13 @@ import {
 } from './services/mangaApi';
 
 import { 
-  fetchTrendingAnime, 
-  fetchTopAnime, 
-  fetchSeasonalAnime, 
-  searchAnime 
-} from './services/animeApi';
-
-import { 
   getBookmarks, 
   setBookmark, 
   removeBookmark, 
   getBookmarkStatus,
   getLastRead, 
   getHistory,
+  removeFromHistory,
   getUpdates,
   getUpdateSettings,
   importData,
@@ -41,10 +33,8 @@ import { checkAllLibraryUpdates } from './services/updateService';
 
 import { 
   BookOpen, 
-  Film, 
   Flame, 
   Sparkles, 
-  TrendingUp, 
   Star, 
   Loader2,
   Filter,
@@ -56,9 +46,7 @@ import {
   SlidersHorizontal,
   Search,
   Newspaper,
-  ExternalLink,
-  Tv,
-  Compass
+  ExternalLink
 } from 'lucide-react';
 
 const GENRES = [
@@ -118,7 +106,7 @@ function matchesSource(manga, filterSource) {
 
 export default function App() {
   // Navigation & Search
-  const [activeTab, setActiveTab] = useState('manga'); // 'manga' | 'anime' | 'library' | 'history'
+  const [activeTab, setActiveTab] = useState('manga'); // 'manga' | 'library' | 'history'
   const [searchQuery, setSearchQuery] = useState('');
   const [selectedGenre, setSelectedGenre] = useState('All');
   const [selectedSource, setSelectedSource] = useState('All'); // 'All' | 'WeebCentral' | 'Webtoon' | 'MangaPill'
@@ -134,7 +122,6 @@ export default function App() {
   // Modals & Reader
   const [selectedMangaId, setSelectedMangaId] = useState(null);
   const [selectedMangaCover, setSelectedMangaCover] = useState('');
-  const [selectedAnime, setSelectedAnime] = useState(null);
 
   const handleOpenMangaDetails = useCallback((id, coverUrl = '') => {
     setSelectedMangaId(id);
@@ -161,14 +148,6 @@ export default function App() {
   const [mangaNews, setMangaNews] = useState([]);
   const [loadingManga, setLoadingManga] = useState(true);
   const [searchingManga, setSearchingManga] = useState(false);
-
-  // Anime Hub Data
-  const [trendingAnime, setTrendingAnime] = useState([]);
-  const [topAnime, setTopAnime] = useState([]);
-  const [seasonalAnime, setSeasonalAnime] = useState([]);
-  const [searchAnimeList, setSearchAnimeList] = useState([]);
-  const [loadingAnime, setLoadingAnime] = useState(true);
-  const [searchingAnime, setSearchingAnime] = useState(false);
 
   // Refresh Storage Data
   const refreshStorageData = useCallback(() => {
@@ -284,63 +263,24 @@ export default function App() {
     };
   }, []);
 
-  // Fetch Initial Anime Catalog
-  useEffect(() => {
-    let isMounted = true;
-    setLoadingAnime(true);
-
-    Promise.all([
-      fetchTrendingAnime(1, 12),
-      fetchTopAnime(1, 12),
-      fetchSeasonalAnime(1, 12),
-    ])
-      .then(([trend, top, season]) => {
-        if (!isMounted) return;
-        setTrendingAnime(trend);
-        setTopAnime(top);
-        setSeasonalAnime(season);
-        setLoadingAnime(false);
-      })
-      .catch((err) => {
-        console.error('Failed to load initial anime:', err);
-        if (isMounted) setLoadingAnime(false);
-      });
-
-    return () => {
-      isMounted = false;
-    };
-  }, []);
-
   // Handle Search Debounce
   useEffect(() => {
     if (!searchQuery.trim() && selectedGenre === 'All') {
       setSearchMangaList((prev) => (prev.length > 0 ? [] : prev));
-      setSearchAnimeList((prev) => (prev.length > 0 ? [] : prev));
       return;
     }
 
     const timer = setTimeout(() => {
-      if (activeTab === 'manga' || searchQuery) {
-        setSearchingManga(true);
-        const query = searchQuery.trim() || (selectedGenre !== 'All' ? selectedGenre : '');
-        searchManga(query).then((res) => {
-          setSearchMangaList(res);
-          setSearchingManga(false);
-        });
-      }
-
-      if (activeTab === 'anime' || searchQuery) {
-        setSearchingAnime(true);
-        const genreParam = selectedGenre !== 'All' ? selectedGenre : null;
-        searchAnime(searchQuery, genreParam, 1, 24).then((res) => {
-          setSearchAnimeList(res);
-          setSearchingAnime(false);
-        });
-      }
+      setSearchingManga(true);
+      const query = searchQuery.trim() || (selectedGenre !== 'All' ? selectedGenre : '');
+      searchManga(query).then((res) => {
+        setSearchMangaList(res);
+        setSearchingManga(false);
+      });
     }, 450);
 
     return () => clearTimeout(timer);
-  }, [searchQuery, selectedGenre, activeTab]);
+  }, [searchQuery, selectedGenre]);
 
   // Bookmarking handlers
   const handleToggleBookmark = useCallback((manga) => {
@@ -395,7 +335,6 @@ export default function App() {
   const handleGoHome = useCallback(() => {
     setReaderState((prev) => ({ ...prev, active: false }));
     setSelectedMangaId(null);
-    setSelectedAnime(null);
     setIsBackupOpen(false);
     setActiveTab('manga');
     setSearchQuery('');
@@ -411,7 +350,7 @@ export default function App() {
   }, [refreshStorageData]);
 
   // Mobile Device Back Button & Swipe-to-back Gesture Integration
-  const isSubView = readerState.active || Boolean(selectedMangaId) || Boolean(selectedAnime) || isBackupOpen || activeTab !== 'manga';
+  const isSubView = readerState.active || Boolean(selectedMangaId) || isBackupOpen || activeTab !== 'manga';
   const isSubViewRef = useRef(false);
 
   useEffect(() => {
@@ -450,11 +389,9 @@ export default function App() {
     return () => window.removeEventListener('popstate', handlePopState);
   }, [handleGoHome]);
 
-  // Featured Spotlight Items for Hero Carousel (Manga & Anime mix)
-  const spotlightItems = [
-    ...(popularManga.slice(0, 3)),
-    ...(trendingAnime.slice(0, 2)),
-  ];
+  // Featured Spotlight Items for Hero Carousel (Manga & Webtoons exclusively)
+  const spotlightItems = popularManga.slice(0, 5);
+
   // Memoized O(1) lookups for performance
   const historyMap = useMemo(() => {
     const map = {};
@@ -463,9 +400,7 @@ export default function App() {
     });
     return map;
   }, [history]);
-  const handleSelectAnime = useCallback((anime) => {
-    setSelectedAnime(anime);
-  }, []);
+
   const handleOpenHistoryMangaDetails = useCallback((id) => {
     const item = historyMap[id];
     handleOpenMangaDetails(id, item?.coverUrl);
@@ -473,7 +408,7 @@ export default function App() {
 
   // Centralized body scroll lock when modal or reader is active to prevent scroll fighting
   useEffect(() => {
-    const isOverlayOpen = readerState.active || Boolean(selectedMangaId) || Boolean(selectedAnime) || isBackupOpen;
+    const isOverlayOpen = readerState.active || Boolean(selectedMangaId) || isBackupOpen;
     if (isOverlayOpen) {
       document.body.style.overflow = 'hidden';
     } else {
@@ -484,7 +419,7 @@ export default function App() {
       document.body.style.overflow = '';
       document.body.style.touchAction = '';
     };
-  }, [readerState.active, selectedMangaId, selectedAnime, isBackupOpen]);
+  }, [readerState.active, selectedMangaId, isBackupOpen]);
 
   return (
     <div className="min-h-screen w-full max-w-full overflow-x-hidden bg-[#080a0f] text-slate-100 flex flex-col font-['Plus_Jakarta_Sans',sans-serif]">
@@ -678,7 +613,6 @@ export default function App() {
                     <HeroCarousel
                       items={spotlightItems}
                       onSelectManga={handleOpenMangaDetails}
-                      onSelectAnime={handleSelectAnime}
                       isBookmarkedFn={(id) => !!bookmarks[id]}
                       onToggleBookmark={handleToggleBookmark}
                     />
@@ -921,207 +855,7 @@ export default function App() {
           );
         })()}
 
-        {/* --------------------- TAB 2: ANIME HUB --------------------- */}
-        {activeTab === 'anime' && (
-          <div className="space-y-10 animate-fadeIn">
-            {/* Awesome Anime Sources Streaming & Directory Bar */}
-            <div className="relative overflow-hidden rounded-2xl glass-panel-elevated p-3.5 sm:p-4 border border-cyan-500/30 bg-gradient-to-r from-cyan-950/20 via-slate-900/60 to-slate-950/80 hud-corner holo-sheen">
-              <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
-                <div className="flex items-center gap-2.5">
-                  <span className="p-2 rounded-xl bg-cyan-500/20 text-cyan-400 border border-cyan-500/40">
-                    <Tv className="w-4 h-4 text-cyan-400" />
-                  </span>
-                  <div>
-                    <h3 className="text-xs font-mono font-bold text-white tracking-wider uppercase flex items-center gap-1.5">
-                      <span>STREAM_FEEDS // AWESOME_ANIME_SOURCES</span>
-                      <span className="w-1.5 h-1.5 rounded-full bg-cyan-400 animate-ping" />
-                    </h3>
-                    <p className="text-[11px] text-slate-400">
-                      Community-curated top streaming networks, legal simulcasts & schedule trackers
-                    </p>
-                  </div>
-                </div>
-
-                <div className="flex items-center gap-1.5 flex-wrap">
-                  {[
-                    { name: 'AniWatch', url: 'https://aniwatchtv.to/', badge: 'Sub/Dub HD' },
-                    { name: 'AnimePahe', url: 'https://animepahe.ru/', badge: 'Fast Stream' },
-                    { name: 'Crunchyroll', url: 'https://www.crunchyroll.com/', badge: 'Simulcast' },
-                    { name: 'Anime-Planet', url: 'https://www.anime-planet.com/', badge: 'Legal Index' },
-                    { name: 'LiveChart', url: 'https://www.livechart.me/', badge: 'Broadcasts' },
-                    { name: 'AniChart', url: 'https://anichart.net/', badge: 'Schedules' },
-                  ].map((s) => (
-                    <a
-                      key={s.name}
-                      href={s.url}
-                      target="_blank"
-                      rel="noopener noreferrer"
-                      className="px-2.5 py-1 rounded-xl bg-slate-900/90 hover:bg-slate-800 text-[11px] font-mono font-medium text-slate-300 hover:text-cyan-300 border border-white/10 hover:border-cyan-500/40 transition-all flex items-center gap-1.5 shadow-sm"
-                      title={`Open ${s.name} (${s.badge})`}
-                    >
-                      <span>{s.name}</span>
-                      <span className="text-[9px] text-cyan-400/80 bg-cyan-950/50 px-1 rounded border border-cyan-500/20 hidden sm:inline">
-                        {s.badge}
-                      </span>
-                      <ExternalLink className="w-2.5 h-2.5 opacity-60" />
-                    </a>
-                  ))}
-                </div>
-              </div>
-            </div>
-            {/* If Not Searching: Show Anime Spotlight & Categories */}
-            {!searchQuery.trim() ? (
-              <>
-                {/* Hero Carousel for Anime */}
-                {trendingAnime.length > 0 && (
-                  <HeroCarousel
-                    items={trendingAnime.slice(0, 4)}
-                    onSelectAnime={handleSelectAnime}
-                    onSelectManga={handleOpenMangaDetails}
-                  />
-                )}
-
-                {/* Section 1: Trending Anime Right Now */}
-                <section className="space-y-4">
-                  <div className="flex items-center justify-between">
-                    <div className="flex items-center gap-2.5">
-                      <div className="p-2 rounded-xl bg-rose-600/20 text-rose-400 border border-rose-500/30">
-                        <TrendingUp className="w-5 h-5 text-rose-500" />
-                      </div>
-                      <div>
-                        <h2 className="text-xl font-extrabold text-white tracking-tight">
-                          Trending Anime
-                        </h2>
-                        <p className="text-xs text-slate-400">
-                          Most talked-about anime shows streaming right now
-                        </p>
-                      </div>
-                    </div>
-                  </div>
-
-                  {loadingAnime ? (
-                    <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 xl:grid-cols-6 gap-4">
-                      {Array.from({ length: 6 }).map((_, i) => (
-                        <div key={i} className="aspect-[3/4.2] rounded-2xl bg-slate-900 animate-pulse" />
-                      ))}
-                    </div>
-                  ) : (
-                    <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 xl:grid-cols-6 gap-4 sm:gap-5">
-                      {trendingAnime.map((anime) => (
-                        <AnimeCard
-                          key={anime.id}
-                          anime={anime}
-                          onSelect={handleSelectAnime}
-                        />
-                      ))}
-                    </div>
-                  )}
-                </section>
-
-                {/* Section 2: Popular This Season */}
-                <section className="space-y-4 pt-4">
-                  <div className="flex items-center justify-between">
-                    <div className="flex items-center gap-2.5">
-                      <div className="p-2 rounded-xl bg-emerald-500/20 text-emerald-400 border border-emerald-500/30">
-                        <Sparkles className="w-5 h-5 text-emerald-400" />
-                      </div>
-                      <div>
-                        <h2 className="text-xl font-extrabold text-white tracking-tight">
-                          Popular This Season
-                        </h2>
-                        <p className="text-xs text-slate-400">
-                          Currently broadcasting seasonal episodes
-                        </p>
-                      </div>
-                    </div>
-                  </div>
-
-                  <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 xl:grid-cols-6 gap-4 sm:gap-5">
-                    {seasonalAnime.map((anime) => (
-                      <AnimeCard
-                        key={anime.id}
-                        anime={anime}
-                        onSelect={handleSelectAnime}
-                      />
-                    ))}
-                  </div>
-                </section>
-
-                {/* Section 3: All-Time Top Rated Anime */}
-                <section className="space-y-4 pt-4">
-                  <div className="flex items-center justify-between">
-                    <div className="flex items-center gap-2.5">
-                      <div className="p-2 rounded-xl bg-amber-500/20 text-amber-400 border border-amber-500/30">
-                        <Star className="w-5 h-5 fill-amber-400 text-amber-400" />
-                      </div>
-                      <div>
-                        <h2 className="text-xl font-extrabold text-white tracking-tight">
-                          Top Rated of All Time
-                        </h2>
-                        <p className="text-xs text-slate-400">
-                          Legendary masterpieces and highest scored series
-                        </p>
-                      </div>
-                    </div>
-                  </div>
-
-                  <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 xl:grid-cols-6 gap-4 sm:gap-5">
-                    {topAnime.map((anime) => (
-                      <AnimeCard
-                        key={anime.id}
-                        anime={anime}
-                        onSelect={handleSelectAnime}
-                      />
-                    ))}
-                  </div>
-                </section>
-              </>
-            ) : (
-              /* Anime Search Results */
-              <div className="space-y-6">
-                <div className="flex items-center justify-between border-b border-white/5 pb-4">
-                  <div>
-                    <h2 className="text-xl font-bold text-white">
-                      Search Anime Results
-                    </h2>
-                    <p className="text-xs text-slate-400 mt-1">
-                      Showing results for "{searchQuery}"
-                    </p>
-                  </div>
-                  <button
-                    onClick={() => setSearchQuery('')}
-                    className="text-xs text-rose-400 hover:text-rose-300 font-semibold"
-                  >
-                    Clear Filter
-                  </button>
-                </div>
-
-                {searchingAnime ? (
-                  <div className="py-24 flex flex-col items-center justify-center gap-2">
-                    <Loader2 className="w-8 h-8 text-rose-500 animate-spin" />
-                    <p className="text-xs text-slate-400">Searching AniList anime database...</p>
-                  </div>
-                ) : searchAnimeList.length === 0 ? (
-                  <div className="py-24 text-center text-slate-400 text-sm">
-                    No anime found matching "{searchQuery}".
-                  </div>
-                ) : (
-                  <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 xl:grid-cols-6 gap-4 sm:gap-5">
-                    {searchAnimeList.map((anime) => (
-                      <AnimeCard
-                        key={anime.id}
-                        anime={anime}
-                        onSelect={handleSelectAnime}
-                      />
-                    ))}
-                  </div>
-                )}
-              </div>
-            )}
-          </div>
-        )}
-
-        {/* --------------------- TAB 3: MY LIBRARY --------------------- */}
+        {/* --------------------- TAB 2: MY LIBRARY --------------------- */}
         {activeTab === 'library' && (
           <LibraryView
             bookmarks={bookmarks}
@@ -1133,7 +867,7 @@ export default function App() {
           />
         )}
 
-        {/* --------------------- TAB 4: READING HISTORY --------------------- */}
+        {/* --------------------- TAB 3: READING HISTORY --------------------- */}
         {activeTab === 'history' && (
           <HistoryView
             history={history}
@@ -1165,14 +899,6 @@ export default function App() {
           lastReadChapter={
             historyMap[selectedMangaId]?.chapterNumber || null
           }
-        />
-      )}
-
-      {/* Anime Detail Modal */}
-      {selectedAnime && (
-        <AnimeDetailModal
-          anime={selectedAnime}
-          onClose={() => setSelectedAnime(null)}
         />
       )}
 
@@ -1259,10 +985,10 @@ export default function App() {
             <img src="/logo.jpg" alt="KuroNeko Logo" className="w-6 h-6 rounded-lg object-cover border border-white/10 shadow-sm" />
             <span>KuroNeko • 黒猫</span>
             <span className="text-slate-600">|</span>
-            <span className="font-normal text-slate-500">Manga & Anime Universe</span>
+            <span className="font-normal text-slate-500">Manga & Webtoon Terminal</span>
           </div>
           <p>
-            Powered by public community APIs (MangaDex REST API & AniList GraphQL) from public-apis.
+            Powered by high-speed public community manga scrapers & readers (MangaKatana, WeebCentral, MangaDex).
           </p>
         </div>
       </footer>
@@ -1270,10 +996,9 @@ export default function App() {
       {/* Mobile Bottom Navigation Bar (Phone-Optimized, Safe-Area aware, Glassmorphism + HUD) */}
       {!readerState.active && (
         <nav className="md:hidden fixed bottom-0 left-0 right-0 z-40 bg-slate-950/90 backdrop-blur-3xl border-t border-cyan-500/25 px-2 py-1.5 pb-[calc(0.5rem+env(safe-area-inset-bottom))] shadow-[0_-10px_35px_rgba(0,0,0,0.9)]">
-          <div className="grid grid-cols-4 items-center justify-around max-w-md mx-auto">
+          <div className="grid grid-cols-3 items-center justify-around max-w-md mx-auto">
             {[
-              { id: 'manga', label: 'Manga', icon: BookOpen },
-              { id: 'anime', label: 'Anime', icon: Film },
+              { id: 'manga', label: 'Manga Hub', icon: BookOpen },
               { id: 'library', label: 'Library', icon: Bookmark, badge: Object.keys(bookmarks).length || null },
               { id: 'history', label: 'History', icon: History, badge: history.length || null },
             ].map((tab) => {

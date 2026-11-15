@@ -213,30 +213,35 @@ export const PROVIDER_QUALITY_SCORE = {
  */
 
 export const KNOWN_CHAPTER_COUNTS = {
-  'lookism': 631,
-  'tower of god': 630,
-  'wind breaker': 500,
-  'eleceed': 320,
-  'mercenary enrollment': 210,
-  'teenage mercenary': 210,
+  'lookism': 633,
+  'tower of god': 653,
+  'wind breaker': 557,
+  'eleceed': 425,
+  'mercenary enrollment': 230,
+  'teenage mercenary': 230,
   'nano machine': 230,
   'the beginning after the end': 190,
   'tbate': 190,
   'return of the mount hua sect': 150,
   'reincarnation of the suicidal battle god': 110,
   'doom breaker': 110,
-  'reaper of the drifting moon': 110,
+  'reaper of the drifting moon': 215,
   'murim login': 190,
   'a fortune-telling princess': 176,
-  'the despised stepmother begins her second life': 130,
-  'the despised stepmother': 130,
+  'the despised stepmother begins her second life': 137,
+  'the despised stepmother': 137,
+  'stepmother': 137,
   'my in-laws are obsessed with me': 130,
   'my in laws are obsessed with me': 130,
   'solo leveling': 200,
   'omniscient reader': 240,
+  'omniscient readers viewpoint': 240,
   'damn reincarnation': 85,
   'surviving the game as a barbarian': 100,
-  'the greatest estate developer': 165,
+  'barbarian': 100,
+  'the greatest estate developer': 180,
+  'greatest estate developer': 180,
+  'estate developer': 180,
   'one piece': 1120,
   'berserk': 376,
   'naruto': 700,
@@ -255,28 +260,58 @@ export const KNOWN_CHAPTER_COUNTS = {
   'dragon ball super': 103,
   'fortune-telling princess': 176,
   'fortune telling princess': 176,
-  'a fortune-telling princess': 176,
   'world\'s strongest troll': 197,
   'worlds strongest troll': 197,
   'the world\'s strongest troll': 197,
   'the worlds strongest troll': 197,
   'world-s-strongest-troll': 197,
-  'damn reincarnation': 81,
-  'surviving the game as a barbarian': 90,
-  'the greatest estate developer': 180,
-  'the beginning after the end': 185,
-  'tbate': 185,
-  'reincarnation of the suicidal battle god': 110,
-  'doom breaker': 110,
-  'return of the mount hua sect': 150,
   'mount hua': 150,
+  'demon slayer': 205,
+  'attack on titan': 139,
+  'hunter x hunter': 400,
+  'spy x family': 105,
+  'frieren': 135,
+  'dandadan': 180,
+  'kaiju no 8': 115,
+  'vinland saga': 215,
+  'vagabond': 327,
+  'kingdom': 815,
+  'overgeared': 230,
+  'sss class suicide hunter': 120,
+  'tomb raider king': 411,
+  'magic emperor': 600,
+  'martial peak': 3700,
+  'tales of demons and gods': 480,
+  'apotheosis': 1100,
+  'leveling with the gods': 120,
+  'pick me up': 115,
+  'second life ranker': 170,
+  'the boxer': 104,
+  'sweet home': 141,
+  'bastard': 94,
+  'weak hero': 267,
+  'god of high school': 572,
+  'noblesse': 544,
+  'hardcore leveling warrior': 320,
+  'reformation of the deadbeat noble': 125,
+  'swordmasters youngest son': 130,
+  'standard of reincarnation': 115,
+  'terminally ill genius dark knight': 95,
+  'legend of the northern blade': 190,
+  'peerless dad': 275,
+  'gosu': 233,
+  'poison dragon': 150,
+  'lightning degree': 180,
+  'wandering warrior of wudang': 140,
+  'infinite mage': 95,
 };
 
 export function getKnownChapterCount(title) {
   if (!title) return null;
-  const t = String(title).toLowerCase().trim();
+  const t = String(title).toLowerCase().replace(/[^a-z0-9]/g, ' ').replace(/\s+/g, ' ').trim();
   for (const [key, count] of Object.entries(KNOWN_CHAPTER_COUNTS)) {
-    if (t === key || t.startsWith(key) || key.startsWith(t)) return count;
+    const cleanKey = key.toLowerCase().replace(/[^a-z0-9]/g, ' ').replace(/\s+/g, ' ').trim();
+    if (t === cleanKey || t.includes(cleanKey) || cleanKey.includes(t)) return count;
   }
   return null;
 }
@@ -1183,9 +1218,11 @@ export async function autoHealAndUpgradeChapters(details, bypassCache = false) {
   let currentChapters = Array.isArray(details.chapters) ? deduplicateChapters(details.chapters) : [];
   let currentGaps = detectChapterGaps(currentChapters);
   const currentCount = currentChapters.length;
+  const knownTarget = getKnownChapterCount(details.englishTitle || details.title);
+  const targetMin = knownTarget || 100;
 
-  // If already has 100+ complete chapters with 0 gaps, no healing needed
-  if (currentCount >= 100 && currentGaps.length === 0) {
+  // If already has complete chapters with 0 gaps meeting targetMin, no healing needed
+  if (currentCount >= targetMin && currentGaps.length === 0) {
     return details;
   }
 
@@ -1282,10 +1319,11 @@ export async function autoHealAndUpgradeChapters(details, bypassCache = false) {
         const candidateChapters = deduplicateChapters(matchDetails.chapters);
         const candidateGaps = detectChapterGaps(candidateChapters);
 
-        // 1. If candidate has significantly more chapters or current has 0, adopt it as primary!
+        // 1. If candidate has significantly more chapters or current has 0 or fewer than target, adopt it as primary!
         const isBetterOrZero = currentCount === 0 || 
           (candidateChapters.length > maxFoundCount && candidateGaps.length <= Math.max(1, currentGaps.length)) ||
-          (candidateChapters.length >= currentChapters.length + 15);
+          (candidateChapters.length >= currentChapters.length + 10) ||
+          (currentCount < targetMin && candidateChapters.length > currentCount);
         if (isBetterOrZero) {
           maxFoundCount = candidateChapters.length;
           currentChapters = candidateChapters;
@@ -1317,15 +1355,13 @@ export async function autoHealAndUpgradeChapters(details, bypassCache = false) {
           }
         }
 
-        // If all gaps are sealed and chapters meet known target or reach robust completeness, stop searching
-        const knownMin = getKnownChapterCount(details.englishTitle || details.title) || 80;
-        if (currentGaps.length === 0 && currentChapters.length >= knownMin) {
+        // If all gaps are sealed and chapters meet known target, stop searching
+        if (currentGaps.length === 0 && currentChapters.length >= targetMin) {
           break;
         }
       }
 
-      const knownMin = getKnownChapterCount(details.englishTitle || details.title) || 80;
-      if (currentGaps.length === 0 && currentChapters.length >= knownMin) {
+      if (currentGaps.length === 0 && currentChapters.length >= targetMin) {
         break;
       }
     } catch (err) {
@@ -1431,6 +1467,40 @@ export async function getMangaDetails(mangaId, bypassCache = false) {
       resolvedDetails = await getMangaKatanaDetails(lookupId, bypassCache);
     } else if (lookupId.startsWith('mk:')) {
       resolvedDetails = await getMangaKakalotDetails(lookupId, bypassCache);
+    } else if (lookupId.startsWith('anilist:')) {
+      const anilistId = parseInt(lookupId.replace(/^anilist:/, ''), 10);
+      let aniTitle = null;
+      if (!isNaN(anilistId)) {
+        try {
+          const aniRes = await fetchWithTimeout('https://graphql.anilist.co', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({
+              query: `query ($id: Int) { Media(id: $id, type: MANGA) { title { english romaji userPreferred } } }`,
+              variables: { id: anilistId }
+            })
+          }, 4500);
+          if (aniRes.ok) {
+            const aniJson = await aniRes.json();
+            const media = aniJson?.data?.Media;
+            aniTitle = media?.title?.english || media?.title?.romaji || media?.title?.userPreferred;
+          }
+        } catch (e) {
+          console.warn('AniList title fetch error:', e.message);
+        }
+      }
+      if (aniTitle) {
+        const cleanName = cleanTitle(aniTitle);
+        const katMatches = await searchMangaKatana(cleanName).catch(() => []);
+        if (katMatches.length > 0) {
+          resolvedDetails = await getMangaKatanaDetails(katMatches[0].id, bypassCache);
+        } else {
+          const wcMatches = await searchWeebCentral(cleanName).catch(() => []);
+          if (wcMatches.length > 0) {
+            resolvedDetails = await getWeebCentralDetails(wcMatches[0].id.replace('wc:', ''), '', bypassCache);
+          }
+        }
+      }
     }
   } catch (providerErr) {
     console.warn(`Upstream error resolving ${lookupId}:`, providerErr.message);
@@ -1439,7 +1509,8 @@ export async function getMangaDetails(mangaId, bypassCache = false) {
   if (resolvedDetails) {
     const resolvedGaps = detectChapterGaps(resolvedDetails.chapters);
     const knownTarget = getKnownChapterCount(resolvedDetails.englishTitle || resolvedDetails.title);
-    const isUnderChaptered = knownTarget && (resolvedDetails.chapters?.length || 0) < (knownTarget - 15);
+    const targetMin = knownTarget || 100;
+    const isUnderChaptered = (resolvedDetails.chapters?.length || 0) < Math.min(targetMin, 80);
     const hasFewChapters = (resolvedDetails.chapters?.length || 0) < 60 && resolvedDetails.status !== 'Completed';
 
     if (!resolvedDetails.chapters || resolvedDetails.chapters.length < 60 || resolvedGaps.length > 0 || isUnderChaptered || hasFewChapters) {
@@ -1570,7 +1641,10 @@ export async function getMangaDetails(mangaId, bypassCache = false) {
     };
 
     const pillGaps = detectChapterGaps(result.chapters);
-    if (!result.chapters || result.chapters.length < 35 || pillGaps.length > 0) {
+    const knownTarget = getKnownChapterCount(result.englishTitle || result.title);
+    const targetMin = knownTarget || 100;
+    const isUnderChaptered = (result.chapters?.length || 0) < targetMin;
+    if (!result.chapters || result.chapters.length < 60 || pillGaps.length > 0 || isUnderChaptered) {
       result = await autoHealAndUpgradeChapters(result, bypassCache);
     }
     if (Array.isArray(result.chapters)) {
@@ -1777,6 +1851,20 @@ export async function getChapterPages(rawChapterId, rawMangaId = '', rawChapterN
     } else if (aniId === '87216' || mId.includes('demon-slayer') || title.includes('demon slayer')) {
       const code = 10000000 + Math.floor(parseFloat(requestedCh) * 1000);
       chapterId = `467-${code}/demon-slayer-kimetsu-no-yaiba-chapter-${requestedCh}`;
+    } else if (title || mId) {
+      const searchTarget = title || mId.replace(/^anilist:/, '').replace(/[-_:]/g, ' ');
+      try {
+        const katMatches = await searchMangaKatana(cleanTitle(searchTarget));
+        if (katMatches && katMatches.length > 0) {
+          const katDetails = await getMangaKatanaDetails(katMatches[0].id).catch(() => null);
+          const targetCh = katDetails?.chapters?.find(c => String(c.chapter) === String(requestedCh));
+          if (targetCh) {
+            return await getMangaKatanaChapterPages(targetCh.id);
+          }
+        }
+      } catch (err) {
+        console.warn('Dynamic anilist_ch Katana resolution warning:', err.message);
+      }
     }
   }
 

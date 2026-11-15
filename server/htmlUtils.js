@@ -184,23 +184,46 @@ export function deduplicateChapters(chapters) {
 }
 
 export function getFallbackCover(title = 'Manga') {
-  const safeTitle = cleanTitle(title).slice(0, 24);
   const svg = `<svg xmlns="http://www.w3.org/2000/svg" width="400" height="600" viewBox="0 0 400 600">
     <defs>
-      <linearGradient id="bg" x1="0%" y1="0%" x2="100%" y2="100%">
-        <stop offset="0%" stop-color="#0b0e14"/>
-        <stop offset="100%" stop-color="#1e1322"/>
+      <linearGradient id="cyberBg" x1="0%" y1="0%" x2="100%" y2="100%">
+        <stop offset="0%" stop-color="#080c16"/>
+        <stop offset="40%" stop-color="#0f172a"/>
+        <stop offset="100%" stop-color="#1e1338"/>
       </linearGradient>
-      <linearGradient id="acc" x1="0%" y1="0%" x2="100%" y2="100%">
-        <stop offset="0%" stop-color="#f43f5e"/>
-        <stop offset="100%" stop-color="#e11d48"/>
+      <linearGradient id="neonGlow" x1="0%" y1="0%" x2="100%" y2="100%">
+        <stop offset="0%" stop-color="#06b6d4"/>
+        <stop offset="50%" stop-color="#8b5cf6"/>
+        <stop offset="100%" stop-color="#f43f5e"/>
       </linearGradient>
+      <radialGradient id="aura" cx="50%" cy="42%" r="50%">
+        <stop offset="0%" stop-color="#8b5cf6" stop-opacity="0.35"/>
+        <stop offset="60%" stop-color="#06b6d4" stop-opacity="0.1"/>
+        <stop offset="100%" stop-color="#000000" stop-opacity="0"/>
+      </radialGradient>
+      <pattern id="grid" width="20" height="20" patternUnits="userSpaceOnUse">
+        <path d="M 20 0 L 0 0 0 20" fill="none" stroke="#38bdf8" stroke-width="0.5" stroke-opacity="0.08"/>
+      </pattern>
     </defs>
-    <rect width="400" height="600" fill="url(#bg)"/>
-    <circle cx="200" cy="240" r="64" fill="url(#acc)" fill-opacity="0.15"/>
-    <path d="M175 220h50M175 240h50M175 260h30" stroke="#f43f5e" stroke-width="4" stroke-linecap="round"/>
-    <text x="200" y="340" fill="#f43f5e" font-family="system-ui, sans-serif" font-size="14" font-weight="700" letter-spacing="3" text-anchor="middle">MANGA</text>
-    <text x="200" y="375" fill="#f8fafc" font-family="system-ui, sans-serif" font-size="16" font-weight="600" text-anchor="middle">${safeTitle}</text>
+    <rect width="400" height="600" fill="url(#cyberBg)"/>
+    <rect width="400" height="600" fill="url(#grid)"/>
+    <circle cx="200" cy="250" r="140" fill="url(#aura)"/>
+    <rect x="22" y="22" width="356" height="556" rx="20" fill="none" stroke="url(#neonGlow)" stroke-width="2" stroke-opacity="0.4"/>
+    <rect x="30" y="30" width="340" height="540" rx="16" fill="none" stroke="#38bdf8" stroke-width="0.8" stroke-opacity="0.2" stroke-dasharray="4 6"/>
+    <!-- Cyber Manga Emblem & Seal -->
+    <circle cx="200" cy="240" r="70" fill="#0f172a" stroke="url(#neonGlow)" stroke-width="3" stroke-opacity="0.8"/>
+    <circle cx="200" cy="240" r="54" fill="none" stroke="#06b6d4" stroke-width="1.2" stroke-opacity="0.5" stroke-dasharray="6 4"/>
+    <!-- Stylized Katana & Manga Seal Glyph -->
+    <path d="M165 240 L235 240 M200 205 L200 275 M175 215 L225 265 M175 265 L225 215" stroke="url(#neonGlow)" stroke-width="3" stroke-linecap="round"/>
+    <polygon points="200,185 240,240 200,295 160,240" fill="none" stroke="#f43f5e" stroke-width="2" stroke-opacity="0.75"/>
+    <circle cx="200" cy="240" r="10" fill="#38bdf8"/>
+    <!-- Top & Bottom HUD Tech Decals -->
+    <text x="40" y="55" fill="#06b6d4" font-family="'JetBrains Mono', monospace" font-size="10" font-weight="700" letter-spacing="2">SYS::ARCHIVE</text>
+    <text x="360" y="55" text-anchor="end" fill="#f43f5e" font-family="'JetBrains Mono', monospace" font-size="10" font-weight="700" letter-spacing="2">VERIFIED</text>
+    <text x="200" y="380" text-anchor="middle" fill="#f8fafc" font-family="'Plus Jakarta Sans', system-ui, sans-serif" font-size="20" font-weight="900" letter-spacing="3">MANGA ARCHIVE</text>
+    <text x="200" y="405" text-anchor="middle" fill="#06b6d4" font-family="'JetBrains Mono', monospace" font-size="11" font-weight="700" letter-spacing="3">AUTHENTIC EDITION</text>
+    <line x1="120" y1="425" x2="280" y2="425" stroke="url(#neonGlow)" stroke-width="2" stroke-linecap="round"/>
+    <text x="200" y="535" text-anchor="middle" fill="#64748b" font-family="'JetBrains Mono', monospace" font-size="9" letter-spacing="4">KURONEKO // WEBTOON NETWORK</text>
   </svg>`;
   return `data:image/svg+xml;utf8,${encodeURIComponent(svg)}`;
 }

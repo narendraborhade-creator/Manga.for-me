@@ -1,7 +1,6 @@
 import React, { useState, useEffect, useRef } from 'react';
 import { 
   BookOpen, 
-  Film, 
   Bookmark, 
   History, 
   Search, 
@@ -109,7 +108,6 @@ export default function Navbar({
 
   const navItems = [
     { id: 'manga', label: 'Manga Hub', icon: BookOpen },
-    { id: 'anime', label: 'Anime Hub', icon: Film },
     { 
       id: 'library', 
       label: 'My Library', 
@@ -150,7 +148,7 @@ export default function Navbar({
                 </span>
               </div>
               <p className="text-[11px] text-slate-400 hidden sm:block font-medium">
-                Manga & Anime Terminal
+                Webtoon & Manga Terminal
               </p>
             </div>
           </div>
@@ -209,7 +207,7 @@ export default function Navbar({
               <Search className="w-4 h-4 text-cyan-400/80 absolute left-3.5 top-1/2 -translate-y-1/2 pointer-events-none" />
               <input
                 type="text"
-                placeholder={activeTab === 'anime' ? 'Search anime...' : 'Search manga by title...'}
+                placeholder="Search manga, manhwa & webtoons..."
                 value={searchQuery}
                 onFocus={() => setShowSuggestions(true)}
                 onChange={(e) => {
@@ -410,7 +408,7 @@ export default function Navbar({
             <Search className="w-4 h-4 text-slate-400 absolute left-3.5 top-1/2 -translate-y-1/2 pointer-events-none" />
             <input
               type="text"
-              placeholder={activeTab === 'anime' ? 'Search anime...' : 'Search manga by title...'}
+              placeholder="Search manga, manhwa & webtoons..."
               value={searchQuery}
               onFocus={() => setShowSuggestions(true)}
               onChange={(e) => {

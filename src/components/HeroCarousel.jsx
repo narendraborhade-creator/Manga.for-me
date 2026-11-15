@@ -1,11 +1,10 @@
 import React, { useState, useEffect, useRef } from 'react';
-import { Play, BookOpen, Star, Bookmark, ChevronLeft, ChevronRight, Info, Sparkles } from 'lucide-react';
+import { BookOpen, Star, Bookmark, ChevronLeft, ChevronRight, Info, Sparkles } from 'lucide-react';
 import { getFallbackCover, cleanTitle, getReliableCoverUrl } from '../services/mangaApi';
 
 export default function HeroCarousel({
   items = [],
   onSelectManga,
-  onSelectAnime,
   isBookmarkedFn,
   onToggleBookmark
 }) {
@@ -44,7 +43,6 @@ export default function HeroCarousel({
   const current = items[currentIndex];
   if (!current) return null;
 
-  const isManga = !current.episodes; // Anime has episodes
   const isSaved = isBookmarkedFn ? isBookmarkedFn(current.id) : false;
 
   return (
@@ -90,7 +88,7 @@ export default function HeroCarousel({
         <div className="flex flex-wrap items-center gap-2.5 mb-3">
           <span className="flex items-center gap-1.5 px-3 py-1 rounded-xl text-xs font-black tracking-wider uppercase btn-holo text-white shadow-lg">
             <Sparkles className="w-3.5 h-3.5" />
-            <span>{isManga ? 'Spotlight Manga' : 'Trending Anime'}</span>
+            <span>Spotlight Webtoon</span>
           </span>
 
           {current.score && current.score !== 'N/A' && (
@@ -103,6 +101,12 @@ export default function HeroCarousel({
           <span className="px-2.5 py-1 rounded-xl text-xs font-mono font-bold bg-slate-900/80 text-cyan-300 border border-cyan-500/30 uppercase backdrop-blur-md">
             STAT::{current.status?.toLowerCase() || 'Ongoing'}
           </span>
+
+          {current.latestChapter && (
+            <span className="px-2.5 py-1 rounded-xl text-xs text-rose-300 bg-rose-950/60 border border-rose-500/40 backdrop-blur-md font-mono font-bold">
+              CH::{current.latestChapter}
+            </span>
+          )}
 
           {current.year && (
             <span className="px-2.5 py-1 rounded-xl text-xs text-slate-300 bg-white/5 border border-white/10 backdrop-blur-md font-mono">
@@ -118,7 +122,7 @@ export default function HeroCarousel({
 
         {current.englishTitle && current.englishTitle.toLowerCase() !== current.title.toLowerCase() && (
           <p className="text-[11px] sm:text-sm text-zinc-300 mb-1.5 sm:mb-2 font-medium flex items-center gap-1.5 drop-shadow">
-            <span className="px-1.5 py-0.5 rounded text-[10px] font-mono uppercase bg-white/15 text-zinc-200 border border-white/10">JP</span>
+            <span className="px-1.5 py-0.5 rounded text-[10px] font-mono uppercase bg-white/15 text-zinc-200 border border-white/10">ORIG</span>
             <span className="truncate">{cleanTitle(current.title)}</span>
           </p>
         )}
@@ -142,26 +146,16 @@ export default function HeroCarousel({
 
         {/* Action CTAs */}
         <div className="flex flex-wrap items-center gap-2 sm:gap-3">
-          {isManga ? (
-            <button
-              onClick={() => onSelectManga(current.id, current.coverUrl)}
-              className="px-5 sm:px-8 py-2.5 sm:py-3.5 rounded-xl sm:rounded-2xl text-xs sm:text-sm font-extrabold text-white btn-holo shadow-xl hover:scale-102 transition-all flex items-center gap-2 group cursor-pointer"
-            >
-              <BookOpen className="w-4 h-4 group-hover:scale-110 transition-transform" />
-              <span>Read Manga [▶]</span>
-            </button>
-          ) : (
-            <button
-              onClick={() => onSelectAnime(current)}
-              className="px-5 sm:px-8 py-2.5 sm:py-3.5 rounded-xl sm:rounded-2xl text-xs sm:text-sm font-extrabold text-white btn-holo shadow-xl hover:scale-102 transition-all flex items-center gap-2 group cursor-pointer"
-            >
-              <Play className="w-4 h-4 fill-white group-hover:scale-110 transition-transform" />
-              <span>Watch Transmission [▶]</span>
-            </button>
-          )}
+          <button
+            onClick={() => onSelectManga(current.id, current.coverUrl)}
+            className="px-5 sm:px-8 py-2.5 sm:py-3.5 rounded-xl sm:rounded-2xl text-xs sm:text-sm font-extrabold text-white btn-holo shadow-xl hover:scale-102 transition-all flex items-center gap-2 group cursor-pointer"
+          >
+            <BookOpen className="w-4 h-4 group-hover:scale-110 transition-transform" />
+            <span>Read Manga [▶]</span>
+          </button>
 
           {/* Bookmark Button */}
-          {onToggleBookmark && isManga && (
+          {onToggleBookmark && (
             <button
               onClick={() => onToggleBookmark(current)}
               className={`px-3.5 sm:px-5 py-2.5 sm:py-3.5 rounded-xl sm:rounded-2xl text-xs sm:text-sm font-bold border transition-all flex items-center gap-1.5 sm:gap-2 backdrop-blur-md cursor-pointer ${
@@ -177,7 +171,7 @@ export default function HeroCarousel({
 
           {/* View Details */}
           <button
-            onClick={() => (isManga ? onSelectManga(current.id, current.coverUrl) : onSelectAnime(current))}
+            onClick={() => onSelectManga(current.id, current.coverUrl)}
             className="px-3.5 sm:px-5 py-2.5 sm:py-3.5 rounded-xl sm:rounded-2xl text-xs sm:text-sm font-semibold text-slate-300 hover:text-white bg-white/10 hover:bg-white/15 backdrop-blur-md border border-white/15 transition-all flex items-center gap-1.5 sm:gap-2 cursor-pointer"
           >
             <Info className="w-4 h-4" />

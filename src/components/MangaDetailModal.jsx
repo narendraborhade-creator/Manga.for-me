@@ -294,7 +294,10 @@ export default function MangaDetailModal({
                       referrerPolicy="no-referrer"
                       className="w-full h-full object-cover"
                       onError={(e) => {
-                        if (initialCoverUrl && e.target.src !== initialCoverUrl) {
+                        const reliable = getReliableCoverUrl(manga.englishTitle || manga.title, null);
+                        if (reliable && reliable !== e.target.src && !reliable.startsWith('data:')) {
+                          e.target.src = reliable;
+                        } else if (initialCoverUrl && e.target.src !== initialCoverUrl) {
                           e.target.src = initialCoverUrl;
                         } else {
                           e.target.src = getFallbackCover(manga.title);
@@ -894,7 +897,12 @@ export default function MangaDetailModal({
                             referrerPolicy="no-referrer"
                             className="w-full h-full object-cover group-hover:scale-110 transition-transform duration-500 ease-out"
                             onError={(e) => {
-                              e.target.src = getFallbackCover(rec.title);
+                              const reliable = getReliableCoverUrl(rec.englishTitle || rec.title, null);
+                              if (reliable && reliable !== e.target.src && !reliable.startsWith('data:')) {
+                                e.target.src = reliable;
+                              } else {
+                                e.target.src = getFallbackCover(rec.title);
+                              }
                             }}
                           />
                           <div className="absolute inset-0 bg-gradient-to-t from-[#060810] via-transparent to-transparent opacity-70 group-hover:opacity-40 transition-opacity" />
