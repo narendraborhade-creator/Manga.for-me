@@ -46,8 +46,8 @@ async function fetchWithTimeout(url, options = {}, timeoutMs = 8000) {
 export const WEBTOON_CATALOG = [
   {
     id: 'webtoon:stepmother-second-life',
-    totalChapters: 130,
-    latestChapter: '130',
+    totalChapters: 35,
+    latestChapter: '35',
     title: 'The Despised Stepmother Begins Her Second Life',
     englishTitle: "The Step Mother's Began Her Second Life",
     altTitles: [

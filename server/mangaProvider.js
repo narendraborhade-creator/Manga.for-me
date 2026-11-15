@@ -228,9 +228,13 @@ export const KNOWN_CHAPTER_COUNTS = {
   'reaper of the drifting moon': 215,
   'murim login': 190,
   'a fortune-telling princess': 176,
-  'the despised stepmother begins her second life': 137,
-  'the despised stepmother': 137,
-  'stepmother': 137,
+  'the despised stepmother begins her second life': 35,
+  'the despised stepmother': 35,
+  'the stepmother has left': 35,
+  'the step mother has left': 35,
+  'the step mother\'s began her second life': 35,
+  'stepmother second life': 35,
+  'stepmother': 35,
   'my in-laws are obsessed with me': 130,
   'my in laws are obsessed with me': 130,
   'solo leveling': 200,
@@ -1391,18 +1395,22 @@ export async function getMangaDetails(mangaId, bypassCache = false) {
   // Exact ID resolution for Stepmother Second Life webtoon
   if (
     mangaId === 'webtoon:stepmother-second-life' ||
-    mangaId === 'webtoon:the-step-mothers-began-her-second-life'
+    mangaId === 'webtoon:the-step-mothers-began-her-second-life' ||
+    mangaId === 'md:73f00a6a-dc33-49f6-beb0-98feb29ce0cc' ||
+    mangaId === '73f00a6a-dc33-49f6-beb0-98feb29ce0cc'
   ) {
     const details = await getWebtoonDetails('webtoon:stepmother-second-life', bypassCache);
     if (details) {
       const uniqueChapters = deduplicateChapters(details.chapters || []);
       const sources = await resolveAvailableSources(details.englishTitle || details.title, mangaId, 'Webtoon', uniqueChapters.length);
+      const latest = uniqueChapters[0]?.chapter || String(uniqueChapters.length) || '35';
       return {
         ...details,
         id: mangaId,
         aliasId: 'webtoon:stepmother-second-life',
         chapters: uniqueChapters,
         totalChapters: uniqueChapters.length,
+        latestChapter: latest,
         availableSources: sources,
       };
     }

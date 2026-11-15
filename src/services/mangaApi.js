@@ -722,7 +722,11 @@ export const FALLBACK_MANGA_CATALOG = [
     aliases: [
       'webtoon:the-step-mothers-began-her-second-life',
       'wc:01j76xy74zfsrkyp568q0e43q1-the-step-mother-began-her-second-life',
-      'the-despised-stepmother-begins-her-second-life'
+      'the-despised-stepmother-begins-her-second-life',
+      'the-stepmother-has-left',
+      'the-step-mother-has-left',
+      'md:73f00a6a-dc33-49f6-beb0-98feb29ce0cc',
+      '73f00a6a-dc33-49f6-beb0-98feb29ce0cc'
     ],
     title: 'The Despised Stepmother Begins Her Second Life',
     englishTitle: "The Step Mother's Began Her Second Life",
@@ -731,13 +735,13 @@ export const FALLBACK_MANGA_CATALOG = [
     score: '9.3',
     year: '2024',
     author: 'Gwon Gyeoul',
-    description: 'After dying from betrayal, she regresses back to the start of her second marriage with her stepchildren. This time, she will protect them and take control of her destiny!',
-    tags: ['Romance', 'Drama', 'Fantasy', 'Regression'],
+    description: 'After dying from betrayal, she regresses back to the start of her second marriage with her stepchildren. This time, she will protect them and take control of her destiny! (Webtoon Manhwa adaptation ongoing at Chapter 35; original novel completed).',
+    tags: ['Romance', 'Drama', 'Fantasy', 'Regression', 'Manhwa'],
     sourceName: 'Webtoon',
-    totalChapters: 85,
-    latestChapter: '85',
-    chapters: Array.from({ length: 85 }, (_, idx) => {
-      const num = 85 - idx;
+    totalChapters: 35,
+    latestChapter: '35',
+    chapters: Array.from({ length: 35 }, (_, idx) => {
+      const num = 35 - idx;
       return {
         id: `webtoon:stepmother:${num}`,
         chapter: String(num),
@@ -885,9 +889,13 @@ export const KNOWN_CHAPTER_COUNTS = {
   'reaper of the drifting moon': 215,
   'murim login': 190,
   'a fortune-telling princess': 176,
-  'the despised stepmother begins her second life': 137,
-  'the despised stepmother': 137,
-  'stepmother': 137,
+  'the despised stepmother begins her second life': 35,
+  'the despised stepmother': 35,
+  'the stepmother has left': 35,
+  'the step mother has left': 35,
+  'the step mother\'s began her second life': 35,
+  'stepmother second life': 35,
+  'stepmother': 35,
   'my in-laws are obsessed with me': 130,
   'my in laws are obsessed with me': 130,
   'solo leveling': 200,
