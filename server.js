@@ -10,7 +10,8 @@ import {
   proxyImage,
   isValidProxyTarget,
   getMangaRecommendations,
-  getMangaNews
+  getMangaNews,
+  getSourceListings
 } from './server/mangaProvider.js';
 
 const __filename = fileURLToPath(import.meta.url);
@@ -100,6 +101,41 @@ const server = http.createServer(async (req, res) => {
       const result = await getChapterPages(chapterId);
       res.setHeader('Content-Type', 'application/json');
       res.end(JSON.stringify(result));
+      return;
+    }
+
+    // Mihon Extension Repository Proxy & Cache
+    if (pathname === '/api/extensions/repo') {
+      const repoUrl = urlObj.searchParams.get('url');
+      if (!repoUrl) {
+        res.statusCode = 400;
+        res.end(JSON.stringify({ error: 'Missing repo URL' }));
+        return;
+      }
+      try {
+        const repoRes = await fetch(repoUrl, {
+          headers: { 'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36' }
+        });
+        if (!repoRes.ok) throw new Error(`HTTP ${repoRes.status}`);
+        const data = await repoRes.json();
+        res.setHeader('Content-Type', 'application/json');
+        res.setHeader('Cache-Control', 'public, max-age=900'); // 15 mins
+        res.end(JSON.stringify(data));
+      } catch (err) {
+        res.statusCode = 502;
+        res.end(JSON.stringify({ error: `Repo fetch failed: ${err.message}` }));
+      }
+      return;
+    }
+
+    // Mihon Source Listings (Popular, Latest, Search per source)
+    if (pathname === '/api/extensions/source') {
+      const sourceId = urlObj.searchParams.get('id') || '';
+      const type = urlObj.searchParams.get('type') || 'popular';
+      const q = urlObj.searchParams.get('q') || '';
+      const list = await getSourceListings(sourceId, type, q);
+      res.setHeader('Content-Type', 'application/json');
+      res.end(JSON.stringify(list));
       return;
     }
 

@@ -2413,4 +2413,63 @@ export async function getMangaRecommendations(currentId = '', genres = [], limit
   }
 }
 
+/**
+ * Mihon / Tachiyomi Extension Source Provider Endpoint
+ * Retrieves Popular, Latest, or Search listings for any specific installed source.
+ */
+export async function getSourceListings(sourceId = '', type = 'popular', query = '') {
+  const s = String(sourceId || '').toLowerCase().trim();
+  const q = String(query || '').trim();
+
+  try {
+    if (s.includes('katana') || s === 'kat') {
+      if (type === 'latest') return await getLatestMangaKatana();
+      if (type === 'search' && q) return await searchMangaKatana(q);
+      return await getPopularMangaKatana();
+    }
+
+    if (s.includes('weeb') || s === 'wc') {
+      if (type === 'latest') return await getLatestUpdatesWeebCentral();
+      if (type === 'search' && q) return await searchWeebCentral(q);
+      return await getPopularWeebCentral();
+    }
+
+    if (s.includes('dex') || s === 'md') {
+      return await searchMangaDex(q || 'action');
+    }
+
+    if (s.includes('asura')) {
+      if (type === 'search' && q) return await searchAsura(q);
+      return await getPopularAsura();
+    }
+
+    if (s.includes('flame')) {
+      if (type === 'search' && q) return await searchFlame(q);
+      return await getPopularFlame();
+    }
+
+    if (s.includes('thunder')) {
+      if (type === 'search' && q) return await searchThunder(q);
+      return await getPopularThunder();
+    }
+
+    if (s.includes('kakalot') || s === 'mk') {
+      if (type === 'latest') return await getLatestMangaKakalot();
+      if (type === 'search' && q) return await searchMangaKakalot(q);
+      return await getPopularMangaKakalot();
+    }
+
+    if (s.includes('webtoon')) {
+      return await searchWebtoons(q || 'solo');
+    }
+
+    // Default fallback
+    if (q) return await searchManga(q);
+    return await getPopularManga();
+  } catch (err) {
+    console.warn(`getSourceListings error for ${sourceId} (${type}):`, err.message);
+    return [];
+  }
+}
+
 export { getMangaNews };

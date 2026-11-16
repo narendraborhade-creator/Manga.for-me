@@ -8,6 +8,8 @@ import MangaReader from './components/MangaReader';
 import LibraryView from './components/LibraryView';
 import HistoryView from './components/HistoryView';
 import BackupModal from './components/BackupModal';
+import ExtensionsView from './components/ExtensionsView';
+import { getInstalledExtensions } from './services/extensionManager';
 
 import { 
   fetchPopularManga, 
@@ -46,7 +48,8 @@ import {
   SlidersHorizontal,
   Search,
   Newspaper,
-  ExternalLink
+  ExternalLink,
+  Layers
 } from 'lucide-react';
 
 const GENRES = [
@@ -106,10 +109,11 @@ function matchesSource(manga, filterSource) {
 
 export default function App() {
   // Navigation & Search
-  const [activeTab, setActiveTab] = useState('manga'); // 'manga' | 'library' | 'history'
+  const [activeTab, setActiveTab] = useState('manga'); // 'manga' | 'sources' | 'library' | 'history'
   const [searchQuery, setSearchQuery] = useState('');
   const [selectedGenre, setSelectedGenre] = useState('All');
   const [selectedSource, setSelectedSource] = useState('All'); // 'All' | 'WeebCentral' | 'Webtoon' | 'MangaPill'
+  const [installedSourcesCount, setInstalledSourcesCount] = useState(8);
 
   // Local Storage States
   const [bookmarks, setBookmarks] = useState({});
@@ -155,10 +159,20 @@ export default function App() {
     setHistory(getHistory());
     setLastRead(getLastRead());
     setUpdates(getUpdates());
+    try {
+      setInstalledSourcesCount(getInstalledExtensions().length);
+    } catch {}
   }, []);
 
   useEffect(() => {
     refreshStorageData();
+
+    const handleExtUpdate = () => {
+      try {
+        setInstalledSourcesCount(getInstalledExtensions().length);
+      } catch {}
+    };
+    window.addEventListener('mihon:extension_update', handleExtUpdate);
 
     // Listen for real-time reading progress updates from MangaReader
     const handleProgressUpdate = () => {
@@ -437,6 +451,7 @@ export default function App() {
           setSelectedSource('All');
         }}
         bookmarksCount={Object.keys(bookmarks).length}
+        installedSourcesCount={installedSourcesCount}
         lastRead={lastRead}
         onOpenReader={handleOpenReader}
         onOpenBackup={() => setIsBackupOpen(true)}
@@ -855,7 +870,15 @@ export default function App() {
           );
         })()}
 
-        {/* --------------------- TAB 2: MY LIBRARY --------------------- */}
+        {/* --------------------- TAB 2: MIHON SOURCES & EXTENSIONS DECK --------------------- */}
+        {activeTab === 'sources' && (
+          <ExtensionsView
+            onSelectManga={handleOpenMangaDetails}
+            onOpenReader={handleOpenReader}
+          />
+        )}
+
+        {/* --------------------- TAB 3: MY LIBRARY --------------------- */}
         {activeTab === 'library' && (
           <LibraryView
             bookmarks={bookmarks}
@@ -996,9 +1019,10 @@ export default function App() {
       {/* Mobile Bottom Navigation Bar (Phone-Optimized, Safe-Area aware, Glassmorphism + HUD) */}
       {!readerState.active && (
         <nav className="md:hidden fixed bottom-0 left-0 right-0 z-40 bg-slate-950/90 backdrop-blur-3xl border-t border-cyan-500/25 px-2 py-1.5 pb-[calc(0.5rem+env(safe-area-inset-bottom))] shadow-[0_-10px_35px_rgba(0,0,0,0.9)]">
-          <div className="grid grid-cols-3 items-center justify-around max-w-md mx-auto">
+          <div className="grid grid-cols-4 items-center justify-around max-w-md mx-auto">
             {[
               { id: 'manga', label: 'Manga Hub', icon: BookOpen },
+              { id: 'sources', label: 'Sources', icon: Layers, badge: installedSourcesCount || null },
               { id: 'library', label: 'Library', icon: Bookmark, badge: Object.keys(bookmarks).length || null },
               { id: 'history', label: 'History', icon: History, badge: history.length || null },
             ].map((tab) => {

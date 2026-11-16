@@ -12,7 +12,8 @@ import {
   TrendingUp,
   Loader2,
   SlidersHorizontal,
-  Filter
+  Filter,
+  Layers
 } from 'lucide-react';
 import NotificationsDropdown from './NotificationsDropdown';
 import { searchManga, getFallbackCover } from '../services/mangaApi';
@@ -26,6 +27,7 @@ export default function Navbar({
   selectedSource = 'All',
   onResetFilters,
   bookmarksCount,
+  installedSourcesCount = 0,
   lastRead,
   onOpenReader,
   onOpenBackup,
@@ -108,6 +110,12 @@ export default function Navbar({
 
   const navItems = [
     { id: 'manga', label: 'Manga Hub', icon: BookOpen },
+    { 
+      id: 'sources', 
+      label: 'Sources & Exts', 
+      icon: Layers, 
+      badge: installedSourcesCount > 0 ? installedSourcesCount : null 
+    },
     { 
       id: 'library', 
       label: 'My Library', 
