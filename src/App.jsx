@@ -1,16 +1,18 @@
-import React, { useState, useEffect, useMemo, useCallback, useRef } from 'react';
+import React, { useState, useEffect, useMemo, useCallback, useRef, lazy, Suspense } from 'react';
 import Navbar from './components/Navbar';
 import ContinueReadingBanner from './components/ContinueReadingBanner';
 import HeroCarousel from './components/HeroCarousel';
 import MangaCard from './components/MangaCard';
-import MangaDetailModal from './components/MangaDetailModal';
-import MangaReader from './components/MangaReader';
-import LibraryView from './components/LibraryView';
-import HistoryView from './components/HistoryView';
-import BackupModal from './components/BackupModal';
-import ExtensionsView from './components/ExtensionsView';
-import UpdatesView from './components/UpdatesView';
-import MoreView from './components/MoreView';
+
+// Code-split heavy views and modals for optimal Core Web Vitals (LCP/FID) and minimal initial bundle size
+const MangaDetailModal = lazy(() => import('./components/MangaDetailModal'));
+const MangaReader = lazy(() => import('./components/MangaReader'));
+const LibraryView = lazy(() => import('./components/LibraryView'));
+const HistoryView = lazy(() => import('./components/HistoryView'));
+const BackupModal = lazy(() => import('./components/BackupModal'));
+const ExtensionsView = lazy(() => import('./components/ExtensionsView'));
+const UpdatesView = lazy(() => import('./components/UpdatesView'));
+const MoreView = lazy(() => import('./components/MoreView'));
 import { getInstalledExtensions } from './services/extensionManager';
 
 import { 
@@ -183,23 +185,28 @@ export default function App() {
     };
     window.addEventListener('kuroneko:reading_progress_updated', handleProgressUpdate);
 
-    // Check for 1-click sync data in URL hash (e.g. migrating from localhost to Vercel)
+    // Check for 1-click sync data in URL hash (e.g. migrating across domains)
     if (window.location.hash && window.location.hash.startsWith('#sync_data=')) {
       try {
         const encoded = window.location.hash.replace('#sync_data=', '');
         const jsonStr = decodeDataFromUrl(encoded);
+        window.history.replaceState(null, '', window.location.pathname);
         if (jsonStr) {
-          const success = importData(jsonStr);
-          if (success) {
-            refreshStorageData();
-            window.history.replaceState(null, '', window.location.pathname);
-            setActiveToast({
-              chapterId: 'sync-complete',
-              chapterNumber: 'Sync Success',
-              mangaTitle: 'Localhost Data Restored!',
-              mangaEnglishTitle: 'Your library bookmarks and reading history were successfully imported to this app.',
-              coverUrl: getFallbackCover('Sync Complete'),
-            });
+          const proceed = window.confirm(
+            'KuroNeko Library Sync:\nDo you want to import bookmarks and reading history from this link?'
+          );
+          if (proceed) {
+            const success = importData(jsonStr);
+            if (success) {
+              refreshStorageData();
+              setActiveToast({
+                chapterId: 'sync-complete',
+                chapterNumber: 'Sync Success',
+                mangaTitle: 'Library Data Restored',
+                mangaEnglishTitle: 'Your library bookmarks and reading history were successfully imported.',
+                coverUrl: getFallbackCover('Sync Complete'),
+              });
+            }
           }
         }
       } catch (err) {
@@ -873,100 +880,106 @@ export default function App() {
           );
         })()}
 
-        {/* --------------------- TAB 2: MIHON SOURCES & EXTENSIONS DECK --------------------- */}
-        {activeTab === 'sources' && (
-          <ExtensionsView
-            onSelectManga={handleOpenMangaDetails}
-            onOpenReader={handleOpenReader}
-          />
-        )}
+        {/* --------------------- TAB 2-6: SUSPENSE WRAPPED VIEWS --------------------- */}
+        <Suspense
+          fallback={
+            <div className="flex flex-col items-center justify-center min-h-[45vh] text-slate-400 gap-3 py-16">
+              <Loader2 className="w-8 h-8 animate-spin text-rose-500" />
+              <span className="text-xs font-semibold tracking-wide text-slate-400">Loading module...</span>
+            </div>
+          }
+        >
+          {activeTab === 'sources' && (
+            <ExtensionsView
+              onSelectManga={handleOpenMangaDetails}
+              onOpenReader={handleOpenReader}
+            />
+          )}
 
-        {/* --------------------- TAB 3: UPDATES FEED --------------------- */}
-        {activeTab === 'updates' && (
-          <UpdatesView
-            onSelectManga={handleOpenMangaDetails}
-            onOpenReader={handleOpenReader}
-            onGoToBrowse={() => setActiveTab('manga')}
-          />
-        )}
+          {activeTab === 'updates' && (
+            <UpdatesView
+              onSelectManga={handleOpenMangaDetails}
+              onOpenReader={handleOpenReader}
+              onGoToBrowse={() => setActiveTab('manga')}
+            />
+          )}
 
-        {/* --------------------- TAB 4: MY LIBRARY --------------------- */}
-        {activeTab === 'library' && (
-          <LibraryView
-            bookmarks={bookmarks}
-            onSelectManga={(id, cover) => handleOpenMangaDetails(id, cover || bookmarks[id]?.coverUrl)}
-            onOpenReader={handleOpenReader}
-            onRemoveBookmark={handleRemoveBookmark}
-            onUpdateStatus={handleSetBookmark}
-            onOpenBackup={() => setIsBackupOpen(true)}
-          />
-        )}
+          {activeTab === 'library' && (
+            <LibraryView
+              bookmarks={bookmarks}
+              onSelectManga={(id, cover) => handleOpenMangaDetails(id, cover || bookmarks[id]?.coverUrl)}
+              onOpenReader={handleOpenReader}
+              onRemoveBookmark={handleRemoveBookmark}
+              onUpdateStatus={handleSetBookmark}
+              onOpenBackup={() => setIsBackupOpen(true)}
+            />
+          )}
 
-        {/* --------------------- TAB 5: READING HISTORY --------------------- */}
-        {activeTab === 'history' && (
-          <HistoryView
-            history={history}
-            onOpenReader={handleOpenReader}
-            onOpenMangaDetails={handleOpenHistoryMangaDetails}
-            onRefreshHistory={refreshStorageData}
-          />
-        )}
+          {activeTab === 'history' && (
+            <HistoryView
+              history={history}
+              onOpenReader={handleOpenReader}
+              onOpenMangaDetails={handleOpenHistoryMangaDetails}
+              onRefreshHistory={refreshStorageData}
+            />
+          )}
 
-        {/* --------------------- TAB 6: MORE & SETTINGS --------------------- */}
-        {activeTab === 'more' && (
-          <MoreView
-            onOpenBackup={() => setIsBackupOpen(true)}
-            onGoToSources={() => setActiveTab('sources')}
-            onGoToBrowse={() => setActiveTab('manga')}
-          />
-        )}
+          {activeTab === 'more' && (
+            <MoreView
+              onOpenBackup={() => setIsBackupOpen(true)}
+              onGoToSources={() => setActiveTab('sources')}
+              onGoToBrowse={() => setActiveTab('manga')}
+            />
+          )}
+        </Suspense>
 
       </main>
 
-      {/* --------------------- MODALS & FULLSCREEN VIEWS --------------------- */}
+      {/* --------------------- MODALS & FULLSCREEN VIEWS (SUSPENSE LAZY LOADED) --------------------- */}
+      <Suspense fallback={null}>
+        {/* Manga Detail Modal */}
+        {selectedMangaId && (
+          <MangaDetailModal
+            mangaId={selectedMangaId}
+            initialCoverUrl={selectedMangaCover}
+            onClose={() => {
+              setSelectedMangaId(null);
+              setSelectedMangaCover('');
+            }}
+            onOpenReader={handleOpenReader}
+            onSelectManga={handleOpenMangaDetails}
+            isBookmarked={!!bookmarks[selectedMangaId]}
+            bookmarkStatus={getBookmarkStatus(selectedMangaId)}
+            onSetBookmark={handleSetBookmark}
+            onRemoveBookmark={handleRemoveBookmark}
+            lastReadChapter={
+              historyMap[selectedMangaId]?.chapterNumber || null
+            }
+          />
+        )}
 
-      {/* Manga Detail Modal */}
-      {selectedMangaId && (
-        <MangaDetailModal
-          mangaId={selectedMangaId}
-          initialCoverUrl={selectedMangaCover}
-          onClose={() => {
-            setSelectedMangaId(null);
-            setSelectedMangaCover('');
-          }}
-          onOpenReader={handleOpenReader}
-          onSelectManga={handleOpenMangaDetails}
-          isBookmarked={!!bookmarks[selectedMangaId]}
-          bookmarkStatus={getBookmarkStatus(selectedMangaId)}
-          onSetBookmark={handleSetBookmark}
-          onRemoveBookmark={handleRemoveBookmark}
-          lastReadChapter={
-            historyMap[selectedMangaId]?.chapterNumber || null
-          }
+        {/* Interactive Manga Reader */}
+        {readerState.active && (
+          <MangaReader
+            mangaId={readerState.mangaId}
+            chapterId={readerState.chapterId}
+            chapterNumber={readerState.chapterNumber}
+            mangaTitle={readerState.mangaTitle}
+            mangaEnglishTitle={readerState.mangaEnglishTitle}
+            coverUrl={readerState.coverUrl}
+            onClose={handleCloseReader}
+            onGoHome={handleGoHome}
+            onChangeChapter={handleChangeChapter}
+          />
+        )}
+
+        {/* Backup & Restore Modal */}
+        <BackupModal
+          isOpen={isBackupOpen}
+          onClose={() => setIsBackupOpen(false)}
+          onRefreshData={refreshStorageData}
         />
-      )}
-
-      {/* Interactive Manga Reader */}
-      {readerState.active && (
-        <MangaReader
-          mangaId={readerState.mangaId}
-          chapterId={readerState.chapterId}
-          chapterNumber={readerState.chapterNumber}
-          mangaTitle={readerState.mangaTitle}
-          mangaEnglishTitle={readerState.mangaEnglishTitle}
-          coverUrl={readerState.coverUrl}
-          onClose={handleCloseReader}
-          onGoHome={handleGoHome}
-          onChangeChapter={handleChangeChapter}
-        />
-      )}
-
-      {/* Backup & Restore Modal */}
-      <BackupModal
-        isOpen={isBackupOpen}
-        onClose={() => setIsBackupOpen(false)}
-        onRefreshData={refreshStorageData}
-      />
+      </Suspense>
 
       {/* Floating Real-Time Update Alert Toast */}
       {activeToast && (
@@ -1037,9 +1050,9 @@ export default function App() {
         </div>
       </footer>
 
-      {/* Mobile Bottom Navigation Bar (Phone-Optimized, Safe-Area aware, Glassmorphism + HUD) */}
+      {/* Mobile Bottom Navigation Bar (Phone-Optimized, Safe-Area aware, Modern Editorial Style) */}
       {!readerState.active && (
-        <nav className="md:hidden fixed bottom-0 left-0 right-0 z-40 bg-slate-950/90 backdrop-blur-3xl border-t border-cyan-500/25 px-2 py-1.5 pb-[calc(0.5rem+env(safe-area-inset-bottom))] shadow-[0_-10px_35px_rgba(0,0,0,0.9)]">
+        <nav className="md:hidden fixed bottom-0 left-0 right-0 z-40 bg-[#080a11]/95 backdrop-blur-2xl border-t border-white/10 px-2 py-1.5 pb-[calc(0.5rem+env(safe-area-inset-bottom))] shadow-2xl">
           <div className="grid grid-cols-5 items-center justify-around max-w-md mx-auto">
             {[
               { id: 'library', label: 'Library', icon: Bookmark, badge: Object.keys(bookmarks).length || null },
@@ -1057,21 +1070,22 @@ export default function App() {
                     setActiveTab(tab.id);
                     window.scrollTo({ top: 0, behavior: 'smooth' });
                   }}
+                  aria-label={tab.label}
                   className={`flex flex-col items-center justify-center py-1 px-1 rounded-xl transition-all relative ${
                     isActive
-                      ? 'text-cyan-300 font-bold'
+                      ? 'text-rose-400 font-semibold'
                       : 'text-slate-400 hover:text-slate-200'
                   }`}
                 >
                   <div className="relative">
-                    <Icon className={`w-5 h-5 ${isActive ? 'text-cyan-400 drop-shadow-[0_0_10px_rgba(0,245,212,0.7)]' : ''}`} />
+                    <Icon className={`w-5 h-5 ${isActive ? 'text-rose-500' : ''}`} />
                     {tab.badge ? (
-                      <span className="absolute -top-1 -right-2 px-1 text-[9px] font-mono font-black rounded-full bg-rose-600 text-white min-w-[14px] text-center border border-white/20">
+                      <span className="absolute -top-1 -right-2 px-1 text-[9px] font-bold rounded-full bg-rose-600 text-white min-w-[14px] text-center border border-white/20">
                         {tab.badge > 99 ? '99+' : tab.badge}
                       </span>
                     ) : null}
                   </div>
-                  <span className="text-[10px] mt-0.5 tracking-tight font-mono font-medium">
+                  <span className="text-[11px] mt-0.5 tracking-tight font-medium">
                     {tab.label}
                   </span>
                 </button>

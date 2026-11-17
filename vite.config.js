@@ -6,10 +6,11 @@ import {
   searchManga, 
   getMangaDetails, 
   getChapterPages, 
-  proxyImage,
-  isValidProxyTarget,
-  getMangaRecommendations,
-  getMangaNews
+  proxyImage, 
+  isValidProxyTarget, 
+  getMangaRecommendations, 
+  getMangaNews,
+  getSourceListings
 } from './server/mangaProvider.js'
 
 // In-memory sliding window rate limiter (120 requests per 10 seconds per IP)
@@ -118,6 +119,47 @@ function mangaApiPlugin() {
         return;
       }
 
+      if (pathname === '/api/extensions/repo') {
+        const repoUrl = urlObj.searchParams.get('url');
+        if (!repoUrl || !isValidProxyTarget(repoUrl)) {
+          res.statusCode = 400;
+          res.end(JSON.stringify({ error: 'Invalid repository destination' }));
+          return;
+        }
+        try {
+          const parsed = new URL(repoUrl);
+          const host = parsed.hostname.toLowerCase();
+          const isAllowed = host === 'raw.githubusercontent.com' || host === 'cdn.jsdelivr.net' || host.endsWith('.github.io');
+          if (!isAllowed) {
+            res.statusCode = 403;
+            res.end(JSON.stringify({ error: 'Forbidden: Repository host is not allowlisted' }));
+            return;
+          }
+          const repoRes = await fetch(repoUrl, {
+            headers: { 'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36' }
+          });
+          if (!repoRes.ok) throw new Error(`HTTP ${repoRes.status}`);
+          const data = await repoRes.json();
+          res.setHeader('Content-Type', 'application/json');
+          res.setHeader('Cache-Control', 'public, max-age=900');
+          res.end(JSON.stringify(data));
+        } catch (_err) {
+          res.statusCode = 502;
+          res.end(JSON.stringify({ error: 'Failed to retrieve repository index' }));
+        }
+        return;
+      }
+
+      if (pathname === '/api/extensions/source') {
+        const sourceId = urlObj.searchParams.get('id') || '';
+        const type = urlObj.searchParams.get('type') || 'popular';
+        const q = urlObj.searchParams.get('q') || '';
+        const list = await getSourceListings(sourceId, type, q);
+        res.setHeader('Content-Type', 'application/json');
+        res.end(JSON.stringify(list));
+        return;
+      }
+
       if (pathname === '/api/image-proxy') {
         const targetUrl = urlObj.searchParams.get('url');
         if (targetUrl) {
@@ -158,4 +200,19 @@ export default defineConfig({
     tailwindcss(),
     mangaApiPlugin(),
   ],
+  build: {
+    chunkSizeWarningLimit: 600,
+    rollupOptions: {
+      output: {
+        manualChunks(id) {
+          if (id.includes('node_modules/react/') || id.includes('node_modules/react-dom/')) {
+            return 'vendor-react';
+          }
+          if (id.includes('node_modules/lucide-react/')) {
+            return 'vendor-icons';
+          }
+        }
+      }
+    }
+  }
 })

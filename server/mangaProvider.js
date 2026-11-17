@@ -1177,15 +1177,23 @@ export function isAuthenticSeriesMatch(details, match, matchDetails) {
     if (rawClean) validTargets.add(rawClean);
   };
 
-  addTarget(details.title);
-  addTarget(details.englishTitle);
-  if (Array.isArray(details.altTitles)) {
-    details.altTitles.forEach(addTarget);
+  if (typeof details === 'string') {
+    addTarget(details);
+  } else {
+    addTarget(details.title);
+    addTarget(details.englishTitle);
+    if (Array.isArray(details.altTitles)) {
+      details.altTitles.forEach(addTarget);
+    }
   }
 
   const matchTitles = [];
-  if (match.title) matchTitles.push(match.title);
-  if (match.englishTitle) matchTitles.push(match.englishTitle);
+  if (typeof match === 'string') {
+    matchTitles.push(match);
+  } else {
+    if (match.title) matchTitles.push(match.title);
+    if (match.englishTitle) matchTitles.push(match.englishTitle);
+  }
   if (matchDetails?.title) matchTitles.push(matchDetails.title);
   if (matchDetails?.englishTitle) matchTitles.push(matchDetails.englishTitle);
   if (Array.isArray(matchDetails?.altTitles)) {

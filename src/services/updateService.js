@@ -120,18 +120,27 @@ export async function checkAllLibraryUpdates(onUpdateFound = null) {
   let newUpdatesFound = 0;
   const discoveredUpdates = [];
 
-  // Fetch all updates concurrently to avoid N+1 query latency
-  const updatePromises = targets.map(async (item) => {
-    try {
-      const res = await checkSingleMangaUpdates(item.id);
-      return { item, res };
-    } catch (e) {
-      console.warn(`Update check failed for ${item.id}:`, e);
-      return { item, res: null };
+  // Throttled batch updates in chunks of 3 to prevent rate-limiting and timeouts
+  const BATCH_SIZE = 3;
+  const updateResults = [];
+  for (let i = 0; i < targets.length; i += BATCH_SIZE) {
+    const chunk = targets.slice(i, i + BATCH_SIZE);
+    const chunkResults = await Promise.all(
+      chunk.map(async (item) => {
+        try {
+          const res = await checkSingleMangaUpdates(item.id);
+          return { item, res };
+        } catch (e) {
+          console.warn(`Update check failed for ${item.id}:`, e);
+          return { item, res: null };
+        }
+      })
+    );
+    updateResults.push(...chunkResults);
+    if (i + BATCH_SIZE < targets.length) {
+      await new Promise((resolve) => setTimeout(resolve, 200));
     }
-  });
-
-  const updateResults = await Promise.all(updatePromises);
+  }
 
   // Process the fetched results synchronously to maintain data consistency
   for (const { item, res } of updateResults) {

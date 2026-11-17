@@ -171,12 +171,12 @@ export default function LibraryView({
   return (
     <div className="space-y-6 animate-fadeIn max-w-7xl mx-auto px-4 sm:px-6 py-4 pb-28">
       {/* Top Banner & Stats Header */}
-      <div className="relative overflow-hidden rounded-3xl p-6 sm:p-8 border border-cyan-500/25 bg-gradient-to-r from-cyan-950/20 via-slate-900/80 to-slate-950/90 shadow-2xl">
+      <div className="relative overflow-hidden rounded-3xl p-6 sm:p-8 border border-white/10 bg-gradient-to-r from-rose-950/20 via-slate-900/80 to-slate-950/90 shadow-2xl">
         <div className="flex flex-col md:flex-row items-start md:items-center justify-between gap-6">
           <div>
             <div className="flex items-center gap-2.5 mb-2">
-              <span className="p-2 rounded-xl bg-cyan-500/20 text-cyan-400 border border-cyan-500/30">
-                <Bookmark className="w-5 h-5 fill-cyan-400 text-cyan-400" />
+              <span className="p-2 rounded-xl bg-rose-500/20 text-rose-400 border border-rose-500/30">
+                <Bookmark className="w-5 h-5 fill-rose-400 text-rose-400" />
               </span>
               <h1 className="text-2xl sm:text-3xl font-black text-white tracking-tight font-['Outfit']">
                 My Library
@@ -189,7 +189,7 @@ export default function LibraryView({
 
           {/* Quick Stats Grid */}
           <div className="grid grid-cols-3 gap-2.5 w-full md:w-auto font-mono">
-            <div className="p-3 rounded-2xl bg-slate-950/80 border border-cyan-500/30 text-center">
+            <div className="p-3 rounded-2xl bg-slate-950/80 border border-white/10 text-center">
               <span className="text-[10px] text-slate-400 block font-medium">In Library</span>
               <span className="text-base sm:text-lg font-black text-white">{bookmarkList.length}</span>
             </div>
@@ -197,9 +197,9 @@ export default function LibraryView({
               <span className="text-[10px] text-rose-400 block font-medium">Reading</span>
               <span className="text-base sm:text-lg font-black text-rose-400">{readingCount}</span>
             </div>
-            <div className="p-3 rounded-2xl bg-slate-950/80 border border-cyan-500/30 text-center">
-              <span className="text-[10px] text-cyan-400 block font-medium">Read</span>
-              <span className="text-base sm:text-lg font-black text-cyan-400">{totalReadChapters}</span>
+            <div className="p-3 rounded-2xl bg-slate-950/80 border border-white/10 text-center">
+              <span className="text-[10px] text-slate-400 block font-medium">Read</span>
+              <span className="text-base sm:text-lg font-black text-white">{totalReadChapters}</span>
             </div>
           </div>
         </div>
@@ -208,7 +208,7 @@ export default function LibraryView({
       {/* Categories Bar & Action Controls */}
       <div className="space-y-4">
         {/* Categories Pills */}
-        <div className="flex items-center gap-1.5 overflow-x-auto pb-2 scrollbar-none font-mono text-xs">
+        <div className="flex items-center gap-1.5 overflow-x-auto pb-2 scrollbar-none text-xs">
           {categories.map((cat) => {
             const isActive = activeCategory === cat;
             let count = 0;
@@ -227,13 +227,13 @@ export default function LibraryView({
                 onClick={() => setActiveCategory(cat)}
                 className={`flex items-center gap-1.5 px-3.5 py-2 rounded-xl font-bold whitespace-nowrap transition-all cursor-pointer ${
                   isActive
-                    ? 'bg-gradient-to-r from-cyan-500 to-blue-600 text-slate-950 shadow-md shadow-cyan-500/30'
+                    ? 'bg-rose-600 text-white shadow-md shadow-rose-600/30'
                     : 'bg-slate-900/80 hover:bg-slate-800 text-slate-400 hover:text-white border border-white/10'
                 }`}
               >
                 <span>{cat}</span>
-                <span className={`text-[10px] px-1.5 py-0.5 rounded-full font-mono ${
-                  isActive ? 'bg-slate-950/30 text-slate-950' : 'bg-slate-800 text-slate-400'
+                <span className={`text-[10px] px-1.5 py-0.5 rounded-full ${
+                  isActive ? 'bg-black/30 text-white' : 'bg-slate-800 text-slate-400'
                 }`}>
                   {count}
                 </span>
@@ -243,8 +243,9 @@ export default function LibraryView({
 
           <button
             onClick={() => setIsCategoryModalOpen(true)}
-            className="flex items-center gap-1 px-3 py-2 rounded-xl bg-white/5 hover:bg-white/10 text-cyan-400 border border-dashed border-cyan-500/30 whitespace-nowrap transition-all"
+            className="flex items-center gap-1 px-3 py-2 rounded-xl bg-white/5 hover:bg-white/10 text-rose-400 border border-dashed border-rose-500/30 whitespace-nowrap transition-all"
             title="Add New Category"
+            aria-label="Add New Category"
           >
             <Plus className="w-3.5 h-3.5" />
             <span>Category</span>
@@ -261,7 +262,7 @@ export default function LibraryView({
               placeholder="Search library..."
               value={searchQuery}
               onChange={(e) => setSearchQuery(e.target.value)}
-              className="w-full bg-slate-900/90 border border-white/10 rounded-xl pl-9 pr-3 py-2 text-xs text-slate-200 placeholder:text-slate-500 focus:outline-none focus:border-cyan-500/50"
+              className="w-full bg-slate-900/90 border border-white/10 rounded-xl pl-9 pr-3 py-2 text-xs text-slate-200 placeholder:text-slate-500 focus:outline-none focus:border-rose-500/50"
             />
           </div>
 
@@ -272,7 +273,7 @@ export default function LibraryView({
               <select
                 value={sortBy}
                 onChange={(e) => handleSortChange(e.target.value)}
-                className="bg-slate-900/90 border border-white/10 hover:border-white/20 rounded-xl pl-8 pr-3 py-2 text-xs font-mono text-slate-300 focus:outline-none cursor-pointer"
+                className="bg-slate-900/90 border border-white/10 hover:border-white/20 rounded-xl pl-8 pr-3 py-2 text-xs text-slate-300 focus:outline-none cursor-pointer"
               >
                 <option value="alpha_asc">Sort: A-Z</option>
                 <option value="alpha_desc">Sort: Z-A</option>
@@ -287,36 +288,40 @@ export default function LibraryView({
               <button
                 onClick={() => handleDisplayModeChange('comfortable')}
                 className={`p-1.5 rounded-lg transition-all ${
-                  displayMode === 'comfortable' ? 'bg-cyan-500 text-slate-950 font-bold shadow-sm' : 'text-slate-400 hover:text-white'
+                  displayMode === 'comfortable' ? 'bg-rose-600 text-white font-bold shadow-sm' : 'text-slate-400 hover:text-white'
                 }`}
                 title="Comfortable Grid"
+                aria-label="Comfortable Grid"
               >
                 <LayoutGrid className="w-4 h-4" />
               </button>
               <button
                 onClick={() => handleDisplayModeChange('compact')}
                 className={`p-1.5 rounded-lg transition-all ${
-                  displayMode === 'compact' ? 'bg-cyan-500 text-slate-950 font-bold shadow-sm' : 'text-slate-400 hover:text-white'
+                  displayMode === 'compact' ? 'bg-rose-600 text-white font-bold shadow-sm' : 'text-slate-400 hover:text-white'
                 }`}
-                title="Compact Grid (Mihon Classic)"
+                title="Compact Grid"
+                aria-label="Compact Grid"
               >
                 <Grid className="w-4 h-4" />
               </button>
               <button
                 onClick={() => handleDisplayModeChange('cover_only')}
                 className={`p-1.5 rounded-lg transition-all ${
-                  displayMode === 'cover_only' ? 'bg-cyan-500 text-slate-950 font-bold shadow-sm' : 'text-slate-400 hover:text-white'
+                  displayMode === 'cover_only' ? 'bg-rose-600 text-white font-bold shadow-sm' : 'text-slate-400 hover:text-white'
                 }`}
                 title="Cover Only Grid"
+                aria-label="Cover Only Grid"
               >
                 <ImageIcon className="w-4 h-4" />
               </button>
               <button
                 onClick={() => handleDisplayModeChange('list')}
                 className={`p-1.5 rounded-lg transition-all ${
-                  displayMode === 'list' ? 'bg-cyan-500 text-slate-950 font-bold shadow-sm' : 'text-slate-400 hover:text-white'
+                  displayMode === 'list' ? 'bg-rose-600 text-white font-bold shadow-sm' : 'text-slate-400 hover:text-white'
                 }`}
                 title="List View"
+                aria-label="List View"
               >
                 <List className="w-4 h-4" />
               </button>
@@ -327,6 +332,7 @@ export default function LibraryView({
               onClick={onOpenBackup}
               className="p-2 rounded-xl bg-slate-900/90 border border-white/10 hover:border-white/20 text-slate-400 hover:text-white transition-all"
               title="Backup & Restore"
+              aria-label="Backup & Restore"
             >
               <Download className="w-4 h-4" />
             </button>
@@ -357,7 +363,7 @@ export default function LibraryView({
               <div
                 key={item.id}
                 onClick={() => onSelectManga(item.id, item.coverUrl)}
-                className="group flex items-center gap-4 p-3 rounded-2xl bg-slate-900/60 hover:bg-slate-900/90 border border-white/5 hover:border-cyan-500/30 transition-all cursor-pointer shadow-sm"
+                className="group flex items-center gap-4 p-3 rounded-2xl bg-slate-900/60 hover:bg-slate-900/90 border border-white/5 hover:border-rose-500/30 transition-all cursor-pointer shadow-sm"
               >
                 <div className="w-12 h-16 rounded-xl overflow-hidden bg-slate-950 flex-shrink-0 border border-white/10">
                   <img
@@ -373,19 +379,19 @@ export default function LibraryView({
 
                 <div className="flex-1 min-w-0">
                   <div className="flex items-center gap-2 mb-1">
-                    <span className="px-2 py-0.5 rounded-md text-[10px] font-mono font-bold uppercase bg-cyan-500/15 text-cyan-300 border border-cyan-500/20">
+                    <span className="px-2 py-0.5 rounded-md text-[10px] font-bold uppercase bg-rose-500/15 text-rose-300 border border-rose-500/20">
                       {item.category || item.status || 'Reading'}
                     </span>
                     {updateObj && (
-                      <span className="px-1.5 py-0.2 rounded text-[9px] font-mono font-black uppercase bg-amber-500 text-slate-950 animate-pulse">
+                      <span className="px-1.5 py-0.2 rounded text-[9px] font-bold uppercase bg-amber-500 text-slate-950 animate-pulse">
                         Ch. {updateObj.chapterNumber}
                       </span>
                     )}
                   </div>
-                  <h3 className="font-bold text-sm text-white group-hover:text-cyan-300 transition-colors truncate">
+                  <h3 className="font-bold text-sm text-white group-hover:text-rose-300 transition-colors truncate">
                     {item.englishTitle || item.title}
                   </h3>
-                  <div className="flex items-center gap-3 text-xs font-mono text-slate-400 mt-0.5">
+                  <div className="flex items-center gap-3 text-xs text-slate-400 mt-0.5">
                     <span>Total: Ch. {item.latestChapter || item.totalChapters || '?'}</span>
                     {lastCh && <span className="text-emerald-400 font-semibold">• Read up to Ch. {lastCh}</span>}
                   </div>
@@ -403,7 +409,7 @@ export default function LibraryView({
                           onSelectManga(item.id, item.coverUrl);
                         }
                       }}
-                      className="px-3 py-1.5 rounded-xl bg-cyan-500/20 hover:bg-cyan-500 hover:text-slate-950 text-cyan-300 font-bold text-xs border border-cyan-500/30 flex items-center gap-1 transition-all"
+                      className="px-3 py-1.5 rounded-xl bg-rose-600 hover:bg-rose-500 text-white font-bold text-xs shadow-md shadow-rose-600/30 flex items-center gap-1 transition-all"
                     >
                       <Play className="w-3 h-3 fill-current" />
                       <span>Resume</span>
@@ -418,6 +424,7 @@ export default function LibraryView({
                     }}
                     className="p-2 rounded-xl hover:bg-rose-500/20 text-slate-500 hover:text-rose-400 transition-colors"
                     title="Remove from Library"
+                    aria-label="Remove from Library"
                   >
                     <Trash2 className="w-4 h-4" />
                   </button>
@@ -438,7 +445,7 @@ export default function LibraryView({
               <div
                 key={item.id}
                 onClick={() => onSelectManga(item.id, item.coverUrl)}
-                className="group relative aspect-[3/4.4] rounded-2xl overflow-hidden bg-slate-950 border border-white/10 hover:border-cyan-500/40 transition-all cursor-pointer shadow-md"
+                className="group relative aspect-[3/4.4] rounded-2xl overflow-hidden bg-slate-950 border border-white/10 hover:border-rose-500/40 transition-all cursor-pointer shadow-md"
               >
                 <img
                   src={getReliableCoverUrl(item.title, item.coverUrl)}
@@ -454,11 +461,11 @@ export default function LibraryView({
 
                 {/* Top badges */}
                 <div className="absolute top-2 left-2 right-2 flex items-center justify-between z-10">
-                  <span className="px-2 py-0.5 rounded-md text-[9px] font-mono font-bold uppercase bg-slate-950/80 backdrop-blur-md text-cyan-300 border border-cyan-500/30">
+                  <span className="px-2 py-0.5 rounded-md text-[9px] font-bold uppercase bg-slate-950/80 backdrop-blur-md text-rose-300 border border-rose-500/30">
                     {item.category || item.status || 'Reading'}
                   </span>
                   {updateObj && (
-                    <span className="px-1.5 py-0.5 rounded-full text-[9px] font-mono font-black bg-rose-500 text-white animate-pulse">
+                    <span className="px-1.5 py-0.5 rounded-full text-[9px] font-black bg-rose-500 text-white animate-pulse">
                       NEW
                     </span>
                   )}
@@ -466,10 +473,10 @@ export default function LibraryView({
 
                 {/* Bottom title & chapter */}
                 <div className="absolute bottom-2 left-2 right-2 z-10">
-                  <h3 className="font-bold text-xs text-white truncate group-hover:text-cyan-300 transition-colors">
+                  <h3 className="font-bold text-xs text-white truncate group-hover:text-rose-300 transition-colors">
                     {item.englishTitle || item.title}
                   </h3>
-                  <div className="flex items-center justify-between text-[10px] font-mono text-slate-400 mt-0.5">
+                  <div className="flex items-center justify-between text-[10px] text-slate-400 mt-0.5">
                     <span>Ch. {item.latestChapter || '?'}</span>
                     {lastCh && <span className="text-emerald-400">Read: {lastCh}</span>}
                   </div>
@@ -487,7 +494,7 @@ export default function LibraryView({
               <div
                 key={item.id}
                 onClick={() => onSelectManga(item.id, item.coverUrl)}
-                className="group relative aspect-[3/4.5] rounded-xl overflow-hidden bg-slate-950 border border-white/10 hover:border-cyan-400 transition-all cursor-pointer shadow-md"
+                className="group relative aspect-[3/4.5] rounded-xl overflow-hidden bg-slate-950 border border-white/10 hover:border-rose-500/40 transition-all cursor-pointer shadow-md"
                 title={item.englishTitle || item.title}
               >
                 <img
@@ -520,7 +527,7 @@ export default function LibraryView({
             return (
               <div
                 key={item.id}
-                className="group relative flex flex-col bg-slate-900/60 hover:bg-slate-900/90 rounded-2xl overflow-hidden border border-white/5 hover:border-cyan-500/30 transition-all duration-300 shadow-lg cursor-pointer"
+                className="group relative flex flex-col bg-slate-900/60 hover:bg-slate-900/90 rounded-2xl overflow-hidden border border-white/5 hover:border-rose-500/30 transition-all duration-300 shadow-lg cursor-pointer"
                 onClick={() => onSelectManga(item.id, item.coverUrl)}
               >
                 {/* Poster */}
@@ -544,7 +551,7 @@ export default function LibraryView({
                         NEW CH. {updateObj.chapterNumber}
                       </span>
                     )}
-                    <span className="px-2 py-0.5 rounded-md text-[10px] font-bold uppercase tracking-wider bg-black/70 backdrop-blur-md text-cyan-300 border border-cyan-500/30">
+                    <span className="px-2 py-0.5 rounded-md text-[10px] font-bold uppercase tracking-wider bg-black/70 backdrop-blur-md text-rose-300 border border-rose-500/30">
                       {item.category || item.status || 'Reading'}
                     </span>
                   </div>
@@ -557,6 +564,7 @@ export default function LibraryView({
                     }}
                     className="absolute top-2 right-2 p-1.5 rounded-lg bg-black/60 hover:bg-rose-600 text-slate-400 hover:text-white backdrop-blur-md transition-all opacity-0 group-hover:opacity-100"
                     title="Remove from Library"
+                    aria-label="Remove from Library"
                   >
                     <Trash2 className="w-3.5 h-3.5" />
                   </button>
@@ -573,7 +581,7 @@ export default function LibraryView({
                             onSelectManga(item.id, item.coverUrl);
                           }
                         }}
-                        className="px-2 py-1 rounded-md bg-black/80 hover:bg-cyan-500 hover:text-slate-950 backdrop-blur-md border border-white/10 text-[10px] text-emerald-400 flex items-center justify-between font-semibold transition-colors cursor-pointer"
+                        className="px-2 py-1 rounded-md bg-black/80 hover:bg-rose-600 hover:text-white backdrop-blur-md border border-white/10 text-[10px] text-emerald-400 flex items-center justify-between font-semibold transition-colors cursor-pointer"
                         title={`Resume Reading Chapter ${lastCh}`}
                       >
                         <span>Ch. {lastCh}</span>
@@ -587,7 +595,7 @@ export default function LibraryView({
                 <div className="p-3 flex flex-col flex-1 justify-between">
                   <div>
                     <h3 
-                      className="font-bold text-xs sm:text-sm text-slate-100 group-hover:text-cyan-400 line-clamp-1 transition-colors"
+                      className="font-bold text-xs sm:text-sm text-slate-100 group-hover:text-rose-400 line-clamp-1 transition-colors"
                       title={item.englishTitle || item.title}
                     >
                       {item.englishTitle || item.title}
@@ -609,7 +617,7 @@ export default function LibraryView({
                       ))}
                     </select>
 
-                    <span className="text-[10px] text-slate-500 font-mono">
+                    <span className="text-[10px] text-slate-500">
                       Ch. {item.latestChapter || '?'}
                     </span>
                   </div>
@@ -623,9 +631,9 @@ export default function LibraryView({
       {/* Add Custom Category Modal */}
       {isCategoryModalOpen && (
         <div className="fixed inset-0 z-50 bg-black/80 backdrop-blur-sm flex items-center justify-center p-4 animate-fadeIn">
-          <div className="bg-slate-950 border border-cyan-500/30 rounded-2xl max-w-sm w-full p-6 shadow-2xl space-y-4">
+          <div className="bg-[#0c1017] border border-white/10 rounded-2xl max-w-sm w-full p-6 shadow-2xl space-y-4">
             <div className="flex items-center gap-2">
-              <FolderPlus className="w-5 h-5 text-cyan-400" />
+              <FolderPlus className="w-5 h-5 text-rose-500" />
               <h3 className="text-lg font-bold text-white">Create Category</h3>
             </div>
             <p className="text-xs text-slate-400">
@@ -638,7 +646,7 @@ export default function LibraryView({
               onChange={(e) => setNewCategoryName(e.target.value)}
               onKeyDown={(e) => e.key === 'Enter' && handleAddCategory()}
               autoFocus
-              className="w-full bg-slate-900 border border-white/10 rounded-xl px-3 py-2 text-sm text-white focus:outline-none focus:border-cyan-500"
+              className="w-full bg-slate-900 border border-white/10 rounded-xl px-3 py-2 text-sm text-white focus:outline-none focus:border-rose-500"
             />
             <div className="flex items-center justify-end gap-2 pt-2">
               <button
@@ -652,7 +660,7 @@ export default function LibraryView({
                 type="button"
                 onClick={handleAddCategory}
                 disabled={!newCategoryName.trim()}
-                className="px-4 py-2 rounded-xl text-xs font-bold bg-cyan-500 hover:bg-cyan-400 text-slate-950 disabled:opacity-50"
+                className="px-4 py-2 rounded-xl text-xs font-bold bg-rose-600 hover:bg-rose-500 text-white disabled:opacity-50 transition-colors"
               >
                 Create
               </button>

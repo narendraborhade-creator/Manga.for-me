@@ -137,39 +137,35 @@ export default function Navbar({
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
         <div className="flex items-center justify-between h-16 sm:h-20 gap-4">
           
-          {/* Logo & Brand with Holographic Aura & HUD Tag */}
+          {/* Logo & Brand */}
           <div 
             className="flex items-center gap-3 cursor-pointer group select-none"
             onClick={() => setActiveTab('manga')}
           >
-            <div className="relative flex items-center justify-center w-10 h-10 sm:w-11 sm:h-11 rounded-2xl overflow-hidden border border-cyan-400/40 shadow-lg shadow-cyan-500/20 ring-2 ring-rose-500/25 group-hover:ring-cyan-400/60 group-hover:scale-105 transition-all duration-300 bg-slate-950 holo-glow">
+            <div className="relative flex items-center justify-center w-10 h-10 sm:w-11 sm:h-11 rounded-xl overflow-hidden border border-white/10 shadow-md group-hover:scale-105 transition-all duration-300 bg-slate-950">
               <img 
                 src="/logo.jpg" 
-                alt="Logo" 
-                className="w-full h-full object-cover object-center group-hover:scale-110 transition-transform duration-500" 
+                alt="KuroNeko Logo" 
+                className="w-full h-full object-cover object-center group-hover:scale-105 transition-transform duration-500" 
               />
             </div>
             <div>
               <div className="flex items-center gap-2">
-                <span className="font-extrabold text-xl sm:text-2xl tracking-tight holo-text font-['Outfit']">
+                <span className="font-bold text-xl sm:text-2xl tracking-tight text-white font-['Outfit']">
                   KuroNeko
                 </span>
-                <span className="text-[10px] uppercase font-mono tracking-widest px-1.5 py-0.5 rounded bg-rose-500/15 text-rose-300 font-bold border border-rose-500/30">
+                <span className="text-[10px] uppercase font-mono tracking-wider px-1.5 py-0.5 rounded bg-rose-500/15 text-rose-300 font-semibold border border-rose-500/30">
                   黒猫
                 </span>
-                <span className="hidden xl:inline-flex items-center gap-1.5 px-2 py-0.5 rounded-full bg-cyan-950/40 border border-cyan-500/30 text-[9px] font-mono text-cyan-300 tracking-wider">
-                  <span className="w-1.5 h-1.5 rounded-full bg-cyan-400 animate-ping" />
-                  SYS::ONLINE
-                </span>
               </div>
-              <p className="text-[11px] text-slate-400 hidden sm:block font-medium">
-                Webtoon & Manga Terminal
+              <p className="text-[11px] text-slate-400 hidden sm:block font-normal">
+                Manga & Anime Universe
               </p>
             </div>
           </div>
 
-          {/* Desktop Navigation Tabs with Glassmorphism & Holographic Active Indicator */}
-          <nav className="hidden md:flex items-center gap-1 bg-slate-950/80 p-1.5 rounded-2xl border border-white/10 shadow-inner backdrop-blur-2xl">
+          {/* Desktop Navigation Tabs */}
+          <nav className="hidden md:flex items-center gap-1 bg-slate-950/70 p-1.5 rounded-xl border border-white/[0.08] shadow-inner backdrop-blur-xl">
             {navItems.map((item) => {
               const Icon = item.icon;
               const isActive = activeTab === item.id;
@@ -177,9 +173,9 @@ export default function Navbar({
                 <button
                   key={item.id}
                   onClick={() => setActiveTab(item.id)}
-                  className={`flex items-center gap-2 px-4 py-2 rounded-xl text-sm font-semibold transition-all duration-300 relative ${
+                  className={`flex items-center gap-2 px-4 py-2 rounded-lg text-sm font-semibold transition-all duration-200 relative ${
                     isActive
-                      ? 'bg-gradient-to-r from-rose-600 via-rose-500 to-indigo-600 text-white shadow-lg shadow-rose-600/30 border border-white/20 holo-border'
+                      ? 'bg-rose-600 text-white shadow-md shadow-rose-600/30'
                       : 'text-slate-400 hover:text-white hover:bg-white/5'
                   }`}
                 >
@@ -204,51 +200,52 @@ export default function Navbar({
               <button
                 type="button"
                 onClick={onResetFilters}
-                className="hidden xl:inline-flex items-center gap-1.5 px-2.5 py-1.5 rounded-xl text-xs font-mono font-bold bg-cyan-950/80 border border-cyan-400/50 text-cyan-300 hover:bg-rose-950/80 hover:border-rose-400/50 hover:text-rose-300 transition-all shadow-[0_0_10px_rgba(6,182,212,0.25)] flex-shrink-0 cursor-pointer"
+                className="hidden xl:inline-flex items-center gap-1.5 px-2.5 py-1.5 rounded-xl text-xs font-medium bg-rose-600/15 border border-rose-500/30 text-rose-300 hover:bg-rose-600/25 transition-all flex-shrink-0 cursor-pointer"
                 title="Click to reset active filters"
               >
-                <SlidersHorizontal className="w-3.5 h-3.5 text-cyan-400 animate-pulse" />
+                <SlidersHorizontal className="w-3.5 h-3.5 text-rose-400" />
                 <span className="text-white">
                   {selectedGenre !== 'All' ? selectedGenre : ''}
                   {selectedGenre !== 'All' && selectedSource !== 'All' ? ' • ' : ''}
                   {selectedSource !== 'All' ? selectedSource : ''}
                 </span>
-                <X className="w-3 h-3 text-cyan-400" />
+                <X className="w-3 h-3 text-rose-400" />
               </button>
             )}
 
             {/* Desktop Search Input with Suggestions Dropdown */}
             <div ref={desktopSearchRef} className="relative hidden lg:block w-72">
-              <Search className="w-4 h-4 text-cyan-400/80 absolute left-3.5 top-1/2 -translate-y-1/2 pointer-events-none" />
+              <Search className="w-4 h-4 text-slate-400 absolute left-3.5 top-1/2 -translate-y-1/2 pointer-events-none" />
               <input
                 type="text"
-                placeholder="Search manga, manhwa & webtoons..."
+                placeholder="Search manga & webtoons..."
                 value={searchQuery}
                 onFocus={() => setShowSuggestions(true)}
                 onChange={(e) => {
                   setSearchQuery(e.target.value);
                   setShowSuggestions(true);
                 }}
-                className="w-full bg-slate-950/80 border border-white/10 rounded-xl pl-9 pr-8 py-2 text-sm text-slate-200 placeholder:text-slate-500 focus:outline-none focus:border-cyan-400/60 focus:ring-2 focus:ring-cyan-500/25 transition-all shadow-inner"
+                className="w-full bg-slate-950/70 border border-white/10 rounded-xl pl-9 pr-8 py-2 text-sm text-slate-200 placeholder:text-slate-500 focus:outline-none focus:border-rose-500/60 focus:ring-2 focus:ring-rose-500/20 transition-all shadow-inner"
               />
               {isSearchingSuggestions ? (
-                <Loader2 className="w-3.5 h-3.5 text-cyan-400 animate-spin absolute right-3 top-1/2 -translate-y-1/2" />
+                <Loader2 className="w-3.5 h-3.5 text-rose-500 animate-spin absolute right-3 top-1/2 -translate-y-1/2" />
               ) : searchQuery ? (
                 <button
+                  type="button"
                   aria-label="Clear search"
                   onClick={() => {
                     setSearchQuery('');
                     setSuggestions([]);
                   }}
-                  className="absolute right-2.5 top-1/2 -translate-y-1/2 text-xs text-slate-500 hover:text-slate-300"
+                  className="absolute right-2.5 top-1/2 -translate-y-1/2 text-xs text-slate-500 hover:text-slate-300 p-1"
                 >
                   ✕
                 </button>
               ) : null}
 
-              {/* Suggestions Popover Card with HUD Corner & Glassmorphism */}
+              {/* Suggestions Popover Card */}
               {showSuggestions && (
-                <div className="absolute left-0 right-0 top-full mt-2 bg-slate-950/95 border border-cyan-500/30 rounded-2xl shadow-2xl backdrop-blur-2xl p-2 z-50 animate-fadeIn space-y-1 max-h-[60vh] overflow-y-auto overflow-x-hidden glass-panel-elevated">
+                <div className="absolute left-0 right-0 top-full mt-2 bg-[#0c101d]/98 border border-white/10 rounded-xl shadow-2xl backdrop-blur-2xl p-2 z-50 animate-fadeIn space-y-1 max-h-[60vh] overflow-y-auto overflow-x-hidden">
                   {searchQuery.trim().length >= 2 ? (
                     suggestions.length > 0 ? (
                       <div>

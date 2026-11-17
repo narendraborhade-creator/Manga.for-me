@@ -44,26 +44,25 @@ export default function HeroCarousel({
   if (!current) return null;
 
   const isSaved = isBookmarkedFn ? isBookmarkedFn(current.id) : false;
+  const titleText = cleanTitle(current.englishTitle || current.title);
+  const originalTitle = cleanTitle(current.title);
 
   return (
     <div 
       onTouchStart={handleTouchStart}
       onTouchEnd={handleTouchEnd}
-      className="relative w-full h-[380px] sm:h-[480px] md:h-[540px] rounded-2xl sm:rounded-3xl overflow-hidden shadow-2xl border border-cyan-500/30 group mb-6 sm:mb-10 select-none touch-pan-y glass-panel-elevated hud-corner holo-sheen"
+      className="relative w-full h-[380px] sm:h-[460px] md:h-[500px] rounded-2xl sm:rounded-3xl overflow-hidden shadow-2xl border border-white/[0.08] bg-[#0c101c] group mb-6 sm:mb-10 select-none touch-pan-y"
     >
-      {/* Top-Right HUD Telemetry Header */}
-      <div className="absolute top-4 right-4 z-20 hidden sm:flex items-center gap-2 px-3 py-1 rounded-xl bg-black/60 backdrop-blur-md border border-cyan-500/30 text-[10px] font-mono text-cyan-300">
-        <span className="w-1.5 h-1.5 rounded-full bg-cyan-400 animate-ping" />
-        <span>STAGE::{(currentIndex + 1).toString().padStart(2, '0')}/{(items.length).toString().padStart(2, '0')}</span>
-      </div>
-
-      {/* Background Banner with Layered Gradients */}
+      {/* Background Banner with Layered Ambient Gradients */}
       <div className="absolute inset-0">
         <img
           src={getReliableCoverUrl(current.title, current.coverUrl)}
-          alt={current.title}
+          alt={titleText}
+          fetchpriority={currentIndex === 0 ? "high" : "auto"}
+          loading={currentIndex === 0 ? "eager" : "lazy"}
+          decoding="async"
           referrerPolicy="no-referrer"
-          className="w-full h-full object-cover object-center filter brightness-[0.55] group-hover:scale-104 transition-transform duration-1000 ease-out"
+          className="w-full h-full object-cover object-center filter brightness-[0.45] group-hover:scale-102 transition-transform duration-1000 ease-out"
           onError={(e) => {
             const reliable = getReliableCoverUrl(current.title, null);
             if (reliable && reliable !== e.target.src && !reliable.startsWith('data:')) {
@@ -75,64 +74,63 @@ export default function HeroCarousel({
             }
           }}
         />
-        {/* Layered Vignettes & Holographic Scanlines */}
-        <div className="absolute inset-0 bg-gradient-to-t from-[#060810] via-[#060810]/70 to-transparent" />
-        <div className="absolute inset-0 bg-gradient-to-r from-[#060810] via-[#060810]/85 to-transparent w-full md:w-3/4" />
-        <div className="absolute inset-0 holo-scanlines pointer-events-none opacity-40" />
+        {/* Layered Vignettes for Readability */}
+        <div className="absolute inset-0 bg-gradient-to-t from-[#090b12] via-[#090b12]/70 to-transparent" />
+        <div className="absolute inset-0 bg-gradient-to-r from-[#090b12] via-[#090b12]/80 to-transparent w-full md:w-3/4" />
       </div>
 
       {/* Content Container */}
-      <div className="relative h-full max-w-7xl mx-auto px-4 sm:px-12 flex flex-col justify-end pb-7 sm:pb-14 z-10">
+      <div className="relative h-full max-w-7xl mx-auto px-5 sm:px-12 flex flex-col justify-end pb-7 sm:pb-12 z-10">
         
-        {/* Top Badges */}
-        <div className="flex flex-wrap items-center gap-2.5 mb-3">
-          <span className="flex items-center gap-1.5 px-3 py-1 rounded-xl text-xs font-black tracking-wider uppercase btn-holo text-white shadow-lg">
+        {/* Spotlight Pill & Metadata */}
+        <div className="flex flex-wrap items-center gap-2 mb-3">
+          <span className="flex items-center gap-1.5 px-3 py-1 rounded-full text-xs font-semibold bg-rose-600/90 text-white shadow-md shadow-rose-600/20 backdrop-blur-md">
             <Sparkles className="w-3.5 h-3.5" />
-            <span>Spotlight Webtoon</span>
+            <span>Featured Title</span>
           </span>
 
           {current.score && current.score !== 'N/A' && (
-            <span className="flex items-center gap-1 px-2.5 py-1 rounded-xl text-xs font-mono font-bold bg-amber-500/20 text-amber-300 border border-amber-500/30 backdrop-blur-md">
+            <span className="flex items-center gap-1 px-2.5 py-1 rounded-full text-xs font-semibold bg-amber-500/20 text-amber-300 border border-amber-500/30 backdrop-blur-md">
               <Star className="w-3.5 h-3.5 fill-amber-400 text-amber-400" />
-              <span>SCORE::{current.score}</span>
+              <span>{current.score}</span>
             </span>
           )}
 
-          <span className="px-2.5 py-1 rounded-xl text-xs font-mono font-bold bg-slate-900/80 text-cyan-300 border border-cyan-500/30 uppercase backdrop-blur-md">
-            STAT::{current.status?.toLowerCase() || 'Ongoing'}
+          <span className="px-2.5 py-1 rounded-full text-xs font-medium bg-white/10 text-slate-200 border border-white/10 backdrop-blur-md">
+            {current.status || 'Ongoing'}
           </span>
 
           {current.latestChapter && (
-            <span className="px-2.5 py-1 rounded-xl text-xs text-rose-300 bg-rose-950/60 border border-rose-500/40 backdrop-blur-md font-mono font-bold">
-              CH::{current.latestChapter}
+            <span className="px-2.5 py-1 rounded-full text-xs text-slate-300 bg-white/5 border border-white/10 backdrop-blur-md">
+              Ch. {current.latestChapter}
             </span>
           )}
 
           {current.year && (
-            <span className="px-2.5 py-1 rounded-xl text-xs text-slate-300 bg-white/5 border border-white/10 backdrop-blur-md font-mono">
-              YEAR::{current.year}
+            <span className="px-2.5 py-1 rounded-full text-xs text-slate-300 bg-white/5 border border-white/10 backdrop-blur-md">
+              {current.year}
             </span>
           )}
         </div>
 
-        {/* Title with Holographic Iridescent Shimmer */}
-        <h1 className="text-2xl sm:text-4xl md:text-5xl lg:text-6xl font-black holo-text tracking-tight mb-1.5 sm:mb-3 line-clamp-2 drop-shadow-2xl font-['Outfit']">
-          {cleanTitle(current.englishTitle || current.title)}
+        {/* Title */}
+        <h1 className="text-2xl sm:text-4xl md:text-5xl font-extrabold text-white tracking-tight mb-2 sm:mb-3 line-clamp-2 leading-tight">
+          {titleText}
         </h1>
 
         {current.englishTitle && current.englishTitle.toLowerCase() !== current.title.toLowerCase() && (
-          <p className="text-[11px] sm:text-sm text-zinc-300 mb-1.5 sm:mb-2 font-medium flex items-center gap-1.5 drop-shadow">
-            <span className="px-1.5 py-0.5 rounded text-[10px] font-mono uppercase bg-white/15 text-zinc-200 border border-white/10">ORIG</span>
-            <span className="truncate">{cleanTitle(current.title)}</span>
+          <p className="text-xs sm:text-sm text-slate-300 mb-2 font-normal flex items-center gap-2">
+            <span className="text-slate-400 text-xs">Japanese:</span>
+            <span className="truncate">{originalTitle}</span>
           </p>
         )}
 
         {/* Genres */}
-        <div className="flex flex-wrap items-center gap-1.5 sm:gap-2 mb-2.5 sm:mb-3.5">
-          {(current.tags || current.genres || []).slice(0, 3).map((tag, idx) => (
+        <div className="flex flex-wrap items-center gap-1.5 sm:gap-2 mb-3">
+          {(current.tags || current.genres || []).slice(0, 4).map((tag, idx) => (
             <span
               key={idx}
-              className="text-[11px] sm:text-xs text-slate-200 bg-slate-900/70 px-2.5 sm:px-3 py-0.5 sm:py-1 rounded-full backdrop-blur-md font-medium border border-cyan-500/20 shadow-sm"
+              className="text-xs text-slate-300 bg-slate-900/80 px-3 py-1 rounded-full backdrop-blur-md font-medium border border-white/10"
             >
               {tag}
             </span>
@@ -140,42 +138,46 @@ export default function HeroCarousel({
         </div>
 
         {/* Synopsis Snippet */}
-        <p className="text-xs sm:text-sm text-slate-300 max-w-2xl line-clamp-2 sm:line-clamp-3 mb-4 sm:mb-6 leading-relaxed drop-shadow">
+        <p className="text-xs sm:text-sm text-slate-300 max-w-2xl line-clamp-2 sm:line-clamp-3 mb-5 leading-relaxed">
           {current.description || 'Follow this thrilling journey as legendary characters fight for destiny in an expansive universe.'}
         </p>
 
         {/* Action CTAs */}
-        <div className="flex flex-wrap items-center gap-2 sm:gap-3">
+        <div className="flex flex-wrap items-center gap-3">
           <button
+            type="button"
             onClick={() => onSelectManga(current.id, current.coverUrl)}
-            className="px-5 sm:px-8 py-2.5 sm:py-3.5 rounded-xl sm:rounded-2xl text-xs sm:text-sm font-extrabold text-white btn-holo shadow-xl hover:scale-102 transition-all flex items-center gap-2 group cursor-pointer"
+            className="px-6 sm:px-8 py-2.5 sm:py-3 rounded-xl text-xs sm:text-sm font-semibold text-white bg-rose-600 hover:bg-rose-500 shadow-lg shadow-rose-600/30 hover:shadow-rose-600/50 hover:scale-105 active:scale-95 transition-all flex items-center gap-2 cursor-pointer focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-rose-500"
           >
-            <BookOpen className="w-4 h-4 group-hover:scale-110 transition-transform" />
-            <span>Read Manga [▶]</span>
+            <BookOpen className="w-4 h-4" />
+            <span>Start Reading</span>
           </button>
 
           {/* Bookmark Button */}
           {onToggleBookmark && (
             <button
+              type="button"
               onClick={() => onToggleBookmark(current)}
-              className={`px-3.5 sm:px-5 py-2.5 sm:py-3.5 rounded-xl sm:rounded-2xl text-xs sm:text-sm font-bold border transition-all flex items-center gap-1.5 sm:gap-2 backdrop-blur-md cursor-pointer ${
+              aria-label={isSaved ? 'In Library' : 'Add to Library'}
+              className={`px-4 sm:px-5 py-2.5 sm:py-3 rounded-xl text-xs sm:text-sm font-medium border transition-all flex items-center gap-2 backdrop-blur-md cursor-pointer ${
                 isSaved
-                  ? 'bg-rose-500/25 border-rose-500/50 text-rose-300 hover:bg-rose-500/35 shadow-lg shadow-rose-500/20'
-                  : 'bg-slate-900/80 border-cyan-500/30 text-cyan-200 hover:bg-cyan-500/10'
+                  ? 'bg-rose-600/20 border-rose-500/40 text-rose-300 hover:bg-rose-600/30 shadow-md shadow-rose-600/20'
+                  : 'bg-white/10 hover:bg-white/15 border-white/15 text-white'
               }`}
             >
               <Bookmark className={`w-4 h-4 ${isSaved ? 'fill-rose-400 text-rose-400' : ''}`} />
-              <span className="hidden sm:inline">{isSaved ? 'Bookmarked' : 'Add to Library'}</span>
+              <span>{isSaved ? 'Bookmarked' : 'Add to Library'}</span>
             </button>
           )}
 
           {/* View Details */}
           <button
+            type="button"
             onClick={() => onSelectManga(current.id, current.coverUrl)}
-            className="px-3.5 sm:px-5 py-2.5 sm:py-3.5 rounded-xl sm:rounded-2xl text-xs sm:text-sm font-semibold text-slate-300 hover:text-white bg-white/10 hover:bg-white/15 backdrop-blur-md border border-white/15 transition-all flex items-center gap-1.5 sm:gap-2 cursor-pointer"
+            className="px-4 sm:px-5 py-2.5 sm:py-3 rounded-xl text-xs sm:text-sm font-medium text-slate-300 hover:text-white bg-white/5 hover:bg-white/10 backdrop-blur-md border border-white/10 transition-all flex items-center gap-2 cursor-pointer"
           >
             <Info className="w-4 h-4" />
-            <span className="hidden sm:inline">Chapter Console</span>
+            <span className="hidden sm:inline">Details & Chapters</span>
           </button>
         </div>
 
@@ -183,29 +185,35 @@ export default function HeroCarousel({
 
       {/* Slide Navigation Arrows */}
       <button
+        type="button"
+        aria-label="Previous featured title"
         onClick={() => setCurrentIndex((prev) => (prev - 1 + items.length) % items.length)}
-        className="absolute left-4 top-1/2 -translate-y-1/2 p-3 rounded-full bg-black/50 hover:bg-black/80 text-white backdrop-blur-md opacity-0 group-hover:opacity-100 transition-all border border-white/10 hover:scale-110 hidden sm:block"
+        className="absolute left-4 top-1/2 -translate-y-1/2 p-2.5 rounded-full bg-black/60 hover:bg-black/80 text-white backdrop-blur-md opacity-0 group-hover:opacity-100 transition-all border border-white/10 hover:scale-105 hidden sm:block focus-visible:opacity-100 cursor-pointer"
         title="Previous"
       >
         <ChevronLeft className="w-5 h-5" />
       </button>
 
       <button
+        type="button"
+        aria-label="Next featured title"
         onClick={() => setCurrentIndex((prev) => (prev + 1) % items.length)}
-        className="absolute right-4 top-1/2 -translate-y-1/2 p-3 rounded-full bg-black/50 hover:bg-black/80 text-white backdrop-blur-md opacity-0 group-hover:opacity-100 transition-all border border-white/10 hover:scale-110 hidden sm:block"
+        className="absolute right-4 top-1/2 -translate-y-1/2 p-2.5 rounded-full bg-black/60 hover:bg-black/80 text-white backdrop-blur-md opacity-0 group-hover:opacity-100 transition-all border border-white/10 hover:scale-105 hidden sm:block focus-visible:opacity-100 cursor-pointer"
         title="Next"
       >
         <ChevronRight className="w-5 h-5" />
       </button>
 
-      {/* Progress Dots */}
-      <div className="absolute bottom-3 sm:bottom-5 right-4 sm:right-8 flex items-center gap-1.5 sm:gap-2 z-20">
+      {/* Pagination Indicators */}
+      <div className="absolute bottom-4 right-5 sm:right-10 flex items-center gap-1.5 z-20">
         {items.map((_, idx) => (
           <button
+            type="button"
             key={idx}
+            aria-label={`Go to slide ${idx + 1}`}
             onClick={() => setCurrentIndex(idx)}
-            className={`h-1.5 sm:h-2 rounded-full transition-all duration-300 ${
-              idx === currentIndex ? 'w-6 sm:w-8 bg-rose-500 shadow-md shadow-rose-500/50' : 'w-1.5 sm:w-2 bg-white/30 hover:bg-white/60'
+            className={`h-1.5 rounded-full transition-all duration-300 cursor-pointer ${
+              idx === currentIndex ? 'w-6 bg-rose-500' : 'w-2 bg-white/30 hover:bg-white/60'
             }`}
           />
         ))}

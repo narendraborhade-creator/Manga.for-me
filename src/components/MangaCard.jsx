@@ -19,19 +19,31 @@ function MangaCard({
     }
   };
 
+  const titleText = cleanTitle(manga.englishTitle || manga.title);
+  const originalTitle = cleanTitle(manga.title);
+
   return (
     <div
+      role="button"
+      tabIndex={0}
       onClick={() => onSelect(manga.id, manga.coverUrl)}
-      className="group relative flex flex-col bg-[#0a0f1d]/75 hover:bg-[#10172e] rounded-2xl overflow-hidden border border-white/10 hover:border-cyan-400/50 transition-all duration-300 hover:shadow-2xl hover:shadow-cyan-950/40 hover:-translate-y-1 cursor-pointer select-none glass-card hud-corner holo-sheen"
+      onKeyDown={(e) => {
+        if (e.key === 'Enter' || e.key === ' ') {
+          e.preventDefault();
+          onSelect(manga.id, manga.coverUrl);
+        }
+      }}
+      className="group relative flex flex-col bg-[#0e1320] hover:bg-[#141a2c] rounded-xl overflow-hidden border border-white/[0.08] hover:border-rose-500/40 transition-all duration-300 hover:shadow-xl hover:shadow-black/70 hover:-translate-y-1 cursor-pointer select-none focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-rose-500"
     >
-      {/* Cover Image Container with Holographic Vignette */}
-      <div className="relative aspect-[3/4.3] w-full overflow-hidden bg-slate-950">
+      {/* Cover Image Container */}
+      <div className="relative aspect-[3/4.4] w-full overflow-hidden bg-slate-950">
         <img
           src={manga.coverUrl}
-          alt={manga.title}
+          alt={titleText}
           loading="lazy"
+          decoding="async"
           referrerPolicy="no-referrer"
-          className="w-full h-full object-cover object-center group-hover:scale-108 transition-transform duration-700 ease-out"
+          className="w-full h-full object-cover object-center group-hover:scale-105 transition-transform duration-500 ease-out"
           onError={(e) => {
             const reliable = getReliableCoverUrl(manga.englishTitle || manga.title, null);
             if (reliable && reliable !== e.target.src && !reliable.startsWith('data:')) {
@@ -44,17 +56,16 @@ function MangaCard({
           }}
         />
 
-        {/* Cinematic Holographic Vignette */}
-        <div className="absolute inset-0 bg-gradient-to-t from-[#060810] via-[#060810]/20 to-transparent opacity-90 group-hover:opacity-75 transition-opacity" />
-        <div className="absolute inset-0 holo-scanlines pointer-events-none opacity-25 group-hover:opacity-40 transition-opacity" />
+        {/* Natural Vignette Gradient for Depth */}
+        <div className="absolute inset-0 bg-gradient-to-t from-[#090c15] via-[#090c15]/15 to-transparent opacity-90 group-hover:opacity-75 transition-opacity" />
 
         {/* Top Badges */}
-        <div className="absolute top-2.5 left-2.5 right-2.5 flex items-center justify-between z-10 pointer-events-none">
-          <div className="flex items-center gap-1 flex-wrap">
-            <span className={`px-2 py-0.5 rounded-md text-[9px] font-mono font-bold uppercase tracking-wider backdrop-blur-md ${
+        <div className="absolute top-2 left-2 right-2 flex items-center justify-between z-10 pointer-events-none">
+          <div className="flex items-center gap-1.5 flex-wrap">
+            <span className={`px-2 py-0.5 rounded-md text-[10px] font-semibold uppercase tracking-wider backdrop-blur-md shadow-sm ${
               manga.status?.toLowerCase() === 'completed'
-                ? 'bg-emerald-500/80 text-white'
-                : 'bg-rose-600/90 text-white shadow-md shadow-rose-600/30'
+                ? 'bg-emerald-600/90 text-white'
+                : 'bg-rose-600/90 text-white shadow-rose-600/20'
             }`}>
               {manga.status || 'Ongoing'}
             </span>
@@ -69,18 +80,8 @@ function MangaCard({
                 manga.id?.startsWith('mk:') ? 'MangaKakalot' :
                 manga.id?.startsWith('webtoon:') ? 'Webtoon' : 'MangaPill'
               );
-              const colorClass = 
-                src === 'Flame Comics' || src === 'Flame' ? 'bg-orange-600/80 text-orange-100 border-orange-500/40' :
-                src === 'Thunder Scans' || src === 'Thunder' ? 'bg-yellow-600/80 text-yellow-100 border-yellow-500/40' :
-                src === 'Asura Scans' || src === 'Asura' ? 'bg-violet-600/80 text-violet-100 border-violet-500/40' :
-                src === 'Vortex Scans' || src === 'Vortex' ? 'bg-indigo-600/80 text-indigo-100 border-indigo-500/40' :
-                src === 'MangaDex' ? 'bg-amber-600/80 text-amber-100 border-amber-500/40' :
-                src === 'MangaKakalot' ? 'bg-sky-600/80 text-sky-100 border-sky-500/40' :
-                src === 'Webtoon' ? 'bg-emerald-600/80 text-emerald-100 border-emerald-500/40' :
-                src === 'WeebCentral' ? 'bg-cyan-600/80 text-cyan-100 border-cyan-500/40' :
-                'bg-rose-600/80 text-rose-100 border-rose-500/40';
               return (
-                <span className={`px-1.5 py-0.5 rounded-md text-[9px] font-mono font-bold tracking-wider backdrop-blur-md border ${colorClass}`}>
+                <span className="px-2 py-0.5 rounded-md text-[10px] font-medium tracking-wide backdrop-blur-md bg-slate-900/80 text-slate-200 border border-white/10">
                   {src}
                 </span>
               );
@@ -89,10 +90,12 @@ function MangaCard({
 
           {/* Bookmark Button */}
           <button
+            type="button"
+            aria-label={isBookmarked ? `Remove ${titleText} from library` : `Save ${titleText} to library`}
             onClick={handleBookmarkClick}
-            className={`pointer-events-auto p-1.5 rounded-xl backdrop-blur-md transition-all ${
+            className={`pointer-events-auto p-1.5 rounded-lg backdrop-blur-md transition-all ${
               isBookmarked
-                ? 'bg-rose-600 text-white shadow-lg shadow-rose-600/50 scale-105'
+                ? 'bg-rose-600 text-white shadow-md shadow-rose-600/40 scale-105'
                 : 'bg-black/60 text-slate-300 hover:text-white hover:bg-rose-600 hover:scale-105 border border-white/10'
             }`}
             title={isBookmarked ? 'In Library' : 'Bookmark'}
@@ -101,20 +104,20 @@ function MangaCard({
           </button>
         </div>
 
-        {/* Quick Read Hover Action Overlay */}
+        {/* Quick Read Hover Action */}
         <div className="absolute inset-0 flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity duration-300 pointer-events-none">
-          <div className="px-3.5 py-2 rounded-xl btn-holo text-white text-xs font-mono font-bold shadow-xl flex items-center gap-1.5 scale-90 group-hover:scale-100 transition-transform">
-            <BookOpen className="w-4 h-4" />
-            <span>ACCESS [▶]</span>
+          <div className="px-3.5 py-1.5 rounded-lg bg-rose-600/95 text-white text-xs font-semibold shadow-lg shadow-rose-600/30 flex items-center gap-1.5 transform -translate-y-1 group-hover:translate-y-0 transition-transform">
+            <BookOpen className="w-3.5 h-3.5" />
+            <span>Read Details</span>
           </div>
         </div>
 
-        {/* Reading Progress Indicator if read */}
+        {/* Reading Progress Indicator */}
         {lastReadChapter && (
           <div className="absolute bottom-2 left-2 right-2 z-10">
-            <div className="flex items-center justify-between px-2.5 py-1 rounded-lg bg-black/85 backdrop-blur-md border border-cyan-500/30 text-[11px] font-mono">
-              <span className="flex items-center gap-1.5 text-cyan-300 font-bold truncate">
-                <Check className="w-3.5 h-3.5 text-cyan-400" />
+            <div className="flex items-center justify-between px-2.5 py-1 rounded-lg bg-black/85 backdrop-blur-md border border-white/10 text-[11px]">
+              <span className="flex items-center gap-1.5 text-emerald-400 font-medium truncate">
+                <Check className="w-3.5 h-3.5 text-emerald-400" />
                 Ch. {lastReadChapter}
               </span>
               <span className="text-slate-400 text-[10px]">
@@ -125,19 +128,19 @@ function MangaCard({
         )}
       </div>
 
-      {/* Manga Information with Holographic Title Hover */}
-      <div className="p-3.5 flex flex-col flex-1 justify-between bg-gradient-to-b from-transparent to-[#060810]/60">
+      {/* Manga Information */}
+      <div className="p-3 flex flex-col flex-1 justify-between bg-gradient-to-b from-transparent to-[#080b12]">
         <div>
           <h3 
-            className="font-bold text-sm text-slate-100 group-hover:text-cyan-300 line-clamp-1 transition-colors tracking-tight"
-            title={cleanTitle(manga.englishTitle || manga.title)}
+            className="font-semibold text-sm text-slate-100 group-hover:text-rose-400 line-clamp-1 transition-colors tracking-tight leading-snug"
+            title={titleText}
           >
-            {cleanTitle(manga.englishTitle || manga.title)}
+            {titleText}
           </h3>
           {manga.englishTitle && manga.englishTitle.toLowerCase() !== manga.title.toLowerCase() ? (
-            <p className="text-[11px] text-zinc-400 mt-0.5 truncate flex items-center gap-1.5 font-medium" title={cleanTitle(manga.title)}>
-              <span className="text-cyan-400 font-mono text-[9px] uppercase px-1 py-0.5 bg-cyan-950/40 rounded border border-cyan-500/30">JP</span>
-              <span className="truncate">{cleanTitle(manga.title)}</span>
+            <p className="text-[11px] text-slate-400 mt-0.5 truncate flex items-center gap-1.5 font-normal" title={originalTitle}>
+              <span className="text-slate-300 text-[9px] uppercase px-1 py-0.5 bg-white/5 rounded border border-white/10">JP</span>
+              <span className="truncate">{originalTitle}</span>
             </p>
           ) : (
             <p className="text-xs text-slate-400 mt-0.5 truncate flex items-center gap-1">
@@ -146,25 +149,25 @@ function MangaCard({
           )}
         </div>
 
-        <div className="mt-2.5 pt-2 border-t border-white/5 flex items-center justify-between text-[11px] text-slate-400">
+        <div className="mt-2.5 pt-2 border-t border-white/[0.06] flex items-center justify-between text-[11px] text-slate-400">
           <div className="flex items-center gap-1.5 truncate max-w-[140px]">
             {manga.latestChapter ? (
-              <span className="px-1.5 py-0.5 rounded bg-amber-500/15 border border-amber-500/30 text-[10px] text-amber-300 font-bold font-mono truncate flex items-center gap-1" title={`Latest: Chapter ${manga.latestChapter}`}>
-                <span className="w-1.5 h-1.5 rounded-full bg-amber-400 animate-pulse flex-shrink-0" />
+              <span className="px-1.5 py-0.5 rounded bg-slate-800/80 border border-white/[0.08] text-[10px] text-slate-200 font-medium truncate flex items-center gap-1" title={`Latest: Chapter ${manga.latestChapter}`}>
+                <span className="w-1.5 h-1.5 rounded-full bg-emerald-400 flex-shrink-0" />
                 Ch. {manga.latestChapter}
               </span>
             ) : manga.totalChapters ? (
-              <span className="px-1.5 py-0.5 rounded bg-cyan-950/60 border border-cyan-500/30 text-[10px] text-cyan-300 font-medium font-mono">
+              <span className="px-1.5 py-0.5 rounded bg-slate-800/80 border border-white/[0.08] text-[10px] text-slate-300 font-medium">
                 {manga.totalChapters} Ch
               </span>
             ) : (
-              <span className="px-1.5 py-0.5 rounded bg-white/5 text-[10px] text-slate-300 font-medium font-mono">
+              <span className="px-1.5 py-0.5 rounded bg-white/5 text-[10px] text-slate-300 font-medium">
                 {manga.tags && manga.tags[0] ? manga.tags[0] : 'Manga'}
               </span>
             )}
           </div>
           {manga.score && (
-            <span className="flex items-center gap-0.5 text-amber-400 font-mono font-bold text-xs flex-shrink-0">
+            <span className="flex items-center gap-1 text-amber-400 font-medium text-xs flex-shrink-0">
               <Star className="w-3 h-3 fill-amber-400" />
               <span>{manga.score}</span>
             </span>

@@ -1470,9 +1470,9 @@ export function cleanTitle(raw) {
   if (!raw || typeof raw !== 'string') return 'Manga';
   let t = decodeHtml(raw);
 
-  t = t.replace(/^(vortex|asura|webtoon|weebcentral|mangadex|mangakakalot|kakamanga|mangapill|wc|mk|md)s*:s*/i, '');
+  t = t.replace(/^(vortex|asura|webtoon|weebcentral|mangadex|mangakakalot|kakamanga|mangapill|wc|mk|md)\s*:\s*/i, '');
   t = t
-    .replace(/Chapters+[0-9.]+/i, '')
+    .replace(/Chapter\s+[0-9.]+/i, '')
     .replace(/\s+manga$/i, '')
     .trim();
 

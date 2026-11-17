@@ -221,49 +221,38 @@ export default function MangaDetailModal({
       onClick={onClose}
     >
       <div 
-        className="relative w-full max-w-4xl h-[94vh] max-h-[94vh] sm:h-[88vh] sm:max-h-[88vh] bg-[#080d1a]/98 border border-cyan-500/35 rounded-2xl sm:rounded-3xl shadow-2xl flex flex-col glass-panel-elevated hud-corner holo-sheen holo-modal-project overflow-hidden"
+        className="relative w-full max-w-4xl h-[94vh] max-h-[94vh] sm:h-[88vh] sm:max-h-[88vh] bg-[#0c101d] border border-white/10 rounded-2xl sm:rounded-3xl shadow-2xl flex flex-col overflow-hidden animate-fadeIn"
         onClick={(e) => e.stopPropagation()}
       >
-        {/* Holographic Projector Emitter Laser Lines */}
-        <div className="holo-emitter-top" />
-        <div className="holo-emitter-bottom" />
-        <div className="holo-beam-sweep pointer-events-none" />
-
-        {/* Pinned Top HUD Navigation Bar (Fixed in place at top of modal) */}
-        <header className="relative z-30 flex items-center justify-between px-3.5 sm:px-6 py-2.5 sm:py-3 border-b border-cyan-500/20 bg-slate-950/90 backdrop-blur-md flex-shrink-0">
-          <div className="flex items-center gap-2 text-[10px] font-mono text-cyan-400/90 tracking-widest select-none">
-            <span className="flex items-center gap-1.5 font-bold">
-              <span className="w-1.5 h-1.5 rounded-full bg-cyan-400 animate-pulse" />
-              SYS_ID // 0x8F9C
-            </span>
-            <span className="text-slate-600 hidden xs:inline">•</span>
-            <span className="hidden xs:inline">HOLO_STREAM // 60FPS</span>
-            <span className="text-slate-600 hidden sm:inline">•</span>
-            <span className="text-rose-400 hidden sm:inline">ENCRYPTED // TLS_v1.3</span>
+        {/* Pinned Top Navigation Bar */}
+        <header className="relative z-30 flex items-center justify-between px-4 sm:px-6 py-3 border-b border-white/[0.08] bg-[#090d18]/95 backdrop-blur-md flex-shrink-0">
+          <div className="flex items-center gap-2 text-xs font-medium text-slate-400 select-none">
+            <span className="w-2 h-2 rounded-full bg-rose-500" />
+            <span>Manga & Manhwa Universe</span>
           </div>
 
           <button
             type="button"
             aria-label="Close details"
             onClick={onClose}
-            className="p-1.5 sm:p-2 rounded-xl bg-white/5 hover:bg-rose-600 text-slate-300 hover:text-white border border-white/10 hover:border-rose-500/40 backdrop-blur-md transition-all shadow-md cursor-pointer flex items-center gap-1.5 flex-shrink-0"
+            className="p-1.5 sm:p-2 rounded-xl bg-white/5 hover:bg-rose-600 text-slate-300 hover:text-white border border-white/10 hover:border-rose-500/40 backdrop-blur-md transition-all shadow-sm cursor-pointer flex items-center gap-1.5 flex-shrink-0"
             title="Close modal (Esc)"
           >
             <X className="w-4 h-4 sm:w-4.5 sm:h-4.5" />
-            <span className="text-[10px] sm:text-xs font-mono font-bold">CLOSE</span>
+            <span className="text-xs font-medium">Close</span>
           </button>
         </header>
 
-        {/* Unified Scrollable Body - Everything scrolls smoothly together without nested scroll traps */}
+        {/* Unified Scrollable Body */}
         <div 
           ref={scrollContainerRef}
-          className="flex-1 min-h-0 overflow-y-auto overscroll-contain scrollbar-thin scrollbar-thumb-cyan-500/40 scrollbar-track-transparent divide-y divide-white/5"
+          className="flex-1 min-h-0 overflow-y-auto overscroll-contain scrollbar-thin scrollbar-thumb-slate-700 scrollbar-track-transparent divide-y divide-white/5"
           style={{ WebkitOverflowScrolling: 'touch', touchAction: 'pan-y' }}
         >
           {loading ? (
             <div className="flex flex-col items-center justify-center py-28 gap-3">
               <Loader2 className="w-10 h-10 text-rose-500 animate-spin" />
-              <p className="text-sm text-slate-400 font-mono">Loading manga holo-data...</p>
+              <p className="text-sm text-slate-400">Loading series details & chapters...</p>
             </div>
           ) : !manga ? (
             <div className="p-12 text-center text-slate-400">
@@ -356,7 +345,7 @@ export default function MangaDetailModal({
                       })()}
                     </div>
 
-                    <h2 className="text-xl sm:text-2xl md:text-3xl font-extrabold holo-text tracking-tight mb-1 font-['Outfit']">
+                    <h2 className="text-xl sm:text-2xl md:text-3xl font-bold text-white tracking-tight mb-1 font-['Outfit']">
                       {cleanTitle(manga.englishTitle || manga.title)}
                     </h2>
 

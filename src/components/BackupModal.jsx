@@ -6,7 +6,7 @@ export default function BackupModal({ isOpen, onClose, onRefreshData }) {
   const [copied, setCopied] = useState(false);
   const [copiedSyncLink, setCopiedSyncLink] = useState(false);
   const [importText, setImportText] = useState('');
-  const [vercelUrl, setVercelUrl] = useState(() => localStorage.getItem('kuroneko_vercel_url') || '');
+  const [deployUrl, setDeployUrl] = useState(() => localStorage.getItem('kuroneko_deploy_url') || localStorage.getItem('kuroneko_vercel_url') || '');
   const [importStatus, setImportStatus] = useState(null); // { type: 'success' | 'error', message: string }
 
   if (!isOpen) return null;
@@ -32,16 +32,16 @@ export default function BackupModal({ isOpen, onClose, onRefreshData }) {
     });
   };
 
-  const handleSyncToVercel = () => {
-    if (!vercelUrl.trim()) {
-      setImportStatus({ type: 'error', message: 'Please enter your Vercel deployment URL (e.g. https://manga-for-me.vercel.app).' });
+  const handleSyncToDeploy = () => {
+    if (!deployUrl.trim()) {
+      setImportStatus({ type: 'error', message: 'Please enter your Netlify or Vercel deployment URL (e.g. https://your-site.netlify.app).' });
       return;
     }
-    let target = vercelUrl.trim();
+    let target = deployUrl.trim();
     if (!target.startsWith('http://') && !target.startsWith('https://')) {
       target = 'https://' + target;
     }
-    localStorage.setItem('kuroneko_vercel_url', target);
+    localStorage.setItem('kuroneko_deploy_url', target);
     const json = exportData();
     const encoded = encodeDataForUrl(json);
     if (!encoded) {
@@ -51,19 +51,19 @@ export default function BackupModal({ isOpen, onClose, onRefreshData }) {
     const cleanUrl = target.replace(/#.*$/, '').replace(/\/+$/, '');
     const migrationUrl = `${cleanUrl}/#sync_data=${encoded}`;
     window.open(migrationUrl, '_blank');
-    setImportStatus({ type: 'success', message: 'Migration launched! Your Vercel app tab will automatically restore all data.' });
+    setImportStatus({ type: 'success', message: 'Migration launched! Your deployed site tab will automatically restore all data.' });
   };
 
   const handleCopySyncLink = () => {
-    if (!vercelUrl.trim()) {
-      setImportStatus({ type: 'error', message: 'Please enter your Vercel deployment URL first.' });
+    if (!deployUrl.trim()) {
+      setImportStatus({ type: 'error', message: 'Please enter your deployment URL first.' });
       return;
     }
-    let target = vercelUrl.trim();
+    let target = deployUrl.trim();
     if (!target.startsWith('http://') && !target.startsWith('https://')) {
       target = 'https://' + target;
     }
-    localStorage.setItem('kuroneko_vercel_url', target);
+    localStorage.setItem('kuroneko_deploy_url', target);
     const json = exportData();
     const encoded = encodeDataForUrl(json);
     const cleanUrl = target.replace(/#.*$/, '').replace(/\/+$/, '');
@@ -129,10 +129,10 @@ export default function BackupModal({ isOpen, onClose, onRefreshData }) {
             </div>
             <div>
               <h3 className="font-extrabold text-lg text-white">
-                Backup & Vercel Sync
+                Backup & Cloud Sync
               </h3>
               <p className="text-xs text-slate-400">
-                Transfer your library & reading progress to Vercel
+                Transfer your library & reading progress to Netlify, Vercel, or custom domain
               </p>
             </div>
           </div>
@@ -156,33 +156,33 @@ export default function BackupModal({ isOpen, onClose, onRefreshData }) {
           </div>
         )}
 
-        {/* 1-Click Sync to Vercel Section */}
+        {/* 1-Click Sync to Cloud Section */}
         <div className="p-4 rounded-2xl bg-gradient-to-br from-rose-950/40 via-slate-900/80 to-slate-900/90 border border-rose-500/30 space-y-3">
           <div className="flex items-center gap-2 text-rose-400 font-bold text-xs uppercase tracking-wider">
             <Sparkles className="w-4 h-4 fill-rose-400" />
-            <span>1-Click Sync to Vercel App</span>
+            <span>1-Click Sync to Deployed App</span>
           </div>
           <p className="text-xs text-slate-300 leading-relaxed">
-            Running on localhost? Enter your Vercel URL below to instantly push your library, reading history, and bookmarks directly into your deployed Vercel site:
+            Running on localhost? Enter your Netlify or Vercel URL below to instantly push your library, reading history, and bookmarks directly into your deployed site:
           </p>
           <div className="space-y-2">
             <div className="relative">
               <Globe className="w-4 h-4 text-slate-500 absolute left-3 top-1/2 -translate-y-1/2" />
               <input
                 type="url"
-                placeholder="https://your-app-name.vercel.app"
-                value={vercelUrl}
-                onChange={(e) => setVercelUrl(e.target.value)}
+                placeholder="https://your-site.netlify.app or https://your-site.vercel.app"
+                value={deployUrl}
+                onChange={(e) => setDeployUrl(e.target.value)}
                 className="w-full bg-slate-950/80 border border-white/10 rounded-xl pl-9 pr-3 py-2 text-xs text-slate-200 placeholder:text-slate-500 focus:outline-none focus:border-rose-500"
               />
             </div>
             <div className="flex gap-2">
               <button
-                onClick={handleSyncToVercel}
+                onClick={handleSyncToDeploy}
                 className="flex-1 py-2.5 px-3 rounded-xl text-xs font-bold text-white bg-gradient-to-r from-rose-600 to-rose-500 hover:from-rose-500 hover:to-rose-400 transition-all flex items-center justify-center gap-1.5 shadow-md shadow-rose-600/30"
               >
                 <ExternalLink className="w-3.5 h-3.5" />
-                <span>Open & Sync in Vercel</span>
+                <span>Open & Sync in Cloud</span>
               </button>
               <button
                 onClick={handleCopySyncLink}

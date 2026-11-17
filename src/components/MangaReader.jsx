@@ -1,5 +1,5 @@
 import React, { useState, useEffect, useRef, useCallback } from 'react';
-import { Loader2, AlertCircle, ExternalLink, Globe, Sparkles, BookOpen, Check } from 'lucide-react';
+import { Loader2, AlertCircle, ExternalLink, Sparkles } from 'lucide-react';
 import { fetchChapterPages, fetchMangaChapters, getChapterSourceUrl, cleanTitle } from '../services/mangaApi';
 import { 
   recordReadingProgress, 
@@ -40,10 +40,6 @@ export default function MangaReader({
 
   const [allChapters, setAllChapters] = useState([]);
   const allChaptersRef = useRef([]);
-
-  useEffect(() => {
-    loadedChaptersRef.current = loadedChapters;
-  }, [loadedChapters]);
 
   useEffect(() => {
     allChaptersRef.current = allChapters;
@@ -487,7 +483,7 @@ export default function MangaReader({
       isLoadingNextRef.current = false;
       setIsLoadingNext(false);
     }
-  }, [settings.continuousScroll, settings.readingMode]);
+  }, [settings.continuousScroll, settings.readingMode, mangaId, mangaTitle]);
 
   // Load Previous Chapter
   const loadPrevChapter = async () => {
@@ -628,7 +624,7 @@ export default function MangaReader({
     } finally {
       setIsReloadingChapter(false);
     }
-  }, [chapterId, isReloadingChapter]);
+  }, [chapterId, isReloadingChapter, mangaId, mangaTitle, activeChapterNumber]);
 
   // Track scroll position in Webtoon mode & auto-hide controls on scroll
   const handleScroll = useCallback(() => {

@@ -72,15 +72,15 @@ export default function HistoryView({
 
   return (
     <div className="space-y-6 sm:space-y-8 animate-fadeIn w-full max-w-full overflow-x-hidden">
-      {/* Top Banner / Stats Header (Grounded Glassmorphism + HUD + Holographic) */}
-      <div className="relative overflow-hidden rounded-3xl glass-panel-elevated p-5 sm:p-7 border border-cyan-500/30 bg-gradient-to-r from-cyan-950/25 via-slate-900/70 to-slate-950/85 shadow-xl hud-corner holo-sheen">
+      {/* Top Banner / Stats Header */}
+      <div className="relative overflow-hidden rounded-2xl sm:rounded-3xl p-5 sm:p-7 border border-white/10 bg-[#0d1222]/90 shadow-xl">
         <div className="flex flex-col md:flex-row items-start md:items-center justify-between gap-5">
           <div className="space-y-1">
             <div className="flex items-center gap-2.5">
-              <span className="p-2.5 rounded-2xl bg-cyan-600/20 text-cyan-400 border border-cyan-500/30">
-                <History className="w-5 h-5 fill-cyan-400 text-cyan-400" />
+              <span className="p-2.5 rounded-xl bg-rose-500/15 text-rose-400 border border-rose-500/25">
+                <History className="w-5 h-5 text-rose-400" />
               </span>
-              <h1 className="text-2xl sm:text-3xl font-black holo-text tracking-tight font-['Outfit']">
+              <h1 className="text-2xl sm:text-3xl font-bold text-white tracking-tight font-['Outfit']">
                 Reading History & Timeline
               </h1>
             </div>
@@ -90,14 +90,14 @@ export default function HistoryView({
           </div>
 
           {/* Quick Stats Pill */}
-          <div className="grid grid-cols-2 gap-3 w-full md:w-auto font-mono">
-            <div className="p-3 sm:p-3.5 rounded-2xl bg-slate-950/80 border border-cyan-500/30 text-center min-w-[120px]">
+          <div className="grid grid-cols-2 gap-3 w-full md:w-auto">
+            <div className="p-3 sm:p-3.5 rounded-xl bg-slate-950/70 border border-white/10 text-center min-w-[120px]">
               <span className="text-[11px] text-slate-400 block font-medium">Titles Read</span>
-              <span className="text-lg font-extrabold text-white">{safeHistory.length}</span>
+              <span className="text-lg font-bold text-white">{safeHistory.length}</span>
             </div>
-            <div className="p-3 sm:p-3.5 rounded-2xl bg-slate-950/80 border border-cyan-500/30 text-center min-w-[120px]">
-              <span className="text-[11px] text-cyan-400 block font-medium">Chapters Read</span>
-              <span className="text-lg font-extrabold text-cyan-400">{totalReadChapters}</span>
+            <div className="p-3 sm:p-3.5 rounded-xl bg-slate-950/70 border border-white/10 text-center min-w-[120px]">
+              <span className="text-[11px] text-rose-400 block font-medium">Chapters Read</span>
+              <span className="text-lg font-bold text-rose-400">{totalReadChapters}</span>
             </div>
           </div>
         </div>

@@ -98,21 +98,33 @@ const server = http.createServer(async (req, res) => {
 
     if (pathname === '/api/manga/read') {
       const chapterId = (urlObj.searchParams.get('chapterId') || '').slice(0, 300);
-      const result = await getChapterPages(chapterId);
+      const mangaId = (urlObj.searchParams.get('mangaId') || '').slice(0, 300);
+      const ch = (urlObj.searchParams.get('ch') || '').slice(0, 50);
+      const title = (urlObj.searchParams.get('title') || '').slice(0, 300);
+      const result = await getChapterPages(chapterId, mangaId, ch, title);
       res.setHeader('Content-Type', 'application/json');
       res.end(JSON.stringify(result));
       return;
     }
 
-    // Mihon Extension Repository Proxy & Cache
+    // Mihon Extension Repository Proxy & Cache (Protected against SSRF)
     if (pathname === '/api/extensions/repo') {
       const repoUrl = urlObj.searchParams.get('url');
-      if (!repoUrl) {
+      if (!repoUrl || !isValidProxyTarget(repoUrl)) {
         res.statusCode = 400;
-        res.end(JSON.stringify({ error: 'Missing repo URL' }));
+        res.end(JSON.stringify({ error: 'Invalid repository destination' }));
         return;
       }
       try {
+        const parsed = new URL(repoUrl);
+        const host = parsed.hostname.toLowerCase();
+        const isAllowed = host === 'raw.githubusercontent.com' || host === 'cdn.jsdelivr.net' || host.endsWith('.github.io');
+        if (!isAllowed) {
+          res.statusCode = 403;
+          res.end(JSON.stringify({ error: 'Forbidden: Repository host is not allowlisted' }));
+          return;
+        }
+
         const repoRes = await fetch(repoUrl, {
           headers: { 'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36' }
         });
@@ -123,7 +135,7 @@ const server = http.createServer(async (req, res) => {
         res.end(JSON.stringify(data));
       } catch (err) {
         res.statusCode = 502;
-        res.end(JSON.stringify({ error: `Repo fetch failed: ${err.message}` }));
+        res.end(JSON.stringify({ error: 'Failed to retrieve repository index' }));
       }
       return;
     }
@@ -152,10 +164,18 @@ const server = http.createServer(async (req, res) => {
       }
     }
 
-    // Static Assets from dist/
-    let safePath = path.normalize(pathname).replace(/^(\.\.[/\\])+/, '');
-    let filePath = path.join(DIST_DIR, safePath);
+    // Safe Static Asset Resolution (Prevents Path Traversal CWE-22)
+    const normalized = path.normalize(pathname).replace(/^(\.\.[/\\])+/, '');
+    const candidatePath = path.resolve(DIST_DIR, '.' + path.sep + normalized);
 
+    // Strict boundary containment check
+    if (!candidatePath.startsWith(DIST_DIR + path.sep) && candidatePath !== DIST_DIR) {
+      res.statusCode = 403;
+      res.end('Forbidden: Invalid file path');
+      return;
+    }
+
+    let filePath = candidatePath;
     // If file doesn't exist or is a directory, fallback to dist/index.html (SPA routing)
     if (!fs.existsSync(filePath) || fs.statSync(filePath).isDirectory()) {
       filePath = path.join(DIST_DIR, 'index.html');
@@ -171,6 +191,13 @@ const server = http.createServer(async (req, res) => {
         res.setHeader('Cache-Control', 'no-cache');
       }
       const stream = fs.createReadStream(filePath);
+      stream.on('error', (streamErr) => {
+        console.error('File stream error:', streamErr);
+        if (!res.headersSent) {
+          res.statusCode = 500;
+          res.end();
+        }
+      });
       stream.pipe(res);
       return;
     }
@@ -181,7 +208,7 @@ const server = http.createServer(async (req, res) => {
     console.error('Server error:', err);
     if (!res.headersSent) {
       res.statusCode = 500;
-      res.end(JSON.stringify({ error: err.message }));
+      res.end(JSON.stringify({ error: 'Internal Server Error' }));
     }
   }
 });

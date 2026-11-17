@@ -102,21 +102,20 @@ export default function ContinueReadingBanner({
     <div
       onTouchStart={handleTouchStart}
       onTouchEnd={handleTouchEnd}
-      className="relative overflow-hidden rounded-2xl sm:rounded-3xl glass-panel-elevated p-4 sm:p-5 border border-cyan-500/35 bg-gradient-to-r from-cyan-950/30 via-slate-900/80 to-slate-950/90 shadow-2xl transition-all hud-corner holo-sheen select-none"
+      className="relative overflow-hidden rounded-2xl sm:rounded-3xl p-4 sm:p-5 border border-white/10 bg-[#0d1220]/95 shadow-xl transition-all select-none"
     >
-      {/* Background glow orbs */}
-      <div className="absolute -top-12 -right-12 w-56 h-56 bg-cyan-500/15 rounded-full blur-3xl pointer-events-none" />
-      <div className="absolute -bottom-12 -left-12 w-56 h-56 bg-rose-500/15 rounded-full blur-3xl pointer-events-none" />
+      {/* Subtle ambient lighting */}
+      <div className="absolute -top-12 -right-12 w-56 h-56 bg-rose-500/10 rounded-full blur-3xl pointer-events-none" />
 
-      {/* Header bar: status telemetry & carousel pagination */}
-      <div className="flex items-center justify-between gap-2 mb-3 relative z-10 border-b border-cyan-500/15 pb-2.5">
+      {/* Header bar */}
+      <div className="flex items-center justify-between gap-2 mb-3 relative z-10 border-b border-white/[0.08] pb-2.5">
         <div className="flex items-center gap-2">
-          <span className="flex items-center gap-1.5 px-2.5 py-0.5 rounded-full text-[9px] font-mono font-bold uppercase tracking-wider bg-cyan-500/20 text-cyan-300 border border-cyan-500/40 shadow-[0_0_10px_rgba(6,182,212,0.25)]">
-            <span className="w-1.5 h-1.5 rounded-full bg-cyan-400 animate-ping" />
-            CONTINUE_READING // ACTIVE
+          <span className="flex items-center gap-1.5 px-2.5 py-0.5 rounded-full text-xs font-semibold bg-rose-600/20 text-rose-300 border border-rose-500/30">
+            <span className="w-1.5 h-1.5 rounded-full bg-rose-500" />
+            Jump Back In
           </span>
-          <span className="flex items-center gap-1 text-[11px] font-mono text-slate-400">
-            <Clock className="w-3 h-3 text-cyan-400/80" />
+          <span className="flex items-center gap-1 text-xs text-slate-400">
+            <Clock className="w-3 h-3 text-slate-400" />
             {formatDate(currentItem.updatedAt)}
           </span>
         </div>

@@ -309,22 +309,19 @@ export default function ExtensionsView({ onSelectManga, onOpenReader }) {
   return (
     <div className="space-y-6 sm:space-y-8 animate-fadeIn font-['Plus_Jakarta_Sans',sans-serif]">
       
-      {/* ----------------- TOP HERO HUD & NAVIGATION ----------------- */}
-      <div className="relative rounded-3xl p-6 sm:p-8 bg-gradient-to-br from-slate-950 via-[#0d1322] to-slate-950 border border-cyan-500/20 shadow-2xl overflow-hidden holo-card">
-        {/* Futuristic Grid Accent Background */}
-        <div className="absolute inset-0 bg-[linear-gradient(to_right,#06b6d40a_1px,transparent_1px),linear-gradient(to_bottom,#06b6d40a_1px,transparent_1px)] bg-[size:24px_24px] pointer-events-none" />
+      {/* ----------------- TOP HERO HEADER & NAVIGATION ----------------- */}
+      <div className="relative rounded-2xl sm:rounded-3xl p-6 sm:p-8 bg-[#0d1222]/90 border border-white/10 shadow-xl overflow-hidden">
         <div className="absolute top-0 right-0 w-80 h-80 bg-rose-500/10 rounded-full blur-3xl pointer-events-none" />
-        <div className="absolute bottom-0 left-0 w-80 h-80 bg-cyan-500/10 rounded-full blur-3xl pointer-events-none" />
 
         <div className="relative z-10 flex flex-col md:flex-row md:items-center justify-between gap-6">
           <div className="space-y-2">
             <div className="flex items-center gap-2">
-              <span className="px-2.5 py-0.5 rounded-full text-[10px] font-mono font-bold bg-cyan-500/15 text-cyan-300 border border-cyan-500/30 flex items-center gap-1.5">
-                <Cpu className="w-3 h-3 text-cyan-400 animate-pulse" />
-                MIHON_EXTENSION_CORE // v2.4
+              <span className="px-2.5 py-0.5 rounded-full text-xs font-semibold bg-rose-500/15 text-rose-300 border border-rose-500/30 flex items-center gap-1.5">
+                <Cpu className="w-3.5 h-3.5 text-rose-400" />
+                Mihon & Tachiyomi Ecosystem
               </span>
-              <span className="text-[10px] font-mono text-slate-400">
-                • KEIYOUSHI REPO COMPATIBLE
+              <span className="text-xs text-slate-400">
+                • Keiyoushi Repository Compatible
               </span>
             </div>
             <h1 className="text-2xl sm:text-3xl font-extrabold text-white tracking-tight font-['Outfit'] flex items-center gap-3">
@@ -911,7 +908,7 @@ export default function ExtensionsView({ onSelectManga, onOpenReader }) {
       {/* ----------------- SOURCE BROWSER MODAL (POPULAR / LATEST / SEARCH) ----------------- */}
       {browsingSource && (
         <div className="fixed inset-0 z-50 flex items-center justify-center p-3 sm:p-6 bg-black/85 backdrop-blur-xl animate-fadeIn">
-          <div className="w-full max-w-5xl max-h-[92vh] rounded-3xl bg-slate-950 border border-cyan-500/30 shadow-2xl flex flex-col overflow-hidden holo-card">
+          <div className="w-full max-w-5xl max-h-[92vh] rounded-2xl sm:rounded-3xl bg-[#0c101d] border border-white/10 shadow-2xl flex flex-col overflow-hidden">
             
             {/* Modal Header */}
             <div className="p-4 sm:p-5 border-b border-white/10 bg-slate-900/80 flex items-center justify-between gap-3">
