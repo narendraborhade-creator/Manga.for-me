@@ -6,6 +6,10 @@ const KEYS = {
   READER_SETTINGS: 'kuroneko_reader_settings_v1',
   UPDATES: 'kuroneko_chapter_updates_v1',
   UPDATE_SETTINGS: 'kuroneko_update_settings_v1',
+  CATEGORIES: 'kuroneko_categories_v1',
+  LIBRARY_DISPLAY_MODE: 'kuroneko_library_display_mode_v1',
+  LIBRARY_SORT: 'kuroneko_library_sort_v1',
+  TRACKING: 'kuroneko_tracking_v1',
 };
 
 // Default reader settings
@@ -379,3 +383,67 @@ export const getUpdateSettings = () => {
 export const saveUpdateSettings = (settings) => {
   safeSet(KEYS.UPDATE_SETTINGS, settings);
 };
+
+// ----------------- MIHON CATEGORIES & DISPLAY -----------------
+export const DEFAULT_CATEGORIES = [
+  'All',
+  'Reading',
+  'Plan to Read',
+  'Completed',
+  'On Hold',
+  'Favorites',
+];
+
+export const getCategories = () => {
+  return safeGet(KEYS.CATEGORIES, DEFAULT_CATEGORIES);
+};
+
+export const saveCategories = (categories) => {
+  safeSet(KEYS.CATEGORIES, categories);
+};
+
+export const addCategory = (name) => {
+  if (!name || !name.trim()) return getCategories();
+  const trimmed = name.trim();
+  const cats = getCategories();
+  if (!cats.includes(trimmed)) {
+    cats.push(trimmed);
+    saveCategories(cats);
+  }
+  return cats;
+};
+
+export const deleteCategory = (name) => {
+  const cats = getCategories().filter((c) => c !== name && c !== 'All');
+  saveCategories(cats);
+  return cats;
+};
+
+export const getLibraryDisplayMode = () => {
+  return safeGet(KEYS.LIBRARY_DISPLAY_MODE, 'comfortable'); // 'comfortable' | 'compact' | 'cover_only' | 'list'
+};
+
+export const saveLibraryDisplayMode = (mode) => {
+  safeSet(KEYS.LIBRARY_DISPLAY_MODE, mode);
+};
+
+export const getLibrarySort = () => {
+  return safeGet(KEYS.LIBRARY_SORT, 'alpha_asc'); // 'alpha_asc' | 'alpha_desc' | 'unread' | 'total_ch' | 'last_read'
+};
+
+export const saveLibrarySort = (sort) => {
+  safeSet(KEYS.LIBRARY_SORT, sort);
+};
+
+// ----------------- MIHON TRACKING (ANILIST / MAL) -----------------
+export const getMihonTracking = () => {
+  return safeGet(KEYS.TRACKING, {
+    anilist: { connected: false, username: '', token: '' },
+    mal: { connected: false, username: '' },
+  });
+};
+
+export const saveMihonTracking = (tracking) => {
+  safeSet(KEYS.TRACKING, tracking);
+};
+

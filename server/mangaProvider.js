@@ -397,8 +397,9 @@ export const VERIFIED_COMPLETE_ALIASES = {
   'the-despised-stepmother-begins-her-second-life': 'webtoon:stepmother-second-life',
   'the-despised-stepmother': 'webtoon:stepmother-second-life',
   'stepmother-second-life': 'webtoon:stepmother-second-life',
-  'md:73f00a6a-dc33-49f6-beb0-98feb29ce0cc': 'webtoon:stepmother-second-life',
-  '73f00a6a-dc33-49f6-beb0-98feb29ce0cc': 'webtoon:stepmother-second-life',
+  'the-stepmother-has-left': 'kat:a-stepmothers-fairy-tale.23902',
+  'the stepmother has left': 'kat:a-stepmothers-fairy-tale.23902',
+  'a-stepmothers-fairy-tale': 'kat:a-stepmothers-fairy-tale.23902',
   'my-in-laws-are-obsessed-with-me': 'webtoon:ks:my-in-laws-are-obsessed-with-me',
   'md:c44b5b1d-60cf-4faf-be2c-0a807200358f': 'webtoon:ks:my-in-laws-are-obsessed-with-me',
   'c44b5b1d-60cf-4faf-be2c-0a807200358f': 'webtoon:ks:my-in-laws-are-obsessed-with-me',
@@ -1395,9 +1396,7 @@ export async function getMangaDetails(mangaId, bypassCache = false) {
   // Exact ID resolution for Stepmother Second Life webtoon
   if (
     mangaId === 'webtoon:stepmother-second-life' ||
-    mangaId === 'webtoon:the-step-mothers-began-her-second-life' ||
-    mangaId === 'md:73f00a6a-dc33-49f6-beb0-98feb29ce0cc' ||
-    mangaId === '73f00a6a-dc33-49f6-beb0-98feb29ce0cc'
+    mangaId === 'webtoon:the-step-mothers-began-her-second-life'
   ) {
     const details = await getWebtoonDetails('webtoon:stepmother-second-life', bypassCache);
     if (details) {

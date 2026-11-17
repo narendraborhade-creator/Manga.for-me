@@ -109,20 +109,27 @@ export default function Navbar({
   };
 
   const navItems = [
-    { id: 'manga', label: 'Manga Hub', icon: BookOpen },
-    { 
-      id: 'sources', 
-      label: 'Sources & Exts', 
-      icon: Layers, 
-      badge: installedSourcesCount > 0 ? installedSourcesCount : null 
-    },
     { 
       id: 'library', 
-      label: 'My Library', 
+      label: 'Library', 
       icon: Bookmark, 
       badge: bookmarksCount > 0 ? bookmarksCount : null 
     },
-    { id: 'history', label: 'Reading History', icon: History },
+    { 
+      id: 'updates', 
+      label: 'Updates', 
+      icon: Bell, 
+      badge: unreadUpdatesCount > 0 ? unreadUpdatesCount : null 
+    },
+    { id: 'manga', label: 'Browse', icon: BookOpen },
+    { 
+      id: 'sources', 
+      label: 'Sources', 
+      icon: Layers, 
+      badge: installedSourcesCount > 0 ? installedSourcesCount : null 
+    },
+    { id: 'history', label: 'History', icon: History },
+    { id: 'more', label: 'More', icon: SlidersHorizontal },
   ];
 
   return (

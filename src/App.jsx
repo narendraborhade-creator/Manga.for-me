@@ -9,6 +9,8 @@ import LibraryView from './components/LibraryView';
 import HistoryView from './components/HistoryView';
 import BackupModal from './components/BackupModal';
 import ExtensionsView from './components/ExtensionsView';
+import UpdatesView from './components/UpdatesView';
+import MoreView from './components/MoreView';
 import { getInstalledExtensions } from './services/extensionManager';
 
 import { 
@@ -44,6 +46,7 @@ import {
   Bookmark,
   History,
   Radio,
+  Bell,
   X,
   SlidersHorizontal,
   Search,
@@ -878,7 +881,16 @@ export default function App() {
           />
         )}
 
-        {/* --------------------- TAB 3: MY LIBRARY --------------------- */}
+        {/* --------------------- TAB 3: UPDATES FEED --------------------- */}
+        {activeTab === 'updates' && (
+          <UpdatesView
+            onSelectManga={handleOpenMangaDetails}
+            onOpenReader={handleOpenReader}
+            onGoToBrowse={() => setActiveTab('manga')}
+          />
+        )}
+
+        {/* --------------------- TAB 4: MY LIBRARY --------------------- */}
         {activeTab === 'library' && (
           <LibraryView
             bookmarks={bookmarks}
@@ -890,13 +902,22 @@ export default function App() {
           />
         )}
 
-        {/* --------------------- TAB 3: READING HISTORY --------------------- */}
+        {/* --------------------- TAB 5: READING HISTORY --------------------- */}
         {activeTab === 'history' && (
           <HistoryView
             history={history}
             onOpenReader={handleOpenReader}
             onOpenMangaDetails={handleOpenHistoryMangaDetails}
             onRefreshHistory={refreshStorageData}
+          />
+        )}
+
+        {/* --------------------- TAB 6: MORE & SETTINGS --------------------- */}
+        {activeTab === 'more' && (
+          <MoreView
+            onOpenBackup={() => setIsBackupOpen(true)}
+            onGoToSources={() => setActiveTab('sources')}
+            onGoToBrowse={() => setActiveTab('manga')}
           />
         )}
 
@@ -1019,12 +1040,13 @@ export default function App() {
       {/* Mobile Bottom Navigation Bar (Phone-Optimized, Safe-Area aware, Glassmorphism + HUD) */}
       {!readerState.active && (
         <nav className="md:hidden fixed bottom-0 left-0 right-0 z-40 bg-slate-950/90 backdrop-blur-3xl border-t border-cyan-500/25 px-2 py-1.5 pb-[calc(0.5rem+env(safe-area-inset-bottom))] shadow-[0_-10px_35px_rgba(0,0,0,0.9)]">
-          <div className="grid grid-cols-4 items-center justify-around max-w-md mx-auto">
+          <div className="grid grid-cols-5 items-center justify-around max-w-md mx-auto">
             {[
-              { id: 'manga', label: 'Manga Hub', icon: BookOpen },
-              { id: 'sources', label: 'Sources', icon: Layers, badge: installedSourcesCount || null },
               { id: 'library', label: 'Library', icon: Bookmark, badge: Object.keys(bookmarks).length || null },
+              { id: 'updates', label: 'Updates', icon: Bell, badge: updates.filter((u) => !u.read).length || null },
+              { id: 'manga', label: 'Browse', icon: BookOpen },
               { id: 'history', label: 'History', icon: History, badge: history.length || null },
+              { id: 'more', label: 'More', icon: SlidersHorizontal },
             ].map((tab) => {
               const Icon = tab.icon;
               const isActive = activeTab === tab.id;
@@ -1035,7 +1057,7 @@ export default function App() {
                     setActiveTab(tab.id);
                     window.scrollTo({ top: 0, behavior: 'smooth' });
                   }}
-                  className={`flex flex-col items-center justify-center py-1 px-2 rounded-xl transition-all relative ${
+                  className={`flex flex-col items-center justify-center py-1 px-1 rounded-xl transition-all relative ${
                     isActive
                       ? 'text-cyan-300 font-bold'
                       : 'text-slate-400 hover:text-slate-200'

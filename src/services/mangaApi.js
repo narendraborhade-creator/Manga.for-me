@@ -723,10 +723,7 @@ export const FALLBACK_MANGA_CATALOG = [
       'webtoon:the-step-mothers-began-her-second-life',
       'wc:01j76xy74zfsrkyp568q0e43q1-the-step-mother-began-her-second-life',
       'the-despised-stepmother-begins-her-second-life',
-      'the-stepmother-has-left',
-      'the-step-mother-has-left',
-      'md:73f00a6a-dc33-49f6-beb0-98feb29ce0cc',
-      '73f00a6a-dc33-49f6-beb0-98feb29ce0cc'
+      'stepmother-second-life'
     ],
     title: 'The Despised Stepmother Begins Her Second Life',
     englishTitle: "The Step Mother's Began Her Second Life",
@@ -746,6 +743,42 @@ export const FALLBACK_MANGA_CATALOG = [
         id: `webtoon:stepmother:${num}`,
         chapter: String(num),
         title: `Chapter ${num}`,
+      };
+    })
+  },
+  {
+    id: 'kat:a-stepmothers-fairy-tale.23902',
+    aliases: [
+      'the-stepmother-has-left',
+      'the stepmother has left',
+      'the-step-mother-has-left',
+      'a-stepmothers-fairy-tale',
+      'a stepmothers fairy tale',
+      'a-stepmothers-marchen',
+      'the-fantasie-of-a-stepmother',
+      'the fantasie of a stepmother',
+      'md:73f00a6a-dc33-49f6-beb0-98feb29ce0cc',
+      '73f00a6a-dc33-49f6-beb0-98feb29ce0cc',
+      'wc:01J76XYDQ9JTWW4THBJWPXNJ9H'
+    ],
+    title: "The Stepmother Has Left",
+    englishTitle: "A Stepmother's Fairy Tale",
+    coverUrl: 'https://uploads.mangadex.org/covers/73f00a6a-dc33-49f6-beb0-98feb29ce0cc/48f83bf3-2493-411b-a7c2-4242a39887f5.jpg.512.jpg',
+    status: 'Ongoing',
+    score: '9.6',
+    year: '2019',
+    author: 'Spice&Kitty & ORKA',
+    description: 'The iron widow, the spider widow, male hunter, the witch of Neuwanstein Castle... these were all the words used to describe the Marchioness Shuri Von Neuwanstein. Despite receiving such criticism from the world, she raised her children who were not related to her by blood. When she died, she woke up seven years in the past...',
+    tags: ['Fantasy', 'Romance', 'Drama', 'Regression', 'Manhwa'],
+    sourceName: 'MangaKatana',
+    totalChapters: 154,
+    latestChapter: '153',
+    chapters: Array.from({ length: 154 }, (_, i) => {
+      const chNum = 153 - i;
+      return {
+        id: `kat_ch:a-stepmothers-fairy-tale.23902:c${chNum}`,
+        chapter: String(chNum),
+        title: `Chapter ${chNum}`,
       };
     })
   },
@@ -890,14 +923,14 @@ export const KNOWN_CHAPTER_COUNTS = {
   'murim login': 190,
   'a fortune-telling princess': 176,
   'the despised stepmother begins her second life': 35,
-  'the despised stepmother': 35,
-  'the stepmother has left': 35,
-  'the step mother has left': 35,
   'the step mother\'s began her second life': 35,
-  'stepmother second life': 35,
-  'stepmother': 35,
-  'my in-laws are obsessed with me': 130,
-  'my in laws are obsessed with me': 130,
+  'the stepmother has left': 154,
+  'the step mother has left': 154,
+  'a stepmothers fairy tale': 154,
+  'a stepmother\'s fairy tale': 154,
+  'the fantasie of a stepmother': 173,
+  'my in-laws are obsessed with me': 137,
+  'my in laws are obsessed with me': 137,
   'solo leveling': 200,
   'omniscient reader': 240,
   'omniscient readers viewpoint': 240,
@@ -973,7 +1006,7 @@ export function getKnownChapterCount(title) {
   if (!clean) return 0;
   for (const [key, count] of Object.entries(KNOWN_CHAPTER_COUNTS)) {
     const cleanKey = key.toLowerCase().replace(/[^a-z0-9]/g, ' ').replace(/\s+/g, ' ').trim();
-    if (clean === cleanKey || clean.includes(cleanKey) || cleanKey.includes(clean)) {
+    if (clean === cleanKey || clean.includes(cleanKey)) {
       return count;
     }
   }
