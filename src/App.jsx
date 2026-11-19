@@ -14,6 +14,8 @@ const BackupModal = lazy(() => import('./components/BackupModal'));
 const ExtensionsView = lazy(() => import('./components/ExtensionsView'));
 const UpdatesView = lazy(() => import('./components/UpdatesView'));
 const MoreView = lazy(() => import('./components/MoreView'));
+const ResponsiveHeroBanner = lazy(() => import('./components/ui/responsive-hero-banner'));
+const HeroDemo = lazy(() => import('./components/ui/demo'));
 import { getInstalledExtensions } from './services/extensionManager';
 
 import { 
@@ -115,6 +117,25 @@ function matchesSource(manga, filterSource) {
 export default function App() {
   // Navigation & Search
   const [activeTab, setActiveTab] = useState('manga'); // 'manga' | 'sources' | 'library' | 'history'
+  // Hero Display Mode ('carousel' | 'banner')
+  const [heroStyle, setHeroStyle] = useState(() => {
+    try {
+      return localStorage.getItem('kuroneko_hero_style') || 'banner';
+    } catch {
+      return 'banner';
+    }
+  });
+
+  const toggleHeroStyle = useCallback(() => {
+    setHeroStyle((prev) => {
+      const next = prev === 'banner' ? 'carousel' : 'banner';
+      try {
+        localStorage.setItem('kuroneko_hero_style', next);
+      } catch {}
+      return next;
+    });
+  }, []);
+
   const [searchQuery, setSearchQuery] = useState('');
   const [selectedGenre, setSelectedGenre] = useState('All');
   const [selectedSource, setSelectedSource] = useState('All'); // 'All' | 'WeebCentral' | 'Webtoon' | 'MangaPill'
@@ -647,14 +668,50 @@ export default function App() {
               {/* If Not Searching: Show Hero Carousel & Categories */}
               {!isSearching ? (
                 <>
-                  {/* Hero Spotlight Carousel */}
+                  {/* Hero Spotlight & 21st.dev Responsive Hero Banner */}
                   {spotlightItems.length > 0 && (
-                    <HeroCarousel
-                      items={spotlightItems}
-                      onSelectManga={handleOpenMangaDetails}
-                      isBookmarkedFn={(id) => !!bookmarks[id]}
-                      onToggleBookmark={handleToggleBookmark}
-                    />
+                    <div className="relative mb-6">
+                      <div className="flex items-center justify-between mb-2.5 px-1">
+                        <span className="text-[11px] font-bold uppercase tracking-wider text-slate-400 flex items-center gap-1.5">
+                          <Sparkles className="w-3.5 h-3.5 text-rose-500" />
+                          Spotlight Showcase
+                        </span>
+                        <button
+                          type="button"
+                          onClick={toggleHeroStyle}
+                          className="text-xs font-semibold px-3 py-1 rounded-full bg-white/5 hover:bg-white/10 text-slate-300 hover:text-white border border-white/10 transition-all flex items-center gap-1.5 shadow-sm active:scale-95"
+                          title="Toggle Hero Design Style"
+                        >
+                          <Sparkles className="w-3 h-3 text-rose-400" />
+                          {heroStyle === 'banner' ? 'Switch to Compact Carousel' : 'Switch to 21st.dev Cinematic Hero'}
+                        </button>
+                      </div>
+
+                      {heroStyle === 'banner' ? (
+                        <Suspense fallback={<div className="h-[460px] rounded-3xl bg-slate-900/60 animate-pulse border border-white/10" />}>
+                          <ResponsiveHeroBanner
+                            backgroundImageUrl={spotlightItems[0]?.bannerUrl || spotlightItems[0]?.coverUrl || 'https://images.unsplash.com/photo-1579783900882-c0d3dad7b119?q=80&w=2000&auto=format&fit=crop'}
+                            title={spotlightItems[0]?.englishTitle || spotlightItems[0]?.title || 'Universe of Manga'}
+                            titleLine2={spotlightItems[0]?.author ? `by ${spotlightItems[0]?.author}` : 'Official Release'}
+                            description={spotlightItems[0]?.description || 'Experience the highest quality scans, lightning-fast rendering, and complete chapter archives.'}
+                            badgeLabel={spotlightItems[0]?.status || 'Trending'}
+                            badgeText={spotlightItems[0]?.latestChapter ? `Ch. ${spotlightItems[0]?.latestChapter} Available Now` : 'Top Rated Masterwork'}
+                            primaryButtonText="Start Reading"
+                            onPrimaryClick={() => handleOpenMangaDetails(spotlightItems[0]?.id, spotlightItems[0]?.coverUrl)}
+                            secondaryButtonText={bookmarks[spotlightItems[0]?.id] ? 'Saved in Library' : 'Add to Library'}
+                            onSecondaryClick={() => handleToggleBookmark(spotlightItems[0]?.id)}
+                            className="rounded-3xl border border-white/10 shadow-2xl overflow-hidden mb-6"
+                          />
+                        </Suspense>
+                      ) : (
+                        <HeroCarousel
+                          items={spotlightItems}
+                          onSelectManga={handleOpenMangaDetails}
+                          isBookmarkedFn={(id) => !!bookmarks[id]}
+                          onToggleBookmark={handleToggleBookmark}
+                        />
+                      )}
+                    </div>
                   )}
 
                   {/* Section 1: Most Popular / Trending Manga */}
