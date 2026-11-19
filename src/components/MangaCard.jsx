@@ -1,6 +1,6 @@
 import React, { memo, useRef } from 'react';
 import { Bookmark, Star, BookOpen, Check } from 'lucide-react';
-import { getFallbackCover, cleanTitle, getReliableCoverUrl, fetchLiveCover } from '../services/mangaApi';
+import { getFallbackCover, cleanTitle, getReliableCoverUrl, fetchLiveCover, isMachineId, unwrapProxyUrl } from '../services/mangaApi';
 
 function MangaCard({
   manga,
@@ -30,7 +30,10 @@ function MangaCard({
     }
   };
 
-  const titleText = cleanTitle(manga.englishTitle || manga.title);
+  let titleText = cleanTitle(manga.englishTitle || manga.title);
+  if (isMachineId(titleText)) {
+    titleText = cleanTitle(manga.title);
+  }
   const originalTitle = cleanTitle(manga.title);
 
   // Calculate visual reading progress
@@ -81,20 +84,37 @@ function MangaCard({
               return;
             }
 
-            // Step 1: If raw provider cover exists and wasn't the failing src
-            if (manga.rawCoverUrl && target.src !== manga.rawCoverUrl && !manga.rawCoverUrl.includes('nocover')) {
-              target.src = manga.rawCoverUrl;
+            // Step 1: If current src has /api/image-proxy, unwrap and try direct URL
+            const unwrapped = unwrapProxyUrl(target.src);
+            if (unwrapped && unwrapped !== target.src) {
+              target.src = unwrapped;
               return;
             }
 
-            // Step 2: Try verified known cover
+            // Step 2: If raw provider cover exists and wasn't the failing src
+            const raw = unwrapProxyUrl(manga.rawCoverUrl);
+            if (raw && target.src !== raw && !raw.includes('nocover') && !raw.includes('placeholder')) {
+              target.src = raw;
+              return;
+            }
+
+            // Step 3: Try verified known cover
             const reliable = getReliableCoverUrl(title, null);
             if (reliable && target.src !== reliable && !reliable.startsWith('data:')) {
               target.src = reliable;
               return;
             }
 
-            // Step 3: Real-time dynamic fetch from AniList / MangaDex API
+            // Step 4: Try Weserv CDN image proxy for cross-origin loading
+            if (raw && !raw.startsWith('data:')) {
+              const weserv = `https://images.weserv.nl/?url=${encodeURIComponent(raw)}`;
+              if (target.src !== weserv) {
+                target.src = weserv;
+                return;
+              }
+            }
+
+            // Step 5: Real-time dynamic fetch from AniList / MangaDex API
             target.dataset.fallbackApplied = 'true';
             try {
               const live = await fetchLiveCover(title);
@@ -104,7 +124,7 @@ function MangaCard({
               }
             } catch {}
 
-            // Step 4: Stylized bespoke typographic manga cover
+            // Step 6: Stylized bespoke typographic manga cover (real title, never machine ID)
             target.src = getFallbackCover(manga.title, manga.author);
           }}
         />
@@ -128,7 +148,7 @@ function MangaCard({
                 manga.id?.startsWith('thunder:') ? 'Thunder Scans' :
                 manga.id?.startsWith('asura:') ? 'Asura Scans' :
                 manga.id?.startsWith('vortex:') ? 'Vortex Scans' :
-                manga.id?.startsWith('wc:') ? 'WeebCentral' :
+                (manga.id?.startsWith('wc:') || /^[0-9a-hjkmnp-tv-z]{26}$/i.test(manga.id || '')) ? 'WeebCentral' :
                 manga.id?.startsWith('md:') ? 'MangaDex' :
                 manga.id?.startsWith('mk:') ? 'MangaKakalot' :
                 manga.id?.startsWith('webtoon:') ? 'Webtoon' : 'MangaPill'

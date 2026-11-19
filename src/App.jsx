@@ -15,7 +15,6 @@ const ExtensionsView = lazy(() => import('./components/ExtensionsView'));
 const UpdatesView = lazy(() => import('./components/UpdatesView'));
 const MoreView = lazy(() => import('./components/MoreView'));
 const ResponsiveHeroBanner = lazy(() => import('./components/ui/responsive-hero-banner'));
-const HeroDemo = lazy(() => import('./components/ui/demo'));
 import { getInstalledExtensions } from './services/extensionManager';
 
 import { 
@@ -91,6 +90,7 @@ const SOURCES = [
 function matchesSource(manga, filterSource) {
   if (!filterSource || filterSource === 'All') return true;
   const target = filterSource.toLowerCase();
+  const isWeebCentralUlid = /^[0-9a-hjkmnp-tv-z]{26}$/i.test(manga.id || '');
   const src = (
     manga.sourceName || (
       manga.id?.startsWith('kat:') ? 'MangaKatana' :
@@ -98,12 +98,15 @@ function matchesSource(manga, filterSource) {
       manga.id?.startsWith('thunder:') ? 'Thunder Scans' :
       manga.id?.startsWith('asura:') ? 'Asura Scans' :
       manga.id?.startsWith('vortex:') ? 'Vortex Scans' :
-      manga.id?.startsWith('wc:') ? 'WeebCentral' :
+      (manga.id?.startsWith('wc:') || isWeebCentralUlid) ? 'WeebCentral' :
       manga.id?.startsWith('md:') ? 'MangaDex' :
       manga.id?.startsWith('mk:') ? 'MangaKakalot' :
       manga.id?.startsWith('webtoon:') ? 'Webtoon' : 'MangaPill'
     )
   ).toLowerCase();
+  if (target === 'webtoon' && (src.includes('webtoon') || manga.tags?.some(t => /webtoon|manhwa/i.test(t)) || manga.genres?.some(g => /webtoon|manhwa/i.test(g)))) {
+    return true;
+  }
   if (src.includes(target) || target.includes(src)) return true;
   if (Array.isArray(manga.alternativeSources)) {
     return manga.alternativeSources.some((alt) => {
@@ -159,12 +162,22 @@ export default function App() {
   }, []);
 
   const scrollToCatalog = useCallback(() => {
-    const el = document.getElementById('manga-catalog');
-    if (el) {
-      el.scrollIntoView({ behavior: 'smooth', block: 'start' });
-    } else {
-      window.scrollTo({ top: 460, behavior: 'smooth' });
-    }
+    requestAnimationFrame(() => {
+      setTimeout(() => {
+        const el = document.getElementById('manga-catalog') || document.getElementById('browse-results-grid');
+        if (el) {
+          const navOffset = 80;
+          const rect = el.getBoundingClientRect();
+          const targetY = rect.top + (window.scrollY || window.pageYOffset || document.documentElement.scrollTop || 0) - navOffset;
+          window.scrollTo({
+            top: Math.max(0, targetY),
+            behavior: 'smooth'
+          });
+        } else {
+          window.scrollTo({ top: 520, behavior: 'smooth' });
+        }
+      }, 50);
+    });
   }, []);
 
   const [readerState, setReaderState] = useState({
@@ -709,7 +722,7 @@ export default function App() {
                             navLinks={[
                               {
                                 label: "Home",
-                                isActive: activeTab === 'manga' && selectedSource === 'All' && selectedGenre === 'All',
+                                isActive: activeTab === 'manga' && selectedSource === 'All' && selectedGenre === 'All' && !searchQuery.trim(),
                                 onClick: () => {
                                   setActiveTab('manga');
                                   setSelectedGenre('All');
@@ -720,20 +733,22 @@ export default function App() {
                               },
                               {
                                 label: "Manga Catalog",
-                                isActive: activeTab === 'manga' && selectedSource !== 'Webtoon',
+                                isActive: activeTab === 'manga' && selectedSource === 'All' && selectedGenre === 'All' && !searchQuery.trim(),
                                 onClick: () => {
                                   setActiveTab('manga');
                                   setSelectedSource('All');
                                   setSelectedGenre('All');
+                                  setSearchQuery('');
                                   scrollToCatalog();
                                 }
                               },
                               {
                                 label: "Trending Webtoons",
-                                isActive: selectedSource === 'Webtoon',
+                                isActive: activeTab === 'manga' && selectedSource === 'Webtoon',
                                 onClick: () => {
                                   setActiveTab('manga');
                                   setSelectedSource('Webtoon');
+                                  setSearchQuery('');
                                   scrollToCatalog();
                                 }
                               },
@@ -986,7 +1001,7 @@ export default function App() {
                 </>
               ) : (
                 /* Search / Filter Results for Manga */
-                <div className="space-y-6">
+                <div id="browse-results-grid" className="space-y-6 scroll-mt-24">
                   <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 border-b border-white/5 pb-4">
                     <div>
                       <h2 className="text-xl font-bold text-white flex items-center gap-2">

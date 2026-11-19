@@ -58,7 +58,7 @@ import {
   getMangaKatanaDetails,
   getMangaKatanaChapterPages
 } from './mangakatanaProvider.js';
-import { decodeHtml, cleanTitle, getFallbackCover, deduplicateChapters, detectChapterGaps, mergeAndDeduplicateChapters } from './htmlUtils.js';
+import { decodeHtml, cleanTitle, getFallbackCover, deduplicateChapters, detectChapterGaps, mergeAndDeduplicateChapters, isMachineId } from './htmlUtils.js';
 
 // Server-side provider for complete manga chapters and pages
 const USER_AGENT = 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36';
@@ -400,6 +400,18 @@ export const VERIFIED_COMPLETE_ALIASES = {
   'the-stepmother-has-left': 'kat:a-stepmothers-fairy-tale.23902',
   'the stepmother has left': 'kat:a-stepmothers-fairy-tale.23902',
   'a-stepmothers-fairy-tale': 'kat:a-stepmothers-fairy-tale.23902',
+  'the-fantasie-of-a-stepmother': 'kat:a-stepmothers-fairy-tale.23902',
+  'a-stepmothers-marchen': 'kat:a-stepmothers-fairy-tale.23902',
+  'wc:01J76XYDQ9JTWW4THBJWPXNJ9H': 'kat:a-stepmothers-fairy-tale.23902',
+  '01J76XYDQ9JTWW4THBJWPXNJ9H': 'kat:a-stepmothers-fairy-tale.23902',
+  'wc:01J76XY7KT7J224EBK6J816Y1Q': 'kat:one-punch-man.3262',
+  '01J76XY7KT7J224EBK6J816Y1Q': 'kat:one-punch-man.3262',
+  'wc:01J76XYD7E91K8QP6CY0Y53900': 'kat:blue-lock.22237',
+  '01J76XYD7E91K8QP6CY0Y53900': 'kat:blue-lock.22237',
+  'wc:01J76XYE3130E1W5HKTJ7VD912': 'kat:sakamoto-days.24831',
+  '01J76XYE3130E1W5HKTJ7VD912': 'kat:sakamoto-days.24831',
+  'wc:01J76XYE23859ZWDP7BJ520AKY': 'kat:the-beginning-after-the-end.21950',
+  '01J76XYE23859ZWDP7BJ520AKY': 'kat:the-beginning-after-the-end.21950',
   'my-in-laws-are-obsessed-with-me': 'webtoon:ks:my-in-laws-are-obsessed-with-me',
   'md:c44b5b1d-60cf-4faf-be2c-0a807200358f': 'webtoon:ks:my-in-laws-are-obsessed-with-me',
   'c44b5b1d-60cf-4faf-be2c-0a807200358f': 'webtoon:ks:my-in-laws-are-obsessed-with-me',
@@ -1455,8 +1467,9 @@ export async function getMangaDetails(mangaId, bypassCache = false) {
       resolvedDetails = await getVortexDetails(lookupId, bypassCache);
     } else if (lookupId.startsWith('webtoon:')) {
       resolvedDetails = await getWebtoonDetails(lookupId, bypassCache);
-    } else if (lookupId.startsWith('wc:')) {
-      resolvedDetails = await getWeebCentralDetails(lookupId.replace('wc:', ''), '', bypassCache);
+    } else if (lookupId.startsWith('wc:') || /^01[0-9A-HJKMNP-TV-Z]{24}$/i.test(lookupId) || lookupId.startsWith('wc_')) {
+      const cleanWcId = lookupId.replace(/^wc:|^wc_/i, '').split('/')[0];
+      resolvedDetails = await getWeebCentralDetails(cleanWcId, '', bypassCache);
       if (!resolvedDetails?.chapters || resolvedDetails.chapters.length === 0) {
         const titleKey = normalizeTitleKey(resolvedDetails?.englishTitle || resolvedDetails?.title || '');
         const alias = VERIFIED_COMPLETE_ALIASES[titleKey] || VERIFIED_COMPLETE_ALIASES[lookupId];
@@ -1723,16 +1736,24 @@ export async function getMangaDetails(mangaId, bypassCache = false) {
       console.warn('Fallback lookup failed:', fallbackErr.message);
     }
 
-    // Return safe fallback object with sanitized title and SVG cover
-    const cleanIdTitle = cleanTitle(mangaId.split('/')[1] || mangaId);
+    // Return safe fallback object with sanitized title and never a machine ID
+    let safeTitle = cleanTitle(mangaId.split('/')[1] || mangaId);
+    if (isMachineId(safeTitle)) {
+      const alias = VERIFIED_COMPLETE_ALIASES[mangaId] || VERIFIED_COMPLETE_ALIASES[mangaId.replace(/^wc:/i, '')];
+      if (alias) {
+        safeTitle = cleanTitle(alias.replace(/^(kat|wc|webtoon|asura|thunder):/i, ''));
+      } else {
+        safeTitle = 'Manga Series';
+      }
+    }
     return {
       id: mangaId,
-      title: cleanIdTitle,
-      englishTitle: cleanIdTitle,
-      coverUrl: getFallbackCover(cleanIdTitle),
-      description: `${cleanIdTitle} chapters and updates are being indexed. Check back shortly.`,
+      title: safeTitle,
+      englishTitle: safeTitle,
+      coverUrl: getFallbackCover(safeTitle),
+      description: `${safeTitle} information and chapters are being refreshed. Check back shortly.`,
       status: 'Ongoing',
-      author: 'Manga',
+      author: 'Top Artist',
       tags: ['Manga', 'Ongoing'],
       chapters: [],
       totalChapters: 0,

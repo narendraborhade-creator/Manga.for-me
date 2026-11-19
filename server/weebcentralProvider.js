@@ -131,8 +131,8 @@ export async function searchWeebCentral(query = '') {
       seen.add(seriesId);
 
       const imgMatch = art.match(/<img[^>]+src="([^"]+)"[^>]*alt="([^"]*)"/i);
-      const rawImg = imgMatch ? imgMatch[1] : '';
-      const coverUrl = rawImg ? `/api/image-proxy?url=${encodeURIComponent(rawImg)}` : '';
+      const rawImg = imgMatch ? imgMatch[1] : `https://temp.compsci88.com/cover/fallback/${seriesId}.jpg`;
+      const coverUrl = rawImg;
       const rawTitle = imgMatch ? imgMatch[2].replace(/\s+cover$/i, '').trim() : '';
 
       // Extract tags
@@ -200,8 +200,8 @@ export async function getPopularWeebCentral(limit = 24) {
       seen.add(seriesId);
 
       const imgMatch = art.match(/<img[^>]+src="([^"]+)"[^>]*alt="([^"]*)"/i);
-      const rawImg = imgMatch ? imgMatch[1] : '';
-      const coverUrl = rawImg ? `/api/image-proxy?url=${encodeURIComponent(rawImg)}` : '';
+      const rawImg = imgMatch ? imgMatch[1] : `https://temp.compsci88.com/cover/fallback/${seriesId}.jpg`;
+      const coverUrl = rawImg;
       const rawTitle = imgMatch ? imgMatch[2].replace(/\s+cover$/i, '').trim() : '';
 
       const tagMatches = [...art.matchAll(/tag=([^"&]+)/gi)].map((t) =>
@@ -267,8 +267,8 @@ export async function getLatestUpdatesWeebCentral(limit = 24) {
       seen.add(seriesId);
 
       const imgMatch = art.match(/<img[^>]+src="([^"]+)"[^>]*alt="([^"]*)"/i);
-      const rawImg = imgMatch ? imgMatch[1] : '';
-      const coverUrl = rawImg ? `/api/image-proxy?url=${encodeURIComponent(rawImg)}` : '';
+      const rawImg = imgMatch ? imgMatch[1] : `https://temp.compsci88.com/cover/fallback/${seriesId}.jpg`;
+      const coverUrl = rawImg;
       const rawTitle = imgMatch ? imgMatch[2].replace(/\s+cover$/i, '').trim() : '';
 
       const tagMatches = [...art.matchAll(/tag=([^"&]+)/gi)].map((t) =>
@@ -334,8 +334,8 @@ export async function getRecentlyAddedWeebCentral(limit = 24) {
       seen.add(seriesId);
 
       const imgMatch = art.match(/<img[^>]+src="([^"]+)"[^>]*alt="([^"]*)"/i);
-      const rawImg = imgMatch ? imgMatch[1] : '';
-      const coverUrl = rawImg ? `/api/image-proxy?url=${encodeURIComponent(rawImg)}` : '';
+      const rawImg = imgMatch ? imgMatch[1] : `https://temp.compsci88.com/cover/fallback/${seriesId}.jpg`;
+      const coverUrl = rawImg;
       const rawTitle = imgMatch ? imgMatch[2].replace(/\s+cover$/i, '').trim() : '';
 
       const tagMatches = [...art.matchAll(/tag=([^"&]+)/gi)].map((t) =>
@@ -419,13 +419,27 @@ export async function getWeebCentralDetails(seriesId, initialCover = '', bypassC
 
       // Extract Cover
       let coverUrl = initialCover;
-      if (!coverUrl) {
-        const imgMatch =
-          html.match(/<meta\s+property="og:image"\s+content="([^"]*)"/i) ||
-          html.match(/<img[^>]+alt="[^"]*cover"[^>]+src="([^"]*)"/i);
-        if (imgMatch) {
-          coverUrl = `/api/image-proxy?url=${encodeURIComponent(imgMatch[1])}`;
+      let rawCoverUrl = '';
+      const imgMatch =
+        html.match(/<meta\s+property="og:image"\s+content="([^"]*)"/i) ||
+        html.match(/<img[^>]+alt="[^"]*cover"[^>]+src="([^"]*)"/i);
+      if (imgMatch) {
+        rawCoverUrl = imgMatch[1];
+        if (!coverUrl) {
+          coverUrl = imgMatch[1];
         }
+      } else if (!coverUrl) {
+        coverUrl = `https://temp.compsci88.com/cover/fallback/${seriesId}.jpg`;
+        rawCoverUrl = coverUrl;
+      }
+
+      // Extract Author
+      const authorMatch =
+        html.match(/Author\(s\):[\s\S]*?<a[^>]*>([\s\S]*?)<\/a>/i) ||
+        html.match(/author=([^"&]+)/i);
+      let author = 'Top Artist';
+      if (authorMatch) {
+        author = decodeHtml(authorMatch[1].replace(/<[^>]+>/g, '').trim()) || 'Top Artist';
       }
 
       // Extract Tags
@@ -492,10 +506,11 @@ export async function getWeebCentralDetails(seriesId, initialCover = '', bypassC
             title,
             englishTitle,
             coverUrl,
+            rawCoverUrl: rawCoverUrl || coverUrl,
             status: 'Ongoing',
             description,
             tags: tags.length ? tags : ['Manga'],
-            author: 'Author',
+            author,
             chapters,
             totalChapters: chapters.length,
             provider: 'weebcentral',

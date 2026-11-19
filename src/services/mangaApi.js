@@ -34,7 +34,7 @@ export const FALLBACK_MANGA_CATALOG = [
     aliases: ['worlds-strongest-troll', 'world-s-strongest-troll', "world's strongest troll", "the world's strongest troll", 'asura:worlds-strongest-troll-f212c582'],
     title: "World's Strongest Troll",
     englishTitle: "World's Strongest Troll",
-    coverUrl: '/api/image-proxy?url=https%3A%2F%2Fmangakatana.com%2Fimgs%2Fcover%2F04e%2F1f%2F7b189.jpg',
+    coverUrl: 'https://mangakatana.com/imgs/cover/04e/1f/7b189.jpg',
     status: 'Completed',
     score: '9.5',
     year: '2022',
@@ -248,10 +248,10 @@ export const FALLBACK_MANGA_CATALOG = [
   },
   {
     id: '3262/one-punch-man',
-    aliases: ['one-punch-man', 'one punch man', 'opm'],
+    aliases: ['one-punch-man', 'one punch man', 'opm', '01J76XY7KT7J224EBK6J816Y1Q', 'wc:01J76XY7KT7J224EBK6J816Y1Q'],
     title: 'One-Punch Man',
     englishTitle: 'One-Punch Man',
-    coverUrl: 'https://s4.anilist.co/file/anilistcdn/media/manga/cover/medium/bx85364-O28PUKbABg8y.jpg',
+    coverUrl: 'https://s4.anilist.co/file/anilistcdn/media/manga/cover/large/bx74347-sZpmNJ5xLwRK.jpg',
     status: 'Ongoing',
     score: '9.2',
     year: '2012',
@@ -266,6 +266,78 @@ export const FALLBACK_MANGA_CATALOG = [
       const code = 10000000 + (chNum * 1000);
       return {
         id: `3262-${code}/one-punch-man-chapter-${chNum}`,
+        chapter: String(chNum),
+        title: `Chapter ${chNum}`,
+      };
+    })
+  },
+  {
+    id: 'wc:01J76XYD7E91K8QP6CY0Y53900',
+    aliases: ['01J76XYD7E91K8QP6CY0Y53900', 'blue-lock', 'blue lock'],
+    title: 'Blue Lock',
+    englishTitle: 'Blue Lock',
+    coverUrl: 'https://s4.anilist.co/file/anilistcdn/media/manga/cover/large/bx106130-yPNeuSu75ey1.jpg',
+    status: 'Ongoing',
+    score: '9.3',
+    year: '2018',
+    author: 'Muneyuki Kaneshiro & Yusuke Nomura',
+    description: 'Japan’s desire for World Cup glory leads the Japanese Football Association to launch a new rigorous training program to find the national team’s next star striker. Three hundred high school strikers are pitted against each other in the Blue Lock facility!',
+    tags: ['Action', 'Sports', 'Drama', 'Shounen'],
+    sourceName: 'WeebCentral',
+    totalChapters: 280,
+    latestChapter: '280',
+    chapters: Array.from({ length: 280 }, (_, i) => {
+      const chNum = 280 - i;
+      return {
+        id: `wc_ch:01J76XYD7E91K8QP6CY0Y53900:c${chNum}`,
+        chapter: String(chNum),
+        title: `Chapter ${chNum}`,
+      };
+    })
+  },
+  {
+    id: 'wc:01J76XYE3130E1W5HKTJ7VD912',
+    aliases: ['01J76XYE3130E1W5HKTJ7VD912', 'sakamoto-days', 'sakamoto days'],
+    title: 'Sakamoto Days',
+    englishTitle: 'Sakamoto Days',
+    coverUrl: 'https://s4.anilist.co/file/anilistcdn/media/manga/cover/large/bx125828-p78Z8SflkfmO.jpg',
+    status: 'Ongoing',
+    score: '9.4',
+    year: '2020',
+    author: 'Yuto Suzuki',
+    description: 'Taro Sakamoto was an unrivaled hitman, earning legendary status in the underworld until he fell in love, married, retired, and gained weight running a convenience store. But the criminal underworld has not forgotten him!',
+    tags: ['Action', 'Comedy', 'Supernatural', 'Shounen'],
+    sourceName: 'WeebCentral',
+    totalChapters: 195,
+    latestChapter: '195',
+    chapters: Array.from({ length: 195 }, (_, i) => {
+      const chNum = 195 - i;
+      return {
+        id: `wc_ch:01J76XYE3130E1W5HKTJ7VD912:c${chNum}`,
+        chapter: String(chNum),
+        title: `Chapter ${chNum}`,
+      };
+    })
+  },
+  {
+    id: 'wc:01J76XYE23859ZWDP7BJ520AKY',
+    aliases: ['01J76XYE23859ZWDP7BJ520AKY', 'kat:the-beginning-after-the-end.21950', 'the-beginning-after-the-end', 'tbate'],
+    title: 'The Beginning After the End',
+    englishTitle: 'The Beginning After the End',
+    coverUrl: 'https://temp.compsci88.com/cover/fallback/01J76XYE23859ZWDP7BJ520AKY.jpg',
+    status: 'Ongoing',
+    score: '9.5',
+    year: '2018',
+    author: 'TurtleMe & Fuyuki23',
+    description: 'King Grey has unrivaled strength, wealth, and prestige in a world governed by martial ability. However, solitude lingers closely behind those with great power. Reincarnated into a new world filled with magic and monsters, the king has a second chance to relive his life!',
+    tags: ['Action', 'Adventure', 'Fantasy', 'Manhwa', 'Webtoon', 'Reincarnation'],
+    sourceName: 'WeebCentral',
+    totalChapters: 185,
+    latestChapter: '185',
+    chapters: Array.from({ length: 185 }, (_, i) => {
+      const chNum = 185 - i;
+      return {
+        id: `wc_ch:01J76XYE23859ZWDP7BJ520AKY:c${chNum}`,
         chapter: String(chNum),
         title: `Chapter ${chNum}`,
       };
@@ -759,11 +831,12 @@ export const FALLBACK_MANGA_CATALOG = [
       'the fantasie of a stepmother',
       'md:73f00a6a-dc33-49f6-beb0-98feb29ce0cc',
       '73f00a6a-dc33-49f6-beb0-98feb29ce0cc',
-      'wc:01J76XYDQ9JTWW4THBJWPXNJ9H'
+      'wc:01J76XYDQ9JTWW4THBJWPXNJ9H',
+      '01J76XYDQ9JTWW4THBJWPXNJ9H'
     ],
     title: "The Stepmother Has Left",
     englishTitle: "A Stepmother's Fairy Tale",
-    coverUrl: 'https://uploads.mangadex.org/covers/73f00a6a-dc33-49f6-beb0-98feb29ce0cc/48f83bf3-2493-411b-a7c2-4242a39887f5.jpg.512.jpg',
+    coverUrl: 'https://s4.anilist.co/file/anilistcdn/media/manga/cover/large/bx111075-ZSqT1Z2XASRp.jpg',
     status: 'Ongoing',
     score: '9.6',
     year: '2019',
@@ -1055,6 +1128,30 @@ export function isKnownBrokenUrl(url) {
   return BROKEN_COVER_HASHES.some((hash) => url.includes(hash));
 }
 
+export function isMachineId(str) {
+  if (!str || typeof str !== 'string') return false;
+  const s = str.trim();
+  if (/^01[0-9A-HJKMNP-TV-Z]{24}$/i.test(s)) return true;
+  if (/^wc:01[0-9A-HJKMNP-TV-Z]{24}$/i.test(s)) return true;
+  if (/^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(s)) return true;
+  if (/^(kat|mk|webtoon|asura|thunder|flame|vortex):[0-9a-z_.-]+$/i.test(s)) return true;
+  if (s.length >= 22 && /^[0-9A-Z]{22,}$/.test(s)) return true;
+  return false;
+}
+
+export function unwrapProxyUrl(url) {
+  if (!url || typeof url !== 'string') return url;
+  if (url.includes('/api/image-proxy?url=')) {
+    try {
+      const match = url.match(/url=([^&]+)/);
+      if (match) {
+        return decodeURIComponent(match[1]);
+      }
+    } catch {}
+  }
+  return url;
+}
+
 export const KNOWN_MANGA_COVERS = {
   // Verified live AniList & MangaDex covers (200 OK)
   'lookism': 'https://s4.anilist.co/file/anilistcdn/media/manga/cover/medium/bx86848-4CSItSclJUvi.jpg',
@@ -1071,12 +1168,25 @@ export const KNOWN_MANGA_COVERS = {
   'reaper of the drifting moon': 'https://s4.anilist.co/file/anilistcdn/media/manga/cover/medium/bx153432-flZLVek7Ei1Z.png',
   'murim login': 'https://s4.anilist.co/file/anilistcdn/media/manga/cover/medium/bx120385-4JYGuOR6cn72.jpg',
   'death note': 'https://s4.anilist.co/file/anilistcdn/media/manga/cover/medium/bx30021-FE6kmrfpuKyb.jpg',
-  'one punch man': 'https://s4.anilist.co/file/anilistcdn/media/manga/cover/medium/bx85364-O28PUKbABg8y.jpg',
-  'one-punch man': 'https://s4.anilist.co/file/anilistcdn/media/manga/cover/medium/bx85364-O28PUKbABg8y.jpg',
+  'one punch man': 'https://s4.anilist.co/file/anilistcdn/media/manga/cover/medium/bx74347-sZpmNJ5xLwRK.jpg',
+  'one-punch man': 'https://s4.anilist.co/file/anilistcdn/media/manga/cover/medium/bx74347-sZpmNJ5xLwRK.jpg',
   'tokyo ghoul': 'https://s4.anilist.co/file/anilistcdn/media/manga/cover/medium/bx63327-glC9cDxYBja9.png',
   'black clover': 'https://s4.anilist.co/file/anilistcdn/media/manga/cover/medium/bx114652-b4VxxYpvU8id.png',
   'blue lock': 'https://s4.anilist.co/file/anilistcdn/media/manga/cover/medium/bx106130-yPNeuSu75ey1.jpg',
   'sakamoto days': 'https://s4.anilist.co/file/anilistcdn/media/manga/cover/medium/bx125828-p78Z8SflkfmO.jpg',
+  'the beginning after the end': 'https://temp.compsci88.com/cover/fallback/01J76XYE23859ZWDP7BJ520AKY.jpg',
+  'the beginning after the': 'https://temp.compsci88.com/cover/fallback/01J76XYE23859ZWDP7BJ520AKY.jpg',
+  'tbate': 'https://temp.compsci88.com/cover/fallback/01J76XYE23859ZWDP7BJ520AKY.jpg',
+  'the stepmother has left': 'https://s4.anilist.co/file/anilistcdn/media/manga/cover/large/bx111075-ZSqT1Z2XASRp.jpg',
+  'the fantasie of a stepmother': 'https://s4.anilist.co/file/anilistcdn/media/manga/cover/large/bx111075-ZSqT1Z2XASRp.jpg',
+  'a stepmothers fairy tale': 'https://s4.anilist.co/file/anilistcdn/media/manga/cover/large/bx111075-ZSqT1Z2XASRp.jpg',
+  'a stepmothers marchen': 'https://s4.anilist.co/file/anilistcdn/media/manga/cover/large/bx111075-ZSqT1Z2XASRp.jpg',
+  'dandadan': 'https://s4.anilist.co/file/anilistcdn/media/manga/cover/medium/bx132029-prGF4gePdSKv.jpg',
+  'gachiakuta': 'https://s4.anilist.co/file/anilistcdn/media/manga/cover/medium/bx144946-cscic3n2SwdY.jpg',
+  'chained soldier': 'https://s4.anilist.co/file/anilistcdn/media/manga/cover/medium/bx106064-WBMhTOo7UQ20.png',
+  'the fragrant flower blooms with dignity': 'https://s4.anilist.co/file/anilistcdn/media/manga/cover/medium/bx140475-QEGtrmdvbpOv.jpg',
+  'the fragrant flower': 'https://s4.anilist.co/file/anilistcdn/media/manga/cover/medium/bx140475-QEGtrmdvbpOv.jpg',
+  'spy x family': 'https://s4.anilist.co/file/anilistcdn/media/manga/cover/medium/bx108556-NHjkz0BNJhLx.jpg',
   'oshi no ko': 'https://s4.anilist.co/file/anilistcdn/media/manga/cover/medium/bx117195-r3kf8eF0xkDJ.png',
   'haikyuu': 'https://s4.anilist.co/file/anilistcdn/media/manga/cover/medium/bx181735-xIoXaQmtjkuC.png',
   'dragon ball super': 'https://s4.anilist.co/file/anilistcdn/media/manga/cover/medium/bx86508-QSahE7mTFEXl.png',
@@ -1105,9 +1215,7 @@ export const KNOWN_MANGA_COVERS = {
   'bleach': 'https://s4.anilist.co/file/anilistcdn/media/manga/cover/large/bx30012-1epmVfTSv2rr.png',
   'naruto': 'https://s4.anilist.co/file/anilistcdn/media/manga/cover/large/nx30011-9yUF1dXWgDOx.jpg',
   'hunter x hunter': 'https://s4.anilist.co/file/anilistcdn/media/manga/cover/large/bx30026-uCvXMudMzmwI.jpg',
-  'spy x family': 'https://s4.anilist.co/file/anilistcdn/media/manga/cover/large/bx108556-NHjkz0BNJhLx.jpg',
   'frieren': 'https://s4.anilist.co/file/anilistcdn/media/manga/cover/large/bx118586-CXKgWikBFQgS.jpg',
-  'dandadan': 'https://s4.anilist.co/file/anilistcdn/media/manga/cover/large/bx132029-prGF4gePdSKv.jpg',
   'vinland saga': 'https://s4.anilist.co/file/anilistcdn/media/manga/cover/large/bx30642-0mjRDkf4THpo.jpg',
   'vagabond': 'https://s4.anilist.co/file/anilistcdn/media/manga/cover/large/bx30656-9mW113O7rDnA.png',
   'kingdom': 'https://s4.anilist.co/file/anilistcdn/media/manga/cover/large/nx46765-KPXir4sRqJBW.png',
@@ -1115,8 +1223,6 @@ export const KNOWN_MANGA_COVERS = {
   'the greatest estate developer': 'https://s4.anilist.co/file/anilistcdn/media/manga/cover/large/bx140407-fJQr0fmqq1IO.png',
   'world\'s strongest troll': 'https://s4.anilist.co/file/anilistcdn/media/manga/cover/medium/bx159121-j90Wcbi7rd2C.png',
   'worlds strongest troll': 'https://s4.anilist.co/file/anilistcdn/media/manga/cover/medium/bx159121-j90Wcbi7rd2C.png',
-  'the beginning after the end': 'https://s4.anilist.co/file/anilistcdn/media/anime/cover/large/bx183161-5M054tuPmZJX.jpg',
-  'tbate': 'https://s4.anilist.co/file/anilistcdn/media/anime/cover/large/bx183161-5M054tuPmZJX.jpg',
   'kaiju no 8': 'https://s4.anilist.co/file/anilistcdn/media/manga/cover/medium/bx120760-MtXvMgujLBpe.jpg',
   'overgeared': 'https://s4.anilist.co/file/anilistcdn/media/manga/cover/medium/n105664-4x0zfa6fmqp8.png',
   'sss class suicide hunter': 'https://s4.anilist.co/file/anilistcdn/media/manga/cover/medium/bx128067-wnLBg6Cy1ncs.jpg',
@@ -1129,27 +1235,18 @@ export const KNOWN_MANGA_COVERS = {
   'god of high school': 'https://s4.anilist.co/file/anilistcdn/media/manga/cover/medium/bx85141-qHR957V3FVco.png',
   'noblesse': 'https://s4.anilist.co/file/anilistcdn/media/manga/cover/medium/bx59983-cfSjrRxuAlAD.png',
   'legend of the northern blade': 'https://s4.anilist.co/file/anilistcdn/media/manga/cover/medium/bx119521-qYqxFvn0NnXo.png',
-  'my in-laws are obsessed with me': 'https://s4.anilist.co/file/anilistcdn/media/manga/cover/medium/bx142894-SRinclU1kzu9.jpg'
+  'my in-laws are obsessed with me': 'https://s4.anilist.co/file/anilistcdn/media/manga/cover/medium/bx142894-SRinclU1kzu9.jpg',
+  'trillion game': 'https://s4.anilist.co/file/anilistcdn/media/manga/cover/medium/bx126056-7Q4faimXQRm4.jpg',
+  '1000000000000': 'https://s4.anilist.co/file/anilistcdn/media/manga/cover/medium/bx126056-7Q4faimXQRm4.jpg',
+  'the regressed youngest son of the duke is an assassin': 'https://s4.anilist.co/file/anilistcdn/media/manga/cover/medium/bx175262-shGEYbbfLHDD.jpg',
+  'todays underwear': 'https://s4.anilist.co/file/anilistcdn/media/manga/cover/large/bx137682-9t1F6V7O7r3T.jpg'
 };
 
 export function getReliableCoverUrl(title, currentUrl) {
-  // 1. If currentUrl is already valid and not a known broken hash or placeholder, preserve it!
-  const hasValidCurrent = Boolean(
-    currentUrl &&
-    typeof currentUrl === 'string' &&
-    currentUrl.trim() !== '' &&
-    !currentUrl.includes('nocover') &&
-    !currentUrl.includes('placeholder') &&
-    !currentUrl.startsWith('data:image/svg+xml') &&
-    !isKnownBrokenUrl(currentUrl)
-  );
+  const cleanTitleStr = cleanTitle(title || '');
+  const t = cleanTitleStr.toLowerCase().replace(/[^a-z0-9]/g, ' ').replace(/\s+/g, ' ').trim();
 
-  if (hasValidCurrent) {
-    return currentUrl;
-  }
-
-  // 2. Lookup verified table
-  const t = (title || '').toLowerCase().replace(/[^a-z0-9]/g, ' ').replace(/\s+/g, ' ').trim();
+  // 1. Prioritize verified live covers table
   if (t) {
     if (KNOWN_MANGA_COVERS[t]) {
       return KNOWN_MANGA_COVERS[t];
@@ -1162,8 +1259,32 @@ export function getReliableCoverUrl(title, currentUrl) {
     }
   }
 
-  if (currentUrl && typeof currentUrl === 'string' && !isKnownBrokenUrl(currentUrl)) {
-    return currentUrl;
+  // 2. Check currentUrl and unwrap if proxy
+  if (currentUrl && typeof currentUrl === 'string') {
+    const unwrapped = unwrapProxyUrl(currentUrl);
+    const isDirectDomain =
+      unwrapped.includes('temp.compsci88.com') ||
+      unwrapped.includes('mangadex.org') ||
+      unwrapped.includes('anilist.co') ||
+      unwrapped.includes('myanimelist.net') ||
+      unwrapped.includes('cloudinary.com') ||
+      unwrapped.includes('images.weserv.nl');
+
+    if (isDirectDomain && !isKnownBrokenUrl(unwrapped)) {
+      return unwrapped;
+    }
+
+    if (
+      !unwrapped.includes('nocover') &&
+      !unwrapped.includes('placeholder') &&
+      !unwrapped.startsWith('data:image/svg+xml') &&
+      !isKnownBrokenUrl(unwrapped)
+    ) {
+      if (typeof window !== 'undefined' && (window.location.hostname.includes('github.io') || !getApiBaseUrl())) {
+        return unwrapped;
+      }
+      return currentUrl;
+    }
   }
 
   return getFallbackCover(title);
@@ -1192,10 +1313,6 @@ export function getApiBaseUrl() {
     const custom = localStorage.getItem('kuroneko_backend_url');
     if (custom && custom.trim()) {
       return custom.trim().replace(/\/$/, '');
-    }
-    // High-speed verified API proxy for static hosting (GitHub Pages)
-    if (window.location.hostname.includes('github.io') || window.location.protocol === 'file:') {
-      return 'https://anime-rosy-kappa.vercel.app';
     }
   }
   return '';
@@ -1525,6 +1642,32 @@ export function decodeHtml(str) {
   return decoded;
 }
 
+export const KNOWN_SERIES_TITLES = {
+  '01j76xydq9jtww4thbjwpxnj9h': "A Stepmother's Fairy Tale",
+  '01j76xy7e9fndz1dbbm6pbjpfk': 'One Piece',
+  '01j76xy7kt7j224ebk6j816y1q': 'One-Punch Man',
+  '01j76xyd7e91k8qp6cy0y53900': 'Blue Lock',
+  '01j76xye3130e1w5hktj7vd912': 'Sakamoto Days',
+  '01j76xye23859zwdp7bj520aky': 'The Beginning After the End',
+  '01j76xy7ef75djnqcv04htpdzk': 'Berserk',
+  '01j76xycerxe60t7fkxvccaq0h': 'Jujutsu Kaisen',
+  '01j76xycrvy3qgyamrr3stw941': 'Chainsaw Man',
+  '01j76xybnej5egk9zep3ys0pmh': 'Boruto: Two Blue Vortex',
+  '01j76xyggm22wzp7t4tka4zfaf': 'Kagurabachi',
+  '01j76xybd282y3xkx0krgd64q5': 'Lookism',
+  '01j76xy7m0w9wwj55vjyyb2j1s': 'Tower of God',
+  '01j76xya1tqykv6w4bcmr2wd5m': 'Wind Breaker',
+  '01j76xyfaesztjt5aq1spfkyxr': 'My In-Laws Are Obsessed With Me',
+  '01j76xyd3q2q7hyymb3fsdpskc': 'Teenage Mercenary',
+  '01j76xyea95pg5avmckc9tk492': 'Mercenary Enrollment',
+  '01j76xygvnheer7g6m90c6yctw': "World's Strongest Troll",
+  '01j76xyemwa55c7xtzhp1hnarm': 'Dandadan',
+  '01j76xyfd97drqqkk75fzb7pqh': 'Gachiakuta',
+  '01j76xycvrsnny2c2qh721967b': 'Chained Soldier',
+  '01j76xycyj0p680skx3qz0nqd7': 'Spy x Family',
+  '01j76xyfhfz88r32bw3rxhn1wp': 'The Fragrant Flower Blooms with Dignity'
+};
+
 /**
  * Title cleaner: strips provider prefix tags (Vortex:, Asura:, etc.) and decodes entities
  */
@@ -1537,6 +1680,13 @@ export function cleanTitle(raw) {
     .replace(/Chapter\s+[0-9.]+/i, '')
     .replace(/\s+manga$/i, '')
     .trim();
+
+  if (isMachineId(t)) {
+    const rawId = t.replace(/^wc:/i, '').toLowerCase();
+    if (KNOWN_SERIES_TITLES[rawId]) {
+      return KNOWN_SERIES_TITLES[rawId];
+    }
+  }
 
   const words = t.split(/\s+/);
   const half = Math.floor(words.length / 2);
@@ -1629,10 +1779,15 @@ export async function fetchMangaDetails(mangaId, refresh = false) {
   }
 
   const baseUrl = getApiBaseUrl();
+  const rawId = String(mangaId || '').replace(/^wc:|^wc_/i, '');
+  const wcPrefixed = `wc:${rawId}`;
+
   const fallbackItem = FALLBACK_MANGA_CATALOG.find(
-    (m) => m.id === mangaId || m.aliases?.includes(mangaId)
+    (m) => m.id === mangaId || m.id === rawId || m.id === wcPrefixed ||
+           m.aliases?.includes(mangaId) || m.aliases?.includes(rawId) || m.aliases?.includes(wcPrefixed)
   ) || FALLBACK_MANGA_CATALOG.find((m) => {
     const q = String(mangaId || '').toLowerCase().replace(/^wc:|^webtoon:|^md:|^asura:|^vortex:|^thunder:|^flame:|^mk:|^kat:/, '').replace(/[-_:]/g, ' ');
+    if (isMachineId(q)) return false;
     const titleQ = m.title.toLowerCase().replace(/[-_:]/g, ' ');
     return q.includes(titleQ) || titleQ.includes(q);
   });
@@ -1651,12 +1806,48 @@ export async function fetchMangaDetails(mangaId, refresh = false) {
       if (data.title) data.title = cleanTitle(data.title);
       if (data.englishTitle) data.englishTitle = cleanTitle(data.englishTitle);
       if (data.description) data.description = decodeHtml(data.description);
-      if (!data.author || !data.author.trim() || data.author.toLowerCase() === 'author') {
-        data.author = 'Unknown Author';
+      
+      const isBogusTitle = isMachineId(data.title) || data.title.toLowerCase() === 'manga' || data.title.toLowerCase() === 'manga series';
+      const isBogusDesc = !data.description || data.description.includes('being indexed') || data.description.includes('being refreshed');
+      const isBogusAuthor = !data.author || data.author === 'Manga' || data.author === 'Author' || data.author === 'Unknown Author';
+
+      if (fallbackItem) {
+        if (isBogusTitle) {
+          data.title = cleanTitle(fallbackItem.title);
+          data.englishTitle = fallbackItem.englishTitle ? cleanTitle(fallbackItem.englishTitle) : null;
+        }
+        if (isBogusDesc && fallbackItem.description) {
+          data.description = fallbackItem.description;
+        }
+        if (isBogusAuthor && fallbackItem.author) {
+          data.author = fallbackItem.author;
+        }
+        if ((!data.coverUrl || isKnownBrokenUrl(data.coverUrl) || data.coverUrl.startsWith('data:')) && fallbackItem.coverUrl) {
+          data.coverUrl = getReliableCoverUrl(fallbackItem.title, fallbackItem.coverUrl);
+        }
+        if (fallbackItem.tags && (!data.tags || data.tags.length <= 1)) {
+          data.tags = fallbackItem.tags;
+        }
+        if (fallbackItem.status) data.status = fallbackItem.status;
+        if (fallbackItem.score) data.score = fallbackItem.score;
+        if (fallbackItem.year) data.year = fallbackItem.year;
+        if (!data.chapters || data.chapters.length === 0) {
+          data.chapters = fallbackItem.chapters || [];
+          data.totalChapters = (fallbackItem.chapters || []).length;
+        }
+      } else if (isBogusTitle) {
+        const knownTitle = KNOWN_SERIES_TITLES[rawId.toLowerCase()];
+        if (knownTitle) {
+          data.title = knownTitle;
+          data.coverUrl = getReliableCoverUrl(knownTitle, data.coverUrl);
+        }
       }
-      if (data.coverUrl && needsImageProxy(data.coverUrl)) {
-        const proxyPrefix = baseUrl ? `${baseUrl}/api/image-proxy` : '/api/image-proxy';
-        data.coverUrl = `${proxyPrefix}?url=${encodeURIComponent(data.coverUrl)}`;
+
+      if (data.coverUrl) {
+        data.coverUrl = getReliableCoverUrl(data.title, data.coverUrl);
+      }
+      if (!data.author || !data.author.trim() || data.author.toLowerCase() === 'author') {
+        data.author = 'Top Artist';
       }
       if (Array.isArray(data.chapters)) {
         data.chapters = deduplicateChapters(data.chapters);
@@ -1992,9 +2183,13 @@ function escapeXml(str) {
 }
 
 export function getFallbackCover(title = 'Manga', author = '') {
-  const safeTitle = cleanTitle(title || 'Manga');
+  let safeTitle = cleanTitle(title || 'Manga');
+  if (isMachineId(safeTitle)) {
+    const rawId = safeTitle.replace(/^wc:/i, '').toLowerCase();
+    safeTitle = KNOWN_SERIES_TITLES[rawId] || 'Manga Series';
+  }
   const escapedTitle = escapeXml(safeTitle);
-  const escapedAuthor = escapeXml(author || 'Manga Series');
+  const escapedAuthor = escapeXml(author && author !== 'Manga' ? author : 'Manga Series');
 
   let hash = 0;
   for (let i = 0; i < safeTitle.length; i++) {
@@ -2059,8 +2254,12 @@ export function getFallbackCover(title = 'Manga', author = '') {
  */
 function formatMangaItem(item) {
   if (!item) return null;
-  const safeTitle = cleanTitle(item.title);
-  const safeEnglishTitle = item.englishTitle ? cleanTitle(item.englishTitle) : null;
+  let safeTitle = cleanTitle(item.title);
+  if (isMachineId(safeTitle)) {
+    const rawId = String(item.id || item.seriesId || safeTitle).replace(/^wc:/i, '').toLowerCase();
+    safeTitle = KNOWN_SERIES_TITLES[rawId] || item.englishTitle || 'Manga Series';
+  }
+  const safeEnglishTitle = item.englishTitle && !isMachineId(item.englishTitle) ? cleanTitle(item.englishTitle) : null;
   const reliableCover = getReliableCoverUrl(safeTitle, item.coverUrl);
   const baseUrl = getApiBaseUrl();
 
@@ -2070,8 +2269,9 @@ function formatMangaItem(item) {
         : reliableCover)
     : getFallbackCover(safeTitle, item.author);
 
-  const rawCover = (item.coverUrl && !isKnownBrokenUrl(item.coverUrl) && !item.coverUrl.includes('nocover') && !item.coverUrl.includes('placeholder'))
-    ? item.coverUrl
+  const rawUnwrapped = unwrapProxyUrl(item.rawCoverUrl || item.coverUrl);
+  const rawCover = (rawUnwrapped && !isKnownBrokenUrl(rawUnwrapped) && !rawUnwrapped.includes('nocover') && !rawUnwrapped.includes('placeholder'))
+    ? rawUnwrapped
     : reliableCover;
 
   return {
@@ -2081,17 +2281,24 @@ function formatMangaItem(item) {
     coverUrl: proxiedCover,
     rawCoverUrl: rawCover,
     status: item.status || 'Ongoing',
-    author: item.author && item.author.trim() ? decodeHtml(item.author) : 'Unknown Author',
+    author: item.author && item.author.trim() && item.author !== 'Manga' ? decodeHtml(item.author) : 'Top Artist',
     tags: (item.tags || ['Manga', 'Action']).map(decodeHtml),
     year: item.year || null,
     sourceName: item.sourceName || (
       item.id?.startsWith('kat:') ? 'MangaKatana' :
+      item.id?.startsWith('flame:') ? 'Flame Comics' :
+      item.id?.startsWith('thunder:') ? 'Thunder Scans' :
       item.id?.startsWith('asura:') ? 'Asura Scans' :
+      item.id?.startsWith('vortex:') ? 'Vortex Scans' :
+      (item.id?.startsWith('wc:') || /^[0-9a-hjkmnp-tv-z]{26}$/i.test(item.id || '')) ? 'WeebCentral' :
+      item.id?.startsWith('md:') ? 'MangaDex' :
+      item.id?.startsWith('mk:') ? 'MangaKakalot' :
       item.id?.startsWith('webtoon:') ? 'Webtoon' : 'MangaPill'
     ),
     provider: item.provider || (
       item.id?.startsWith('asura:') ? 'asura' :
-      item.id?.startsWith('webtoon:') ? 'webtoon' : 'mangapill'
+      item.id?.startsWith('webtoon:') ? 'webtoon' :
+      (item.id?.startsWith('wc:') || /^[0-9a-hjkmnp-tv-z]{26}$/i.test(item.id || '')) ? 'weebcentral' : 'mangapill'
     ),
     latestChapter: item.latestChapter || (item.totalChapters ? String(item.totalChapters) : null),
     totalChapters: item.totalChapters ? Number(item.totalChapters) : (item.latestChapter && !isNaN(parseFloat(item.latestChapter)) ? Math.floor(parseFloat(item.latestChapter)) : null),

@@ -65,6 +65,17 @@ export function decodeHtml(str) {
   return decoded;
 }
 
+export function isMachineId(str) {
+  if (!str || typeof str !== 'string') return false;
+  const s = str.trim();
+  if (/^01[0-9A-HJKMNP-TV-Z]{24}$/i.test(s)) return true;
+  if (/^wc:01[0-9A-HJKMNP-TV-Z]{24}$/i.test(s)) return true;
+  if (/^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(s)) return true;
+  if (/^(kat|mk|webtoon|asura|thunder|flame|vortex):[0-9a-z_.-]+$/i.test(s)) return true;
+  if (s.length >= 22 && /^[0-9A-Z]{22,}$/.test(s)) return true;
+  return false;
+}
+
 export function cleanTitle(raw) {
   if (!raw || typeof raw !== 'string') return 'Manga';
   let t = decodeHtml(raw);

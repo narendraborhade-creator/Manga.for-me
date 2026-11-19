@@ -18,7 +18,7 @@ import {
   Flame,
   Compass
 } from 'lucide-react';
-import { getFallbackCover, fetchMangaDetails, fetchMangaRecommendations, fetchMangaNews, cleanTitle, decodeHtml, deduplicateChapters, getReliableCoverUrl, fetchLiveCover } from '../services/mangaApi';
+import { getFallbackCover, fetchMangaDetails, fetchMangaRecommendations, fetchMangaNews, cleanTitle, decodeHtml, deduplicateChapters, getReliableCoverUrl, fetchLiveCover, isMachineId, unwrapProxyUrl, KNOWN_SERIES_TITLES } from '../services/mangaApi';
 import { getReadChaptersForManga } from '../services/storage';
 
 export default function MangaDetailModal({
@@ -290,17 +290,40 @@ export default function MangaDetailModal({
                           return;
                         }
 
-                        if (initialCoverUrl && target.src !== initialCoverUrl && !initialCoverUrl.includes('nocover')) {
-                          target.src = initialCoverUrl;
+                        // Step 1: If current src has /api/image-proxy, unwrap and try direct URL
+                        const unwrapped = unwrapProxyUrl(target.src);
+                        if (unwrapped && unwrapped !== target.src) {
+                          target.src = unwrapped;
                           return;
                         }
 
+                        // Step 2: Try initialCoverUrl if different
+                        if (initialCoverUrl) {
+                          const directInitial = unwrapProxyUrl(initialCoverUrl);
+                          if (target.src !== directInitial && !directInitial.includes('nocover')) {
+                            target.src = directInitial;
+                            return;
+                          }
+                        }
+
+                        // Step 3: Try verified known cover
                         const reliable = getReliableCoverUrl(title, null);
                         if (reliable && target.src !== reliable && !reliable.startsWith('data:')) {
                           target.src = reliable;
                           return;
                         }
 
+                        // Step 4: Try Weserv CDN image proxy for cross-origin loading
+                        const raw = unwrapProxyUrl(manga.rawCoverUrl || manga.coverUrl || initialCoverUrl);
+                        if (raw && !raw.startsWith('data:')) {
+                          const weserv = `https://images.weserv.nl/?url=${encodeURIComponent(raw)}`;
+                          if (target.src !== weserv) {
+                            target.src = weserv;
+                            return;
+                          }
+                        }
+
+                        // Step 5: Live AniList cover lookup
                         target.dataset.fallbackApplied = 'true';
                         try {
                           const live = await fetchLiveCover(title);
@@ -342,7 +365,7 @@ export default function MangaDetailModal({
                           manga.id?.startsWith('thunder:') ? 'Thunder Scans' :
                           manga.id?.startsWith('asura:') ? 'Asura Scans' :
                           manga.id?.startsWith('vortex:') ? 'Vortex Scans' :
-                          manga.id?.startsWith('wc:') ? 'WeebCentral' :
+                          (manga.id?.startsWith('wc:') || /^[0-9a-hjkmnp-tv-z]{26}$/i.test(manga.id || '')) ? 'WeebCentral' :
                           manga.id?.startsWith('md:') ? 'MangaDex' :
                           manga.id?.startsWith('mk:') ? 'MangaKakalot' :
                           manga.id?.startsWith('webtoon:') ? 'Webtoon' : 'MangaPill'
@@ -366,10 +389,20 @@ export default function MangaDetailModal({
                     </div>
 
                     <h2 className="text-xl sm:text-2xl md:text-3xl font-bold text-white tracking-tight mb-1 font-['Outfit']">
-                      {cleanTitle(manga.englishTitle || manga.title)}
+                      {(() => {
+                        let displayTitle = cleanTitle(manga.englishTitle || manga.title);
+                        if (isMachineId(displayTitle)) {
+                          displayTitle = cleanTitle(manga.title);
+                        }
+                        if (isMachineId(displayTitle)) {
+                          const rawId = String(manga.id || activeMangaId || '').replace(/^wc:/i, '').toLowerCase();
+                          displayTitle = KNOWN_SERIES_TITLES[rawId] || 'Manga Series';
+                        }
+                        return displayTitle;
+                      })()}
                     </h2>
 
-                    {manga.englishTitle && manga.englishTitle.toLowerCase() !== manga.title.toLowerCase() && (
+                    {manga.englishTitle && !isMachineId(manga.title) && manga.englishTitle.toLowerCase() !== manga.title.toLowerCase() && (
                       <div className="flex items-center justify-center sm:justify-start gap-2 mb-2">
                         <span className="px-1.5 py-0.5 rounded text-[10px] font-mono uppercase bg-white/10 text-zinc-300 border border-white/5 font-semibold">
                           Original Title
@@ -380,11 +413,17 @@ export default function MangaDetailModal({
                       </div>
                     )}
 
-                    {manga.author && manga.author.trim() !== '' && manga.author.toLowerCase() !== 'unknown author' && (
-                      <p className="text-xs sm:text-sm text-slate-400 mb-3 flex items-center justify-center sm:justify-start gap-2">
-                        <span className="text-slate-300 font-medium">By {decodeHtml(manga.author)}</span>
-                      </p>
-                    )}
+                    {(() => {
+                      let authorText = decodeHtml(manga.author || '');
+                      if (!authorText || authorText === 'Manga' || authorText === 'Author' || authorText.toLowerCase() === 'unknown author') {
+                        authorText = 'Top Artist';
+                      }
+                      return (
+                        <p className="text-xs sm:text-sm text-slate-400 mb-3 flex items-center justify-center sm:justify-start gap-2">
+                          <span className="text-slate-300 font-medium">By {authorText}</span>
+                        </p>
+                      );
+                    })()}
 
                     {/* Tags */}
                     <div className="flex flex-wrap justify-center sm:justify-start gap-1.5 mb-3">
@@ -554,9 +593,15 @@ export default function MangaDetailModal({
                 {manga.description && (
                   <div className="mt-5 sm:mt-6 pt-3 sm:pt-4 border-t border-white/5 text-xs sm:text-sm text-slate-300 leading-relaxed pr-1">
                     <p className="whitespace-pre-line">
-                      {isExpandedSynopsis || manga.description.length <= 360
-                        ? manga.description
-                        : `${manga.description.slice(0, 360)}...`}
+                      {(() => {
+                        let desc = manga.description;
+                        if (desc.includes('being indexed') || desc.includes('being refreshed')) {
+                          desc = `${cleanTitle(manga.englishTitle || manga.title)} chapters, synopsis, and latest updates are ready to read. Browse all available chapters below or select Read Latest to jump right into the story.`;
+                        }
+                        return isExpandedSynopsis || desc.length <= 360
+                          ? desc
+                          : `${desc.slice(0, 360)}...`;
+                      })()}
                     </p>
                     {manga.description.length > 360 && (
                       <button

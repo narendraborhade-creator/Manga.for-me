@@ -1,5 +1,5 @@
 import { getMangaDetails } from '../../server/mangaProvider.js';
-import { cleanTitle, getFallbackCover } from '../../server/htmlUtils.js';
+import { cleanTitle, getFallbackCover, isMachineId } from '../../server/htmlUtils.js';
 
 export default async function handler(req, res) {
   res.setHeader('Access-Control-Allow-Origin', '*');
@@ -28,7 +28,10 @@ export default async function handler(req, res) {
     }
 
     const details = await getMangaDetails(id, refresh);
-    const safeTitle = cleanTitle(id.split('/')[1] || id);
+    let safeTitle = cleanTitle(id.split('/')[1] || id);
+    if (isMachineId(safeTitle)) {
+      safeTitle = 'Manga Series';
+    }
     res.setHeader('Content-Type', 'application/json');
     res.setHeader('Cache-Control', refresh ? 'no-cache, no-store, must-revalidate' : 's-maxage=60, stale-while-revalidate=120');
     res.status(200).json(details || {
@@ -38,7 +41,7 @@ export default async function handler(req, res) {
       coverUrl: getFallbackCover(safeTitle),
       description: `${safeTitle} information and chapters are being refreshed.`,
       status: 'Ongoing',
-      author: 'Manga',
+      author: 'Top Artist',
       tags: ['Manga', 'Ongoing'],
       chapters: [],
       totalChapters: 0,
@@ -46,7 +49,10 @@ export default async function handler(req, res) {
   } catch (err) {
     console.warn('Vercel API handled error (/api/manga/details):', err.message);
     const safeId = req.query?.id || 'manga';
-    const safeTitle = cleanTitle(safeId.split('/')[1] || safeId);
+    let safeTitle = cleanTitle(safeId.split('/')[1] || safeId);
+    if (isMachineId(safeTitle)) {
+      safeTitle = 'Manga Series';
+    }
     res.setHeader('Content-Type', 'application/json');
     res.status(200).json({
       id: safeId,
@@ -55,7 +61,7 @@ export default async function handler(req, res) {
       coverUrl: getFallbackCover(safeTitle),
       description: `${safeTitle} information and chapters are being refreshed.`,
       status: 'Ongoing',
-      author: 'Manga',
+      author: 'Top Artist',
       tags: ['Manga', 'Ongoing'],
       chapters: [],
       totalChapters: 0,
