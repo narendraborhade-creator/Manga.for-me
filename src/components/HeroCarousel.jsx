@@ -1,6 +1,6 @@
 import React, { useState, useEffect, useRef } from 'react';
 import { BookOpen, Star, Bookmark, ChevronLeft, ChevronRight, Info, Sparkles } from 'lucide-react';
-import { getFallbackCover, cleanTitle, getReliableCoverUrl } from '../services/mangaApi';
+import { getFallbackCover, cleanTitle, getReliableCoverUrl, fetchLiveCover } from '../services/mangaApi';
 
 export default function HeroCarousel({
   items = [],
@@ -63,15 +63,35 @@ export default function HeroCarousel({
           decoding="async"
           referrerPolicy="no-referrer"
           className="w-full h-full object-cover object-center filter brightness-[0.45] group-hover:scale-102 transition-transform duration-1000 ease-out"
-          onError={(e) => {
-            const reliable = getReliableCoverUrl(current.title, null);
-            if (reliable && reliable !== e.target.src && !reliable.startsWith('data:')) {
-              e.target.src = reliable;
-            } else if (current.rawCoverUrl && e.target.src !== current.rawCoverUrl) {
-              e.target.src = current.rawCoverUrl;
-            } else {
-              e.target.src = getFallbackCover(current.title);
+          onError={async (e) => {
+            const target = e.target;
+            const title = current.englishTitle || current.title;
+
+            if (target.dataset.fallbackApplied === 'true') {
+              return;
             }
+
+            if (current.rawCoverUrl && target.src !== current.rawCoverUrl && !current.rawCoverUrl.includes('nocover')) {
+              target.src = current.rawCoverUrl;
+              return;
+            }
+
+            const reliable = getReliableCoverUrl(title, null);
+            if (reliable && target.src !== reliable && !reliable.startsWith('data:')) {
+              target.src = reliable;
+              return;
+            }
+
+            target.dataset.fallbackApplied = 'true';
+            try {
+              const live = await fetchLiveCover(title);
+              if (live && live !== target.src) {
+                target.src = live;
+                return;
+              }
+            } catch {}
+
+            target.src = getFallbackCover(current.title, current.author);
           }}
         />
         {/* Layered Vignettes for Readability */}

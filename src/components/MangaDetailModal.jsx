@@ -18,7 +18,7 @@ import {
   Flame,
   Compass
 } from 'lucide-react';
-import { getFallbackCover, fetchMangaDetails, fetchMangaRecommendations, fetchMangaNews, cleanTitle, decodeHtml, deduplicateChapters, getReliableCoverUrl } from '../services/mangaApi';
+import { getFallbackCover, fetchMangaDetails, fetchMangaRecommendations, fetchMangaNews, cleanTitle, decodeHtml, deduplicateChapters, getReliableCoverUrl, fetchLiveCover } from '../services/mangaApi';
 import { getReadChaptersForManga } from '../services/storage';
 
 export default function MangaDetailModal({
@@ -282,15 +282,35 @@ export default function MangaDetailModal({
                       alt={manga.title}
                       referrerPolicy="no-referrer"
                       className="w-full h-full object-cover"
-                      onError={(e) => {
-                        const reliable = getReliableCoverUrl(manga.englishTitle || manga.title, null);
-                        if (reliable && reliable !== e.target.src && !reliable.startsWith('data:')) {
-                          e.target.src = reliable;
-                        } else if (initialCoverUrl && e.target.src !== initialCoverUrl) {
-                          e.target.src = initialCoverUrl;
-                        } else {
-                          e.target.src = getFallbackCover(manga.title);
+                      onError={async (e) => {
+                        const target = e.target;
+                        const title = manga.englishTitle || manga.title;
+
+                        if (target.dataset.fallbackApplied === 'true') {
+                          return;
                         }
+
+                        if (initialCoverUrl && target.src !== initialCoverUrl && !initialCoverUrl.includes('nocover')) {
+                          target.src = initialCoverUrl;
+                          return;
+                        }
+
+                        const reliable = getReliableCoverUrl(title, null);
+                        if (reliable && target.src !== reliable && !reliable.startsWith('data:')) {
+                          target.src = reliable;
+                          return;
+                        }
+
+                        target.dataset.fallbackApplied = 'true';
+                        try {
+                          const live = await fetchLiveCover(title);
+                          if (live && live !== target.src) {
+                            target.src = live;
+                            return;
+                          }
+                        } catch {}
+
+                        target.src = getFallbackCover(manga.title, manga.author);
                       }}
                     />
                   </div>
@@ -885,13 +905,24 @@ export default function MangaDetailModal({
                             loading="lazy"
                             referrerPolicy="no-referrer"
                             className="w-full h-full object-cover group-hover:scale-110 transition-transform duration-500 ease-out"
-                            onError={(e) => {
-                              const reliable = getReliableCoverUrl(rec.englishTitle || rec.title, null);
-                              if (reliable && reliable !== e.target.src && !reliable.startsWith('data:')) {
-                                e.target.src = reliable;
-                              } else {
-                                e.target.src = getFallbackCover(rec.title);
+                            onError={async (e) => {
+                              const target = e.target;
+                              const title = rec.englishTitle || rec.title;
+                              if (target.dataset.fallbackApplied === 'true') return;
+                              const reliable = getReliableCoverUrl(title, null);
+                              if (reliable && target.src !== reliable && !reliable.startsWith('data:')) {
+                                target.src = reliable;
+                                return;
                               }
+                              target.dataset.fallbackApplied = 'true';
+                              try {
+                                const live = await fetchLiveCover(title);
+                                if (live && live !== target.src) {
+                                  target.src = live;
+                                  return;
+                                }
+                              } catch {}
+                              target.src = getFallbackCover(rec.title);
                             }}
                           />
                           <div className="absolute inset-0 bg-gradient-to-t from-[#060810] via-transparent to-transparent opacity-70 group-hover:opacity-40 transition-opacity" />

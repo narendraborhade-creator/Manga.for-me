@@ -16,7 +16,7 @@ import {
   ExternalLink,
   Star
 } from 'lucide-react';
-import { searchManga, cleanTitle, getFallbackCover } from '../services/mangaApi';
+import { searchManga, cleanTitle, getFallbackCover, getReliableCoverUrl } from '../services/mangaApi';
 
 export default function CommandPalette({
   isOpen,
@@ -313,8 +313,9 @@ export default function CommandPalette({
                   {item.coverUrl ? (
                     <div className="w-9 h-12 rounded-lg overflow-hidden bg-slate-950 flex-shrink-0 border border-white/10">
                       <img
-                        src={item.coverUrl}
+                        src={getReliableCoverUrl(item.label, item.coverUrl)}
                         alt={item.label}
+                        referrerPolicy="no-referrer"
                         className="w-full h-full object-cover"
                         onError={(e) => {
                           e.target.src = getFallbackCover(item.label);

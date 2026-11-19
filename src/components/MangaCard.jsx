@@ -1,6 +1,6 @@
 import React, { memo, useRef } from 'react';
 import { Bookmark, Star, BookOpen, Check } from 'lucide-react';
-import { getFallbackCover, cleanTitle, getReliableCoverUrl } from '../services/mangaApi';
+import { getFallbackCover, cleanTitle, getReliableCoverUrl, fetchLiveCover } from '../services/mangaApi';
 
 function MangaCard({
   manga,
@@ -72,15 +72,40 @@ function MangaCard({
           decoding="async"
           referrerPolicy="no-referrer"
           className="w-full h-full object-cover object-center group-hover:scale-106 transition-transform duration-500 ease-out"
-          onError={(e) => {
-            const reliable = getReliableCoverUrl(manga.englishTitle || manga.title, null);
-            if (reliable && reliable !== e.target.src && !reliable.startsWith('data:')) {
-              e.target.src = reliable;
-            } else if (manga.rawCoverUrl && e.target.src !== manga.rawCoverUrl && !manga.rawCoverUrl.includes('nocover.jpg')) {
-              e.target.src = manga.rawCoverUrl;
-            } else {
-              e.target.src = getFallbackCover(manga.title);
+          onError={async (e) => {
+            const target = e.target;
+            const title = manga.englishTitle || manga.title;
+
+            // Prevent repeated loops if fallback is already applied
+            if (target.dataset.fallbackApplied === 'true') {
+              return;
             }
+
+            // Step 1: If raw provider cover exists and wasn't the failing src
+            if (manga.rawCoverUrl && target.src !== manga.rawCoverUrl && !manga.rawCoverUrl.includes('nocover')) {
+              target.src = manga.rawCoverUrl;
+              return;
+            }
+
+            // Step 2: Try verified known cover
+            const reliable = getReliableCoverUrl(title, null);
+            if (reliable && target.src !== reliable && !reliable.startsWith('data:')) {
+              target.src = reliable;
+              return;
+            }
+
+            // Step 3: Real-time dynamic fetch from AniList / MangaDex API
+            target.dataset.fallbackApplied = 'true';
+            try {
+              const live = await fetchLiveCover(title);
+              if (live && live !== target.src) {
+                target.src = live;
+                return;
+              }
+            } catch {}
+
+            // Step 4: Stylized bespoke typographic manga cover
+            target.src = getFallbackCover(manga.title, manga.author);
           }}
         />
 

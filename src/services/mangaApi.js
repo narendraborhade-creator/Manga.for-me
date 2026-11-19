@@ -10,7 +10,7 @@ export const FALLBACK_MANGA_CATALOG = [
     aliases: ['lookism', 'webtoon:lookism', 'wc:01J76XYBD282Y3XKX0KRGD64Q5'],
     title: 'Lookism',
     englishTitle: 'Lookism',
-    coverUrl: 'https://s4.anilist.co/file/anilistcdn/media/manga/cover/large/bx86337-0g70bKkFpD7E.jpg',
+    coverUrl: 'https://s4.anilist.co/file/anilistcdn/media/manga/cover/medium/bx86848-4CSItSclJUvi.jpg',
     status: 'Ongoing',
     score: '9.3',
     year: '2014',
@@ -58,7 +58,7 @@ export const FALLBACK_MANGA_CATALOG = [
     aliases: ['my-in-laws-are-obsessed-with-me', 'my in laws are obsessed with me', 'wc:01J76XYFAESZTJT5AQ1SPFKYXR', 'md:c44b5b1d-60cf-4faf-be2c-0a807200358f'],
     title: 'My In-Laws Are Obsessed With Me',
     englishTitle: 'My In-Laws Are Obsessed With Me',
-    coverUrl: 'https://s4.anilist.co/file/anilistcdn/media/manga/cover/large/bx143977-YV08jXW6eQc3.jpg',
+    coverUrl: 'https://s4.anilist.co/file/anilistcdn/media/manga/cover/medium/bx142894-SRinclU1kzu9.jpg',
     status: 'Ongoing',
     score: '9.6',
     year: '2021',
@@ -82,7 +82,7 @@ export const FALLBACK_MANGA_CATALOG = [
     aliases: ['tower-of-god', 'webtoon:tower-of-god', 'tower of god', 'wc:01J76XY7M0W9WWJ55VJYYB2J1S'],
     title: 'Tower of God',
     englishTitle: 'Tower of God',
-    coverUrl: 'https://s4.anilist.co/file/anilistcdn/media/manga/cover/large/bx85143-6o80VwHhYVrn.jpg',
+    coverUrl: 'https://s4.anilist.co/file/anilistcdn/media/manga/cover/medium/bx85143-23oup3ETbFJk.jpg',
     status: 'Ongoing',
     score: '9.4',
     year: '2010',
@@ -106,7 +106,7 @@ export const FALLBACK_MANGA_CATALOG = [
     aliases: ['wind-breaker', 'webtoon:wind-breaker', 'wind breaker', 'wc:01J76XYA1TQYKV6W4BCMR2WD5M'],
     title: 'Wind Breaker',
     englishTitle: 'Wind Breaker',
-    coverUrl: 'https://s4.anilist.co/file/anilistcdn/media/manga/cover/large/bx85489-B0x2z8P96Y24.jpg',
+    coverUrl: 'https://s4.anilist.co/file/anilistcdn/media/manga/cover/medium/bx135083-TQbNFWKGJJHW.jpg',
     status: 'Ongoing',
     score: '9.5',
     year: '2013',
@@ -130,7 +130,7 @@ export const FALLBACK_MANGA_CATALOG = [
     aliases: ['eleceed', 'webtoon:eleceed', 'wc:01J76XYD3Q2Q7HYYMB3FSDPSKC'],
     title: 'Eleceed',
     englishTitle: 'Eleceed',
-    coverUrl: 'https://s4.anilist.co/file/anilistcdn/media/manga/cover/large/bx110291-PqA9Zuhd8OqJ.jpg',
+    coverUrl: 'https://s4.anilist.co/file/anilistcdn/media/manga/cover/medium/bx106929-flAUvHZDUz5v.jpg',
     status: 'Ongoing',
     score: '9.6',
     year: '2018',
@@ -154,7 +154,7 @@ export const FALLBACK_MANGA_CATALOG = [
     aliases: ['nano-machine', 'webtoon:nano-machine'],
     title: 'Nano Machine',
     englishTitle: 'Nano Machine',
-    coverUrl: 'https://s4.anilist.co/file/anilistcdn/media/manga/cover/large/bx111594-g9YqGkM0Yw8S.jpg',
+    coverUrl: 'https://s4.anilist.co/file/anilistcdn/media/manga/cover/medium/bx120980-RZ9WLd0o9hyo.jpg',
     status: 'Ongoing',
     score: '9.4',
     year: '2020',
@@ -178,7 +178,7 @@ export const FALLBACK_MANGA_CATALOG = [
     aliases: ['return-of-the-mount-hua-sect', 'mount-hua'],
     title: 'Return of the Mount Hua Sect',
     englishTitle: 'Return of the Mount Hua Sect',
-    coverUrl: 'https://s4.anilist.co/file/anilistcdn/media/manga/cover/large/bx124479-7aKj9V318vLz.jpg',
+    coverUrl: 'https://s4.anilist.co/file/anilistcdn/media/manga/cover/medium/bx132144-i5B4VnG9sRgh.png',
     status: 'Ongoing',
     score: '9.6',
     year: '2021',
@@ -202,7 +202,7 @@ export const FALLBACK_MANGA_CATALOG = [
     aliases: ['doom-breaker', 'reincarnation-of-the-suicidal-battle-god'],
     title: 'Doom Breaker',
     englishTitle: 'Reincarnation of the Suicidal Battle God',
-    coverUrl: 'https://s4.anilist.co/file/anilistcdn/media/manga/cover/large/bx136264-bM8qjX4jF8Lz.jpg',
+    coverUrl: 'https://s4.anilist.co/file/anilistcdn/media/manga/cover/medium/bx136220-u9sewv3u02mN.jpg',
     status: 'Ongoing',
     score: '9.5',
     year: '2021',
@@ -226,7 +226,7 @@ export const FALLBACK_MANGA_CATALOG = [
     aliases: ['death-note', 'death note'],
     title: 'Death Note',
     englishTitle: 'Death Note',
-    coverUrl: 'https://s4.anilist.co/file/anilistcdn/media/manga/cover/large/bx30001-A5Tf0z3g7R6o.jpg',
+    coverUrl: 'https://s4.anilist.co/file/anilistcdn/media/manga/cover/medium/bx30021-FE6kmrfpuKyb.jpg',
     status: 'Completed',
     score: '9.3',
     year: '2003',
@@ -251,7 +251,7 @@ export const FALLBACK_MANGA_CATALOG = [
     aliases: ['one-punch-man', 'one punch man', 'opm'],
     title: 'One-Punch Man',
     englishTitle: 'One-Punch Man',
-    coverUrl: 'https://s4.anilist.co/file/anilistcdn/media/manga/cover/large/bx69363-22ZgqCqKqB7b.jpg',
+    coverUrl: 'https://s4.anilist.co/file/anilistcdn/media/manga/cover/medium/bx85364-O28PUKbABg8y.jpg',
     status: 'Ongoing',
     score: '9.2',
     year: '2012',
@@ -1013,30 +1013,73 @@ export function getKnownChapterCount(title) {
   return 0;
 }
 
+export const BROKEN_COVER_HASHES = [
+  'bx69363-22ZgqCqKqB7b', // old one punch man
+  'bx106130-9mW113O7rDnA', // old blue lock
+  'bx125828-5pqzh1Wb4NOQ', // old sakamoto days
+  'bx106082-xO3m2bFspE40', // old tbate
+  'bx86337-0g70bKkFpD7E', // old lookism
+  'bx85143-6o80VwHhYVrn', // old tower of god
+  'bx85489-B0x2z8P96Y24', // old wind breaker
+  'bx110291-PqA9Zuhd8OqJ', // old eleceed
+  'bx125633-5cTzE1O23e59', // old mercenary enrollment
+  'bx111594-g9YqGkM0Yw8S', // old nano machine
+  'bx124479-7aKj9V318vLz', // old mount hua
+  'bx136264-bM8qjX4jF8Lz', // old doom breaker
+  'bx151608-F4l8jNq9M2X5', // old reaper of drifting moon
+  'bx119614-fX48Z1kM9m2K', // old murim login
+  'bx30001-A5Tf0z3g7R6o', // old death note
+  'bx63327-S7M94aK1QYd0', // old tokyo ghoul
+  'bx86123-5cTzE1O23e59', // old black clover
+  'bx117040-CXKgWikBFQgS', // old oshi no ko
+  'bx65243-KPXir4sRqJBW', // old haikyuu
+  'bx86942-0mjRDkf4THpo', // old dragon ball super
+  'bx120760-GkF8m72w5n3Q', // old kaiju no 8
+  'bx118586-GkF8m72w5n3Q', // old overgeared
+  'bx124973-mD8tJ3bN5n2L', // old sss suicide hunter
+  'bx111521-g8kM2bFspE40', // old tomb raider king
+  'bx112674-g9YqGkM0Yw8S', // old magic emperor
+  'bx138356-8pK0Zuhd8OqJ', // old leveling with the gods
+  'bx159074-xO3m2bFspE40', // old pick me up
+  'bx109605-B0x2z8P96Y24', // old second life ranker
+  'bx103980-6o80VwHhYVrn', // old weak hero
+  'bx85141-KPXir4sRqJBW', // old god of high school
+  'bx85142-9mW113O7rDnA', // old noblesse
+  'bx118686-7aKj9V318vLz', // old legend of northern blade
+  'bx136323-9h16T5s0K1vT', // old world's strongest troll
+  'bx143977-YV08jXW6eQc3'  // old in laws
+];
+
+export function isKnownBrokenUrl(url) {
+  if (!url || typeof url !== 'string') return false;
+  return BROKEN_COVER_HASHES.some((hash) => url.includes(hash));
+}
+
 export const KNOWN_MANGA_COVERS = {
-  'lookism': 'https://s4.anilist.co/file/anilistcdn/media/manga/cover/large/bx86337-0g70bKkFpD7E.jpg',
-  'tower of god': 'https://s4.anilist.co/file/anilistcdn/media/manga/cover/large/bx85143-6o80VwHhYVrn.jpg',
-  'wind breaker': 'https://s4.anilist.co/file/anilistcdn/media/manga/cover/large/bx85489-B0x2z8P96Y24.jpg',
-  'eleceed': 'https://s4.anilist.co/file/anilistcdn/media/manga/cover/large/bx110291-PqA9Zuhd8OqJ.jpg',
-  'mercenary enrollment': 'https://s4.anilist.co/file/anilistcdn/media/manga/cover/large/bx125633-5cTzE1O23e59.jpg',
-  'teenage mercenary': 'https://s4.anilist.co/file/anilistcdn/media/manga/cover/large/bx125633-5cTzE1O23e59.jpg',
-  'nano machine': 'https://s4.anilist.co/file/anilistcdn/media/manga/cover/large/bx111594-g9YqGkM0Yw8S.jpg',
-  'return of the mount hua sect': 'https://s4.anilist.co/file/anilistcdn/media/manga/cover/large/bx124479-7aKj9V318vLz.jpg',
-  'mount hua': 'https://s4.anilist.co/file/anilistcdn/media/manga/cover/large/bx124479-7aKj9V318vLz.jpg',
-  'reincarnation of the suicidal battle god': 'https://s4.anilist.co/file/anilistcdn/media/manga/cover/large/bx136264-bM8qjX4jF8Lz.jpg',
-  'doom breaker': 'https://s4.anilist.co/file/anilistcdn/media/manga/cover/large/bx136264-bM8qjX4jF8Lz.jpg',
-  'reaper of the drifting moon': 'https://s4.anilist.co/file/anilistcdn/media/manga/cover/large/bx151608-F4l8jNq9M2X5.jpg',
-  'murim login': 'https://s4.anilist.co/file/anilistcdn/media/manga/cover/large/bx119614-fX48Z1kM9m2K.jpg',
-  'death note': 'https://s4.anilist.co/file/anilistcdn/media/manga/cover/large/bx30001-A5Tf0z3g7R6o.jpg',
-  'one punch man': 'https://s4.anilist.co/file/anilistcdn/media/manga/cover/large/bx69363-22ZgqCqKqB7b.jpg',
-  'one-punch man': 'https://s4.anilist.co/file/anilistcdn/media/manga/cover/large/bx69363-22ZgqCqKqB7b.jpg',
-  'tokyo ghoul': 'https://s4.anilist.co/file/anilistcdn/media/manga/cover/large/bx63327-S7M94aK1QYd0.jpg',
-  'black clover': 'https://s4.anilist.co/file/anilistcdn/media/manga/cover/large/bx86123-5cTzE1O23e59.jpg',
-  'blue lock': 'https://s4.anilist.co/file/anilistcdn/media/manga/cover/large/bx106130-9mW113O7rDnA.jpg',
-  'sakamoto days': 'https://s4.anilist.co/file/anilistcdn/media/manga/cover/large/bx125828-5pqzh1Wb4NOQ.png',
-  'oshi no ko': 'https://s4.anilist.co/file/anilistcdn/media/manga/cover/large/bx117040-CXKgWikBFQgS.jpg',
-  'haikyuu': 'https://s4.anilist.co/file/anilistcdn/media/manga/cover/large/bx65243-KPXir4sRqJBW.png',
-  'dragon ball super': 'https://s4.anilist.co/file/anilistcdn/media/manga/cover/large/bx86942-0mjRDkf4THpo.jpg',
+  // Verified live AniList & MangaDex covers (200 OK)
+  'lookism': 'https://s4.anilist.co/file/anilistcdn/media/manga/cover/medium/bx86848-4CSItSclJUvi.jpg',
+  'tower of god': 'https://s4.anilist.co/file/anilistcdn/media/manga/cover/medium/bx85143-23oup3ETbFJk.jpg',
+  'wind breaker': 'https://s4.anilist.co/file/anilistcdn/media/manga/cover/medium/bx135083-TQbNFWKGJJHW.jpg',
+  'eleceed': 'https://s4.anilist.co/file/anilistcdn/media/manga/cover/medium/bx106929-flAUvHZDUz5v.jpg',
+  'mercenary enrollment': 'https://s4.anilist.co/file/anilistcdn/media/manga/cover/medium/bx126297-SPiM7QtUnJ4P.jpg',
+  'teenage mercenary': 'https://s4.anilist.co/file/anilistcdn/media/manga/cover/medium/bx126297-SPiM7QtUnJ4P.jpg',
+  'nano machine': 'https://s4.anilist.co/file/anilistcdn/media/manga/cover/medium/bx120980-RZ9WLd0o9hyo.jpg',
+  'return of the mount hua sect': 'https://s4.anilist.co/file/anilistcdn/media/manga/cover/medium/bx132144-i5B4VnG9sRgh.png',
+  'mount hua': 'https://s4.anilist.co/file/anilistcdn/media/manga/cover/medium/bx132144-i5B4VnG9sRgh.png',
+  'reincarnation of the suicidal battle god': 'https://s4.anilist.co/file/anilistcdn/media/manga/cover/medium/bx136220-u9sewv3u02mN.jpg',
+  'doom breaker': 'https://s4.anilist.co/file/anilistcdn/media/manga/cover/medium/bx136220-u9sewv3u02mN.jpg',
+  'reaper of the drifting moon': 'https://s4.anilist.co/file/anilistcdn/media/manga/cover/medium/bx153432-flZLVek7Ei1Z.png',
+  'murim login': 'https://s4.anilist.co/file/anilistcdn/media/manga/cover/medium/bx120385-4JYGuOR6cn72.jpg',
+  'death note': 'https://s4.anilist.co/file/anilistcdn/media/manga/cover/medium/bx30021-FE6kmrfpuKyb.jpg',
+  'one punch man': 'https://s4.anilist.co/file/anilistcdn/media/manga/cover/medium/bx85364-O28PUKbABg8y.jpg',
+  'one-punch man': 'https://s4.anilist.co/file/anilistcdn/media/manga/cover/medium/bx85364-O28PUKbABg8y.jpg',
+  'tokyo ghoul': 'https://s4.anilist.co/file/anilistcdn/media/manga/cover/medium/bx63327-glC9cDxYBja9.png',
+  'black clover': 'https://s4.anilist.co/file/anilistcdn/media/manga/cover/medium/bx114652-b4VxxYpvU8id.png',
+  'blue lock': 'https://s4.anilist.co/file/anilistcdn/media/manga/cover/medium/bx106130-yPNeuSu75ey1.jpg',
+  'sakamoto days': 'https://s4.anilist.co/file/anilistcdn/media/manga/cover/medium/bx125828-p78Z8SflkfmO.jpg',
+  'oshi no ko': 'https://s4.anilist.co/file/anilistcdn/media/manga/cover/medium/bx117195-r3kf8eF0xkDJ.png',
+  'haikyuu': 'https://s4.anilist.co/file/anilistcdn/media/manga/cover/medium/bx181735-xIoXaQmtjkuC.png',
+  'dragon ball super': 'https://s4.anilist.co/file/anilistcdn/media/manga/cover/medium/bx86508-QSahE7mTFEXl.png',
   'one piece': 'https://s4.anilist.co/file/anilistcdn/media/manga/cover/large/bx30013-BeslEMqiPhlk.jpg',
   'berserk': 'https://s4.anilist.co/file/anilistcdn/media/manga/cover/large/bx30002-Cul4OeN7bYtn.jpg',
   'solo leveling': 'https://s4.anilist.co/file/anilistcdn/media/manga/cover/large/bx105398-b673Vt5ZSuz3.jpg',
@@ -1070,40 +1113,59 @@ export const KNOWN_MANGA_COVERS = {
   'kingdom': 'https://s4.anilist.co/file/anilistcdn/media/manga/cover/large/nx46765-KPXir4sRqJBW.png',
   'greatest estate developer': 'https://s4.anilist.co/file/anilistcdn/media/manga/cover/large/bx140407-fJQr0fmqq1IO.png',
   'the greatest estate developer': 'https://s4.anilist.co/file/anilistcdn/media/manga/cover/large/bx140407-fJQr0fmqq1IO.png',
-  'world\'s strongest troll': 'https://s4.anilist.co/file/anilistcdn/media/manga/cover/large/bx136323-9h16T5s0K1vT.jpg',
-  'worlds strongest troll': 'https://s4.anilist.co/file/anilistcdn/media/manga/cover/large/bx136323-9h16T5s0K1vT.jpg',
-  'the beginning after the end': 'https://s4.anilist.co/file/anilistcdn/media/manga/cover/large/bx106082-xO3m2bFspE40.jpg',
-  'tbate': 'https://s4.anilist.co/file/anilistcdn/media/manga/cover/large/bx106082-xO3m2bFspE40.jpg',
-  'kaiju no 8': 'https://s4.anilist.co/file/anilistcdn/media/manga/cover/large/bx120760-GkF8m72w5n3Q.jpg',
-  'overgeared': 'https://s4.anilist.co/file/anilistcdn/media/manga/cover/large/bx118586-GkF8m72w5n3Q.jpg',
-  'sss class suicide hunter': 'https://s4.anilist.co/file/anilistcdn/media/manga/cover/large/bx124973-mD8tJ3bN5n2L.jpg',
-  'tomb raider king': 'https://s4.anilist.co/file/anilistcdn/media/manga/cover/large/bx111521-g8kM2bFspE40.jpg',
-  'magic emperor': 'https://s4.anilist.co/file/anilistcdn/media/manga/cover/large/bx112674-g9YqGkM0Yw8S.jpg',
-  'leveling with the gods': 'https://s4.anilist.co/file/anilistcdn/media/manga/cover/large/bx138356-8pK0Zuhd8OqJ.jpg',
-  'pick me up': 'https://s4.anilist.co/file/anilistcdn/media/manga/cover/large/bx159074-xO3m2bFspE40.jpg',
-  'second life ranker': 'https://s4.anilist.co/file/anilistcdn/media/manga/cover/large/bx109605-B0x2z8P96Y24.jpg',
-  'weak hero': 'https://s4.anilist.co/file/anilistcdn/media/manga/cover/large/bx103980-6o80VwHhYVrn.jpg',
-  'god of high school': 'https://s4.anilist.co/file/anilistcdn/media/manga/cover/large/bx85141-KPXir4sRqJBW.png',
-  'noblesse': 'https://s4.anilist.co/file/anilistcdn/media/manga/cover/large/bx85142-9mW113O7rDnA.png',
-  'legend of the northern blade': 'https://s4.anilist.co/file/anilistcdn/media/manga/cover/large/bx118686-7aKj9V318vLz.jpg',
+  'world\'s strongest troll': 'https://s4.anilist.co/file/anilistcdn/media/manga/cover/medium/bx159121-j90Wcbi7rd2C.png',
+  'worlds strongest troll': 'https://s4.anilist.co/file/anilistcdn/media/manga/cover/medium/bx159121-j90Wcbi7rd2C.png',
+  'the beginning after the end': 'https://s4.anilist.co/file/anilistcdn/media/anime/cover/large/bx183161-5M054tuPmZJX.jpg',
+  'tbate': 'https://s4.anilist.co/file/anilistcdn/media/anime/cover/large/bx183161-5M054tuPmZJX.jpg',
+  'kaiju no 8': 'https://s4.anilist.co/file/anilistcdn/media/manga/cover/medium/bx120760-MtXvMgujLBpe.jpg',
+  'overgeared': 'https://s4.anilist.co/file/anilistcdn/media/manga/cover/medium/n105664-4x0zfa6fmqp8.png',
+  'sss class suicide hunter': 'https://s4.anilist.co/file/anilistcdn/media/manga/cover/medium/bx128067-wnLBg6Cy1ncs.jpg',
+  'tomb raider king': 'https://s4.anilist.co/file/anilistcdn/media/manga/cover/medium/bx110462-okQFIoSFvb4L.jpg',
+  'magic emperor': 'https://s4.anilist.co/file/anilistcdn/media/manga/cover/medium/bx116353-DYuIigXuPwpZ.jpg',
+  'leveling with the gods': 'https://s4.anilist.co/file/anilistcdn/media/manga/cover/medium/bx138222-PyVZk5MOWP07.png',
+  'pick me up': 'https://s4.anilist.co/file/anilistcdn/media/manga/cover/medium/bx94792-kr1IT9eUToNU.jpg',
+  'second life ranker': 'https://s4.anilist.co/file/anilistcdn/media/manga/cover/medium/bx109957-EgJWdR7l9TBG.jpg',
+  'weak hero': 'https://s4.anilist.co/file/anilistcdn/media/manga/cover/medium/bx113488-0ghq0eEnftk0.jpg',
+  'god of high school': 'https://s4.anilist.co/file/anilistcdn/media/manga/cover/medium/bx85141-qHR957V3FVco.png',
+  'noblesse': 'https://s4.anilist.co/file/anilistcdn/media/manga/cover/medium/bx59983-cfSjrRxuAlAD.png',
+  'legend of the northern blade': 'https://s4.anilist.co/file/anilistcdn/media/manga/cover/medium/bx119521-qYqxFvn0NnXo.png',
+  'my in-laws are obsessed with me': 'https://s4.anilist.co/file/anilistcdn/media/manga/cover/medium/bx142894-SRinclU1kzu9.jpg'
 };
 
 export function getReliableCoverUrl(title, currentUrl) {
-  if (currentUrl && (currentUrl.includes('anilist.co') || currentUrl.includes('myanimelist.net') || currentUrl.includes('mangadex.org/covers'))) {
+  // 1. If currentUrl is already valid and not a known broken hash or placeholder, preserve it!
+  const hasValidCurrent = Boolean(
+    currentUrl &&
+    typeof currentUrl === 'string' &&
+    currentUrl.trim() !== '' &&
+    !currentUrl.includes('nocover') &&
+    !currentUrl.includes('placeholder') &&
+    !currentUrl.startsWith('data:image/svg+xml') &&
+    !isKnownBrokenUrl(currentUrl)
+  );
+
+  if (hasValidCurrent) {
     return currentUrl;
   }
+
+  // 2. Lookup verified table
   const t = (title || '').toLowerCase().replace(/[^a-z0-9]/g, ' ').replace(/\s+/g, ' ').trim();
   if (t) {
+    if (KNOWN_MANGA_COVERS[t]) {
+      return KNOWN_MANGA_COVERS[t];
+    }
     for (const [key, url] of Object.entries(KNOWN_MANGA_COVERS)) {
       const cleanKey = key.toLowerCase().replace(/[^a-z0-9]/g, ' ').replace(/\s+/g, ' ').trim();
-      if (t === cleanKey || t.includes(cleanKey) || cleanKey.includes(t)) {
+      if (t === cleanKey || (cleanKey.length > 3 && (t.startsWith(cleanKey + ' ') || t.endsWith(' ' + cleanKey)))) {
         return url;
       }
     }
   }
-  if (currentUrl && !currentUrl.includes('nocover') && !currentUrl.includes('placeholder')) {
+
+  if (currentUrl && typeof currentUrl === 'string' && !isKnownBrokenUrl(currentUrl)) {
     return currentUrl;
   }
+
   return getFallbackCover(title);
 }
 
@@ -1391,13 +1453,13 @@ export async function searchManga(query = '') {
 }
 
 /**
- * Helper to check if an image needs proxying (skips AniList, MyAnimeList, Data URIs)
+ * Helper to check if an image needs proxying (skips AniList, MyAnimeList, MangaDex, Data URIs)
  */
 function needsImageProxy(url) {
   if (!url) return false;
   if (url.startsWith('/api/image-proxy') || url.startsWith('http://localhost') || url.startsWith('data:')) return false;
-  if (url.includes('anilist.co') || url.includes('myanimelist.net')) return false;
-  return true;
+  if (url.includes('anilist.co') || url.includes('myanimelist.net') || url.includes('mangadex.org') || url.includes('weebcentral.com')) return false;
+  return false;
 }
 
 /**
@@ -1685,7 +1747,7 @@ export async function fetchMangaRecommendations(mangaId = '', genres = [], limit
     const fallbackList = getFilteredCatalog();
     setClientCached(cacheKey, fallbackList);
     return fallbackList;
-  } catch (err) {
+  } catch {
     const fallbackList = getFilteredCatalog();
     setClientCached(cacheKey, fallbackList);
     return fallbackList;
@@ -1856,47 +1918,138 @@ export async function fetchChapterPages(chapterId, mangaId = null, chapterNumber
   };
 }
 
-export function getFallbackCover(title = 'Manga') {
+const liveCoverCache = new Map();
+
+/**
+ * Dynamically fetch a verified high-res cover from AniList GraphQL or MangaDex
+ */
+export async function fetchLiveCover(title) {
+  if (!title || typeof title !== 'string') return null;
+  const clean = cleanTitle(title).trim();
+  if (!clean) return null;
+  const cacheKey = clean.toLowerCase();
+  if (liveCoverCache.has(cacheKey)) return liveCoverCache.get(cacheKey);
+
+  // 1. Static verified table first
+  const reliable = getReliableCoverUrl(clean, null);
+  if (reliable && !reliable.startsWith('data:') && !isKnownBrokenUrl(reliable)) {
+    liveCoverCache.set(cacheKey, reliable);
+    return reliable;
+  }
+
+  // 2. Query AniList GraphQL (open CORS, no auth - handles Manga, Manhwa, and adaptations)
+  try {
+    const q = `query ($search: String) {
+      Page(page: 1, perPage: 1) {
+        media(search: $search) {
+          coverImage { large extraLarge medium }
+        }
+      }
+    }`;
+    const res = await fetch('https://graphql.anilist.co', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ query: q, variables: { search: clean } })
+    });
+    if (res.ok) {
+      const json = await res.json();
+      const firstMedia = json?.data?.Page?.media?.[0];
+      const cover = firstMedia?.coverImage?.large || firstMedia?.coverImage?.extraLarge || firstMedia?.coverImage?.medium;
+      if (cover && !isKnownBrokenUrl(cover)) {
+        liveCoverCache.set(cacheKey, cover);
+        return cover;
+      }
+    }
+  } catch {}
+
+  // 3. Query MangaDex API (open CORS)
+  try {
+    const res = await fetch(`https://api.mangadex.org/manga?title=${encodeURIComponent(clean)}&limit=1&includes[]=cover_art`);
+    if (res.ok) {
+      const json = await res.json();
+      const manga = json?.data?.[0];
+      const rel = manga?.relationships?.find((r) => r.type === 'cover_art');
+      const fileName = rel?.attributes?.fileName;
+      if (manga && fileName) {
+        const cover = `https://uploads.mangadex.org/covers/${manga.id}/${fileName}.512.jpg`;
+        liveCoverCache.set(cacheKey, cover);
+        return cover;
+      }
+    }
+  } catch {}
+
+  return null;
+}
+
+function escapeXml(str) {
+  if (!str) return '';
+  return String(str)
+    .replace(/&/g, '&amp;')
+    .replace(/</g, '&lt;')
+    .replace(/>/g, '&gt;')
+    .replace(/"/g, '&quot;')
+    .replace(/'/g, '&apos;');
+}
+
+export function getFallbackCover(title = 'Manga', author = '') {
+  const safeTitle = cleanTitle(title || 'Manga');
+  const escapedTitle = escapeXml(safeTitle);
+  const escapedAuthor = escapeXml(author || 'Manga Series');
+
+  let hash = 0;
+  for (let i = 0; i < safeTitle.length; i++) {
+    hash = safeTitle.charCodeAt(i) + ((hash << 5) - hash);
+  }
+  const hue1 = Math.abs(hash % 360);
+  const hue2 = (hue1 + 50) % 360;
+
+  // Split title if lengthy
+  const words = escapedTitle.split(' ');
+  let line1 = escapedTitle;
+  let line2 = '';
+  if (escapedTitle.length > 16 && words.length > 1) {
+    const mid = Math.ceil(words.length / 2);
+    line1 = words.slice(0, mid).join(' ');
+    line2 = words.slice(mid).join(' ');
+  }
+
   const svg = `<svg xmlns="http://www.w3.org/2000/svg" width="400" height="600" viewBox="0 0 400 600">
     <defs>
-      <linearGradient id="cyberBg" x1="0%" y1="0%" x2="100%" y2="100%">
-        <stop offset="0%" stop-color="#080c16"/>
-        <stop offset="40%" stop-color="#0f172a"/>
-        <stop offset="100%" stop-color="#1e1338"/>
+      <linearGradient id="bg" x1="0%" y1="0%" x2="100%" y2="100%">
+        <stop offset="0%" stop-color="#07090e"/>
+        <stop offset="50%" stop-color="hsl(${hue1}, 28%, 11%)"/>
+        <stop offset="100%" stop-color="#040609"/>
       </linearGradient>
-      <linearGradient id="neonGlow" x1="0%" y1="0%" x2="100%" y2="100%">
-        <stop offset="0%" stop-color="#06b6d4"/>
-        <stop offset="50%" stop-color="#8b5cf6"/>
-        <stop offset="100%" stop-color="#f43f5e"/>
+      <linearGradient id="accent" x1="0%" y1="0%" x2="100%" y2="0%">
+        <stop offset="0%" stop-color="hsl(${hue1}, 85%, 62%)"/>
+        <stop offset="100%" stop-color="hsl(${hue2}, 85%, 62%)"/>
       </linearGradient>
-      <radialGradient id="aura" cx="50%" cy="42%" r="50%">
-        <stop offset="0%" stop-color="#8b5cf6" stop-opacity="0.35"/>
-        <stop offset="60%" stop-color="#06b6d4" stop-opacity="0.1"/>
+      <radialGradient id="glow" cx="50%" cy="32%" r="55%">
+        <stop offset="0%" stop-color="hsl(${hue1}, 80%, 55%)" stop-opacity="0.22"/>
         <stop offset="100%" stop-color="#000000" stop-opacity="0"/>
       </radialGradient>
-      <pattern id="grid" width="20" height="20" patternUnits="userSpaceOnUse">
-        <path d="M 20 0 L 0 0 0 20" fill="none" stroke="#38bdf8" stroke-width="0.5" stroke-opacity="0.08"/>
-      </pattern>
     </defs>
-    <rect width="400" height="600" fill="url(#cyberBg)"/>
-    <rect width="400" height="600" fill="url(#grid)"/>
-    <circle cx="200" cy="250" r="140" fill="url(#aura)"/>
-    <rect x="22" y="22" width="356" height="556" rx="20" fill="none" stroke="url(#neonGlow)" stroke-width="2" stroke-opacity="0.4"/>
-    <rect x="30" y="30" width="340" height="540" rx="16" fill="none" stroke="#38bdf8" stroke-width="0.8" stroke-opacity="0.2" stroke-dasharray="4 6"/>
-    <!-- Cyber Manga Emblem & Seal -->
-    <circle cx="200" cy="240" r="70" fill="#0f172a" stroke="url(#neonGlow)" stroke-width="3" stroke-opacity="0.8"/>
-    <circle cx="200" cy="240" r="54" fill="none" stroke="#06b6d4" stroke-width="1.2" stroke-opacity="0.5" stroke-dasharray="6 4"/>
-    <!-- Stylized Katana & Manga Seal Glyph -->
-    <path d="M165 240 L235 240 M200 205 L200 275 M175 215 L225 265 M175 265 L225 215" stroke="url(#neonGlow)" stroke-width="3" stroke-linecap="round"/>
-    <polygon points="200,185 240,240 200,295 160,240" fill="none" stroke="#f43f5e" stroke-width="2" stroke-opacity="0.75"/>
-    <circle cx="200" cy="240" r="10" fill="#38bdf8"/>
-    <!-- Top & Bottom HUD Tech Decals -->
-    <text x="40" y="55" fill="#06b6d4" font-family="'JetBrains Mono', monospace" font-size="10" font-weight="700" letter-spacing="2">SYS::ARCHIVE</text>
-    <text x="360" y="55" text-anchor="end" fill="#f43f5e" font-family="'JetBrains Mono', monospace" font-size="10" font-weight="700" letter-spacing="2">VERIFIED</text>
-    <text x="200" y="380" text-anchor="middle" fill="#f8fafc" font-family="'Plus Jakarta Sans', system-ui, sans-serif" font-size="20" font-weight="900" letter-spacing="3">MANGA ARCHIVE</text>
-    <text x="200" y="405" text-anchor="middle" fill="#06b6d4" font-family="'JetBrains Mono', monospace" font-size="11" font-weight="700" letter-spacing="3">AUTHENTIC EDITION</text>
-    <line x1="120" y1="425" x2="280" y2="425" stroke="url(#neonGlow)" stroke-width="2" stroke-linecap="round"/>
-    <text x="200" y="535" text-anchor="middle" fill="#64748b" font-family="'JetBrains Mono', monospace" font-size="9" letter-spacing="4">KURONEKO // WEBTOON NETWORK</text>
+    <rect width="400" height="600" fill="url(#bg)"/>
+    <circle cx="200" cy="210" r="150" fill="url(#glow)"/>
+    
+    <text x="200" y="270" text-anchor="middle" fill="hsl(${hue1}, 40%, 40%)" fill-opacity="0.12" font-family="'Plus Jakarta Sans', system-ui, sans-serif" font-size="150" font-weight="900">漫画</text>
+    
+    <rect x="22" y="22" width="356" height="556" rx="16" fill="none" stroke="url(#accent)" stroke-width="1.5" stroke-opacity="0.4"/>
+    <rect x="30" y="30" width="340" height="540" rx="12" fill="none" stroke="#ffffff" stroke-width="0.8" stroke-opacity="0.08"/>
+    
+    <text x="44" y="56" fill="hsl(${hue1}, 80%, 70%)" font-family="'JetBrains Mono', monospace" font-size="10" font-weight="700" letter-spacing="3">KURONEKO ARCHIVE</text>
+    <circle cx="350" cy="52" r="4" fill="hsl(${hue1}, 85%, 60%)"/>
+    
+    <circle cx="200" cy="195" r="44" fill="#0d111a" stroke="url(#accent)" stroke-width="2"/>
+    <polygon points="200,172 220,206 180,206" fill="none" stroke="hsl(${hue1}, 85%, 60%)" stroke-width="2"/>
+    <circle cx="200" cy="195" r="7" fill="hsl(${hue2}, 85%, 60%)"/>
+    
+    <line x1="140" y1="310" x2="260" y2="310" stroke="url(#accent)" stroke-width="2" stroke-linecap="round"/>
+    <text x="200" y="355" text-anchor="middle" fill="#ffffff" font-family="'Plus Jakarta Sans', system-ui, sans-serif" font-size="${line2 ? '22' : '25'}" font-weight="800" letter-spacing="0.5">${line1}</text>
+    ${line2 ? `<text x="200" y="390" text-anchor="middle" fill="#ffffff" font-family="'Plus Jakarta Sans', system-ui, sans-serif" font-size="21" font-weight="800" letter-spacing="0.5">${line2}</text>` : ''}
+    <text x="200" y="${line2 ? '425' : '395'}" text-anchor="middle" fill="#94a3b8" font-family="'Plus Jakarta Sans', system-ui, sans-serif" font-size="12" font-weight="500">${escapedAuthor}</text>
+    
+    <text x="200" y="538" text-anchor="middle" fill="#64748b" font-family="'JetBrains Mono', monospace" font-size="9" letter-spacing="3">AUTHENTIC MANGA EDITION</text>
   </svg>`;
   return `data:image/svg+xml;utf8,${encodeURIComponent(svg)}`;
 }
@@ -1913,16 +2066,20 @@ function formatMangaItem(item) {
 
   const proxiedCover = reliableCover
     ? (needsImageProxy(reliableCover) 
-        ? (baseUrl ? `${baseUrl}/api/image-proxy?url=${encodeURIComponent(reliableCover)}` : `/api/image-proxy?url=${encodeURIComponent(reliableCover)}`)
+        ? (baseUrl ? `${baseUrl}/api/image-proxy?url=${encodeURIComponent(reliableCover)}` : reliableCover)
         : reliableCover)
-    : getFallbackCover(safeTitle);
+    : getFallbackCover(safeTitle, item.author);
+
+  const rawCover = (item.coverUrl && !isKnownBrokenUrl(item.coverUrl) && !item.coverUrl.includes('nocover') && !item.coverUrl.includes('placeholder'))
+    ? item.coverUrl
+    : reliableCover;
 
   return {
     id: item.id,
     title: safeTitle,
     englishTitle: safeEnglishTitle,
     coverUrl: proxiedCover,
-    rawCoverUrl: reliableCover,
+    rawCoverUrl: rawCover,
     status: item.status || 'Ongoing',
     author: item.author && item.author.trim() ? decodeHtml(item.author) : 'Unknown Author',
     tags: (item.tags || ['Manga', 'Action']).map(decodeHtml),

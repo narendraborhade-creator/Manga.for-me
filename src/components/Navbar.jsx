@@ -16,7 +16,7 @@ import {
   Layers
 } from 'lucide-react';
 import NotificationsDropdown from './NotificationsDropdown';
-import { searchManga, getFallbackCover } from '../services/mangaApi';
+import { searchManga, getFallbackCover, getReliableCoverUrl } from '../services/mangaApi';
 
 export default function Navbar({
   activeTab,
@@ -261,15 +261,16 @@ export default function Navbar({
                             className="flex items-center gap-2.5 p-2 rounded-xl hover:bg-white/5 cursor-pointer transition-all group"
                           >
                             <img
-                              src={manga.coverUrl}
+                              src={getReliableCoverUrl(manga.englishTitle || manga.title, manga.coverUrl)}
                               alt={manga.title}
                               referrerPolicy="no-referrer"
                               className="w-8 h-11 rounded-lg object-cover bg-slate-950 flex-shrink-0 border border-white/10"
                               onError={(e) => {
-                                if (manga.rawCoverUrl && e.target.src !== manga.rawCoverUrl && !manga.rawCoverUrl.includes('nocover.jpg')) {
-                                  e.target.src = manga.rawCoverUrl;
+                                const target = e.target;
+                                if (manga.rawCoverUrl && target.src !== manga.rawCoverUrl && !manga.rawCoverUrl.includes('nocover.jpg')) {
+                                  target.src = manga.rawCoverUrl;
                                 } else {
-                                  e.target.src = getFallbackCover(manga.title);
+                                  target.src = getFallbackCover(manga.title, manga.author);
                                 }
                               }}
                             />
@@ -478,15 +479,16 @@ export default function Navbar({
                         className="flex items-center gap-2.5 p-2 rounded-xl hover:bg-white/5 cursor-pointer transition-all"
                       >
                         <img
-                          src={manga.coverUrl}
+                          src={getReliableCoverUrl(manga.englishTitle || manga.title, manga.coverUrl)}
                           alt={manga.title}
                           referrerPolicy="no-referrer"
                           className="w-8 h-11 rounded-lg object-cover bg-slate-950 flex-shrink-0 border border-white/10"
                           onError={(e) => {
-                            if (manga.rawCoverUrl && e.target.src !== manga.rawCoverUrl && !manga.rawCoverUrl.includes('nocover.jpg')) {
-                              e.target.src = manga.rawCoverUrl;
+                            const target = e.target;
+                            if (manga.rawCoverUrl && target.src !== manga.rawCoverUrl && !manga.rawCoverUrl.includes('nocover.jpg')) {
+                              target.src = manga.rawCoverUrl;
                             } else {
-                              e.target.src = getFallbackCover(manga.title);
+                              target.src = getFallbackCover(manga.title, manga.author);
                             }
                           }}
                         />
