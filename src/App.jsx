@@ -3,6 +3,7 @@ import Navbar from './components/Navbar';
 import ContinueReadingBanner from './components/ContinueReadingBanner';
 import HeroCarousel from './components/HeroCarousel';
 import MangaCard from './components/MangaCard';
+import CommandPalette from './components/CommandPalette';
 
 // Code-split heavy views and modals for optimal Core Web Vitals (LCP/FID) and minimal initial bundle size
 const MangaDetailModal = lazy(() => import('./components/MangaDetailModal'));
@@ -53,8 +54,7 @@ import {
   SlidersHorizontal,
   Search,
   Newspaper,
-  ExternalLink,
-  Layers
+  ExternalLink
 } from 'lucide-react';
 
 const GENRES = [
@@ -147,6 +147,19 @@ export default function App() {
     coverUrl: '',
   });
   const [isBackupOpen, setIsBackupOpen] = useState(false);
+  const [isCommandPaletteOpen, setIsCommandPaletteOpen] = useState(false);
+
+  // Global Ctrl+K / Cmd+K listener for 21st.dev Command Palette
+  useEffect(() => {
+    const handleGlobalKeyDown = (e) => {
+      if ((e.ctrlKey || e.metaKey) && e.key.toLowerCase() === 'k') {
+        e.preventDefault();
+        setIsCommandPaletteOpen((prev) => !prev);
+      }
+    };
+    window.addEventListener('keydown', handleGlobalKeyDown);
+    return () => window.removeEventListener('keydown', handleGlobalKeyDown);
+  }, []);
 
   // Manga Hub Data
   const [allMangaList, setAllMangaList] = useState([]);
@@ -467,6 +480,7 @@ export default function App() {
         onOpenBackup={() => setIsBackupOpen(true)}
         unreadUpdatesCount={updates.filter((u) => !u.read).length}
         onSelectManga={handleOpenMangaDetails}
+        onOpenCommandPalette={() => setIsCommandPaletteOpen(true)}
       />
 
       {/* Main Container */}
@@ -504,21 +518,21 @@ export default function App() {
 
           return (
             <div className="space-y-8 animate-fadeIn">
-              {/* Dynamic Holographic HUD Active Filters Bar */}
+              {/* Refined 21st.dev Filter Bar */}
               {isFilterActive && (
-                <div className="flex flex-wrap items-center gap-2 p-3 sm:p-3.5 rounded-2xl bg-slate-900/90 backdrop-blur-xl border border-cyan-500/30 shadow-[0_0_20px_rgba(6,182,212,0.18)] font-mono text-xs animate-fadeIn">
-                  <div className="flex items-center gap-1.5 text-cyan-400 font-bold tracking-wider uppercase flex-shrink-0">
-                    <SlidersHorizontal className="w-3.5 h-3.5 text-cyan-400 animate-pulse" />
-                    <span>ACTIVE_FILTERS:</span>
+                <div className="flex flex-wrap items-center gap-2 p-3 sm:p-3.5 rounded-2xl bg-[#0c1017]/90 backdrop-blur-xl border border-white/10 shadow-lg text-xs animate-fadeIn">
+                  <div className="flex items-center gap-1.5 text-rose-400 font-semibold flex-shrink-0">
+                    <SlidersHorizontal className="w-3.5 h-3.5 text-rose-500" />
+                    <span>Active Filters:</span>
                   </div>
 
                   {searchQuery.trim() && (
-                    <span className="inline-flex items-center gap-1.5 px-3 py-1 rounded-xl bg-cyan-950/80 border border-cyan-400/50 text-cyan-300 font-semibold shadow-[0_0_10px_rgba(6,182,212,0.25)]">
-                      <Search className="w-3 h-3 text-cyan-400" />
-                      <span>QUERY: "{searchQuery.trim()}"</span>
+                    <span className="inline-flex items-center gap-1.5 px-3 py-1 rounded-xl bg-white/5 border border-white/10 text-slate-200 font-medium">
+                      <Search className="w-3 h-3 text-rose-400" />
+                      <span>Search: "{searchQuery.trim()}"</span>
                       <button
                         onClick={() => setSearchQuery('')}
-                        className="ml-1 p-0.5 rounded-full hover:bg-cyan-500/20 text-cyan-400 hover:text-white transition-colors cursor-pointer"
+                        className="ml-1 p-0.5 rounded-full hover:bg-white/10 text-slate-400 hover:text-white transition-colors cursor-pointer"
                         title="Remove search query"
                       >
                         <X className="w-3 h-3" />
@@ -527,12 +541,12 @@ export default function App() {
                   )}
 
                   {selectedGenre !== 'All' && (
-                    <span className="inline-flex items-center gap-1.5 px-3 py-1 rounded-xl bg-purple-950/80 border border-purple-400/50 text-purple-300 font-semibold shadow-[0_0_10px_rgba(168,85,247,0.25)]">
-                      <Filter className="w-3 h-3 text-purple-400" />
-                      <span>GENRE: {selectedGenre}</span>
+                    <span className="inline-flex items-center gap-1.5 px-3 py-1 rounded-xl bg-rose-500/10 border border-rose-500/30 text-rose-300 font-medium">
+                      <Filter className="w-3 h-3 text-rose-400" />
+                      <span>Genre: {selectedGenre}</span>
                       <button
                         onClick={() => setSelectedGenre('All')}
-                        className="ml-1 p-0.5 rounded-full hover:bg-purple-500/20 text-purple-400 hover:text-white transition-colors cursor-pointer"
+                        className="ml-1 p-0.5 rounded-full hover:bg-rose-500/20 text-rose-400 hover:text-white transition-colors cursor-pointer"
                         title="Remove genre filter"
                       >
                         <X className="w-3 h-3" />
@@ -541,9 +555,9 @@ export default function App() {
                   )}
 
                   {selectedSource !== 'All' && (
-                    <span className="inline-flex items-center gap-1.5 px-3 py-1 rounded-xl bg-rose-950/80 border border-rose-400/50 text-rose-300 font-semibold shadow-[0_0_10px_rgba(244,63,94,0.25)]">
+                    <span className="inline-flex items-center gap-1.5 px-3 py-1 rounded-xl bg-rose-500/10 border border-rose-500/30 text-rose-300 font-medium">
                       <Radio className="w-3 h-3 text-rose-400" />
-                      <span>SOURCE: {SOURCES.find((s) => s.id === selectedSource)?.label || selectedSource}</span>
+                      <span>Source: {SOURCES.find((s) => s.id === selectedSource)?.label || selectedSource}</span>
                       <button
                         onClick={() => setSelectedSource('All')}
                         className="ml-1 p-0.5 rounded-full hover:bg-rose-500/20 text-rose-400 hover:text-white transition-colors cursor-pointer"
@@ -555,8 +569,8 @@ export default function App() {
                   )}
 
                   <div className="ml-auto flex items-center gap-2.5 flex-shrink-0">
-                    <span className="text-[11px] text-slate-400 font-mono hidden sm:inline-block">
-                      • {displayedMatchingCount} TITLES MATCHED
+                    <span className="text-[11px] text-slate-400 hidden sm:inline-block">
+                      {displayedMatchingCount} titles matched
                     </span>
                     <button
                       onClick={() => {
@@ -564,20 +578,20 @@ export default function App() {
                         setSelectedGenre('All');
                         setSelectedSource('All');
                       }}
-                      className="px-2.5 py-1 rounded-lg bg-rose-500/15 hover:bg-rose-500/25 border border-rose-500/40 text-rose-300 hover:text-white text-xs font-semibold transition-all flex items-center gap-1 cursor-pointer shadow-sm hover:shadow-rose-500/20"
+                      className="px-2.5 py-1 rounded-xl bg-rose-600/15 hover:bg-rose-600/25 border border-rose-500/30 text-rose-300 hover:text-white text-xs font-semibold transition-all flex items-center gap-1 cursor-pointer"
                     >
                       <X className="w-3 h-3" />
-                      <span>RESET ALL</span>
+                      <span>Clear All</span>
                     </button>
                   </div>
                 </div>
               )}
 
-              {/* Genre Filter Chips with HUD Monospace & Holographic Active State */}
-              <div className="flex items-center gap-2 overflow-x-auto pb-2 scrollbar-none font-mono">
-                <div className="flex items-center gap-1.5 text-xs text-cyan-400 font-semibold mr-1 flex-shrink-0">
-                  <Filter className="w-3.5 h-3.5 text-cyan-400" />
-                  <span>GENRE::</span>
+              {/* Genre Filter Chips with 21st.dev Rounded Pills */}
+              <div className="flex items-center gap-2 overflow-x-auto pb-2 scrollbar-none">
+                <div className="flex items-center gap-1.5 text-xs text-slate-400 font-semibold mr-1 flex-shrink-0">
+                  <Filter className="w-3.5 h-3.5 text-rose-500" />
+                  <span>Genre:</span>
                 </div>
                 {GENRES.map((genre) => {
                   const isSelected = selectedGenre === genre;
@@ -587,22 +601,22 @@ export default function App() {
                       onClick={() => setSelectedGenre(genre)}
                       className={`px-3.5 py-1.5 rounded-full text-xs font-semibold whitespace-nowrap transition-all cursor-pointer flex items-center gap-1.5 ${
                         isSelected
-                          ? 'btn-holo text-white shadow-md ring-2 ring-cyan-400/80 shadow-[0_0_12px_rgba(6,182,212,0.4)] font-bold'
-                          : 'bg-slate-950/80 text-slate-400 hover:text-white hover:bg-slate-900 border border-white/10'
+                          ? 'bg-rose-600 text-white shadow-md shadow-rose-600/30 font-bold'
+                          : 'bg-slate-900/80 text-slate-400 hover:text-white hover:bg-slate-800 border border-white/10'
                       }`}
                     >
-                      {isSelected && <span className="w-1.5 h-1.5 rounded-full bg-cyan-300 animate-pulse" />}
+                      {isSelected && <span className="w-1.5 h-1.5 rounded-full bg-white animate-pulse" />}
                       <span>{genre}</span>
                     </button>
                   );
                 })}
               </div>
 
-              {/* Source Selection Bar (8 High-Speed & Comprehensive Feeds) */}
-              <div className="flex items-center gap-2 overflow-x-auto pb-2 scrollbar-none font-mono">
+              {/* Source Selection Bar */}
+              <div className="flex items-center gap-2 overflow-x-auto pb-2 scrollbar-none">
                 <div className="flex items-center gap-1.5 text-xs text-rose-400 font-semibold mr-1 flex-shrink-0">
-                  <Radio className="w-3.5 h-3.5 text-rose-400 animate-pulse" />
-                  <span>SOURCE::</span>
+                  <Radio className="w-3.5 h-3.5 text-rose-500" />
+                  <span>Source:</span>
                 </div>
                 {SOURCES.map((s) => {
                   const isSelected = selectedSource === s.id;
@@ -612,15 +626,15 @@ export default function App() {
                       onClick={() => setSelectedSource(s.id)}
                       className={`px-3 py-1.5 rounded-xl text-xs font-semibold whitespace-nowrap transition-all cursor-pointer flex items-center gap-1.5 ${
                         isSelected
-                          ? 'btn-holo text-white shadow-md shadow-rose-500/25 ring-2 ring-rose-400/80 font-bold'
-                          : 'bg-slate-950/80 text-slate-400 hover:text-white hover:bg-slate-900 border border-white/10'
+                          ? 'bg-rose-600 text-white shadow-md shadow-rose-600/30 font-bold'
+                          : 'bg-slate-900/80 text-slate-400 hover:text-white hover:bg-slate-800 border border-white/10'
                       }`}
                     >
-                      {isSelected && <span className="w-1.5 h-1.5 rounded-full bg-rose-400 animate-pulse" />}
+                      {isSelected && <span className="w-1.5 h-1.5 rounded-full bg-white animate-pulse" />}
                       <span>{s.label}</span>
                       {s.badge && (
-                        <span className={`text-[9px] px-1 py-0.2 rounded font-mono ${
-                          isSelected ? 'bg-black/40 text-white font-bold' : 'bg-white/5 text-cyan-400'
+                        <span className={`text-[9px] px-1.5 py-0.5 rounded-md ${
+                          isSelected ? 'bg-black/30 text-white font-bold' : 'bg-white/5 text-slate-400'
                         }`}>
                           {s.badge}
                         </span>
@@ -680,6 +694,7 @@ export default function App() {
                                 onSelect={handleOpenMangaDetails}
                                 isBookmarked={!!bookmarks[manga.id]}
                                 onToggleBookmark={handleToggleBookmark}
+                                readChaptersCount={hist?.readChaptersCount || 0}
                                 lastReadChapter={hist?.chapterNumber || null}
                               />
                             );
@@ -768,6 +783,7 @@ export default function App() {
                               onSelect={handleOpenMangaDetails}
                               isBookmarked={!!bookmarks[manga.id]}
                               onToggleBookmark={handleToggleBookmark}
+                              readChaptersCount={hist?.readChaptersCount || 0}
                               lastReadChapter={hist?.chapterNumber || null}
                             />
                           );
@@ -805,6 +821,7 @@ export default function App() {
                               onSelect={handleOpenMangaDetails}
                               isBookmarked={!!bookmarks[manga.id]}
                               onToggleBookmark={handleToggleBookmark}
+                              readChaptersCount={hist?.readChaptersCount || 0}
                               lastReadChapter={hist?.chapterNumber || null}
                             />
                           );
@@ -863,15 +880,20 @@ export default function App() {
                     <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 xl:grid-cols-6 gap-4 sm:gap-5">
                       {effectiveSearchList
                         .filter((manga) => matchesSource(manga, selectedSource))
-                        .map((manga) => (
-                          <MangaCard
-                            key={manga.id}
-                            manga={manga}
-                            onSelect={handleOpenMangaDetails}
-                            isBookmarked={!!bookmarks[manga.id]}
-                            onToggleBookmark={handleToggleBookmark}
-                          />
-                        ))}
+                        .map((manga) => {
+                          const hist = historyMap[manga.id];
+                          return (
+                            <MangaCard
+                              key={manga.id}
+                              manga={manga}
+                              onSelect={handleOpenMangaDetails}
+                              isBookmarked={!!bookmarks[manga.id]}
+                              onToggleBookmark={handleToggleBookmark}
+                              readChaptersCount={hist?.readChaptersCount || 0}
+                              lastReadChapter={hist?.chapterNumber || null}
+                            />
+                          );
+                        })}
                     </div>
                   )}
                 </div>
@@ -980,6 +1002,20 @@ export default function App() {
           onRefreshData={refreshStorageData}
         />
       </Suspense>
+
+      {/* 21st.dev Signature Command Palette (Ctrl+K / ⌘K) */}
+      <CommandPalette
+        isOpen={isCommandPaletteOpen}
+        onClose={() => setIsCommandPaletteOpen(false)}
+        onNavigate={(tab) => {
+          setActiveTab(tab);
+          window.scrollTo({ top: 0, behavior: 'smooth' });
+        }}
+        onSelectManga={handleOpenMangaDetails}
+        bookmarks={bookmarks}
+        history={history}
+        popularList={popularManga}
+      />
 
       {/* Floating Real-Time Update Alert Toast */}
       {activeToast && (

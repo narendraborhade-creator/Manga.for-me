@@ -32,7 +32,8 @@ export default function Navbar({
   onOpenReader,
   onOpenBackup,
   unreadUpdatesCount = 0,
-  onSelectManga
+  onSelectManga,
+  onOpenCommandPalette
 }) {
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
   const [notificationsOpen, setNotificationsOpen] = useState(false);
@@ -323,6 +324,21 @@ export default function Navbar({
               )}
             </div>
 
+            {/* Command Palette Trigger */}
+            <button
+              type="button"
+              onClick={onOpenCommandPalette}
+              title="Quick Search & Navigation (Ctrl+K / ⌘K)"
+              aria-label="Open Command Palette"
+              className="flex items-center gap-1.5 p-2 sm:px-3 sm:py-2 rounded-xl bg-slate-900/80 hover:bg-white/10 border border-white/10 text-slate-300 hover:text-white text-xs font-medium transition-all group"
+            >
+              <Search className="w-3.5 h-3.5 text-rose-500 group-hover:scale-110 transition-transform" />
+              <span className="hidden xl:inline text-slate-400">Search</span>
+              <kbd className="hidden sm:inline-flex text-[10px] font-mono bg-white/10 px-1.5 py-0.5 rounded text-slate-300 border border-white/10">
+                ⌘K
+              </kbd>
+            </button>
+
             {/* Quick Resume Pill if last read exists */}
             {lastRead && (
               <button
@@ -396,10 +412,10 @@ export default function Navbar({
         {/* Mobile Search Input with Suggestions Dropdown */}
         <div ref={mobileSearchRef} className="lg:hidden pb-3 relative space-y-2">
           {hasActiveFilters && onResetFilters && (
-            <div className="flex items-center justify-between px-1 text-xs font-mono">
-              <span className="flex items-center gap-1.5 text-cyan-400 font-bold">
-                <SlidersHorizontal className="w-3 h-3 animate-pulse" />
-                <span>FILTER_ACTIVE:</span>
+            <div className="flex items-center justify-between px-1 text-xs">
+              <span className="flex items-center gap-1.5 text-rose-400 font-semibold">
+                <SlidersHorizontal className="w-3 h-3 text-rose-500" />
+                <span>Filters:</span>
                 <span className="text-white font-semibold">
                   {selectedGenre !== 'All' ? selectedGenre : ''}
                   {selectedGenre !== 'All' && selectedSource !== 'All' ? ' • ' : ''}

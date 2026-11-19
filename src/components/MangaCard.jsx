@@ -1,4 +1,4 @@
-import React, { memo } from 'react';
+import React, { memo, useRef } from 'react';
 import { Bookmark, Star, BookOpen, Check } from 'lucide-react';
 import { getFallbackCover, cleanTitle, getReliableCoverUrl } from '../services/mangaApi';
 
@@ -8,9 +8,20 @@ function MangaCard({
   isBookmarked,
   onToggleBookmark,
   readChaptersCount = 0,
-  lastReadChapter = null,
+  lastReadChapter = null
 }) {
+  const cardRef = useRef(null);
+
   if (!manga) return null;
+
+  const handleMouseMove = (e) => {
+    if (!cardRef.current) return;
+    const rect = cardRef.current.getBoundingClientRect();
+    const x = e.clientX - rect.left;
+    const y = e.clientY - rect.top;
+    cardRef.current.style.setProperty('--mouse-x', `${x}px`);
+    cardRef.current.style.setProperty('--mouse-y', `${y}px`);
+  };
 
   const handleBookmarkClick = (e) => {
     e.stopPropagation();
@@ -22,10 +33,19 @@ function MangaCard({
   const titleText = cleanTitle(manga.englishTitle || manga.title);
   const originalTitle = cleanTitle(manga.title);
 
+  // Calculate visual reading progress
+  const totalCh = parseFloat(manga.latestChapter || manga.totalChapters || 0);
+  const currentCh = parseFloat(lastReadChapter || 0);
+  const progressPct = totalCh > 0 && currentCh > 0 
+    ? Math.min(100, Math.round((currentCh / totalCh) * 100)) 
+    : 0;
+
   return (
     <div
+      ref={cardRef}
       role="button"
       tabIndex={0}
+      onMouseMove={handleMouseMove}
       onClick={() => onSelect(manga.id, manga.coverUrl)}
       onKeyDown={(e) => {
         if (e.key === 'Enter' || e.key === ' ') {
@@ -33,8 +53,16 @@ function MangaCard({
           onSelect(manga.id, manga.coverUrl);
         }
       }}
-      className="group relative flex flex-col bg-[#0e1320] hover:bg-[#141a2c] rounded-xl overflow-hidden border border-white/[0.08] hover:border-rose-500/40 transition-all duration-300 hover:shadow-xl hover:shadow-black/70 hover:-translate-y-1 cursor-pointer select-none focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-rose-500"
+      className="group relative flex flex-col bg-[#0b0e18] hover:bg-[#121626] rounded-xl overflow-hidden border border-white/[0.08] hover:border-rose-500/50 transition-all duration-300 hover:shadow-2xl hover:shadow-black/80 hover:-translate-y-1.5 cursor-pointer select-none focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-rose-500"
     >
+      {/* 21st.dev Ambient Radial Spotlight on Hover */}
+      <div 
+        className="pointer-events-none absolute -inset-px rounded-xl opacity-0 transition-opacity duration-300 group-hover:opacity-100 z-30"
+        style={{
+          background: 'radial-gradient(400px circle at var(--mouse-x, 50%) var(--mouse-y, 50%), rgba(244, 63, 94, 0.15), transparent 80%)'
+        }}
+      />
+
       {/* Cover Image Container */}
       <div className="relative aspect-[3/4.4] w-full overflow-hidden bg-slate-950">
         <img
@@ -43,7 +71,7 @@ function MangaCard({
           loading="lazy"
           decoding="async"
           referrerPolicy="no-referrer"
-          className="w-full h-full object-cover object-center group-hover:scale-105 transition-transform duration-500 ease-out"
+          className="w-full h-full object-cover object-center group-hover:scale-106 transition-transform duration-500 ease-out"
           onError={(e) => {
             const reliable = getReliableCoverUrl(manga.englishTitle || manga.title, null);
             if (reliable && reliable !== e.target.src && !reliable.startsWith('data:')) {
@@ -57,7 +85,7 @@ function MangaCard({
         />
 
         {/* Natural Vignette Gradient for Depth */}
-        <div className="absolute inset-0 bg-gradient-to-t from-[#090c15] via-[#090c15]/15 to-transparent opacity-90 group-hover:opacity-75 transition-opacity" />
+        <div className="absolute inset-0 bg-gradient-to-t from-[#080a11] via-[#080a11]/20 to-transparent opacity-90 group-hover:opacity-75 transition-opacity" />
 
         {/* Top Badges */}
         <div className="absolute top-2 left-2 right-2 flex items-center justify-between z-10 pointer-events-none">
@@ -104,26 +132,28 @@ function MangaCard({
           </button>
         </div>
 
-        {/* Quick Read Hover Action */}
-        <div className="absolute inset-0 flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity duration-300 pointer-events-none">
-          <div className="px-3.5 py-1.5 rounded-lg bg-rose-600/95 text-white text-xs font-semibold shadow-lg shadow-rose-600/30 flex items-center gap-1.5 transform -translate-y-1 group-hover:translate-y-0 transition-transform">
+        {/* Quick Read / Details Hover Action Bar */}
+        <div className="absolute inset-0 flex flex-col items-center justify-center gap-2 opacity-0 group-hover:opacity-100 transition-opacity duration-300 pointer-events-none z-20">
+          <div className="px-3.5 py-1.5 rounded-xl bg-rose-600/95 text-white text-xs font-semibold shadow-lg shadow-rose-600/40 flex items-center gap-1.5 transform -translate-y-1 group-hover:translate-y-0 transition-transform backdrop-blur-md">
             <BookOpen className="w-3.5 h-3.5" />
-            <span>Read Details</span>
+            <span>View Chapters</span>
           </div>
+          {lastReadChapter && (
+            <div className="px-3 py-1 rounded-lg bg-black/80 text-emerald-400 text-[11px] font-medium border border-white/10 backdrop-blur-md flex items-center gap-1">
+              <Check className="w-3 h-3 text-emerald-400" />
+              <span>Read up to Ch. {lastReadChapter}</span>
+            </div>
+          )}
         </div>
 
-        {/* Reading Progress Indicator */}
-        {lastReadChapter && (
-          <div className="absolute bottom-2 left-2 right-2 z-10">
-            <div className="flex items-center justify-between px-2.5 py-1 rounded-lg bg-black/85 backdrop-blur-md border border-white/10 text-[11px]">
-              <span className="flex items-center gap-1.5 text-emerald-400 font-medium truncate">
-                <Check className="w-3.5 h-3.5 text-emerald-400" />
-                Ch. {lastReadChapter}
-              </span>
-              <span className="text-slate-400 text-[10px]">
-                {readChaptersCount > 0 ? `${readChaptersCount} read` : 'Read'}
-              </span>
-            </div>
+        {/* Mini Reading Progress Bar on bottom edge */}
+        {progressPct > 0 && (
+          <div className="absolute bottom-0 inset-x-0 h-1 bg-black/60 z-20 overflow-hidden">
+            <div 
+              className="h-full bg-gradient-to-r from-rose-500 to-emerald-400 transition-all duration-300"
+              style={{ width: `${progressPct}%` }}
+              title={`Reading progress: ${progressPct}%`}
+            />
           </div>
         )}
       </div>
@@ -165,6 +195,15 @@ function MangaCard({
                 {manga.tags && manga.tags[0] ? manga.tags[0] : 'Manga'}
               </span>
             )}
+            {progressPct > 0 ? (
+              <span className="text-[10px] text-emerald-400 font-semibold">
+                {progressPct}%
+              </span>
+            ) : readChaptersCount > 0 ? (
+              <span className="text-[10px] text-emerald-400 font-semibold">
+                {readChaptersCount} read
+              </span>
+            ) : null}
           </div>
           {manga.score && (
             <span className="flex items-center gap-1 text-amber-400 font-medium text-xs flex-shrink-0">
