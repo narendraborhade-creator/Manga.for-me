@@ -5,19 +5,22 @@ import { ArrowUpRight, ArrowRight, Play, Menu, X, Sparkles } from 'lucide-react'
 
 export interface NavLink {
   label: string;
-  href: string;
+  href?: string;
+  onClick?: (e?: React.MouseEvent) => void;
   isActive?: boolean;
 }
 
 export interface Partner {
   logoUrl?: string;
   name?: string;
-  href: string;
+  href?: string;
+  onClick?: (e?: React.MouseEvent) => void;
 }
 
 export interface ResponsiveHeroBannerProps {
   logoUrl?: string;
   logoText?: string;
+  onLogoClick?: () => void;
   backgroundImageUrl?: string;
   navLinks?: NavLink[];
   ctaButtonText?: string;
@@ -27,6 +30,7 @@ export interface ResponsiveHeroBannerProps {
   badgeLabel?: string;
   title?: string;
   titleLine2?: string;
+  onTitleClick?: () => void;
   description?: string;
   primaryButtonText?: string;
   primaryButtonHref?: string;
@@ -42,6 +46,7 @@ export interface ResponsiveHeroBannerProps {
 export const ResponsiveHeroBanner: React.FC<ResponsiveHeroBannerProps> = ({
   logoUrl,
   logoText = "KuroNeko",
+  onLogoClick,
   backgroundImageUrl = "https://images.unsplash.com/photo-1579783900882-c0d3dad7b119?q=80&w=2000&auto=format&fit=crop",
   navLinks = [
     { label: "Home", href: "#", isActive: true },
@@ -51,18 +56,19 @@ export const ResponsiveHeroBanner: React.FC<ResponsiveHeroBannerProps> = ({
     { label: "Library", href: "#" }
   ],
   ctaButtonText = "Start Reading",
-  ctaButtonHref = "#",
+  ctaButtonHref: _ctaButtonHref = "#",
   onCtaClick,
   badgeLabel = "Featured",
   badgeText = "Next-Gen Manga & Webtoon Reader 2026",
   title = "Infinite Stories Await",
   titleLine2 = "Beyond the Horizon",
+  onTitleClick,
   description = "Immerse yourself in thousands of official webtoons and mangas with ultra-crisp reader rendering, zero-lag chapter caching, and seamless cross-platform syncing.",
   primaryButtonText = "Explore Catalog",
-  primaryButtonHref = "#",
+  primaryButtonHref: _primaryButtonHref = "#",
   onPrimaryClick,
   secondaryButtonText = "Watch Spotlight",
-  secondaryButtonHref = "#",
+  secondaryButtonHref: _secondaryButtonHref = "#",
   onSecondaryClick,
   partnersTitle = "Supported by top manga & webtoon archives worldwide",
   partners = [
@@ -96,9 +102,10 @@ export const ResponsiveHeroBanner: React.FC<ResponsiveHeroBannerProps> = ({
         <div className="max-w-7xl mx-auto px-6 pt-5">
           <div className="flex items-center justify-between">
             {/* Brand Logo */}
-            <a
-              href="#"
-              className="inline-flex items-center gap-2.5 group"
+            <button
+              type="button"
+              onClick={onLogoClick || (() => window.scrollTo({ top: 0, behavior: 'smooth' }))}
+              className="inline-flex items-center gap-2.5 group cursor-pointer focus:outline-none"
             >
               {logoUrl ? (
                 <div
@@ -108,51 +115,58 @@ export const ResponsiveHeroBanner: React.FC<ResponsiveHeroBannerProps> = ({
                   aria-label={logoText}
                 />
               ) : (
-                <div className="flex items-center gap-2 px-3 py-1.5 rounded-xl bg-white/10 backdrop-blur-md border border-white/15">
+                <div className="flex items-center gap-2 px-3 py-1.5 rounded-xl bg-white/10 backdrop-blur-md border border-white/15 hover:bg-white/15 transition-all">
                   <Sparkles className="w-5 h-5 text-rose-500 animate-pulse" />
                   <span className="text-lg font-bold tracking-tight text-white font-sans">
                     {logoText}
                   </span>
                 </div>
               )}
-            </a>
+            </button>
 
             {/* Desktop Navigation Links */}
             <nav className="hidden md:flex items-center gap-2">
               <div className="flex items-center gap-1 rounded-full bg-white/5 px-2 py-1.5 ring-1 ring-white/10 backdrop-blur-xl shadow-lg shadow-black/20">
                 {navLinks.map((link, index) => (
-                  <a
+                  <button
+                    type="button"
                     key={index}
-                    href={link.href}
-                    className={`px-3.5 py-1.5 text-sm font-medium hover:text-white font-sans transition-all rounded-full ${
+                    onClick={(e) => {
+                      if (link.onClick) {
+                        e.preventDefault();
+                        link.onClick(e);
+                      }
+                    }}
+                    className={`px-3.5 py-1.5 text-sm font-medium hover:text-white font-sans transition-all rounded-full cursor-pointer focus:outline-none ${
                       link.isActive 
-                        ? 'text-white bg-white/10 shadow-sm' 
+                        ? 'text-white bg-white/15 shadow-sm font-semibold' 
                         : 'text-white/70 hover:bg-white/5'
                     }`}
                   >
                     {link.label}
-                  </a>
+                  </button>
                 ))}
-                <a
-                  href={ctaButtonHref}
+                <button
+                  type="button"
                   onClick={(e) => {
                     if (onCtaClick) {
                       e.preventDefault();
                       onCtaClick();
                     }
                   }}
-                  className="ml-1.5 inline-flex items-center gap-1.5 rounded-full bg-rose-600 hover:bg-rose-500 text-white px-4 py-1.5 text-sm font-semibold font-sans transition-all hover:shadow-lg hover:shadow-rose-500/25 active:scale-95"
+                  className="ml-1.5 inline-flex items-center gap-1.5 rounded-full bg-rose-600 hover:bg-rose-500 text-white px-4 py-1.5 text-sm font-semibold font-sans transition-all hover:shadow-lg hover:shadow-rose-500/25 active:scale-95 cursor-pointer focus:outline-none"
                 >
                   {ctaButtonText}
                   <ArrowUpRight className="h-4 w-4" />
-                </a>
+                </button>
               </div>
             </nav>
 
             {/* Mobile Hamburger Toggle Button */}
             <button
+              type="button"
               onClick={() => setMobileMenuOpen(!mobileMenuOpen)}
-              className="md:hidden inline-flex h-10 w-10 items-center justify-center rounded-full bg-white/10 ring-1 ring-white/15 backdrop-blur text-white hover:bg-white/20 transition-all focus:outline-none focus:ring-2 focus:ring-rose-500"
+              className="md:hidden inline-flex h-10 w-10 items-center justify-center rounded-full bg-white/10 ring-1 ring-white/15 backdrop-blur text-white hover:bg-white/20 transition-all focus:outline-none focus:ring-2 focus:ring-rose-500 cursor-pointer"
               aria-expanded={mobileMenuOpen}
               aria-label="Toggle menu"
             >
@@ -164,19 +178,25 @@ export const ResponsiveHeroBanner: React.FC<ResponsiveHeroBannerProps> = ({
           {mobileMenuOpen && (
             <div className="md:hidden mt-3 p-4 rounded-2xl bg-[#0e1220]/95 backdrop-blur-2xl border border-white/15 shadow-2xl flex flex-col gap-2 animate-fade-slide-in-1">
               {navLinks.map((link, index) => (
-                <a
+                <button
+                  type="button"
                   key={index}
-                  href={link.href}
-                  onClick={() => setMobileMenuOpen(false)}
-                  className={`px-4 py-2.5 rounded-xl text-sm font-medium transition-colors ${
-                    link.isActive ? 'bg-white/10 text-white' : 'text-white/80 hover:bg-white/5'
+                  onClick={(e) => {
+                    setMobileMenuOpen(false);
+                    if (link.onClick) {
+                      e.preventDefault();
+                      link.onClick(e);
+                    }
+                  }}
+                  className={`text-left px-4 py-2.5 rounded-xl text-sm font-medium transition-colors cursor-pointer ${
+                    link.isActive ? 'bg-white/10 text-white font-semibold' : 'text-white/80 hover:bg-white/5'
                   }`}
                 >
                   {link.label}
-                </a>
+                </button>
               ))}
-              <a
-                href={ctaButtonHref}
+              <button
+                type="button"
                 onClick={(e) => {
                   setMobileMenuOpen(false);
                   if (onCtaClick) {
@@ -184,11 +204,11 @@ export const ResponsiveHeroBanner: React.FC<ResponsiveHeroBannerProps> = ({
                     onCtaClick();
                   }
                 }}
-                className="mt-2 inline-flex items-center justify-center gap-2 rounded-xl bg-rose-600 hover:bg-rose-500 text-white py-2.5 text-sm font-semibold transition-all shadow-lg shadow-rose-600/30"
+                className="mt-2 inline-flex items-center justify-center gap-2 rounded-xl bg-rose-600 hover:bg-rose-500 text-white py-2.5 text-sm font-semibold transition-all shadow-lg shadow-rose-600/30 cursor-pointer"
               >
                 {ctaButtonText}
                 <ArrowUpRight className="h-4 w-4" />
-              </a>
+              </button>
             </div>
           )}
         </div>
@@ -209,7 +229,10 @@ export const ResponsiveHeroBanner: React.FC<ResponsiveHeroBannerProps> = ({
             </div>
 
             {/* Hero Heading */}
-            <h1 className="text-4xl sm:text-6xl md:text-7xl font-normal leading-tight text-white tracking-tight font-instrument-serif animate-fade-slide-in-2 drop-shadow-md">
+            <h1 
+              onClick={onTitleClick}
+              className={`text-4xl sm:text-6xl md:text-7xl font-normal leading-tight text-white tracking-tight font-instrument-serif animate-fade-slide-in-2 drop-shadow-md ${onTitleClick ? 'cursor-pointer hover:opacity-90 transition-opacity' : ''}`}
+            >
               {title}
               <br className="hidden sm:block" />
               {" "}
@@ -225,32 +248,32 @@ export const ResponsiveHeroBanner: React.FC<ResponsiveHeroBannerProps> = ({
 
             {/* Interactive Call to Action Buttons */}
             <div className="flex flex-col sm:flex-row sm:gap-4 mt-8 gap-3 items-center justify-center animate-fade-slide-in-4">
-              <a
-                href={primaryButtonHref}
+              <button
+                type="button"
                 onClick={(e) => {
                   if (onPrimaryClick) {
                     e.preventDefault();
                     onPrimaryClick();
                   }
                 }}
-                className="w-full sm:w-auto inline-flex items-center justify-center gap-2 text-sm font-semibold text-white bg-rose-600 hover:bg-rose-500 shadow-xl shadow-rose-600/30 ring-1 ring-rose-400/30 rounded-full py-3.5 px-7 font-sans transition-all duration-200 hover:scale-102 active:scale-98"
+                className="w-full sm:w-auto inline-flex items-center justify-center gap-2 text-sm font-semibold text-white bg-rose-600 hover:bg-rose-500 shadow-xl shadow-rose-600/30 ring-1 ring-rose-400/30 rounded-full py-3.5 px-7 font-sans transition-all duration-200 hover:scale-102 active:scale-98 cursor-pointer"
               >
                 {primaryButtonText}
                 <ArrowRight className="h-4 w-4" />
-              </a>
-              <a
-                href={secondaryButtonHref}
+              </button>
+              <button
+                type="button"
                 onClick={(e) => {
                   if (onSecondaryClick) {
                     e.preventDefault();
                     onSecondaryClick();
                   }
                 }}
-                className="w-full sm:w-auto inline-flex items-center justify-center gap-2 rounded-full bg-white/10 hover:bg-white/15 ring-1 ring-white/20 backdrop-blur-md px-6 py-3.5 text-sm font-medium text-white font-sans transition-all duration-200 hover:scale-102"
+                className="w-full sm:w-auto inline-flex items-center justify-center gap-2 rounded-full bg-white/10 hover:bg-white/15 ring-1 ring-white/20 backdrop-blur-md px-6 py-3.5 text-sm font-medium text-white font-sans transition-all duration-200 hover:scale-102 cursor-pointer"
               >
                 <Play className="w-4 h-4 fill-white text-white" />
                 {secondaryButtonText}
-              </a>
+              </button>
             </div>
           </div>
 
@@ -261,14 +284,20 @@ export const ResponsiveHeroBanner: React.FC<ResponsiveHeroBannerProps> = ({
             </p>
             <div className="flex flex-wrap items-center justify-center gap-3 sm:gap-6 mt-5 animate-fade-slide-in-2">
               {partners.map((partner, index) => (
-                <a
+                <button
+                  type="button"
                   key={index}
-                  href={partner.href}
-                  className="px-4 py-2 rounded-full bg-white/5 hover:bg-white/10 border border-white/10 backdrop-blur text-xs sm:text-sm font-medium text-white/80 hover:text-white transition-all duration-200 hover:scale-105"
+                  onClick={(e) => {
+                    if (partner.onClick) {
+                      e.preventDefault();
+                      partner.onClick(e);
+                    }
+                  }}
+                  className="px-4 py-2 rounded-full bg-white/5 hover:bg-white/10 border border-white/10 backdrop-blur text-xs sm:text-sm font-medium text-white/80 hover:text-white transition-all duration-200 hover:scale-105 cursor-pointer"
                   style={partner.logoUrl ? { backgroundImage: `url(${partner.logoUrl})`, backgroundSize: 'cover', minWidth: '100px', height: '32px' } : undefined}
                 >
                   {partner.name || `Partner ${index + 1}`}
-                </a>
+                </button>
               ))}
             </div>
           </div>

@@ -158,6 +158,15 @@ export default function App() {
     setSelectedMangaCover(coverUrl);
   }, []);
 
+  const scrollToCatalog = useCallback(() => {
+    const el = document.getElementById('manga-catalog');
+    if (el) {
+      el.scrollIntoView({ behavior: 'smooth', block: 'start' });
+    } else {
+      window.scrollTo({ top: 460, behavior: 'smooth' });
+    }
+  }, []);
+
   const [readerState, setReaderState] = useState({
     active: false,
     mangaId: null,
@@ -693,13 +702,102 @@ export default function App() {
                             backgroundImageUrl={spotlightItems[0]?.bannerUrl || spotlightItems[0]?.coverUrl || 'https://images.unsplash.com/photo-1579783900882-c0d3dad7b119?q=80&w=2000&auto=format&fit=crop'}
                             title={spotlightItems[0]?.englishTitle || spotlightItems[0]?.title || 'Universe of Manga'}
                             titleLine2={spotlightItems[0]?.author ? `by ${spotlightItems[0]?.author}` : 'Official Release'}
+                            onTitleClick={() => handleOpenMangaDetails(spotlightItems[0]?.id, spotlightItems[0]?.coverUrl)}
                             description={spotlightItems[0]?.description || 'Experience the highest quality scans, lightning-fast rendering, and complete chapter archives.'}
                             badgeLabel={spotlightItems[0]?.status || 'Trending'}
                             badgeText={spotlightItems[0]?.latestChapter ? `Ch. ${spotlightItems[0]?.latestChapter} Available Now` : 'Top Rated Masterwork'}
-                            primaryButtonText="Start Reading"
-                            onPrimaryClick={() => handleOpenMangaDetails(spotlightItems[0]?.id, spotlightItems[0]?.coverUrl)}
+                            navLinks={[
+                              {
+                                label: "Home",
+                                isActive: activeTab === 'manga' && selectedSource === 'All' && selectedGenre === 'All',
+                                onClick: () => {
+                                  setActiveTab('manga');
+                                  setSelectedGenre('All');
+                                  setSelectedSource('All');
+                                  setSearchQuery('');
+                                  window.scrollTo({ top: 0, behavior: 'smooth' });
+                                }
+                              },
+                              {
+                                label: "Manga Catalog",
+                                isActive: activeTab === 'manga' && selectedSource !== 'Webtoon',
+                                onClick: () => {
+                                  setActiveTab('manga');
+                                  setSelectedSource('All');
+                                  setSelectedGenre('All');
+                                  scrollToCatalog();
+                                }
+                              },
+                              {
+                                label: "Trending Webtoons",
+                                isActive: selectedSource === 'Webtoon',
+                                onClick: () => {
+                                  setActiveTab('manga');
+                                  setSelectedSource('Webtoon');
+                                  scrollToCatalog();
+                                }
+                              },
+                              {
+                                label: "Latest Chapters",
+                                isActive: activeTab === 'updates',
+                                onClick: () => {
+                                  setActiveTab('updates');
+                                  window.scrollTo({ top: 0, behavior: 'smooth' });
+                                }
+                              },
+                              {
+                                label: "Library",
+                                isActive: activeTab === 'library',
+                                onClick: () => {
+                                  setActiveTab('library');
+                                  window.scrollTo({ top: 0, behavior: 'smooth' });
+                                }
+                              }
+                            ]}
+                            ctaButtonText="Start Reading"
+                            onCtaClick={() => handleOpenMangaDetails(spotlightItems[0]?.id, spotlightItems[0]?.coverUrl)}
+                            primaryButtonText="Explore Catalog"
+                            onPrimaryClick={scrollToCatalog}
                             secondaryButtonText={bookmarks[spotlightItems[0]?.id] ? 'Saved in Library' : 'Add to Library'}
                             onSecondaryClick={() => handleToggleBookmark(spotlightItems[0]?.id)}
+                            partnersTitle="Connected Multi-Source Manga Providers"
+                            partners={[
+                              {
+                                name: "WeebCentral",
+                                onClick: () => {
+                                  setSelectedSource('WeebCentral');
+                                  scrollToCatalog();
+                                }
+                              },
+                              {
+                                name: "MangaKatana",
+                                onClick: () => {
+                                  setSelectedSource('MangaKatana');
+                                  scrollToCatalog();
+                                }
+                              },
+                              {
+                                name: "MangaDex",
+                                onClick: () => {
+                                  setSelectedSource('MangaDex');
+                                  scrollToCatalog();
+                                }
+                              },
+                              {
+                                name: "Asura Scans",
+                                onClick: () => {
+                                  setSelectedSource('Asura');
+                                  scrollToCatalog();
+                                }
+                              },
+                              {
+                                name: "Flame Comics",
+                                onClick: () => {
+                                  setSelectedSource('Flame');
+                                  scrollToCatalog();
+                                }
+                              }
+                            ]}
                             className="rounded-3xl border border-white/10 shadow-2xl overflow-hidden mb-6"
                           />
                         </Suspense>
@@ -715,7 +813,7 @@ export default function App() {
                   )}
 
                   {/* Section 1: Most Popular / Trending Manga */}
-                  <section className="space-y-4">
+                  <section id="manga-catalog" className="space-y-4 scroll-mt-24">
                     <div className="flex items-center justify-between">
                       <div className="flex items-center gap-2.5">
                         <div className="p-2 rounded-xl bg-rose-600/20 text-rose-400 border border-rose-500/30">
