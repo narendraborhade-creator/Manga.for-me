@@ -1791,10 +1791,12 @@ export async function fetchMangaDetails(mangaId, refresh = false) {
     return q.includes(titleQ) || titleQ.includes(q);
   });
 
+  const queryTitle = fallbackItem?.title || fallbackItem?.englishTitle || '';
+
   // 0. Live upstream synchronization via Android Bridge (real-time latest chapters)
   if (typeof window !== 'undefined' && window.AndroidBridge && typeof window.AndroidBridge.getLiveMangaDetails === 'function') {
     try {
-      const liveJson = window.AndroidBridge.getLiveMangaDetails(mangaId || '', fallbackItem?.title || '');
+      const liveJson = window.AndroidBridge.getLiveMangaDetails(mangaId || '', queryTitle);
       if (liveJson) {
         const liveData = typeof liveJson === 'string' ? JSON.parse(liveJson) : liveJson;
         if (liveData && Array.isArray(liveData.chapters) && liveData.chapters.length > 0) {
@@ -2197,6 +2199,37 @@ export async function fetchChapterPages(chapterId, mangaId = null, chapterNumber
       }
     } catch (err) {
       console.warn('Direct MangaKatana page resolution error:', err);
+    }
+  }
+
+  // 1.5 Client-side WeebCentral chapter resolution (26-char IDs)
+  const wcTarget = cid.replace(/^wc_ch:|^wc:/, '').trim();
+  if (/^[0-9A-Z]{26}$/i.test(wcTarget)) {
+    try {
+      const targetUrl = `https://weebcentral.com/chapters/${wcTarget}/images?is_prev=False&current_page=1&reading_style=long_strip`;
+      let html = '';
+      try {
+        const res = await fetch(targetUrl, { signal: AbortSignal.timeout(6000) });
+        if (res.ok) html = await res.text();
+      } catch {
+        const proxyRes = await fetch(`https://api.allorigins.win/raw?url=${encodeURIComponent(targetUrl)}`, { signal: AbortSignal.timeout(6500) });
+        if (proxyRes.ok) html = await proxyRes.text();
+      }
+      if (html) {
+        const imgMatches = [...html.matchAll(/<img[^>]+src="([^"]+)"/gi)]
+          .map(m => m[1])
+          .filter(src => src && !src.includes('/static/') && !src.includes('brand.png') && !src.includes('logo') && !src.includes('favicon'));
+        if (imgMatches.length > 0) {
+          const pages = imgMatches.map((imgUrl, idx) => ({
+            pageNumber: idx + 1,
+            url: baseUrl ? `${baseUrl}/api/image-proxy?url=${encodeURIComponent(imgUrl)}` : imgUrl,
+            originalUrl: imgUrl,
+          }));
+          return { chapterId, totalPages: pages.length, pages, sourceUrl };
+        }
+      }
+    } catch (err) {
+      console.warn('Direct WeebCentral page resolution error:', err);
     }
   }
 

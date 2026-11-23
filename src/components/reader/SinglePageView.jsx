@@ -12,7 +12,10 @@ export default function SinglePageView({
   handleReaderTap,
   prevChapter,
   nextChapter,
-  settings = {}
+  settings = {},
+  checkForNewChapters,
+  isCheckingUpdates,
+  newChapterAlert
 }) {
   const [hasError, setHasError] = useState(false);
   const [isReloading, setIsReloading] = useState(false);
@@ -41,10 +44,7 @@ export default function SinglePageView({
     if (baseUrl) {
       return `${baseUrl}/api/image-proxy?url=${encodeURIComponent(raw)}`;
     }
-    if (typeof window !== 'undefined' && window.AndroidBridge) {
-      return `/api/image-proxy?url=${encodeURIComponent(raw)}`;
-    }
-    return `https://images.weserv.nl/?url=${encodeURIComponent(raw)}`;
+    return `/api/image-proxy?url=${encodeURIComponent(raw)}`;
   };
 
   const handleManualReload = () => {
@@ -53,7 +53,8 @@ export default function SinglePageView({
     setHasError(false);
     retriedCountRef.current += 1;
     const targetUrl = curPage.originalUrl || curPage.url;
-    const newSrc = `${getProxyUrl(targetUrl)}&_reload=${Date.now()}`;
+    const sep = targetUrl.includes('?') ? '&' : '?';
+    const newSrc = `${getProxyUrl(targetUrl)}${sep}_reload=${Date.now()}`;
     setCurrentSrc(newSrc);
   };
 
@@ -61,13 +62,15 @@ export default function SinglePageView({
     if (!curPage) return;
     if (retriedCountRef.current === 0) {
       retriedCountRef.current = 1;
-      setCurrentSrc(getProxyUrl(curPage.originalUrl || curPage.url));
+      const targetUrl = curPage.originalUrl || curPage.url;
+      setCurrentSrc(getProxyUrl(targetUrl));
       return;
     }
-    if (retriedCountRef.current < 2) {
+    if (retriedCountRef.current === 1) {
       retriedCountRef.current = 2;
-      const sep = currentSrc.includes('?') ? '&' : '?';
-      setCurrentSrc(`${currentSrc}${sep}_retry=${Date.now()}`);
+      const targetUrl = curPage.originalUrl || curPage.url;
+      const fallbackUrl = `https://images.weserv.nl/?url=${encodeURIComponent(targetUrl)}`;
+      setCurrentSrc(fallbackUrl);
       return;
     }
     setHasError(true);

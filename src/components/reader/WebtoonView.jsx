@@ -1,6 +1,6 @@
 import { getApiBaseUrl } from '../../services/mangaApi';
 import React, { useState, useRef } from 'react';
-import { ChevronLeft, ChevronRight, Loader2, AlertCircle, RotateCw, Check, Home } from 'lucide-react';
+import { ChevronLeft, ChevronRight, Loader2, AlertCircle, RotateCw, Check, Home, Sparkles } from 'lucide-react';
 
 function WebtoonPageItem({ p, ch, idx, chIdx, settings }) {
   const [hasError, setHasError] = useState(false);
@@ -14,10 +14,7 @@ function WebtoonPageItem({ p, ch, idx, chIdx, settings }) {
     if (baseUrl) {
       return `${baseUrl}/api/image-proxy?url=${encodeURIComponent(raw)}`;
     }
-    if (typeof window !== 'undefined' && window.AndroidBridge) {
-      return `/api/image-proxy?url=${encodeURIComponent(raw)}`;
-    }
-    return `https://images.weserv.nl/?url=${encodeURIComponent(raw)}`;
+    return `/api/image-proxy?url=${encodeURIComponent(raw)}`;
   };
 
   const handleManualReload = (e) => {
@@ -26,20 +23,23 @@ function WebtoonPageItem({ p, ch, idx, chIdx, settings }) {
     setHasError(false);
     retriedCountRef.current += 1;
     const targetUrl = p.originalUrl || p.url;
-    const newSrc = `${getProxyUrl(targetUrl)}&_reload=${Date.now()}`;
+    const sep = targetUrl.includes('?') ? '&' : '?';
+    const newSrc = `${getProxyUrl(targetUrl)}${sep}_reload=${Date.now()}`;
     setCurrentSrc(newSrc);
   };
 
   const handleImageError = () => {
     if (retriedCountRef.current === 0) {
       retriedCountRef.current = 1;
-      setCurrentSrc(getProxyUrl(p.originalUrl || p.url));
+      const targetUrl = p.originalUrl || p.url;
+      setCurrentSrc(getProxyUrl(targetUrl));
       return;
     }
-    if (retriedCountRef.current < 2) {
+    if (retriedCountRef.current === 1) {
       retriedCountRef.current = 2;
-      const sep = currentSrc.includes('?') ? '&' : '?';
-      setCurrentSrc(`${currentSrc}${sep}_retry=${Date.now()}`);
+      const targetUrl = p.originalUrl || p.url;
+      const fallbackUrl = `https://images.weserv.nl/?url=${encodeURIComponent(targetUrl)}`;
+      setCurrentSrc(fallbackUrl);
       return;
     }
     setHasError(true);
@@ -129,7 +129,10 @@ export default function WebtoonView({
   onClose,
   prevChapter,
   nextChapter,
-  jumpToChapter
+  jumpToChapter,
+  checkForNewChapters,
+  isCheckingUpdates,
+  newChapterAlert
 }) {
   return (
     <div className="w-full flex flex-col items-center">
@@ -244,27 +247,58 @@ export default function WebtoonView({
 
       {/* End of Manga Series Milestone */}
       {!hasNextChapterToLoad && !isLoadingNext && (
-        <div className="w-full p-8 mt-12 rounded-3xl bg-slate-900/80 border border-white/10 text-center space-y-3 max-w-xl select-none">
+        <div className="w-full p-8 mt-12 rounded-3xl bg-slate-900/80 border border-white/10 text-center space-y-4 max-w-xl select-none">
           <div className="w-12 h-12 rounded-full bg-emerald-500/20 text-emerald-400 flex items-center justify-center mx-auto border border-emerald-500/30">
             <Check className="w-6 h-6" />
           </div>
           <h3 className="text-lg font-extrabold text-white">
-            Caught up to the latest chapter!
+            Caught up to Chapter {activeChapterNumber}!
           </h3>
           <p className="text-xs text-slate-400">
-            You've completed Chapter {activeChapterNumber}. All released chapters read!
+            You've completed Chapter {activeChapterNumber}.
           </p>
+
+          {/* New Chapter Announcement if source updated */}
+          {newChapterAlert ? (
+            <div className="p-4 rounded-2xl bg-emerald-950/40 border border-emerald-500/30 text-emerald-200 text-xs flex flex-col items-center gap-2.5 my-2">
+              <span className="font-bold flex items-center gap-1.5">
+                <Sparkles className="w-4 h-4 text-emerald-400" />
+                Chapter {newChapterAlert.chapter} is now available!
+              </span>
+              <button
+                type="button"
+                onClick={() => jumpToChapter(newChapterAlert.id, newChapterAlert.chapter)}
+                className="px-5 py-2.5 rounded-xl bg-gradient-to-r from-emerald-600 to-teal-500 hover:from-emerald-500 hover:to-teal-400 text-white font-bold text-xs shadow-lg shadow-emerald-600/30 transition-all flex items-center gap-2 cursor-pointer"
+              >
+                <span>Read Chapter {newChapterAlert.chapter}</span>
+                <ChevronRight className="w-4 h-4" />
+              </button>
+            </div>
+          ) : (
+            <div className="pt-1 flex flex-col sm:flex-row items-center justify-center gap-2.5">
+              <button
+                type="button"
+                onClick={() => checkForNewChapters && checkForNewChapters(true)}
+                disabled={isCheckingUpdates}
+                className="px-4 py-2.5 rounded-xl bg-slate-800/90 hover:bg-slate-700 border border-white/10 text-slate-300 hover:text-white text-xs font-semibold flex items-center gap-2 transition-all disabled:opacity-50 cursor-pointer"
+              >
+                <RotateCw className={`w-3.5 h-3.5 ${isCheckingUpdates ? 'animate-spin text-rose-400' : ''}`} />
+                <span>{isCheckingUpdates ? 'Checking for updates...' : 'Check for New Chapters'}</span>
+              </button>
+            </div>
+          )}
+
           <div className="pt-2 flex items-center justify-center gap-3">
             <button
               onClick={handleHome}
-              className="px-5 py-2.5 rounded-xl bg-gradient-to-r from-rose-600 to-rose-500 hover:from-rose-500 hover:to-rose-400 text-white text-xs font-bold transition-all flex items-center gap-2 shadow-lg shadow-rose-600/30"
+              className="px-5 py-2.5 rounded-xl bg-gradient-to-r from-rose-600 to-rose-500 hover:from-rose-500 hover:to-rose-400 text-white text-xs font-bold transition-all flex items-center gap-2 shadow-lg shadow-rose-600/30 cursor-pointer"
             >
               <Home className="w-4 h-4" />
               <span>Home Screen</span>
             </button>
             <button
               onClick={onClose}
-              className="px-5 py-2.5 rounded-xl bg-slate-800 hover:bg-slate-700 text-white text-xs font-semibold transition-all flex items-center gap-1.5"
+              className="px-5 py-2.5 rounded-xl bg-slate-800 hover:bg-slate-700 text-white text-xs font-semibold transition-all flex items-center gap-1.5 cursor-pointer"
             >
               <ChevronLeft className="w-4 h-4" />
               <span>Back to Details</span>

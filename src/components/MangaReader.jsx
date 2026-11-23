@@ -82,6 +82,58 @@ export default function MangaReader({
   const [singlePageNum, setSinglePageNum] = useState(1);
   const [isReloadingChapter, setIsReloadingChapter] = useState(false);
 
+  // Live upstream chapter update detection & notification state
+  const [isCheckingUpdates, setIsCheckingUpdates] = useState(false);
+  const [newChapterAlert, setNewChapterAlert] = useState(null);
+
+  const checkForNewChapters = useCallback(async (isManual = false) => {
+    if (!mangaId) return;
+    setIsCheckingUpdates(true);
+    try {
+      const freshList = await fetchMangaChapters(mangaId, 'asc', true);
+      if (freshList && freshList.length > 0) {
+        setAllChapters((prev) => {
+          const existingIds = new Set(prev.map((c) => String(c.id)));
+          const existingNums = new Set(prev.map((c) => String(c.chapter).replace(/[^0-9.]/g, '')));
+
+          const newChapters = freshList.filter(
+            (c) => !existingIds.has(String(c.id)) && !existingNums.has(String(c.chapter).replace(/[^0-9.]/g, ''))
+          );
+
+          if (newChapters.length > 0) {
+            const merged = [...prev, ...newChapters].sort((a, b) => {
+              const numA = parseFloat(a.chapter) || 0;
+              const numB = parseFloat(b.chapter) || 0;
+              return numA - numB;
+            });
+            const latestNew = newChapters[newChapters.length - 1];
+            setNewChapterAlert({
+              chapter: latestNew.chapter,
+              id: latestNew.id,
+              count: newChapters.length,
+              title: latestNew.title || '',
+            });
+            return merged;
+          }
+          return prev;
+        });
+      }
+    } catch (err) {
+      console.warn('Live chapter update check failed:', err);
+    } finally {
+      setIsCheckingUpdates(false);
+    }
+  }, [mangaId]);
+
+  // Periodic chapter update watchdog (every 45s while reading)
+  useEffect(() => {
+    if (!mangaId) return;
+    const interval = setInterval(() => {
+      checkForNewChapters(false);
+    }, 45000);
+    return () => clearInterval(interval);
+  }, [mangaId, checkForNewChapters]);
+
   // Read chapters list for checkmark indicators
   const [readChapterIds, setReadChapterIds] = useState([]);
   const [chapterFilter, setChapterFilter] = useState('');
@@ -443,6 +495,7 @@ export default function MangaReader({
     const last = currentChaps[currentChaps.length - 1];
     const lastIdx = allChaps.findIndex((c) => String(c.id) === String(last.id));
     if (lastIdx === -1 || lastIdx >= allChaps.length - 1) {
+      checkForNewChapters(false);
       return;
     }
 
@@ -1008,6 +1061,29 @@ export default function MangaReader({
         }}
       >
         <main className="min-h-screen pt-4 sm:pt-6 pb-36 sm:pb-40 w-full flex flex-col items-center justify-start">
+          {newChapterAlert && (
+            <div className="fixed top-16 left-1/2 -translate-x-1/2 z-50 bg-gradient-to-r from-emerald-600 via-teal-600 to-emerald-500 text-white px-4 py-2.5 rounded-2xl shadow-2xl flex items-center gap-3 border border-emerald-400/40 animate-in fade-in slide-in-from-top-4 select-none">
+              <Sparkles className="w-4 h-4 text-emerald-200 animate-pulse" />
+              <span className="text-xs font-bold">New Chapter {newChapterAlert.chapter} just released!</span>
+              <button
+                type="button"
+                onClick={() => {
+                  jumpToChapter(newChapterAlert.id, newChapterAlert.chapter);
+                  setNewChapterAlert(null);
+                }}
+                className="px-3 py-1 bg-white text-emerald-800 rounded-xl text-xs font-black hover:bg-emerald-50 active:scale-95 transition-all shadow-md cursor-pointer"
+              >
+                Read Now →
+              </button>
+              <button
+                type="button"
+                onClick={() => setNewChapterAlert(null)}
+                className="p-1 text-emerald-200 hover:text-white cursor-pointer"
+              >
+                ✕
+              </button>
+            </div>
+          )}
           {initialLoading ? (
             <div className="flex flex-col items-center justify-center py-36 gap-3">
               <Loader2 className="w-12 h-12 text-rose-500 animate-spin" />
@@ -1124,6 +1200,9 @@ export default function MangaReader({
                   prevChapter={prevChapter}
                   nextChapter={nextChapter}
                   jumpToChapter={jumpToChapter}
+                  checkForNewChapters={checkForNewChapters}
+                  isCheckingUpdates={isCheckingUpdates}
+                  newChapterAlert={newChapterAlert}
                 />
               )}
 
@@ -1140,6 +1219,9 @@ export default function MangaReader({
                   prevChapter={prevChapter}
                   nextChapter={nextChapter}
                   settings={settings}
+                  checkForNewChapters={checkForNewChapters}
+                  isCheckingUpdates={isCheckingUpdates}
+                  newChapterAlert={newChapterAlert}
                 />
               )}
             </>
