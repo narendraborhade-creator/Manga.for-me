@@ -1711,6 +1711,24 @@ export function cleanTitle(raw) {
 }
 
 /**
+ * Checks if a chapter's subtitle is redundant with its chapter number
+ * (e.g. "Chapter 2" for chapter 2, "Chapter 02", "Ch. 2", "2")
+ */
+export function isRedundantChapterTitle(title, chapterNumber) {
+  if (!title) return true;
+  const raw = String(title).trim().toLowerCase();
+  const ch = String(chapterNumber || '').trim().toLowerCase();
+  if (!raw) return true;
+
+  const rawNum = parseFloat(raw.replace(/[^0-9.]/g, ''));
+  const chNum = parseFloat(ch.replace(/[^0-9.]/g, ''));
+  if (!isNaN(rawNum) && !isNaN(chNum) && rawNum === chNum && !raw.match(/[a-zA-Z]{4,}/)) {
+    return true;
+  }
+  return raw === `chapter ${ch}` || raw === `ch. ${ch}` || raw === `ch ${ch}` || raw === ch;
+}
+
+/**
  * Deduplicate chapter lists by normalized chapter number and ID
  */
 export function deduplicateChapters(chapters) {
@@ -1910,10 +1928,11 @@ export async function fetchMangaDetails(mangaId, refresh = false) {
                 const chSlug = m[1];
                 const rawText = m[2].replace(/<[^>]+>/g, '').trim();
                 const num = rawText.match(/(?:Chapter|Ch\.?|Ep\.?)\s*([0-9.]+)/i)?.[1] || chSlug.replace(/^c/, '');
+                const isDuplicate = isRedundantChapterTitle(rawText, num);
                 return {
                   id: `kat_ch:${katSlug}:${chSlug}`,
                   chapter: num,
-                  title: rawText || `Chapter ${num}`
+                  title: isDuplicate ? '' : rawText
                 };
               }).sort((a, b) => (parseFloat(b.chapter) || 0) - (parseFloat(a.chapter) || 0));
             }
@@ -2164,12 +2183,66 @@ export async function fetchChapterPages(chapterId, mangaId = null, chapterNumber
     katSlug = 'tower-of-god.465';
   } else if (title.includes('strongest troll') || mid.includes('worlds-strongest-troll')) {
     katSlug = 'worlds-strongest-troll.26644';
+  } else if (title.includes('solo leveling') || mid.includes('solo-leveling') || mid.includes('solo')) {
+    katSlug = 'solo-leveling.20815';
   } else if (title.includes('naruto') || mid.includes('naruto')) {
     katSlug = 'naruto.1205';
   } else if (title.includes('bleach') || mid.includes('bleach')) {
     katSlug = 'bleach.47';
   } else if (title.includes('demon slayer') || mid.includes('demon-slayer')) {
     katSlug = 'demon-slayer-kimetsu-no-yaiba.1293';
+  } else if (title.includes('hunter x hunter') || mid.includes('hunter-x-hunter')) {
+    katSlug = 'hunter-x-hunter.102';
+  } else if (title.includes('vinland saga') || mid.includes('vinland-saga')) {
+    katSlug = 'vinland-saga.81';
+  } else if (title.includes('kingdom') || mid.includes('kingdom')) {
+    katSlug = 'kingdom.92';
+  } else if (title.includes('vagabond') || mid.includes('vagabond')) {
+    katSlug = 'vagabond.84';
+  } else if (title.includes('death note') || mid.includes('death-note')) {
+    katSlug = 'death-note.235';
+  } else if (title.includes('spy x family') || mid.includes('spy-x-family')) {
+    katSlug = 'spy-x-family.21980';
+  } else if (title.includes('kaiju no') || mid.includes('kaiju-no-8')) {
+    katSlug = 'kaiju-no-8.25203';
+  } else if (title.includes('black clover') || mid.includes('black-clover')) {
+    katSlug = 'black-clover.15582';
+  } else if (title.includes('my hero academia') || mid.includes('boku-no-hero-academia')) {
+    katSlug = 'boku-no-hero-academia.1325';
+  } else if (title.includes('omniscient reader') || mid.includes('omniscient-reader')) {
+    katSlug = 'omniscient-readers-viewpoint.24837';
+  } else if (title.includes('nano machine') || mid.includes('nano-machine')) {
+    katSlug = 'nano-machine.25193';
+  } else if (title.includes('estate developer') || mid.includes('greatest-estate-developer')) {
+    katSlug = 'the-greatest-estate-developer.26244';
+  } else if (title.includes('magic emperor') || mid.includes('magic-emperor')) {
+    katSlug = 'magic-emperor.23439';
+  } else if (title.includes('mount hua') || title.includes('blossoming blade')) {
+    katSlug = 'return-of-the-blossoming-blade.25807';
+  } else if (title.includes('wind breaker') || mid.includes('wind-breaker')) {
+    katSlug = 'wind-breaker.467';
+  } else if (title.includes('eleceed') || mid.includes('eleceed')) {
+    katSlug = 'eleceed.115';
+  }
+
+  // Dynamic search on MangaKatana if not mapped
+  if (!katSlug && title) {
+    try {
+      const q = encodeURIComponent(cleanTitle(mangaTitle || '').trim());
+      const sUrl = `https://mangakatana.com/?search=${q}&search_by=book_name`;
+      let sHtml = '';
+      try {
+        const sRes = await fetch(sUrl, { signal: AbortSignal.timeout(4000) });
+        if (sRes.ok) sHtml = await sRes.text();
+      } catch {
+        const sProxy = await fetch(`https://api.allorigins.win/raw?url=${encodeURIComponent(sUrl)}`, { signal: AbortSignal.timeout(5000) });
+        if (sProxy.ok) sHtml = await sProxy.text();
+      }
+      if (sHtml) {
+        const m = sHtml.match(/href=["']https?:\/\/mangakatana\.com\/manga\/([^/?#'"]+)["']/i) || sHtml.match(/href=["']\/manga\/([^/?#'"]+)["']/i);
+        if (m) katSlug = m[1];
+      }
+    } catch {}
   }
 
   if (katSlug) {

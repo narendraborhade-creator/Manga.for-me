@@ -18,7 +18,7 @@ import {
   Flame,
   Compass
 } from 'lucide-react';
-import { getFallbackCover, fetchMangaDetails, fetchMangaRecommendations, fetchMangaNews, cleanTitle, decodeHtml, deduplicateChapters, getReliableCoverUrl, fetchLiveCover, isMachineId, unwrapProxyUrl, KNOWN_SERIES_TITLES } from '../services/mangaApi';
+import { getFallbackCover, fetchMangaDetails, fetchMangaRecommendations, fetchMangaNews, cleanTitle, decodeHtml, deduplicateChapters, getReliableCoverUrl, fetchLiveCover, isMachineId, unwrapProxyUrl, KNOWN_SERIES_TITLES, isRedundantChapterTitle } from '../services/mangaApi';
 import { getReadChaptersForManga } from '../services/storage';
 
 export default function MangaDetailModal({
@@ -803,9 +803,9 @@ export default function MangaDetailModal({
                                     </span>
                                   )}
 
-                                  {chap.title && !chap.title.toLowerCase().startsWith(`chapter ${chap.chapter}`.toLowerCase()) && (
+                                  {!isRedundantChapterTitle(chap.title, chap.chapter) && (
                                     <span className="text-xs text-slate-400 truncate max-w-[200px] sm:max-w-[320px]">
-                                      • {chap.title}
+                                      • {chap.title.trim()}
                                     </span>
                                   )}
                                 </div>

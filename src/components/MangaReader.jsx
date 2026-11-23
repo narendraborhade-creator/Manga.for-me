@@ -78,6 +78,10 @@ export default function MangaReader({
   const activePageNumberRef = useRef(1);
   const currentHandledChapterIdRef = useRef(chapterId);
 
+  useEffect(() => {
+    activeChapterIdRef.current = activeChapterId;
+  }, [activeChapterId]);
+
   // Single page mode page tracker
   const [singlePageNum, setSinglePageNum] = useState(1);
   const [isReloadingChapter, setIsReloadingChapter] = useState(false);
@@ -467,15 +471,15 @@ export default function MangaReader({
   // Proactive Lookahead Page Preloader
   useEffect(() => {
     if (loadedChapters.length === 0) return;
-    const allPages = loadedChapters.flatMap((ch) => ch.pages || []);
-    if (allPages.length === 0) return;
+    const activeCh = loadedChapters.find((ch) => String(ch.id) === String(activeChapterId)) || loadedChapters[0];
+    if (!activeCh || !activeCh.pages || activeCh.pages.length === 0) return;
 
-    const currentIdx = allPages.findIndex((p) => p.pageNumber === activePageNumber);
+    const currentIdx = activeCh.pages.findIndex((p) => p.pageNumber === activePageNumber);
     const start = Math.max(0, currentIdx);
-    const end = Math.min(allPages.length, start + 6);
+    const end = Math.min(activeCh.pages.length, start + 6);
 
     for (let i = start; i < end; i++) {
-      const p = allPages[i];
+      const p = activeCh.pages[i];
       if (p?.url) {
         const img = new Image();
         img.src = p.url;
@@ -491,6 +495,13 @@ export default function MangaReader({
     const currentChaps = loadedChaptersRef.current;
     const allChaps = allChaptersRef.current;
     if (currentChaps.length === 0 || allChaps.length === 0) return;
+
+    // Concurrency / Lookahead Guard: Never load more than 1 chapter ahead of current active reading position!
+    const activeId = activeChapterIdRef.current;
+    const activeLoadedIdx = currentChaps.findIndex((c) => String(c.id) === String(activeId));
+    if (activeLoadedIdx !== -1 && (currentChaps.length - 1) > activeLoadedIdx) {
+      return;
+    }
 
     const last = currentChaps[currentChaps.length - 1];
     const lastIdx = allChaps.findIndex((c) => String(c.id) === String(last.id));
@@ -515,6 +526,7 @@ export default function MangaReader({
       }
 
       setLoadedChapters((prev) => {
+        if (prev.length === 0 || String(prev[prev.length - 1].id) !== String(last.id)) return prev;
         if (prev.some((c) => String(c.id) === String(nextChap.id))) return prev;
         return [
           ...prev,
@@ -536,7 +548,7 @@ export default function MangaReader({
       isLoadingNextRef.current = false;
       setIsLoadingNext(false);
     }
-  }, [settings.continuousScroll, settings.readingMode, mangaId, mangaTitle]);
+  }, [settings.continuousScroll, settings.readingMode, mangaId, mangaTitle, checkForNewChapters]);
 
   // Load Previous Chapter
   const loadPrevChapter = async () => {
@@ -700,7 +712,7 @@ export default function MangaReader({
 
     if (settings.readingMode === 'webtoon') {
       const remaining = container.scrollHeight - (container.scrollTop + container.clientHeight);
-      if (remaining < 1800 && settings.continuousScroll && !isLoadingNextRef.current) {
+      if (remaining < 600 && settings.continuousScroll && !isLoadingNextRef.current) {
         loadNextChapter();
       }
 
@@ -779,7 +791,7 @@ export default function MangaReader({
       },
       {
         root: containerRef.current,
-        rootMargin: '1400px',
+        rootMargin: '500px',
       }
     );
 

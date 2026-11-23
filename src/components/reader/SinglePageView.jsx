@@ -19,6 +19,7 @@ export default function SinglePageView({
 }) {
   const [hasError, setHasError] = useState(false);
   const [isReloading, setIsReloading] = useState(false);
+  const [isLoaded, setIsLoaded] = useState(false);
   const [currentSrc, setCurrentSrc] = useState('');
   const retriedCountRef = useRef(0);
 
@@ -34,6 +35,7 @@ export default function SinglePageView({
       setCurrentSrc(curPage.url || '');
       setHasError(false);
       setIsReloading(false);
+      setIsLoaded(false);
       retriedCountRef.current = 0;
     }
   }, [curPage, singlePageNum, chapterId]);
@@ -76,11 +78,13 @@ export default function SinglePageView({
     }
     setHasError(true);
     setIsReloading(false);
+    setIsLoaded(false);
   };
 
   const handleImageLoad = () => {
     setHasError(false);
     setIsReloading(false);
+    setIsLoaded(true);
   };
 
   if (!loadedChapters[0]?.pages?.length) return null;
@@ -91,6 +95,16 @@ export default function SinglePageView({
         className="relative w-full flex items-center justify-center bg-black/40 sm:rounded-2xl overflow-hidden shadow-2xl cursor-pointer"
         onClick={handleReaderTap}
       >
+        {!isLoaded && !hasError && (
+          <div className="absolute inset-0 min-h-[60vh] flex flex-col items-center justify-center bg-slate-900/50 gap-2.5 select-none pointer-events-none">
+            <div className="w-10 h-10 rounded-2xl bg-rose-500/10 border border-rose-500/20 flex items-center justify-center text-rose-400">
+              <RotateCw className="w-5 h-5 animate-spin" />
+            </div>
+            <span className="text-xs font-semibold text-slate-400 tracking-wide">
+              Loading Page {singlePageNum}...
+            </span>
+          </div>
+        )}
         {hasError ? (
           <div className="w-full min-h-[300px] sm:min-h-[420px] py-14 px-6 flex flex-col items-center justify-center bg-slate-900/90 border border-white/10 sm:rounded-2xl text-center space-y-4 my-2 shadow-2xl select-none">
             <div className="w-12 h-12 rounded-2xl bg-rose-500/10 border border-rose-500/20 flex items-center justify-center text-rose-400">

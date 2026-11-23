@@ -1,5 +1,6 @@
 import React from 'react';
 import { Layers, ArrowUpDown, Search, Check } from 'lucide-react';
+import { isRedundantChapterTitle } from '../../services/mangaApi';
 
 export default function ChapterSelectionModal({
   isOpen,
@@ -98,9 +99,9 @@ export default function ChapterSelectionModal({
                     <Check className="w-3.5 h-3.5 text-emerald-400 flex-shrink-0" />
                   )}
                   <span className="font-semibold">Chapter {ch.chapter}</span>
-                  {ch.title && (
+                  {!isRedundantChapterTitle(ch.title, ch.chapter) && (
                     <span className="text-[11px] text-slate-400 truncate max-w-[140px] sm:max-w-[180px]">
-                      • {ch.title}
+                      • {ch.title.trim()}
                     </span>
                   )}
                 </div>

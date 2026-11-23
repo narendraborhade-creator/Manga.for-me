@@ -1,10 +1,11 @@
-import { getApiBaseUrl } from '../../services/mangaApi';
+import { getApiBaseUrl, isRedundantChapterTitle } from '../../services/mangaApi';
 import React, { useState, useEffect, useRef } from 'react';
 import { ChevronLeft, ChevronRight, Loader2, AlertCircle, RotateCw, Check, Home, Sparkles } from 'lucide-react';
 
 function WebtoonPageItem({ p, ch, idx, chIdx, settings }) {
   const [hasError, setHasError] = useState(false);
   const [isReloading, setIsReloading] = useState(false);
+  const [isLoaded, setIsLoaded] = useState(false);
   const [currentSrc, setCurrentSrc] = useState(p.url);
   const retriedCountRef = useRef(0);
 
@@ -12,6 +13,7 @@ function WebtoonPageItem({ p, ch, idx, chIdx, settings }) {
     setCurrentSrc(p.url);
     setHasError(false);
     setIsReloading(false);
+    setIsLoaded(false);
     retriedCountRef.current = 0;
   }, [p.url]);
 
@@ -28,6 +30,7 @@ function WebtoonPageItem({ p, ch, idx, chIdx, settings }) {
     e.stopPropagation();
     setIsReloading(true);
     setHasError(false);
+    setIsLoaded(false);
     retriedCountRef.current += 1;
     const targetUrl = p.originalUrl || p.url;
     const proxyUrl = getProxyUrl(targetUrl);
@@ -52,27 +55,38 @@ function WebtoonPageItem({ p, ch, idx, chIdx, settings }) {
     }
     setHasError(true);
     setIsReloading(false);
+    setIsLoaded(false);
   };
 
   const handleImageLoad = () => {
     setHasError(false);
     setIsReloading(false);
+    setIsLoaded(true);
   };
 
   return (
     <div
       id={`page-${ch.id}-${p.pageNumber}`}
-      className="manga-page relative w-full min-w-full max-w-full block p-0 m-0 border-0 shadow-none leading-none select-none text-[0px]"
+      className="manga-page relative w-full min-w-full max-w-full block p-0 m-0 border-0 shadow-none leading-none select-none text-[0px] bg-slate-950/40 overflow-hidden"
       data-chapter-id={ch.id}
       data-chapter-number={ch.chapter}
       data-page-number={p.pageNumber}
       data-total-pages={ch.pages.length}
-      style={
-        (settings.pageGap ?? 0) === 0 && idx > 0
-          ? { marginTop: '-1px' }
-          : {}
-      }
+      style={{
+        minHeight: isLoaded ? 'auto' : '65vh',
+        ...((settings.pageGap ?? 0) === 0 && idx > 0 ? { marginTop: '-1px' } : {})
+      }}
     >
+      {!isLoaded && !hasError && (
+        <div className="absolute inset-0 w-full h-full min-h-[65vh] flex flex-col items-center justify-center bg-slate-900/50 gap-2.5 select-none pointer-events-none">
+          <div className="w-9 h-9 rounded-2xl bg-rose-500/10 border border-rose-500/20 flex items-center justify-center text-rose-400">
+            <Loader2 className="w-5 h-5 animate-spin" />
+          </div>
+          <span className="text-xs font-semibold text-slate-400 tracking-wide">
+            Page {p.pageNumber}
+          </span>
+        </div>
+      )}
       {hasError ? (
         <div className="w-full min-h-[260px] sm:min-h-[380px] py-12 px-4 flex flex-col items-center justify-center bg-slate-900/90 border border-white/10 rounded-2xl text-center space-y-3.5 my-2 shadow-2xl select-none">
           <div className="w-12 h-12 rounded-2xl bg-rose-500/10 border border-rose-500/20 flex items-center justify-center text-rose-400">
@@ -97,9 +111,11 @@ function WebtoonPageItem({ p, ch, idx, chIdx, settings }) {
         <img
           src={currentSrc}
           alt={`Ch ${ch.chapter} - Page ${p.pageNumber}`}
-          loading={chIdx === 0 && idx < 4 ? 'eager' : 'lazy'}
+          decoding="async"
           referrerPolicy="no-referrer"
-          className="block w-full min-w-full max-w-full h-auto select-none pointer-events-none p-0 m-0 border-0 outline-none align-bottom object-contain"
+          className={`block w-full min-w-full max-w-full h-auto select-none pointer-events-none p-0 m-0 border-0 outline-none align-bottom object-contain transition-opacity duration-300 ${
+            isLoaded ? 'opacity-100' : 'opacity-0'
+          }`}
           style={{
             display: 'block',
             verticalAlign: 'bottom',
@@ -170,31 +186,36 @@ export default function WebtoonView({
           className="w-full flex flex-col items-center"
         >
           {/* Chapter Separator / Continuous Transition Header */}
-          {chIdx > 0 && (
-            <div
-              id={`chapter-header-${ch.id}`}
-              className="w-full py-8 px-4 flex items-center justify-center select-none"
-            >
-              <div className="flex items-center gap-3 w-full max-w-lg">
-                <div className="flex-1 h-px bg-gradient-to-r from-transparent via-rose-500/30 to-rose-500/60" />
-                <div className="px-4 py-2 rounded-2xl bg-slate-900/90 border border-rose-500/30 shadow-lg shadow-rose-950/50 backdrop-blur-md flex items-center gap-2.5">
-                  <span className="w-2 h-2 rounded-full bg-rose-500 animate-pulse" />
-                  <span className="text-xs font-bold text-white tracking-wide">
-                    Chapter {ch.chapter}
-                  </span>
-                  {ch.title && (
-                    <>
-                      <span className="text-slate-600">•</span>
-                      <span className="text-[11px] text-slate-300 font-medium truncate max-w-[150px] sm:max-w-xs">
-                        {ch.title}
-                      </span>
-                    </>
-                  )}
+          {chIdx > 0 && (() => {
+            const rawTitle = (ch.title || '').trim();
+            const isRedundantTitle = isRedundantChapterTitle(rawTitle, ch.chapter);
+
+            return (
+              <div
+                id={`chapter-header-${ch.id}`}
+                className="w-full py-8 px-4 flex items-center justify-center select-none"
+              >
+                <div className="flex items-center gap-3 w-full max-w-lg">
+                  <div className="flex-1 h-px bg-gradient-to-r from-transparent via-rose-500/30 to-rose-500/60" />
+                  <div className="px-4 py-2 rounded-2xl bg-slate-900/90 border border-rose-500/30 shadow-lg shadow-rose-950/50 backdrop-blur-md flex items-center gap-2.5">
+                    <span className="w-2 h-2 rounded-full bg-rose-500 animate-pulse" />
+                    <span className="text-xs font-bold text-white tracking-wide">
+                      Chapter {ch.chapter}
+                    </span>
+                    {!isRedundantTitle && (
+                      <>
+                        <span className="text-slate-600">•</span>
+                        <span className="text-[11px] text-slate-300 font-medium truncate max-w-[150px] sm:max-w-xs">
+                          {rawTitle}
+                        </span>
+                      </>
+                    )}
+                  </div>
+                  <div className="flex-1 h-px bg-gradient-to-l from-transparent via-rose-500/30 to-rose-500/60" />
                 </div>
-                <div className="flex-1 h-px bg-gradient-to-l from-transparent via-rose-500/30 to-rose-500/60" />
               </div>
-            </div>
-          )}
+            );
+          })()}
 
           {/* Pages of Chapter - Fitted to Phone Screen Size */}
           <div
