@@ -1981,8 +1981,11 @@ export function getChapterSourceUrl(mangaId, chapterId, chapterNumber, mangaTitl
   if (mid.includes('fortune-telling') || cid.includes('ftp') || cid.includes('fortune-telling') || title.includes('fortune-telling')) {
     return `https://afortunetellingprincess.com/a-fortune-telling-princess-manhwa-chapter-${num}/`;
   }
-  if (mid.includes('stepmother') || cid.includes('stepmother') || title.includes('stepmother')) {
+  if (mid.includes('despised-stepmother') || title.includes('despised stepmother') || (title.includes('stepmother') && title.includes('second life'))) {
     return `https://kingofshojo.com/the-despised-stepmother-begins-her-second-life-chapter-${num}/`;
+  }
+  if (mid.includes('a-stepmothers-fairy-tale') || mid.includes('01j76xydq9jtww4thbjwpxnj9h') || title.includes('fairy tale') || title.includes('stepmother has left') || title.includes('fantasie of a stepmother')) {
+    return `https://mangakatana.com/manga/a-stepmothers-fairy-tale.23902/c${num}`;
   }
   if (mid.includes('solo') || cid.includes('solo') || title.includes('solo leveling')) {
     return `https://ww4.readsololeveling.org/chapter/solo-leveling-chapter-${num}/`;
@@ -1990,7 +1993,7 @@ export function getChapterSourceUrl(mangaId, chapterId, chapterNumber, mangaTitl
   if (mid.includes('omniscient') || cid.includes('orv') || title.includes('omniscient reader')) {
     return `https://w1.omniscientreadersviewpoint.com/manga/omniscient-readers-viewpoint-chapter-${num}/`;
   }
-  if (mid.includes('damn-reincarnation') || mid.includes('blasted') || title.includes('reincarnat')) {
+  if (mid.includes('damn-reincarnation') || title.includes('damn reincarnation')) {
     return `https://asurascans.com/comics/damn-reincarnation-3ebcc5a9/chapter/${num}`;
   }
   if (mid.includes('barbarian') || title.includes('barbarian')) {
