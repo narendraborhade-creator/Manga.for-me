@@ -1,5 +1,5 @@
 import { getApiBaseUrl } from '../../services/mangaApi';
-import React, { useState, useRef } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import { ChevronLeft, ChevronRight, Loader2, AlertCircle, RotateCw, Check, Home, Sparkles } from 'lucide-react';
 
 function WebtoonPageItem({ p, ch, idx, chIdx, settings }) {
@@ -7,6 +7,13 @@ function WebtoonPageItem({ p, ch, idx, chIdx, settings }) {
   const [isReloading, setIsReloading] = useState(false);
   const [currentSrc, setCurrentSrc] = useState(p.url);
   const retriedCountRef = useRef(0);
+
+  useEffect(() => {
+    setCurrentSrc(p.url);
+    setHasError(false);
+    setIsReloading(false);
+    retriedCountRef.current = 0;
+  }, [p.url]);
 
   const getProxyUrl = (raw) => {
     if (!raw) return '';
@@ -23,8 +30,9 @@ function WebtoonPageItem({ p, ch, idx, chIdx, settings }) {
     setHasError(false);
     retriedCountRef.current += 1;
     const targetUrl = p.originalUrl || p.url;
-    const sep = targetUrl.includes('?') ? '&' : '?';
-    const newSrc = `${getProxyUrl(targetUrl)}${sep}_reload=${Date.now()}`;
+    const proxyUrl = getProxyUrl(targetUrl);
+    const sep = proxyUrl.includes('?') ? '&' : '?';
+    const newSrc = `${proxyUrl}${sep}_reload=${Date.now()}`;
     setCurrentSrc(newSrc);
   };
 

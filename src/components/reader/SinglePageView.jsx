@@ -53,8 +53,9 @@ export default function SinglePageView({
     setHasError(false);
     retriedCountRef.current += 1;
     const targetUrl = curPage.originalUrl || curPage.url;
-    const sep = targetUrl.includes('?') ? '&' : '?';
-    const newSrc = `${getProxyUrl(targetUrl)}${sep}_reload=${Date.now()}`;
+    const proxyUrl = getProxyUrl(targetUrl);
+    const sep = proxyUrl.includes('?') ? '&' : '?';
+    const newSrc = `${proxyUrl}${sep}_reload=${Date.now()}`;
     setCurrentSrc(newSrc);
   };
 
