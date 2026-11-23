@@ -9,9 +9,15 @@ function WebtoonPageItem({ p, ch, idx, chIdx, settings }) {
   const retriedCountRef = useRef(0);
 
   const getProxyUrl = (raw) => {
+    if (!raw) return '';
     const baseUrl = getApiBaseUrl();
-    const prefix = baseUrl ? `${baseUrl}/api/image-proxy` : '/api/image-proxy';
-    return `${prefix}?url=${encodeURIComponent(raw)}`;
+    if (baseUrl) {
+      return `${baseUrl}/api/image-proxy?url=${encodeURIComponent(raw)}`;
+    }
+    if (typeof window !== 'undefined' && window.AndroidBridge) {
+      return `/api/image-proxy?url=${encodeURIComponent(raw)}`;
+    }
+    return `https://images.weserv.nl/?url=${encodeURIComponent(raw)}`;
   };
 
   const handleManualReload = (e) => {

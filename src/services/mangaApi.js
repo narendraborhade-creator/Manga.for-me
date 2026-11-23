@@ -1778,7 +1778,6 @@ export async function fetchMangaDetails(mangaId, refresh = false) {
     if (cached) return cached;
   }
 
-  const baseUrl = getApiBaseUrl();
   const rawId = String(mangaId || '').replace(/^wc:|^wc_/i, '');
   const wcPrefixed = `wc:${rawId}`;
 
@@ -1791,6 +1790,35 @@ export async function fetchMangaDetails(mangaId, refresh = false) {
     const titleQ = m.title.toLowerCase().replace(/[-_:]/g, ' ');
     return q.includes(titleQ) || titleQ.includes(q);
   });
+
+  // 0. Live upstream synchronization via Android Bridge (real-time latest chapters)
+  if (typeof window !== 'undefined' && window.AndroidBridge && typeof window.AndroidBridge.getLiveMangaDetails === 'function') {
+    try {
+      const liveJson = window.AndroidBridge.getLiveMangaDetails(mangaId || '', fallbackItem?.title || '');
+      if (liveJson) {
+        const liveData = typeof liveJson === 'string' ? JSON.parse(liveJson) : liveJson;
+        if (liveData && Array.isArray(liveData.chapters) && liveData.chapters.length > 0) {
+          const merged = {
+            ...(fallbackItem || {}),
+            ...liveData,
+            id: mangaId,
+            title: cleanTitle(liveData.title || fallbackItem?.title || 'Manga'),
+            englishTitle: fallbackItem?.englishTitle ? cleanTitle(fallbackItem.englishTitle) : null,
+            coverUrl: getReliableCoverUrl(fallbackItem?.title || liveData.title, fallbackItem?.coverUrl),
+            chapters: deduplicateChapters(liveData.chapters),
+            totalChapters: liveData.chapters.length,
+            latestChapter: liveData.latestChapter || (liveData.chapters[0]?.chapter || '')
+          };
+          setClientCached(cacheKey, merged);
+          return merged;
+        }
+      }
+    } catch (bridgeErr) {
+      console.warn('AndroidBridge.getLiveMangaDetails warning:', bridgeErr);
+    }
+  }
+
+  const baseUrl = getApiBaseUrl();
 
   // Always query live backend first for the latest chapters; fallback catalog is reserved strictly for network failure
 
@@ -1864,13 +1892,42 @@ export async function fetchMangaDetails(mangaId, refresh = false) {
   } catch (err) {
     console.warn('fetchMangaDetails API warning, checking fallback:', err);
     if (fallbackItem) {
+      let liveChapters = fallbackItem.chapters || [];
+      const katSlug = fallbackItem.id?.startsWith('kat:') ? fallbackItem.id.replace('kat:', '') :
+        (fallbackItem.aliases?.find(a => a.startsWith('kat:'))?.replace('kat:', '') || null);
+      if (katSlug) {
+        try {
+          const targetUrl = `https://mangakatana.com/manga/${katSlug}`;
+          const res = await fetch(`https://api.allorigins.win/raw?url=${encodeURIComponent(targetUrl)}`, { signal: AbortSignal.timeout(4000) });
+          if (res.ok) {
+            const html = await res.text();
+            const regex = /<div class="chapter"[^>]*>\s*<a href="https:\/\/mangakatana\.com\/manga\/[^/]+\/([^"]+)"[^>]*>([\s\S]*?)<\/a>/gi;
+            const matches = [...html.matchAll(regex)];
+            if (matches.length > 0) {
+              liveChapters = matches.map(m => {
+                const chSlug = m[1];
+                const rawText = m[2].replace(/<[^>]+>/g, '').trim();
+                const num = rawText.match(/(?:Chapter|Ch\.?|Ep\.?)\s*([0-9.]+)/i)?.[1] || chSlug.replace(/^c/, '');
+                return {
+                  id: `kat_ch:${katSlug}:${chSlug}`,
+                  chapter: num,
+                  title: rawText || `Chapter ${num}`
+                };
+              }).sort((a, b) => (parseFloat(b.chapter) || 0) - (parseFloat(a.chapter) || 0));
+            }
+          }
+        } catch {}
+      }
+
       const result = {
         ...fallbackItem,
         id: mangaId,
         title: cleanTitle(fallbackItem.title),
         englishTitle: fallbackItem.englishTitle ? cleanTitle(fallbackItem.englishTitle) : null,
         coverUrl: getReliableCoverUrl(fallbackItem.title, fallbackItem.coverUrl),
-        chapters: fallbackItem.chapters || []
+        chapters: liveChapters,
+        totalChapters: liveChapters.length,
+        latestChapter: liveChapters[0]?.chapter || fallbackItem.latestChapter
       };
       setClientCached(cacheKey, result);
       return result;
@@ -2020,6 +2077,21 @@ export function getChapterSourceUrl(mangaId, chapterId, chapterNumber, mangaTitl
  * Fetch All Real Pages for a Chapter
  */
 export async function fetchChapterPages(chapterId, mangaId = null, chapterNumber = null, mangaTitle = null) {
+  // 0. High-Priority Android Native Bridge (Zero CORS, native OkHttp)
+  if (typeof window !== 'undefined' && window.AndroidBridge && typeof window.AndroidBridge.getChapterPages === 'function') {
+    try {
+      const bridgeJson = window.AndroidBridge.getChapterPages(mangaId || '', chapterId || '', String(chapterNumber || ''), mangaTitle || '');
+      if (bridgeJson) {
+        const parsed = typeof bridgeJson === 'string' ? JSON.parse(bridgeJson) : bridgeJson;
+        if (parsed && Array.isArray(parsed.pages) && parsed.pages.length > 0) {
+          return parsed;
+        }
+      }
+    } catch (bridgeErr) {
+      console.warn('AndroidBridge.getChapterPages error:', bridgeErr);
+    }
+  }
+
   const controller = new AbortController();
   const timer = setTimeout(() => controller.abort(), 20000); // 20s timeout
   const baseUrl = getApiBaseUrl();
@@ -2059,6 +2131,74 @@ export async function fetchChapterPages(chapterId, mangaId = null, chapterNumber
   const cid = String(chapterId || '').toLowerCase();
   const title = String(mangaTitle || '').toLowerCase();
   const sourceUrl = getChapterSourceUrl(mangaId, chapterId, chapterNumber, mangaTitle);
+
+  // 1. Client-side MangaKatana resolution (One Piece, Berserk, Jujutsu Kaisen, Chainsaw Man, etc.)
+  let katSlug = null;
+  if (cid.startsWith('kat_ch:')) {
+    katSlug = cid.replace('kat_ch:', '').split(':')[0];
+  } else if (title.includes('one piece') || mid.includes('one-piece')) {
+    katSlug = 'one-piece.49';
+  } else if (title.includes('one-punch') || title.includes('one punch') || mid.includes('one-punch')) {
+    katSlug = 'one-punch-man.163';
+  } else if (title.includes('berserk') || mid.includes('berserk')) {
+    katSlug = 'berserk.1087';
+  } else if (title.includes('chainsaw') || mid.includes('chainsaw')) {
+    katSlug = 'chainsaw-man.21890';
+  } else if (title.includes('jujutsu') || mid.includes('jujutsu')) {
+    katSlug = 'jujutsu-kaisen.20224';
+  } else if (title.includes('blue lock') || mid.includes('blue-lock')) {
+    katSlug = 'blue-lock.20912';
+  } else if (title.includes('sakamoto') || mid.includes('sakamoto')) {
+    katSlug = 'sakamoto-days.25555';
+  } else if (title.includes('dandadan') || mid.includes('dandadan')) {
+    katSlug = 'dandadan.25883';
+  } else if (title.includes('gachiakuta') || mid.includes('gachiakuta')) {
+    katSlug = 'gachiakuta.26574';
+  } else if (title.includes('lookism') || mid.includes('lookism')) {
+    katSlug = 'lookism.693';
+  } else if (title.includes('fairy tale') || title.includes('stepmother has left') || mid.includes('a-stepmothers-fairy-tale')) {
+    katSlug = 'a-stepmothers-fairy-tale.23902';
+  } else if (title.includes('tower of god') || mid.includes('tower-of-god')) {
+    katSlug = 'tower-of-god.465';
+  } else if (title.includes('strongest troll') || mid.includes('worlds-strongest-troll')) {
+    katSlug = 'worlds-strongest-troll.26644';
+  } else if (title.includes('naruto') || mid.includes('naruto')) {
+    katSlug = 'naruto.1205';
+  } else if (title.includes('bleach') || mid.includes('bleach')) {
+    katSlug = 'bleach.47';
+  } else if (title.includes('demon slayer') || mid.includes('demon-slayer')) {
+    katSlug = 'demon-slayer-kimetsu-no-yaiba.1293';
+  }
+
+  if (katSlug) {
+    try {
+      const targetUrl = `https://mangakatana.com/manga/${katSlug}/c${chNum}`;
+      let html = '';
+      try {
+        const res = await fetch(targetUrl, { signal: AbortSignal.timeout(5000) });
+        if (res.ok) html = await res.text();
+      } catch {
+        const proxyRes = await fetch(`https://api.allorigins.win/raw?url=${encodeURIComponent(targetUrl)}`, { signal: AbortSignal.timeout(6000) });
+        if (proxyRes.ok) html = await proxyRes.text();
+      }
+      if (html) {
+        const arrayMatch = html.match(/var\s+thzq\s*=\s*\[([^\]]+)\]/i) || html.match(/var\s+[a-z0-9_]+\s*=\s*\[([^\]]*https:[^\]]*)\]/i);
+        if (arrayMatch) {
+          const rawUrls = [...arrayMatch[1].matchAll(/['"](https?:\/\/[^'"]+)['"]/g)].map(m => m[1]);
+          if (rawUrls.length > 0) {
+            const pages = rawUrls.map((imgUrl, idx) => ({
+              pageNumber: idx + 1,
+              url: imgUrl,
+              originalUrl: imgUrl
+            }));
+            return { chapterId, totalPages: pages.length, pages, sourceUrl };
+          }
+        }
+      }
+    } catch (err) {
+      console.warn('Direct MangaKatana page resolution error:', err);
+    }
+  }
 
   if (mid.includes('fortune-telling') || cid.includes('ftp') || cid.includes('fortune-telling') || title.includes('fortune-telling')) {
     const totalPages = 28;
