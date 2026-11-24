@@ -676,13 +676,24 @@ export default function MangaReader({
     try {
       const data = await fetchChapterPages(targetChapId, mangaId, activeChapterNumber, mangaTitle);
       if (data && data.pages && data.pages.length > 0) {
-        setLoadedChapters((prev) =>
-          prev.map((c) =>
+        setInitialError(null);
+        setLoadedChapters((prev) => {
+          if (prev.length === 0) {
+            const chapMeta = allChaptersRef.current.find((c) => String(c.id) === String(targetChapId));
+            return [{
+              id: targetChapId,
+              chapter: activeChapterNumber,
+              title: chapMeta?.title || '',
+              pages: data.pages,
+            }];
+          }
+          return prev.map((c) =>
             String(c.id) === String(targetChapId)
               ? { ...c, pages: data.pages }
               : c
-          )
-        );
+          );
+        });
+        setActiveTotalPages(data.pages.length);
       }
     } catch (err) {
       console.error('Error reloading chapter:', err);
@@ -1125,18 +1136,32 @@ export default function MangaReader({
                 const targetUrl = chapterSourceUrl || getChapterSourceUrl(mangaId, activeChapterId || chapterId, activeChapterNumber || chapterNumber, mangaTitle);
                 return (
                   <div className="pt-2 space-y-3">
-                    <button
-                      type="button"
-                      onClick={() => {
-                        setInitialLoading(true);
-                        setInitialError(null);
-                        jumpToChapter(activeChapterId || chapterId, activeChapterNumber || chapterNumber);
-                      }}
-                      className="w-full py-3.5 px-6 rounded-2xl text-sm font-black text-white bg-gradient-to-r from-rose-600 via-pink-600 to-rose-500 hover:from-rose-500 hover:to-pink-500 shadow-xl shadow-rose-600/30 flex items-center justify-center gap-2.5 transition-all transform hover:-translate-y-0.5 active:translate-y-0 text-center tracking-wide group cursor-pointer"
-                    >
-                      <Sparkles className="w-4 h-4 text-white group-hover:scale-110 transition-transform" />
-                      <span>RETRY CHAPTER {activeChapterNumber || chapterNumber} IN-APP</span>
-                    </button>
+                    <div className="flex flex-col sm:flex-row gap-2.5">
+                      <button
+                        type="button"
+                        onClick={() => {
+                          setInitialLoading(true);
+                          setInitialError(null);
+                          jumpToChapter(activeChapterId || chapterId, activeChapterNumber || chapterNumber);
+                        }}
+                        className="flex-1 py-3.5 px-6 rounded-2xl text-sm font-black text-white bg-gradient-to-r from-rose-600 via-pink-600 to-rose-500 hover:from-rose-500 hover:to-pink-500 shadow-xl shadow-rose-600/30 flex items-center justify-center gap-2.5 transition-all transform hover:-translate-y-0.5 active:translate-y-0 text-center tracking-wide group cursor-pointer"
+                      >
+                        <Sparkles className="w-4 h-4 text-white group-hover:scale-110 transition-transform" />
+                        <span>RETRY CHAPTER {activeChapterNumber || chapterNumber} IN-APP</span>
+                      </button>
+
+                      {targetUrl && (
+                        <a
+                          href={targetUrl}
+                          target="_blank"
+                          rel="noopener noreferrer"
+                          className="py-3.5 px-5 rounded-2xl text-sm font-bold text-cyan-300 bg-cyan-950/60 hover:bg-cyan-900/60 border border-cyan-500/30 flex items-center justify-center gap-2 transition-all cursor-pointer shadow-lg hover:shadow-cyan-500/20"
+                        >
+                          <span>Open Web Mirror</span>
+                          <ExternalLink className="w-4 h-4" />
+                        </a>
+                      )}
+                    </div>
 
                     <div className="flex flex-wrap justify-center gap-2 pt-1">
                       {nextChapter && (
@@ -1172,20 +1197,6 @@ export default function MangaReader({
                         Close Reader
                       </button>
                     </div>
-
-                    {targetUrl && (
-                      <div className="pt-2">
-                        <a
-                          href={targetUrl}
-                          target="_blank"
-                          rel="noopener noreferrer"
-                          className="text-[11px] text-slate-400 hover:text-cyan-300 transition-colors inline-flex items-center gap-1 underline underline-offset-2"
-                        >
-                          <span>Open external backup mirror</span>
-                          <ExternalLink className="w-3 h-3" />
-                        </a>
-                      </div>
-                    )}
                   </div>
                 );
               })()}

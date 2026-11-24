@@ -1818,14 +1818,19 @@ export function isRedundantChapterTitle(title, chapterNumber) {
  */
 export function isAuthenticSeriesMatch(query, candidateTitle) {
   if (!query || !candidateTitle) return false;
+  const qLower = String(query).toLowerCase().trim();
+  const cLower = String(candidateTitle).toLowerCase().trim();
+  if (qLower === cLower || cLower.includes(qLower) || qLower.includes(cLower)) return true;
+
   const stopWords = new Set(['the', 'a', 'an', 'and', 'or', 'of', 'in', 'to', 'for', 'with', 'are', 'is', 'my', 'her', 'his', 'manga', 'series']);
-  const cleanQ = String(query).toLowerCase().replace(/[^a-z0-9\s]/g, ' ');
+  const cleanQ = qLower.replace(/[^a-z0-9\s]/g, ' ');
   const qTokens = cleanQ.split(/\s+/).filter(t => t.length > 1 && !stopWords.has(t));
   if (qTokens.length === 0) return false;
 
-  const cLower = String(candidateTitle).toLowerCase().replace(/[^a-z0-9\s]/g, ' ');
-  const matchedTokens = qTokens.filter(t => cLower.includes(t));
-  const threshold = Math.min(2, qTokens.length);
+  const cClean = cLower.replace(/[^a-z0-9\s]/g, ' ');
+  const matchedTokens = qTokens.filter(t => cClean.includes(t));
+  if (qTokens.some(t => t.length >= 4 && cClean.includes(t))) return true;
+  const threshold = qTokens.length <= 2 ? 1 : Math.min(2, qTokens.length);
   return matchedTokens.length >= threshold;
 }
 
@@ -2283,6 +2288,26 @@ export function getChapterSourceUrl(mangaId, chapterId, chapterNumber, mangaTitl
     return `https://asurascans.com/comics/the-greatest-estate-developer-ab39de10/chapter/${num}`;
   }
 
+  if (cid.startsWith('wc_ch:')) {
+    const rawWcId = cid.replace('wc_ch:', '');
+    return `https://weebcentral.com/chapters/${rawWcId}/images?reading_style=long_strip`;
+  }
+  if (cid.startsWith('kat_ch:')) {
+    const parts = cid.replace('kat_ch:', '').split(':');
+    const katSlug = parts[0];
+    const chSlug = parts.length > 1 ? parts[1] : `c${num}`;
+    return `https://mangakatana.com/manga/${katSlug}/${chSlug}`;
+  }
+  if (cid.startsWith('md_ch:') || cid.startsWith('md:')) {
+    return `https://mangadex.org/chapter/${cid.replace(/^md_ch:|^md:/, '')}`;
+  }
+  if (mid.startsWith('wc:')) {
+    return `https://weebcentral.com/series/${mid.replace('wc:', '')}/full-chapter-list`;
+  }
+  if (mid.startsWith('kat:')) {
+    return `https://mangakatana.com/manga/${mid.replace('kat:', '')}`;
+  }
+
   if (mid.includes('one-piece') || cid.includes('one-piece') || title.includes('one piece')) {
     return `https://mangapill.com/chapters/2-${10000000 + (parseInt(num) * 1000)}/one-piece-chapter-${num}`;
   }
@@ -2408,8 +2433,8 @@ export async function fetchChapterPages(chapterId, mangaId = null, chapterNumber
   }
 
   // Client-side direct resolution on static hosting
-  let chNum = String(chapterNumber || '').replace(/[^0-9.]/g, '');
-  if (!chNum) {
+  let chNum = (chapterNumber !== null && chapterNumber !== undefined && chapterNumber !== '') ? String(chapterNumber).replace(/[^0-9.]/g, '') : '';
+  if (chNum === '') {
     const m = String(chapterId || '').match(/(?:chapter-|:c|:ch|:ep|:)([0-9.]+)/i);
     if (m) {
       chNum = m[1];
@@ -2477,7 +2502,8 @@ export async function fetchChapterPages(chapterId, mangaId = null, chapterNumber
     'my-blasted-reincarnated-life': '01J76XYG12YTB3J27FVBM256V8',
     'worlds-strongest-troll': '01J76XYGVNHEER7G6M90C6YCTW',
     'my-in-laws-are-obsessed-with-me': '01J76XYFAESZTJT5AQ1SPFKYXR',
-    'my-in-laws-are-my-beloved-in-laws': '01J76XYFAESZTJT5AQ1SPFKYXR',
+    'the-hole-is-open': '01J76XYHGCQ2A1VG5KYTNHEHKF',
+    'seitokai-ni-mo-ana-wa-aru': '01J76XYHGCQ2A1VG5KYTNHEHKF',
     'lookism': '01J76XYBD282Y3XKX0KRGD64Q5',
     'tower-of-god': '01J76XY7M0W9WWJ55VJYYB2J1S',
     'wind-breaker': '01J76XYA1TQYKV6W4BCMR2WD5M',
@@ -2692,8 +2718,9 @@ export async function fetchChapterPages(chapterId, mangaId = null, chapterNumber
         const json = await res.json();
         const bUrl = json.baseUrl;
         const hash = json.chapter?.hash;
-        const files = json.chapter?.dataSaver || json.chapter?.data || [];
-        const folder = json.chapter?.dataSaver ? 'data-saver' : 'data';
+        const useDataSaver = Array.isArray(json.chapter?.dataSaver) && json.chapter.dataSaver.length > 0;
+        const files = useDataSaver ? json.chapter.dataSaver : (json.chapter?.data || []);
+        const folder = useDataSaver ? 'data-saver' : 'data';
         const pages = files.map((fileName, idx) => {
           const directUrl = `${bUrl}/${folder}/${hash}/${fileName}`;
           return {
@@ -2705,6 +2732,208 @@ export async function fetchChapterPages(chapterId, mangaId = null, chapterNumber
         return { chapterId, totalPages: pages.length, pages, sourceUrl };
       }
     } catch {}
+  }
+
+  // 4. Dynamic Multi-Source Search & Scraping Fallback
+  // For unmapped titles, AniList entries, or dynamically searched manga:
+  try {
+    const candidateTitles = new Set();
+    if (mangaTitle && cleanTitle(mangaTitle)) candidateTitles.add(cleanTitle(mangaTitle));
+    if (title && title !== 'manga' && title !== 'manga series') candidateTitles.add(cleanTitle(title));
+
+    if (mid && !mid.startsWith('anilist:') && !mid.startsWith('kat:') && !mid.startsWith('wc:')) {
+      const slugTitle = mid.replace(/[-_:]/g, ' ').trim();
+      if (slugTitle && slugTitle.length > 2 && !isMachineId(slugTitle)) {
+        candidateTitles.add(cleanTitle(slugTitle));
+      }
+    }
+
+    // Add subtitle-stripped & punctuation-stripped variants (preserving core title)
+    for (const t of [...candidateTitles]) {
+      const simplified = t.replace(/[:\-–—!?,.()'"[\]]/g, ' ').replace(/\s+/g, ' ').trim();
+      if (simplified && simplified !== t) candidateTitles.add(simplified);
+    }
+
+    // If mangaId starts with anilist:, retrieve AniList synonyms to cross-match English & Romaji titles
+    if (mid.startsWith('anilist:') || cid.startsWith('anilist_ch:')) {
+      const aniIdMatch = mid.match(/anilist:([0-9]+)/) || cid.match(/anilist_ch:([0-9]+)/);
+      const anilistId = aniIdMatch ? parseInt(aniIdMatch[1], 10) : null;
+      if (anilistId && !isNaN(anilistId)) {
+        try {
+          const aniRes = await fetch('https://graphql.anilist.co', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            signal: AbortSignal.timeout(4000),
+            body: JSON.stringify({
+              query: `query ($id: Int) { Media(id: $id, type: MANGA) { title { romaji english userPreferred native } synonyms } }`,
+              variables: { id: anilistId }
+            })
+          });
+          if (aniRes.ok) {
+            const aniJson = await aniRes.json();
+            const media = aniJson?.data?.Media;
+            if (media) {
+              if (media.title?.romaji) candidateTitles.add(cleanTitle(media.title.romaji));
+              if (media.title?.english) candidateTitles.add(cleanTitle(media.title.english));
+              if (media.title?.userPreferred) candidateTitles.add(cleanTitle(media.title.userPreferred));
+              if (Array.isArray(media.synonyms)) {
+                media.synonyms.slice(0, 2).forEach(s => s && candidateTitles.add(cleanTitle(s)));
+              }
+            }
+          }
+        } catch {}
+      }
+    }
+
+    const cleanTargetCh = String(chNum !== undefined && chNum !== null ? chNum : '1').replace(/[^0-9.]/g, '') || '1';
+    const finalCandidates = [...candidateTitles].filter(c => c && c.length >= 2).slice(0, 3);
+
+    // Step 4A: Try WeebCentral dynamic search
+    for (const cTitle of finalCandidates) {
+      try {
+        const searchUrl = `https://weebcentral.com/search/data?text=${encodeURIComponent(cTitle)}`;
+        const sHtml = await fetchClientHtml(searchUrl, 5000);
+        if (sHtml) {
+          const seriesMatches = [...sHtml.matchAll(/(?:https?:\/\/weebcentral\.com)?\/series\/([0-9A-Z]{26})(?:\/([^"\s>]+))?/gi)];
+          for (const sm of seriesMatches.slice(0, 4)) {
+            const seriesId = sm[1];
+            const seriesSlug = (sm[2] || '').replace(/[-_]/g, ' ').trim();
+            if (seriesSlug && !isAuthenticSeriesMatch(cTitle, seriesSlug) && !isAuthenticSeriesMatch(mangaTitle || title, seriesSlug)) {
+              continue;
+            }
+
+            const chListUrl = `https://weebcentral.com/series/${seriesId}/full-chapter-list`;
+            const chListHtml = await fetchClientHtml(chListUrl, 5000);
+            if (chListHtml) {
+              const chMatches = [...chListHtml.matchAll(/<a[^>]+href="[^"]*chapters\/([0-9A-Z]{26})"[^>]*>([\s\S]*?)<\/a>/gi)];
+              let foundChapId = null;
+              for (const cm of chMatches) {
+                const rawText = cm[2].replace(/<[^>]+>/g, ' ').replace(/\s+/g, ' ');
+                const numMatch = rawText.match(/(?:Chapter|Ch\.?|Episode|Ep\.?)\s*([0-9.]+)/i) || rawText.match(/([0-9.]+)/);
+                if (numMatch && (numMatch[1] === cleanTargetCh || parseFloat(numMatch[1]) === parseFloat(cleanTargetCh))) {
+                  foundChapId = cm[1];
+                  break;
+                }
+              }
+              if (foundChapId) {
+                const targetUrl = `https://weebcentral.com/chapters/${foundChapId}/images?is_prev=False&current_page=1&reading_style=long_strip`;
+                const imgHtml = await fetchClientHtml(targetUrl, 6000);
+                if (imgHtml) {
+                  const imgMatches = [...imgHtml.matchAll(/<img[^>]+src="([^"]+)"/gi)]
+                    .map(m => m[1])
+                    .filter(src => src && !src.includes('/static/') && !src.includes('brand.png') && !src.includes('logo') && !src.includes('favicon'));
+                  if (imgMatches.length > 0) {
+                    const pages = imgMatches.map((imgUrl, idx) => ({
+                      pageNumber: idx + 1,
+                      url: baseUrl ? `${baseUrl}/api/image-proxy?url=${encodeURIComponent(imgUrl)}` : imgUrl,
+                      originalUrl: imgUrl,
+                    }));
+                    return { chapterId, totalPages: pages.length, pages, sourceUrl: targetUrl };
+                  }
+                }
+              }
+            }
+          }
+        }
+      } catch (e) {
+        console.warn('Dynamic WeebCentral resolution warning:', e);
+      }
+    }
+
+    // Step 4B: Try MangaKatana dynamic search
+    for (const cTitle of finalCandidates) {
+      try {
+        const searchUrl = `https://mangakatana.com/?search=${encodeURIComponent(cTitle)}&search_by=book_name`;
+        const sHtml = await fetchClientHtml(searchUrl, 5000);
+        if (sHtml) {
+          const cardMatches = [...sHtml.matchAll(/<h3 class="title"[^>]*>\s*<a[^>]*href="https?:\/\/mangakatana\.com\/manga\/([^"]+)"[^>]*>([\s\S]*?)<\/a>/gi)];
+          for (const card of cardMatches.slice(0, 4)) {
+            const foundSlug = card[1];
+            const cardTitle = (card[2] || '').replace(/<[^>]+>/g, '').trim();
+            if (!isAuthenticSeriesMatch(cTitle, foundSlug.replace(/[-.]/g, ' ')) && !isAuthenticSeriesMatch(cTitle, cardTitle) && !isAuthenticSeriesMatch(mangaTitle || title, cardTitle)) {
+              continue;
+            }
+
+            const chUrl = `https://mangakatana.com/manga/${foundSlug}/c${cleanTargetCh}`;
+            const chHtml = await fetchClientHtml(chUrl, 5000);
+            let arrayMatch = chHtml?.match(/var\s+thzq\s*=\s*\[([^\]]+)\]/i);
+            if (!arrayMatch && chHtml) {
+              const allMatches = [...chHtml.matchAll(/var\s+[a-z0-9_]+\s*=\s*\[([^\]]*https:[^\]]*)\]/gi)];
+              let best = '';
+              for (const m of allMatches) {
+                if (m[1].length > best.length) best = m[1];
+              }
+              if (best) arrayMatch = [null, best];
+            }
+            if (arrayMatch) {
+              const rawUrls = [...arrayMatch[1].matchAll(/['"](https?:\/\/[^'"]+)['"]/g)].map(m => m[1]);
+              if (rawUrls.length > 0) {
+                const pages = rawUrls.map((imgUrl, idx) => ({
+                  pageNumber: idx + 1,
+                  url: baseUrl ? `${baseUrl}/api/image-proxy?url=${encodeURIComponent(imgUrl)}` : imgUrl,
+                  originalUrl: imgUrl
+                }));
+                return { chapterId, totalPages: pages.length, pages, sourceUrl: chUrl };
+              }
+            }
+          }
+        }
+      } catch (e) {
+        console.warn('Dynamic MangaKatana resolution warning:', e);
+      }
+    }
+
+    // Step 4C: Try MangaDex dynamic search
+    for (const cTitle of finalCandidates) {
+      try {
+        const mdSearchUrl = `https://api.mangadex.org/manga?title=${encodeURIComponent(cTitle)}&limit=3`;
+        const mdRes = await fetch(mdSearchUrl, { signal: AbortSignal.timeout(4000) });
+        if (mdRes.ok) {
+          const mdJson = await mdRes.json();
+          const items = mdJson?.data || [];
+          for (const item of items) {
+            const mdTitle = item.attributes?.title?.en || Object.values(item.attributes?.title || {})[0] || '';
+            if (mdTitle && !isAuthenticSeriesMatch(cTitle, mdTitle) && !isAuthenticSeriesMatch(mangaTitle || title, mdTitle)) {
+              continue;
+            }
+
+            const feedUrl = `https://api.mangadex.org/manga/${item.id}/feed?translatedLanguage[]=en&chapter[]=${encodeURIComponent(cleanTargetCh)}&limit=5`;
+            const feedRes = await fetch(feedUrl, { signal: AbortSignal.timeout(4000) });
+            if (feedRes.ok) {
+              const feedJson = await feedRes.json();
+              const chaps = feedJson?.data || [];
+              const foundCh = chaps.find(c => c.attributes?.chapter === cleanTargetCh || parseFloat(c.attributes?.chapter) === parseFloat(cleanTargetCh));
+              if (foundCh) {
+                const atHomeRes = await fetch(`https://api.mangadex.org/at-home/server/${foundCh.id}`, { signal: AbortSignal.timeout(4000) });
+                if (atHomeRes.ok) {
+                  const atHomeJson = await atHomeRes.json();
+                  const bUrl = atHomeJson.baseUrl;
+                  const hash = atHomeJson.chapter?.hash;
+                  const useDataSaver = Array.isArray(atHomeJson.chapter?.dataSaver) && atHomeJson.chapter.dataSaver.length > 0;
+                  const files = useDataSaver ? atHomeJson.chapter.dataSaver : (atHomeJson.chapter?.data || []);
+                  const folder = useDataSaver ? 'data-saver' : 'data';
+                  const pages = files.map((fileName, idx) => {
+                    const directUrl = `${bUrl}/${folder}/${hash}/${fileName}`;
+                    return {
+                      pageNumber: idx + 1,
+                      url: baseUrl ? `${baseUrl}/api/image-proxy?url=${encodeURIComponent(directUrl)}` : directUrl,
+                      originalUrl: directUrl,
+                    };
+                  });
+                  if (pages.length > 0) {
+                    return { chapterId, totalPages: pages.length, pages, sourceUrl: `https://mangadex.org/chapter/${foundCh.id}` };
+                  }
+                }
+              }
+            }
+          }
+        }
+      } catch (e) {
+        console.warn('Dynamic MangaDex resolution warning:', e);
+      }
+    }
+  } catch (err) {
+    console.warn('Dynamic multi-source search fallback error:', err);
   }
 
   return {

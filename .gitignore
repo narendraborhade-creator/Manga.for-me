@@ -29,4 +29,6 @@ dist-ssr
 local.properties
 *.apk
 *.aab
+!docs/*.apk
+!docs/app-debug.apk
 .kotlin/
