@@ -354,10 +354,20 @@ export async function getMangaKatanaChapterPages(rawChapterId) {
     if (!res.ok) throw new Error(`HTTP ${res.status}`);
     const html = await res.text();
 
-    const arrayMatch = html.match(/var\s+thzq\s*=\s*\[([^\]]+)\]/i) || html.match(/var\s+[a-z0-9_]+\s*=\s*\[([^\]]*https:[^\]]*)\]/i);
     let rawUrls = [];
-    if (arrayMatch) {
-      rawUrls = [...arrayMatch[1].matchAll(/['"](https?:\/\/[^'"]+)['"]/g)].map(m => m[1]);
+    const allMatches = [...html.matchAll(/var\s+([a-zA-Z0-9_]+)\s*=\s*\[([^\]]*https?:[^\]]*)\]/gi)];
+    for (const match of allMatches) {
+      const urls = [...match[2].matchAll(/['"](https?:\/\/[^'"]+)['"]/g)].map(m => m[1]);
+      if (urls.length > rawUrls.length) {
+        rawUrls = urls;
+      }
+    }
+
+    if (rawUrls.length === 0) {
+      const thzq = html.match(/var\s+thzq\s*=\s*\[([^\]]+)\]/i);
+      if (thzq) {
+        rawUrls = [...thzq[1].matchAll(/['"](https?:\/\/[^'"]+)['"]/g)].map(m => m[1]);
+      }
     }
 
     if (rawUrls.length === 0) {

@@ -71,8 +71,6 @@ export const FALLBACK_MANGA_CATALOG = [
       'webtoon:ks:my-in-laws-are-obsessed-with-me',
       'my-in-laws-are-obsessed-with-me',
       'my in laws are obsessed with me',
-      'my-in-laws-are-my-beloved-in-laws',
-      'my in-laws are my beloved in-laws',
       'md:c44b5b1d-60cf-4faf-be2c-0a807200358f'
     ],
     title: 'My In-Laws Are Obsessed With Me',
@@ -1820,7 +1818,19 @@ export function isAuthenticSeriesMatch(query, candidateTitle) {
   if (!query || !candidateTitle) return false;
   const qLower = String(query).toLowerCase().trim();
   const cLower = String(candidateTitle).toLowerCase().trim();
-  if (qLower === cLower || cLower.includes(qLower) || qLower.includes(cLower)) return true;
+
+  // Distinct series guard: 'beloved' vs 'obsessed' (e.g. Beloved by My In-Laws vs My In-Laws Are Obsessed With Me)
+  if ((qLower.includes('beloved') && cLower.includes('obsessed')) || (qLower.includes('obsessed') && cLower.includes('beloved'))) {
+    return false;
+  }
+
+  if (qLower === cLower) return true;
+  if (cLower.includes(qLower) || qLower.includes(cLower)) {
+    if ((qLower.includes('beloved') && !cLower.includes('beloved')) || (cLower.includes('beloved') && !qLower.includes('beloved'))) {
+      return false;
+    }
+    return true;
+  }
 
   const stopWords = new Set(['the', 'a', 'an', 'and', 'or', 'of', 'in', 'to', 'for', 'with', 'are', 'is', 'my', 'her', 'his', 'manga', 'series']);
   const cleanQ = qLower.replace(/[^a-z0-9\s]/g, ' ');
@@ -1829,7 +1839,6 @@ export function isAuthenticSeriesMatch(query, candidateTitle) {
 
   const cClean = cLower.replace(/[^a-z0-9\s]/g, ' ');
   const matchedTokens = qTokens.filter(t => cClean.includes(t));
-  if (qTokens.some(t => t.length >= 4 && cClean.includes(t))) return true;
   const threshold = qTokens.length <= 2 ? 1 : Math.min(2, qTokens.length);
   return matchedTokens.length >= threshold;
 }
@@ -2059,6 +2068,13 @@ export async function fetchMangaDetails(mangaId, refresh = false) {
       setClientCached(cacheKey, result);
       return result;
     }
+    if (String(mangaId).startsWith('m18:') || String(mangaId).startsWith('manga18:')) {
+      const m18Item = await fetchManga18fxDetailsClient(mangaId);
+      if (m18Item) {
+        setClientCached(cacheKey, m18Item);
+        return m18Item;
+      }
+    }
     if (String(mangaId).startsWith('md:') || String(mangaId).startsWith('mangadex:')) {
       const mdItem = await fetchMangaDexDetailsClient(mangaId);
       if (mdItem) {
@@ -2073,6 +2089,72 @@ export async function fetchMangaDetails(mangaId, refresh = false) {
         return anilistItem;
       }
     }
+    return null;
+  }
+}
+
+/**
+ * Client-side Manga18fx Details and Chapter List Fetcher
+ */
+export async function fetchManga18fxDetailsClient(mangaId) {
+  const slug = String(mangaId).replace(/^m18:|^manga18:|^manga18fx:/, '').trim();
+  try {
+    const url = `https://manga18fx.com/manga/${slug}`;
+    const html = await fetchClientHtml(url, 6000);
+    if (!html) return null;
+
+    const titleMatch = html.match(/<h1[^>]*>([\s\S]*?)<\/h1>/i);
+    const title = cleanTitle(decodeHtml(titleMatch ? titleMatch[1].replace(/<[^>]+>/g, '').trim() : slug));
+
+    const coverMatch = html.match(/<div class="manga-poster"[^>]*>[\s\S]*?<img [^>]*(?:data-src|src)="([^"]+)"/i) 
+      || html.match(/<img [^>]*(?:data-src|src)="([^"]+)"[^>]*alt="[^"]*poster/i)
+      || html.match(/<img [^>]*(?:data-src|src)="([^"]*manga18fx\.com\/webtoon\/[^"]+)"/i);
+    let coverUrl = coverMatch ? coverMatch[1] : `https://manga18fx.com/webtoon/${slug}m.jpg`;
+    if (coverUrl.startsWith('//')) coverUrl = `https:${coverUrl}`;
+
+    const descMatch = html.match(/<div class="summary__content"[^>]*>([\s\S]*?)<\/div>/i)
+      || html.match(/<div class="panel-story-info-description"[^>]*>([\s\S]*?)<\/div>/i);
+    const description = descMatch ? decodeHtml(descMatch[1].replace(/<[^>]+>/g, '').trim()) : '18+ Adult Webtoon / Manhwa series from Manga18fx.';
+
+    const chRegex = /<a[^>]+href="\/manga\/[^/]+\/(chapter-[0-9.]+)"[^>]*>([\s\S]*?)<\/a>/gi;
+    const chapters = [];
+    const seenCh = new Set();
+    for (const m of html.matchAll(chRegex)) {
+      const chSlug = m[1];
+      if (seenCh.has(chSlug)) continue;
+      seenCh.add(chSlug);
+      const rawText = m[2].replace(/<[^>]+>/g, '').trim();
+      const num = chSlug.replace(/^chapter-/, '');
+      chapters.push({
+        id: `m18_ch:${slug}:${chSlug}`,
+        chapter: num,
+        title: rawText && !rawText.toLowerCase().includes('read') ? rawText : `Chapter ${num}`
+      });
+    }
+
+    chapters.sort((a, b) => (parseFloat(b.chapter) || 0) - (parseFloat(a.chapter) || 0));
+
+    return {
+      id: `m18:${slug}`,
+      rawId: slug,
+      title,
+      englishTitle: title,
+      coverUrl,
+      description,
+      sourceName: 'Manga18fx',
+      author: 'Adult Studio',
+      status: 'ONGOING',
+      score: '9.5',
+      year: new Date().getFullYear(),
+      tags: ['18+ Adult', 'Manhwa', 'Webtoon'],
+      contentWarning: 'CONTENT_WARNING_NSFW',
+      isNsfw: true,
+      chapters,
+      totalChapters: chapters.length,
+      latestChapter: chapters[0]?.chapter || '1'
+    };
+  } catch (err) {
+    console.warn('fetchManga18fxDetailsClient error:', err);
     return null;
   }
 }
@@ -2288,6 +2370,13 @@ export function getChapterSourceUrl(mangaId, chapterId, chapterNumber, mangaTitl
     return `https://asurascans.com/comics/the-greatest-estate-developer-ab39de10/chapter/${num}`;
   }
 
+  if (cid.startsWith('m18_ch:')) {
+    const parts = cid.replace('m18_ch:', '').split(':');
+    return `https://manga18fx.com/manga/${parts[0]}/${parts[1] || `chapter-${num}`}`;
+  }
+  if (mid.startsWith('m18:')) {
+    return `https://manga18fx.com/manga/${mid.replace('m18:', '')}`;
+  }
   if (cid.startsWith('wc_ch:')) {
     const rawWcId = cid.replace('wc_ch:', '');
     return `https://weebcentral.com/chapters/${rawWcId}/images?reading_style=long_strip`;
@@ -2664,25 +2753,27 @@ export async function fetchChapterPages(chapterId, mangaId = null, chapterNumber
       const targetUrl = `https://mangakatana.com/manga/${katSlug}/${targetSlug}`;
       const html = await fetchClientHtml(targetUrl, 5000);
       if (html) {
-        let arrayMatch = html.match(/var\s+thzq\s*=\s*\[([^\]]+)\]/i);
-        if (!arrayMatch) {
-          const allMatches = [...html.matchAll(/var\s+[a-z0-9_]+\s*=\s*\[([^\]]*https:[^\]]*)\]/gi)];
-          let best = '';
-          for (const m of allMatches) {
-            if (m[1].length > best.length) best = m[1];
+        let rawUrls = [];
+        const allMatches = [...html.matchAll(/var\s+([a-zA-Z0-9_]+)\s*=\s*\[([^\]]*https?:[^\]]*)\]/gi)];
+        for (const match of allMatches) {
+          const urls = [...match[2].matchAll(/['"](https?:\/\/[^'"]+)['"]/g)].map(m => m[1]);
+          if (urls.length > rawUrls.length) {
+            rawUrls = urls;
           }
-          if (best) arrayMatch = [null, best];
         }
-        if (arrayMatch) {
-          const rawUrls = [...arrayMatch[1].matchAll(/['"](https?:\/\/[^'"]+)['"]/g)].map(m => m[1]);
-          if (rawUrls.length > 0) {
-            const pages = rawUrls.map((imgUrl, idx) => ({
-              pageNumber: idx + 1,
-              url: imgUrl,
-              originalUrl: imgUrl
-            }));
-            return { chapterId, totalPages: pages.length, pages, sourceUrl };
+        if (rawUrls.length === 0) {
+          const thzq = html.match(/var\s+thzq\s*=\s*\[([^\]]+)\]/i);
+          if (thzq) {
+            rawUrls = [...thzq[1].matchAll(/['"](https?:\/\/[^'"]+)['"]/g)].map(m => m[1]);
           }
+        }
+        if (rawUrls.length > 0) {
+          const pages = rawUrls.map((imgUrl, idx) => ({
+            pageNumber: idx + 1,
+            url: baseUrl ? `${baseUrl}/api/image-proxy?url=${encodeURIComponent(imgUrl)}` : imgUrl,
+            originalUrl: imgUrl
+          }));
+          return { chapterId, totalPages: pages.length, pages, sourceUrl };
         }
       }
     } catch (err) {
@@ -2732,6 +2823,48 @@ export async function fetchChapterPages(chapterId, mangaId = null, chapterNumber
         return { chapterId, totalPages: pages.length, pages, sourceUrl };
       }
     } catch {}
+  }
+
+  // Client-side fallback for Manga18fx
+  if ((chapterId && (chapterId.startsWith('m18_ch:') || chapterId.startsWith('m18:'))) || (mangaId && mangaId.startsWith('m18:'))) {
+    try {
+      let m18Slug = '';
+      let chSlug = '';
+
+      if (chapterId && chapterId.startsWith('m18_ch:')) {
+        const parts = chapterId.replace('m18_ch:', '').split(':');
+        m18Slug = parts[0];
+        chSlug = parts[1] || `chapter-${chNum || '1'}`;
+      } else {
+        m18Slug = String(mangaId || '').replace(/^m18:|^manga18:|^manga18fx:/, '').trim();
+        chSlug = String(chapterId || '').startsWith('chapter-') 
+          ? chapterId 
+          : `chapter-${chNum || '1'}`;
+      }
+
+      if (m18Slug) {
+        const targetUrl = `https://manga18fx.com/manga/${m18Slug}/${chSlug}`;
+        const html = await fetchClientHtml(targetUrl, 6000);
+        if (html) {
+          const pageImgs = [...html.matchAll(/<img[^>]+(?:src|data-src)="([^"]+)"/gi)]
+            .map(m => m[1])
+            .filter(u => u && !u.includes('logo') && !u.includes('favicon') && !u.includes('banner') && (u.includes('/online/') || u.includes('/webtoon/') || u.includes('/manga/') || /\.(jpg|jpeg|png|webp)/i.test(u)));
+          if (pageImgs.length > 0) {
+            const pages = pageImgs.map((imgUrl, idx) => {
+              const normalizedUrl = imgUrl.startsWith('//') ? `https:${imgUrl}` : imgUrl;
+              return {
+                pageNumber: idx + 1,
+                url: baseUrl ? `${baseUrl}/api/image-proxy?url=${encodeURIComponent(normalizedUrl)}` : normalizedUrl,
+                originalUrl: normalizedUrl
+              };
+            });
+            return { chapterId, totalPages: pages.length, pages, sourceUrl: targetUrl };
+          }
+        }
+      }
+    } catch (err) {
+      console.warn('Direct Manga18fx chapter resolution error:', err);
+    }
   }
 
   // 4. Dynamic Multi-Source Search & Scraping Fallback
@@ -2856,17 +2989,21 @@ export async function fetchChapterPages(chapterId, mangaId = null, chapterNumber
 
             const chUrl = `https://mangakatana.com/manga/${foundSlug}/c${cleanTargetCh}`;
             const chHtml = await fetchClientHtml(chUrl, 5000);
-            let arrayMatch = chHtml?.match(/var\s+thzq\s*=\s*\[([^\]]+)\]/i);
-            if (!arrayMatch && chHtml) {
-              const allMatches = [...chHtml.matchAll(/var\s+[a-z0-9_]+\s*=\s*\[([^\]]*https:[^\]]*)\]/gi)];
-              let best = '';
-              for (const m of allMatches) {
-                if (m[1].length > best.length) best = m[1];
+            if (chHtml) {
+              let rawUrls = [];
+              const allMatches = [...chHtml.matchAll(/var\s+([a-zA-Z0-9_]+)\s*=\s*\[([^\]]*https?:[^\]]*)\]/gi)];
+              for (const match of allMatches) {
+                const urls = [...match[2].matchAll(/['"](https?:\/\/[^'"]+)['"]/g)].map(m => m[1]);
+                if (urls.length > rawUrls.length) {
+                  rawUrls = urls;
+                }
               }
-              if (best) arrayMatch = [null, best];
-            }
-            if (arrayMatch) {
-              const rawUrls = [...arrayMatch[1].matchAll(/['"](https?:\/\/[^'"]+)['"]/g)].map(m => m[1]);
+              if (rawUrls.length === 0) {
+                const thzq = chHtml.match(/var\s+thzq\s*=\s*\[([^\]]+)\]/i);
+                if (thzq) {
+                  rawUrls = [...thzq[1].matchAll(/['"](https?:\/\/[^'"]+)['"]/g)].map(m => m[1]);
+                }
+              }
               if (rawUrls.length > 0) {
                 const pages = rawUrls.map((imgUrl, idx) => ({
                   pageNumber: idx + 1,
@@ -2897,12 +3034,16 @@ export async function fetchChapterPages(chapterId, mangaId = null, chapterNumber
               continue;
             }
 
-            const feedUrl = `https://api.mangadex.org/manga/${item.id}/feed?translatedLanguage[]=en&chapter[]=${encodeURIComponent(cleanTargetCh)}&limit=5`;
+            const feedUrl = `https://api.mangadex.org/manga/${item.id}/feed?translatedLanguage[]=en&order[chapter]=asc&limit=500&contentRating[]=safe&contentRating[]=suggestive&contentRating[]=erotica&contentRating[]=pornographic`;
             const feedRes = await fetch(feedUrl, { signal: AbortSignal.timeout(4000) });
             if (feedRes.ok) {
               const feedJson = await feedRes.json();
               const chaps = feedJson?.data || [];
-              const foundCh = chaps.find(c => c.attributes?.chapter === cleanTargetCh || parseFloat(c.attributes?.chapter) === parseFloat(cleanTargetCh));
+              const foundCh = chaps.find(c => {
+                if (c.attributes?.pages === 0 || c.attributes?.externalUrl) return false;
+                const chAttr = c.attributes?.chapter;
+                return chAttr === cleanTargetCh || parseFloat(chAttr) === parseFloat(cleanTargetCh);
+              });
               if (foundCh) {
                 const atHomeRes = await fetch(`https://api.mangadex.org/at-home/server/${foundCh.id}`, { signal: AbortSignal.timeout(4000) });
                 if (atHomeRes.ok) {

@@ -91,7 +91,7 @@ class MainActivity : ComponentActivity() {
         settings.allowFileAccess = true
         settings.allowContentAccess = true
         settings.allowFileAccessFromFileURLs = true
-        settings.allowUniversalAccessFromFileURLs = true
+        settings.allowUniversalAccessFromFileURLs = false
         settings.cacheMode = WebSettings.LOAD_DEFAULT
         settings.mixedContentMode = WebSettings.MIXED_CONTENT_ALWAYS_ALLOW
         settings.mediaPlaybackRequiresUserGesture = false
@@ -172,6 +172,7 @@ class MainActivity : ComponentActivity() {
                     host.contains("afortunetellingprincess.com") ||
                     host.contains("kingofshojo.com") ||
                     host.contains("readsololeveling.org") ||
+                    host.contains("manga18fx.com") ||
                     host.contains("kakamanga.com") ||
                     host.contains("chapmanganato.com") ||
                     host.contains("mangakakalot.com")) {

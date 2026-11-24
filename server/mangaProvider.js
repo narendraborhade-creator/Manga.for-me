@@ -2128,7 +2128,7 @@ export async function getChapterPages(rawChapterId, rawMangaId = '', rawChapterN
       }
     }
 
-    if (normMid.includes('inlaw') || normMid.includes('in-law') || normTitle.includes('inlaw') || normTitle.includes('in-law') || normTitle.includes('obsessed')) {
+    if ((normMid.includes('obsessed') || normTitle.includes('obsessed')) && !normTitle.includes('beloved') && !normMid.includes('beloved')) {
       const wcDet = await getWeebCentralDetails('01J76XYFAESZTJT5AQ1SPFKYXR').catch(() => null);
       const matched = wcDet?.chapters?.find(c => {
         const num = c.chapter?.replace(/[^0-9.]/g, '');
@@ -2138,6 +2138,26 @@ export async function getChapterPages(rawChapterId, rawMangaId = '', rawChapterN
         const wcRes = await getWeebCentralChapterPages(matched.id.replace('wc_ch:', ''));
         if (wcRes && Array.isArray(wcRes.pages) && wcRes.pages.length > 0) {
           return wcRes;
+        }
+      }
+    }
+
+    // Dynamic WeebCentral title search fallback
+    const query = rawTitle || rawMangaId.replace(/^(wc:|kat:|md:|webtoon:|asura:|thunder:|flame:|mk:)/, '').replace(/[-_]+/g, ' ');
+    if (query && query.length >= 2) {
+      const wcMatches = await searchWeebCentral(query).catch(() => []);
+      for (const sm of wcMatches.slice(0, 3)) {
+        if (!isAuthenticSeriesMatch(query, sm.title)) continue;
+        const sDet = await getWeebCentralDetails(sm.id.replace('wc:', '')).catch(() => null);
+        const matched = sDet?.chapters?.find(c => {
+          const num = c.chapter?.replace(/[^0-9.]/g, '');
+          return num === chNum || parseFloat(num) === parseFloat(chNum);
+        });
+        if (matched) {
+          const wcRes = await getWeebCentralChapterPages(matched.id.replace(/^(wc_ch:|wc:)/, ''));
+          if (wcRes && Array.isArray(wcRes.pages) && wcRes.pages.length > 0) {
+            return wcRes;
+          }
         }
       }
     }
@@ -2373,6 +2393,8 @@ export async function proxyImage(imageUrl, res) {
         primaryReferer = 'https://readsololeveling.org/';
       } else if (host.includes('kingofshojo')) {
         primaryReferer = 'https://kingofshojo.com/';
+      } else if (host.includes('manga18fx')) {
+        primaryReferer = 'https://manga18fx.com/';
       } else if (host.includes('mangadex') || host.includes('uploads.mangadex.org')) {
         primaryReferer = 'https://mangadex.org/';
       } else if (host.includes('mangapill') || host.includes('readdetectiveconan')) {

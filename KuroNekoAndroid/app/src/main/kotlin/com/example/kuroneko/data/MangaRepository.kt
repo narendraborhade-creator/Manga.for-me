@@ -100,7 +100,6 @@ class MangaRepository(context: Context) {
         "01J76XYG12YTB3J27FVBM256V8" to "01J76XYG12YTB3J27FVBM256V8",
         "webtoon:ks:my-in-laws-are-obsessed-with-me" to "01J76XYFAESZTJT5AQ1SPFKYXR",
         "my-in-laws-are-obsessed-with-me" to "01J76XYFAESZTJT5AQ1SPFKYXR",
-        "my-in-laws-are-my-beloved-in-laws" to "01J76XYFAESZTJT5AQ1SPFKYXR",
         "kat:worlds-strongest-troll.26644" to "01J76XYGVNHEER7G6M90C6YCTW",
         "worlds-strongest-troll" to "01J76XYGVNHEER7G6M90C6YCTW",
         "lookism" to "01J76XYBD282Y3XKX0KRGD64Q5",
@@ -401,7 +400,19 @@ class MangaRepository(context: Context) {
         if (query.isBlank() || candidateTitle.isBlank()) return false
         val qLower = query.lowercase().trim()
         val cLower = candidateTitle.lowercase().trim()
-        if (qLower == cLower || cLower.contains(qLower) || qLower.contains(cLower)) return true
+
+        // Distinct series guard: 'beloved' vs 'obsessed' (e.g. Beloved by My In-Laws vs My In-Laws Are Obsessed With Me)
+        if ((qLower.contains("beloved") && cLower.contains("obsessed")) || (qLower.contains("obsessed") && cLower.contains("beloved"))) {
+            return false
+        }
+
+        if (qLower == cLower) return true
+        if (cLower.contains(qLower) || qLower.contains(cLower)) {
+            if ((qLower.contains("beloved") && !cLower.contains("beloved")) || (cLower.contains("beloved") && !qLower.contains("beloved"))) {
+                return false
+            }
+            return true
+        }
 
         val stopWords = setOf("the", "a", "an", "and", "or", "of", "in", "to", "for", "with", "are", "is", "my", "her", "his", "manga", "series")
         val qTokens = qLower.replace(Regex("[^a-z0-9\\s]"), " ")
@@ -410,7 +421,6 @@ class MangaRepository(context: Context) {
         if (qTokens.isEmpty()) return false
 
         val matchedTokens = qTokens.count { token -> cLower.contains(token) }
-        if (qTokens.any { it.length >= 4 && cLower.contains(it) }) return true
         val threshold = if (qTokens.size <= 2) 1 else Math.min(2, qTokens.size)
         return matchedTokens >= threshold
     }
@@ -428,13 +438,18 @@ class MangaRepository(context: Context) {
             httpClient.newCall(request).execute().use { resp ->
                 if (resp.isSuccessful) {
                     val html = resp.body?.string().orEmpty()
-                    val p = Pattern.compile("(?:https?://weebcentral\\.com)?/series/([0-9A-Za-z]{26})(?:/([^\"\\s>]+))?", Pattern.CASE_INSENSITIVE)
-                    val m = p.matcher(html)
-                    while (m.find()) {
-                        val sId = m.group(1).orEmpty()
-                        val sSlug = m.group(2)?.replace("-", " ").orEmpty()
-                        if (sSlug.isBlank() || isAuthenticSeriesMatch(title, sSlug)) {
-                            return sId
+                    val articles = html.split("<article class=\"bg-base-300").drop(1)
+                    for (art in articles) {
+                        val idMatcher = Pattern.compile("/series/([0-9A-Z]{26})(?:/([^\"/?#\\s]+))?", Pattern.CASE_INSENSITIVE).matcher(art)
+                        if (!idMatcher.find()) continue
+                        val seriesId = idMatcher.group(1).orEmpty()
+                        val slugTitle = idMatcher.group(2)?.replace("-", " ")?.replace("_", " ") ?: ""
+
+                        val titleMatcher = Pattern.compile("alt=\"([^\"]+)\\s+cover\"", Pattern.CASE_INSENSITIVE).matcher(art)
+                        val foundTitle = if (titleMatcher.find()) titleMatcher.group(1).orEmpty().trim() else slugTitle
+
+                        if (isAuthenticSeriesMatch(title, foundTitle) || (slugTitle.isNotBlank() && isAuthenticSeriesMatch(title, slugTitle))) {
+                            return seriesId
                         }
                     }
                 }
@@ -839,39 +854,46 @@ class MangaRepository(context: Context) {
                 httpClient.newCall(request).execute().use { response ->
                     if (response.isSuccessful) {
                         val html = response.body?.string().orEmpty()
-                        // Specifically match var thzq first (full chapter images, avoids 1-page preview arrays like ytaw)
-                        val thzqPattern = Pattern.compile("var\\s+thzq\\s*=\\s*\\[([^\\]]+)\\]", Pattern.CASE_INSENSITIVE)
-                        val thzqMatcher = thzqPattern.matcher(html)
-                        var rawArray: String? = null
-                        if (thzqMatcher.find()) {
-                            rawArray = thzqMatcher.group(1)
-                        } else {
-                            val anyArrPattern = Pattern.compile("var\\s+[a-zA-Z0-9_]+\\s*=\\s*\\[([^\\]]*https:[^\\]]*)\\]", Pattern.CASE_INSENSITIVE)
-                            val anyMatcher = anyArrPattern.matcher(html)
-                            var maxLen = 0
-                            while (anyMatcher.find()) {
-                                val content = anyMatcher.group(1).orEmpty()
-                                if (content.length > maxLen) {
-                                    maxLen = content.length
-                                    rawArray = content
-                                }
+                        // Extract all JS arrays in chapter HTML and pick the one with the maximum count of valid image URLs
+                        val anyArrPattern = Pattern.compile("var\\s+[a-zA-Z0-9_]+\\s*=\\s*\\[([^\\]]*https?:[^\\]]*)\\]", Pattern.CASE_INSENSITIVE)
+                        val anyMatcher = anyArrPattern.matcher(html)
+                        var bestUrls = emptyList<String>()
+
+                        while (anyMatcher.find()) {
+                            val content = anyMatcher.group(1).orEmpty()
+                            val urlPattern = Pattern.compile("['\"](https?://[^'\"]+)['\"]")
+                            val urlMatcher = urlPattern.matcher(content)
+                            val urls = mutableListOf<String>()
+                            while (urlMatcher.find()) {
+                                val u = urlMatcher.group(1)
+                                if (!u.isNullOrBlank()) urls.add(u)
+                            }
+                            if (urls.size > bestUrls.size) {
+                                bestUrls = urls
                             }
                         }
 
-                        if (!rawArray.isNullOrBlank()) {
-                            val urlPattern = Pattern.compile("['\"](https?://[^'\"]+)['\"]")
-                            val urlMatcher = urlPattern.matcher(rawArray)
-                            val pageList = mutableListOf<ReaderPage>()
-                            var pageCount = 1
-                            while (urlMatcher.find()) {
-                                val imgUrl = urlMatcher.group(1)
-                                if (!imgUrl.isNullOrBlank()) {
-                                    pageList.add(ReaderPage(pageNumber = pageCount++, imageUrl = imgUrl))
+                        if (bestUrls.isEmpty()) {
+                            val thzqPattern = Pattern.compile("var\\s+thzq\\s*=\\s*\\[([^\\]]+)\\]", Pattern.CASE_INSENSITIVE)
+                            val thzqMatcher = thzqPattern.matcher(html)
+                            if (thzqMatcher.find()) {
+                                val content = thzqMatcher.group(1).orEmpty()
+                                val urlPattern = Pattern.compile("['\"](https?://[^'\"]+)['\"]")
+                                val urlMatcher = urlPattern.matcher(content)
+                                val urls = mutableListOf<String>()
+                                while (urlMatcher.find()) {
+                                    val u = urlMatcher.group(1)
+                                    if (!u.isNullOrBlank()) urls.add(u)
                                 }
+                                bestUrls = urls
                             }
-                            if (pageList.isNotEmpty()) {
-                                return@withContext pageList
+                        }
+
+                        if (bestUrls.isNotEmpty()) {
+                            val pageList = bestUrls.mapIndexed { idx, u ->
+                                ReaderPage(pageNumber = idx + 1, imageUrl = u)
                             }
+                            return@withContext pageList
                         }
                     }
                 }
@@ -886,6 +908,39 @@ class MangaRepository(context: Context) {
                 ReaderPage(pageNumber = p, imageUrl = "https://afortunetellingprincess.com/wp-content/uploads/manga/a-fortune-telling-princess-manhwa/chapter-$num/$p.jpg")
             }
             return@withContext pageList
+        }
+
+        // Manga18fx chapter resolution
+        if (chapterId.startsWith("m18_ch:") || chapterId.startsWith("m18:") || mangaId.startsWith("m18:")) {
+            try {
+                val parts = chapterId.replace(Regex("^(m18_ch:|m18:)"), "").split(":")
+                val m18Slug = parts.getOrNull(0) ?: mangaId.replace(Regex("^m18:"), "")
+                val chSlug = if (parts.size > 1) parts[1] else "chapter-$num"
+                val url = "https://manga18fx.com/manga/$m18Slug/$chSlug"
+                val request = Request.Builder()
+                    .url(url)
+                    .header("User-Agent", "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/124.0.0.0 Safari/537.36")
+                    .header("Referer", "https://manga18fx.com/")
+                    .build()
+                httpClient.newCall(request).execute().use { resp ->
+                    if (resp.isSuccessful) {
+                        val html = resp.body?.string().orEmpty()
+                        val p = Pattern.compile("<img[^>]+(?:src|data-src)=\"([^\"]+)\"", Pattern.CASE_INSENSITIVE)
+                        val m = p.matcher(html)
+                        val pageList = mutableListOf<ReaderPage>()
+                        var pageIdx = 1
+                        while (m.find()) {
+                            val imgUrl = m.group(1).orEmpty()
+                            if (imgUrl.contains("/online/") || imgUrl.contains("/webtoon/") || imgUrl.contains("/manga/")) {
+                                pageList.add(ReaderPage(pageNumber = pageIdx++, imageUrl = imgUrl))
+                            }
+                        }
+                        if (pageList.isNotEmpty()) {
+                            return@withContext pageList
+                        }
+                    }
+                }
+            } catch (_: Exception) {}
         }
 
         // 3. MangaDex fallback
@@ -944,34 +999,46 @@ class MangaRepository(context: Context) {
                                     }
                                     val mdId = dObj.optString("id")
                                     if (mdId.isNotBlank()) {
-                                        val feedUrl = "https://api.mangadex.org/manga/$mdId/feed?translatedLanguage[]=en&chapter[]=${URLEncoder.encode(cleanNum, "UTF-8")}&limit=5"
+                                        val feedUrl = "https://api.mangadex.org/manga/$mdId/feed?translatedLanguage[]=en&order[chapter]=asc&limit=500&contentRating[]=safe&contentRating[]=suggestive&contentRating[]=erotica&contentRating[]=pornographic"
                                         val feedReq = Request.Builder().url(feedUrl).header("User-Agent", "KuroNekoMobile/1.0").build()
                                         httpClient.newCall(feedReq).execute().use { feedResp ->
                                             if (feedResp.isSuccessful) {
                                                 val feedJson = JSONObject(feedResp.body?.string().orEmpty())
                                                 val chArr = feedJson.optJSONArray("data")
                                                 if (chArr != null && chArr.length() > 0) {
-                                                    val targetMdChId = chArr.getJSONObject(0).optString("id")
-                                                    val atHomeUrl = "https://api.mangadex.org/at-home/server/$targetMdChId"
-                                                    val atHomeReq = Request.Builder().url(atHomeUrl).header("User-Agent", "KuroNekoMobile/1.0").build()
-                                                    httpClient.newCall(atHomeReq).execute().use { atResp ->
-                                                        if (atResp.isSuccessful) {
-                                                            val atJson = JSONObject(atResp.body?.string().orEmpty())
-                                                            val bUrl = atJson.optString("baseUrl")
-                                                            val chObj = atJson.optJSONObject("chapter")
-                                                            val hash = chObj?.optString("hash")
-                                                            val innerDataArr = chObj?.optJSONArray("data")
-                                                            val innerHasData = innerDataArr != null && innerDataArr.length() > 0
-                                                            val innerFolder = if (innerHasData) "data" else "data-saver"
-                                                            val files = if (innerHasData) innerDataArr else (chObj?.optJSONArray("dataSaver") ?: innerDataArr)
-                                                            if (bUrl.isNotBlank() && !hash.isNullOrBlank() && files != null) {
-                                                                val pageList = mutableListOf<ReaderPage>()
-                                                                for (fi in 0 until files.length()) {
-                                                                    val file = files.getString(fi)
-                                                                    pageList.add(ReaderPage(pageNumber = fi + 1, imageUrl = "$bUrl/$innerFolder/$hash/$file"))
-                                                                }
-                                                                if (pageList.isNotEmpty()) {
-                                                                    return@withContext pageList
+                                                    var targetMdChId: String? = null
+                                                    for (ci in 0 until chArr.length()) {
+                                                        val chObj = chArr.getJSONObject(ci)
+                                                        val attrs = chObj.optJSONObject("attributes") ?: continue
+                                                        if (attrs.optInt("pages", 0) == 0 || attrs.optString("externalUrl").isNotBlank()) continue
+                                                        val chVal = attrs.optString("chapter").trim()
+                                                        if (chVal == cleanNum || (chVal.toDoubleOrNull() != null && chVal.toDouble() == cleanNum.toDoubleOrNull())) {
+                                                            targetMdChId = chObj.optString("id")
+                                                            break
+                                                        }
+                                                    }
+                                                    if (!targetMdChId.isNullOrBlank()) {
+                                                        val atHomeUrl = "https://api.mangadex.org/at-home/server/$targetMdChId"
+                                                        val atHomeReq = Request.Builder().url(atHomeUrl).header("User-Agent", "KuroNekoMobile/1.0").build()
+                                                        httpClient.newCall(atHomeReq).execute().use { atResp ->
+                                                            if (atResp.isSuccessful) {
+                                                                val atJson = JSONObject(atResp.body?.string().orEmpty())
+                                                                val bUrl = atJson.optString("baseUrl")
+                                                                val chObj = atJson.optJSONObject("chapter")
+                                                                val hash = chObj?.optString("hash")
+                                                                val innerDataArr = chObj?.optJSONArray("data")
+                                                                val innerHasData = innerDataArr != null && innerDataArr.length() > 0
+                                                                val innerFolder = if (innerHasData) "data" else "data-saver"
+                                                                val files = if (innerHasData) innerDataArr else (chObj?.optJSONArray("dataSaver") ?: innerDataArr)
+                                                                if (bUrl.isNotBlank() && !hash.isNullOrBlank() && files != null) {
+                                                                    val pageList = mutableListOf<ReaderPage>()
+                                                                    for (fi in 0 until files.length()) {
+                                                                        val file = files.getString(fi)
+                                                                        pageList.add(ReaderPage(pageNumber = fi + 1, imageUrl = "$bUrl/$innerFolder/$hash/$file"))
+                                                                    }
+                                                                    if (pageList.isNotEmpty()) {
+                                                                        return@withContext pageList
+                                                                    }
                                                                 }
                                                             }
                                                         }
@@ -998,6 +1065,54 @@ class MangaRepository(context: Context) {
      * extracts all new chapters, and returns the updated chapter list!
      */
     fun getLiveMangaDetails(mangaId: String, requestedTitle: String): String {
+        // 0. Manga18fx direct adult details
+        if (mangaId.startsWith("m18:") || mangaId.startsWith("manga18:")) {
+            val slug = mangaId.replace(Regex("^(m18:|manga18:|manga18fx:)"), "").trim()
+            try {
+                val url = "https://manga18fx.com/manga/$slug"
+                val request = Request.Builder()
+                    .url(url)
+                    .header("User-Agent", "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/124.0.0.0 Safari/537.36")
+                    .header("Referer", "https://manga18fx.com/")
+                    .build()
+                httpClient.newCall(request).execute().use { resp ->
+                    if (resp.isSuccessful) {
+                        val html = resp.body?.string().orEmpty()
+                        val titleMatcher = Pattern.compile("<h1[^>]*>([\\s\\S]*?)</h1>", Pattern.CASE_INSENSITIVE).matcher(html)
+                        val title = if (titleMatcher.find()) titleMatcher.group(1)?.replace(Regex("<[^>]+>"), "")?.trim().orEmpty() else slug
+
+                        val coverMatcher = Pattern.compile("<img [^>]*(?:data-src|src)=\"([^\"]*manga18fx\\.com/webtoon/[^\"]+)\"", Pattern.CASE_INSENSITIVE).matcher(html)
+                        val coverUrl = if (coverMatcher.find()) coverMatcher.group(1).orEmpty() else "https://manga18fx.com/webtoon/${slug}m.jpg"
+
+                        val chPattern = Pattern.compile("<a[^>]+href=\"/manga/[^/]+/(chapter-[0-9.]+)\"[^>]*>([\\s\\S]*?)</a>", Pattern.CASE_INSENSITIVE)
+                        val chMatcher = chPattern.matcher(html)
+                        val chaptersArr = JSONArray()
+                        val seen = mutableSetOf<String>()
+                        while (chMatcher.find()) {
+                            val chSlug = chMatcher.group(1).orEmpty()
+                            if (!seen.add(chSlug)) continue
+                            val rawText = chMatcher.group(2)?.replace(Regex("<[^>]+>"), "")?.trim().orEmpty()
+                            val cNum = chSlug.replace("chapter-", "")
+                            val cObj = JSONObject()
+                            cObj.put("id", "m18_ch:$slug:$chSlug")
+                            cObj.put("chapter", cNum)
+                            cObj.put("title", if (rawText.isNotBlank() && !rawText.contains("read", true)) rawText else "Chapter $cNum")
+                            chaptersArr.put(cObj)
+                        }
+                        if (chaptersArr.length() > 0) {
+                            val resObj = JSONObject()
+                            resObj.put("id", mangaId)
+                            resObj.put("title", title)
+                            resObj.put("coverUrl", coverUrl)
+                            resObj.put("chapters", chaptersArr)
+                            resObj.put("totalChapters", chaptersArr.length())
+                            resObj.put("latestChapter", chaptersArr.getJSONObject(0).optString("chapter"))
+                            return resObj.toString()
+                        }
+                    }
+                }
+            } catch (_: Exception) {}
+        }
         // 1. Try WeebCentral series full-chapter-list (direct ULID or mapped series)
         var wcSeriesId = resolveWeebCentralSeries(mangaId, requestedTitle)
         if (wcSeriesId == null && requestedTitle.isNotBlank()) {
@@ -1216,6 +1331,7 @@ class MangaRepository(context: Context) {
                 url.contains("afortunetellingprincess.com", ignoreCase = true) -> "https://afortunetellingprincess.com/"
                 url.contains("kingofshojo.com", ignoreCase = true) -> "https://kingofshojo.com/"
                 url.contains("readsololeveling.org", ignoreCase = true) -> "https://readsololeveling.org/"
+                url.contains("manga18fx.com", ignoreCase = true) -> "https://manga18fx.com/"
                 url.contains("kakamanga.com", ignoreCase = true) ||
                 url.contains("chapmanganato.com", ignoreCase = true) ||
                 url.contains("mangakakalot.com", ignoreCase = true) -> "https://www.kakamanga.com/"

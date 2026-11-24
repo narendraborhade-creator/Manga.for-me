@@ -41,6 +41,9 @@ import {
   fetchSourceLatest,
   searchSourceManga,
   searchAllInstalledSources,
+  searchNsfwSources,
+  fetchNsfwPopular,
+  fetchNsfwLatest,
   DEFAULT_REPOSITORIES,
   isNsfwAllowed,
   setNsfwAllowed
@@ -87,6 +90,69 @@ export default function ExtensionsView({ onSelectManga, onOpenReader }) {
   const [globalQuery, setGlobalQuery] = useState('');
   const [globalResults, setGlobalResults] = useState([]);
   const [searchingGlobal, setSearchingGlobal] = useState(false);
+
+  // Dedicated 18+ NSFW Search State
+  const [sourceSearchMode, setSourceSearchMode] = useState('standard'); // 'standard' | 'nsfw'
+  const [nsfwQuery, setNsfwQuery] = useState('');
+  const [nsfwResults, setNsfwResults] = useState([]);
+  const [searchingNsfw, setSearchingNsfw] = useState(false);
+  const [nsfwSearchActive, setNsfwSearchActive] = useState(false);
+  const [nsfwFeedMode, setNsfwFeedMode] = useState('popular'); // 'popular' | 'latest' | 'search'
+  const [loadingNsfwFeed, setLoadingNsfwFeed] = useState(false);
+  const [nsfwPopularList, setNsfwPopularList] = useState([]);
+
+  const nsfwSearchSeq = useRef(0);
+  const hasAttemptedNsfwFeedRef = useRef(false);
+
+  // Handle Dedicated 18+ NSFW Search
+  const handleExecuteNsfwSearch = async (e, directQuery = null) => {
+    if (e && e.preventDefault) e.preventDefault();
+    const queryToUse = directQuery !== null ? directQuery : nsfwQuery;
+    if (!queryToUse.trim()) return;
+
+    const currentSeq = ++nsfwSearchSeq.current;
+
+    if (!showNsfw) {
+      setShowNsfw(true);
+      setNsfwAllowed(true);
+    }
+
+    setSearchingNsfw(true);
+    setNsfwSearchActive(true);
+    setNsfwResults([]);
+    setNsfwFeedMode('search');
+
+    try {
+      const results = await searchNsfwSources(queryToUse.trim());
+      if (currentSeq === nsfwSearchSeq.current) {
+        setNsfwResults(results);
+      }
+    } finally {
+      if (currentSeq === nsfwSearchSeq.current) {
+        setSearchingNsfw(false);
+      }
+    }
+  };
+
+  // Load 18+ NSFW Popular or Latest Feed
+  const handleLoadNsfwFeed = useCallback(async (mode = 'popular') => {
+    setLoadingNsfwFeed(true);
+    setNsfwFeedMode(mode);
+    try {
+      const list = mode === 'latest' ? await fetchNsfwLatest() : await fetchNsfwPopular();
+      setNsfwPopularList(list);
+    } finally {
+      setLoadingNsfwFeed(false);
+    }
+  }, []);
+
+  // When switching to the dedicated 'nsfw' tab, load popular feed once safely
+  useEffect(() => {
+    if (activeSubTab === 'nsfw' && !hasAttemptedNsfwFeedRef.current && !loadingNsfwFeed) {
+      hasAttemptedNsfwFeedRef.current = true;
+      handleLoadNsfwFeed('popular');
+    }
+  }, [activeSubTab, loadingNsfwFeed, handleLoadNsfwFeed]);
 
   // Load repositories and installed extensions
   const refreshInstalled = useCallback(() => {
@@ -380,6 +446,7 @@ export default function ExtensionsView({ onSelectManga, onOpenReader }) {
         <div className="relative z-10 mt-6 pt-5 border-t border-white/10 flex items-center gap-2 overflow-x-auto scrollbar-none font-mono">
           {[
             { id: 'sources', label: 'Installed Sources', icon: Radio, count: installedExtensions.length },
+            { id: 'nsfw', label: '18+ NSFW Search', icon: ShieldAlert, count: '18+', isNsfwTab: true },
             { id: 'extensions', label: 'Extension Store', icon: Download, count: availableExtensions.length || '1.6k+' },
             { id: 'repositories', label: 'Repositories', icon: Globe, count: repositories.length }
           ].map(tab => {
@@ -388,17 +455,29 @@ export default function ExtensionsView({ onSelectManga, onOpenReader }) {
             return (
               <button
                 key={tab.id}
-                onClick={() => setActiveSubTab(tab.id)}
+                onClick={() => {
+                  setActiveSubTab(tab.id);
+                  if (tab.id === 'nsfw' && !showNsfw) {
+                    setShowNsfw(true);
+                    setNsfwAllowed(true);
+                  }
+                }}
                 className={`flex items-center gap-2 px-4 sm:px-5 py-2.5 rounded-xl text-xs sm:text-sm font-bold transition-all cursor-pointer whitespace-nowrap ${
                   isActive
-                    ? 'btn-holo text-white shadow-lg ring-2 ring-cyan-400/80 shadow-cyan-500/25 bg-cyan-950/80'
-                    : 'bg-slate-900/80 text-slate-400 hover:text-white hover:bg-slate-800 border border-white/10'
+                    ? tab.isNsfwTab
+                      ? 'bg-rose-950/90 text-white shadow-lg ring-2 ring-rose-500/80 shadow-rose-500/25 border border-rose-500/50'
+                      : 'btn-holo text-white shadow-lg ring-2 ring-cyan-400/80 shadow-cyan-500/25 bg-cyan-950/80'
+                    : tab.isNsfwTab
+                      ? 'bg-rose-950/30 text-rose-300 hover:text-white hover:bg-rose-900/50 border border-rose-500/30'
+                      : 'bg-slate-900/80 text-slate-400 hover:text-white hover:bg-slate-800 border border-white/10'
                 }`}
               >
-                <Icon className={`w-4 h-4 ${isActive ? 'text-cyan-300' : 'text-slate-400'}`} />
+                <Icon className={`w-4 h-4 ${isActive ? (tab.isNsfwTab ? 'text-rose-400' : 'text-cyan-300') : (tab.isNsfwTab ? 'text-rose-400/80' : 'text-slate-400')}`} />
                 <span>{tab.label}</span>
                 <span className={`text-[10px] px-2 py-0.5 rounded-full font-bold ${
-                  isActive ? 'bg-cyan-500/30 text-cyan-200' : 'bg-white/5 text-slate-400'
+                  isActive 
+                    ? (tab.isNsfwTab ? 'bg-rose-500/30 text-rose-200' : 'bg-cyan-500/30 text-cyan-200')
+                    : (tab.isNsfwTab ? 'bg-rose-500/10 text-rose-300' : 'bg-white/5 text-slate-400')
                 }`}>
                   {tab.count}
                 </span>
@@ -412,71 +491,197 @@ export default function ExtensionsView({ onSelectManga, onOpenReader }) {
       {activeSubTab === 'sources' && (
         <div className="space-y-6">
           
-          {/* Multi-Source Search & Global Query Bar */}
+          {/* Multi-Source Search & Global Query Bar with Standard vs NSFW Search Switch */}
           <div className="p-4 sm:p-5 rounded-2xl bg-slate-950/90 border border-white/10 shadow-lg space-y-3">
-            <form onSubmit={handleExecuteGlobalSearch} className="flex flex-col sm:flex-row items-stretch sm:items-center gap-3">
-              <div className="relative flex-1">
-                <Search className="w-4 h-4 absolute left-3.5 top-1/2 -translate-y-1/2 text-cyan-400 pointer-events-none" />
-                <input
-                  type="text"
-                  value={globalQuery}
-                  onChange={(e) => setGlobalQuery(e.target.value)}
-                  placeholder="Global Search: Query all installed sources simultaneously (e.g. Solo Leveling, One Piece)..."
-                  className="w-full bg-slate-900 border border-white/10 rounded-xl pl-10 pr-4 py-2.5 text-xs sm:text-sm text-slate-100 placeholder-slate-500 focus:outline-none focus:border-cyan-400 transition-all font-sans"
-                />
+            
+            {/* Search Mode Segmented Switch: Standard vs 18+ NSFW */}
+            <div className="flex flex-wrap items-center justify-between gap-2 pb-1 border-b border-white/5">
+              <div className="flex items-center gap-1.5 p-1 rounded-xl bg-slate-900 border border-white/10 text-xs font-mono">
+                <button
+                  type="button"
+                  onClick={() => setSourceSearchMode('standard')}
+                  className={`flex items-center gap-1.5 px-3 py-1.5 rounded-lg font-bold transition-all cursor-pointer ${
+                    sourceSearchMode === 'standard'
+                      ? 'bg-cyan-600 text-white shadow-sm'
+                      : 'text-slate-400 hover:text-white'
+                  }`}
+                >
+                  <Search className="w-3.5 h-3.5" />
+                  <span>Standard Sources Search</span>
+                </button>
+
+                <button
+                  type="button"
+                  onClick={() => {
+                    setSourceSearchMode('nsfw');
+                    if (!showNsfw) {
+                      setShowNsfw(true);
+                      setNsfwAllowed(true);
+                    }
+                  }}
+                  className={`flex items-center gap-1.5 px-3 py-1.5 rounded-lg font-bold transition-all cursor-pointer ${
+                    sourceSearchMode === 'nsfw'
+                      ? 'bg-rose-600 text-white shadow-sm shadow-rose-600/30'
+                      : 'text-rose-400/80 hover:text-rose-300'
+                  }`}
+                >
+                  <ShieldAlert className="w-3.5 h-3.5 text-rose-300" />
+                  <span>18+ NSFW Sources Search</span>
+                  <span className="text-[9px] px-1.5 py-0.2 rounded bg-rose-900/60 text-rose-200 font-black">18+</span>
+                </button>
               </div>
 
               <div className="flex items-center gap-2">
                 <button
-                  type="submit"
-                  disabled={searchingGlobal || !globalQuery.trim()}
-                  className="px-5 py-2.5 rounded-xl bg-gradient-to-r from-cyan-600 to-indigo-600 hover:from-cyan-500 hover:to-indigo-500 text-white text-xs sm:text-sm font-bold transition-all shadow-md shadow-cyan-600/30 flex items-center justify-center gap-2 cursor-pointer disabled:opacity-50 flex-shrink-0"
-                >
-                  {searchingGlobal ? (
-                    <Loader2 className="w-4 h-4 animate-spin text-white" />
-                  ) : (
-                    <Sparkles className="w-4 h-4 text-white fill-white" />
-                  )}
-                  <span>Global Search</span>
-                </button>
-
-                {/* 18+ NSFW Toggle in Installed Tab */}
-                <button
                   type="button"
-                  onClick={handleToggleNsfw}
-                  className={`px-3 py-2.5 rounded-xl text-xs font-mono font-bold border transition-all flex items-center gap-1.5 cursor-pointer flex-shrink-0 ${
-                    showNsfw
-                      ? 'bg-rose-500/20 text-rose-300 border-rose-500/40 shadow-sm'
-                      : 'bg-slate-900 text-slate-400 border-white/10 hover:text-white'
-                  }`}
-                  title="Toggle 18+ NSFW Sources"
+                  onClick={() => {
+                    setActiveSubTab('nsfw');
+                    if (!showNsfw) {
+                      setShowNsfw(true);
+                      setNsfwAllowed(true);
+                    }
+                  }}
+                  className="text-xs text-rose-400 hover:text-rose-300 hover:underline flex items-center gap-1 cursor-pointer font-mono font-semibold"
                 >
-                  {showNsfw ? (
-                    <ShieldAlert className="w-3.5 h-3.5 text-rose-400" />
-                  ) : (
-                    <ShieldCheck className="w-3.5 h-3.5 text-slate-400" />
-                  )}
-                  <span>18+ NSFW: {showNsfw ? 'ON' : 'OFF'}</span>
+                  <span>Open Full 18+ NSFW Deck</span>
+                  <ChevronRight className="w-3.5 h-3.5" />
                 </button>
+              </div>
+            </div>
 
-                {globalSearchActive && (
+            {/* Standard Search Form */}
+            {sourceSearchMode === 'standard' && (
+              <form onSubmit={handleExecuteGlobalSearch} className="flex flex-col sm:flex-row items-stretch sm:items-center gap-3">
+                <div className="relative flex-1">
+                  <Search className="w-4 h-4 absolute left-3.5 top-1/2 -translate-y-1/2 text-cyan-400 pointer-events-none" />
+                  <input
+                    type="text"
+                    value={globalQuery}
+                    onChange={(e) => setGlobalQuery(e.target.value)}
+                    placeholder="Standard Search: Query all installed sources simultaneously (e.g. Solo Leveling, One Piece)..."
+                    className="w-full bg-slate-900 border border-white/10 rounded-xl pl-10 pr-4 py-2.5 text-xs sm:text-sm text-slate-100 placeholder-slate-500 focus:outline-none focus:border-cyan-400 transition-all font-sans"
+                  />
+                </div>
+
+                <div className="flex items-center gap-2">
+                  <button
+                    type="submit"
+                    disabled={searchingGlobal || !globalQuery.trim()}
+                    className="px-5 py-2.5 rounded-xl bg-gradient-to-r from-cyan-600 to-indigo-600 hover:from-cyan-500 hover:to-indigo-500 text-white text-xs sm:text-sm font-bold transition-all shadow-md shadow-cyan-600/30 flex items-center justify-center gap-2 cursor-pointer disabled:opacity-50 flex-shrink-0"
+                  >
+                    {searchingGlobal ? (
+                      <Loader2 className="w-4 h-4 animate-spin text-white" />
+                    ) : (
+                      <Sparkles className="w-4 h-4 text-white fill-white" />
+                    )}
+                    <span>Global Search</span>
+                  </button>
+
                   <button
                     type="button"
-                    onClick={() => {
-                      setGlobalSearchActive(false);
-                      setGlobalQuery('');
-                      setGlobalResults([]);
-                    }}
-                    className="p-2.5 rounded-xl bg-slate-800 text-slate-400 hover:text-white border border-white/10 transition-all cursor-pointer"
-                    title="Clear search"
+                    onClick={handleToggleNsfw}
+                    className={`px-3 py-2.5 rounded-xl text-xs font-mono font-bold border transition-all flex items-center gap-1.5 cursor-pointer flex-shrink-0 ${
+                      showNsfw
+                        ? 'bg-rose-500/20 text-rose-300 border-rose-500/40 shadow-sm'
+                        : 'bg-slate-900 text-slate-400 border-white/10 hover:text-white'
+                    }`}
+                    title="Toggle 18+ NSFW Sources"
                   >
-                    <X className="w-4 h-4" />
+                    {showNsfw ? (
+                      <ShieldAlert className="w-3.5 h-3.5 text-rose-400" />
+                    ) : (
+                      <ShieldCheck className="w-3.5 h-3.5 text-slate-400" />
+                    )}
+                    <span>18+ NSFW: {showNsfw ? 'ON' : 'OFF'}</span>
                   </button>
-                )}
-              </div>
-            </form>
 
-            {!showNsfw && hiddenNsfwCount > 0 && !globalSearchActive && (
+                  {globalSearchActive && (
+                    <button
+                      type="button"
+                      onClick={() => {
+                        setGlobalSearchActive(false);
+                        setGlobalQuery('');
+                        setGlobalResults([]);
+                      }}
+                      className="p-2.5 rounded-xl bg-slate-800 text-slate-400 hover:text-white border border-white/10 transition-all cursor-pointer"
+                      title="Clear search"
+                    >
+                      <X className="w-4 h-4" />
+                    </button>
+                  )}
+                </div>
+              </form>
+            )}
+
+            {/* Separate 18+ NSFW Search Form */}
+            {sourceSearchMode === 'nsfw' && (
+              <div className="space-y-3">
+                <form onSubmit={handleExecuteNsfwSearch} className="flex flex-col sm:flex-row items-stretch sm:items-center gap-3">
+                  <div className="relative flex-1">
+                    <ShieldAlert className="w-4 h-4 absolute left-3.5 top-1/2 -translate-y-1/2 text-rose-400 pointer-events-none" />
+                    <input
+                      type="text"
+                      value={nsfwQuery}
+                      onChange={(e) => setNsfwQuery(e.target.value)}
+                      placeholder="18+ NSFW Search: Query Manga18fx, DoujinDesu & Adult archives (e.g. Secret, Teacher, Stepmother)..."
+                      className="w-full bg-slate-900 border border-rose-500/40 focus:border-rose-400 rounded-xl pl-10 pr-4 py-2.5 text-xs sm:text-sm text-slate-100 placeholder-slate-400 focus:outline-none transition-all font-sans ring-1 ring-rose-500/20"
+                    />
+                  </div>
+
+                  <div className="flex items-center gap-2">
+                    <button
+                      type="submit"
+                      disabled={searchingNsfw || !nsfwQuery.trim()}
+                      className="px-5 py-2.5 rounded-xl bg-gradient-to-r from-rose-600 via-pink-600 to-rose-700 hover:from-rose-500 hover:to-pink-500 text-white text-xs sm:text-sm font-bold transition-all shadow-md shadow-rose-600/40 flex items-center justify-center gap-2 cursor-pointer disabled:opacity-50 flex-shrink-0"
+                    >
+                      {searchingNsfw ? (
+                        <Loader2 className="w-4 h-4 animate-spin text-white" />
+                      ) : (
+                        <ShieldAlert className="w-4 h-4 text-white" />
+                      )}
+                      <span>18+ Adult Search</span>
+                    </button>
+
+                    {nsfwSearchActive && (
+                      <button
+                        type="button"
+                        onClick={() => {
+                          setNsfwSearchActive(false);
+                          setNsfwQuery('');
+                          setNsfwResults([]);
+                          setNsfwFeedMode('popular');
+                          handleLoadNsfwFeed('popular');
+                        }}
+                        className="p-2.5 rounded-xl bg-slate-800 text-slate-400 hover:text-white border border-white/10 transition-all cursor-pointer"
+                        title="Clear 18+ search"
+                      >
+                        <X className="w-4 h-4" />
+                      </button>
+                    )}
+                  </div>
+                </form>
+
+                {/* Quick 18+ Keyword Pills */}
+                <div className="flex flex-wrap items-center gap-1.5 text-xs font-mono">
+                  <span className="text-slate-400 text-[11px] font-bold mr-1">TRENDING 18+::</span>
+                  {['Teacher', 'Secret', 'Stepmother', 'Harem', 'Roommate', 'College', 'Romance', 'Manhwa'].map(tag => (
+                    <button
+                      key={tag}
+                      type="button"
+                      onClick={() => {
+                        setNsfwQuery(tag);
+                        handleExecuteNsfwSearch(null, tag);
+                      }}
+                      className="px-2.5 py-1 rounded-lg bg-rose-950/40 hover:bg-rose-900/60 text-rose-300 border border-rose-500/30 text-[11px] font-medium transition-all cursor-pointer"
+                    >
+                      #{tag}
+                    </button>
+                  ))}
+                </div>
+              </div>
+            )}
+
+            {!showNsfw && hiddenNsfwCount > 0 && !globalSearchActive && !nsfwSearchActive && (
               <div className="pt-2 flex items-center justify-between text-xs text-slate-400 font-mono">
                 <span className="flex items-center gap-1.5">
                   <ShieldCheck className="w-3.5 h-3.5 text-emerald-400" />
@@ -492,8 +697,8 @@ export default function ExtensionsView({ onSelectManga, onOpenReader }) {
               </div>
             )}
 
-            {/* Global Search Results Panel */}
-            {globalSearchActive && (
+            {/* Global Standard Search Results Panel */}
+            {sourceSearchMode === 'standard' && globalSearchActive && (
               <div className="pt-3 border-t border-white/10 space-y-4">
                 <div className="flex items-center justify-between text-xs font-mono">
                   <span className="text-cyan-300 font-bold">
@@ -518,6 +723,41 @@ export default function ExtensionsView({ onSelectManga, onOpenReader }) {
                         <MangaCard manga={item} onSelect={onSelectManga} />
                         <span className="absolute top-2 left-2 z-20 px-2 py-0.5 rounded-md text-[9px] font-mono font-bold bg-slate-950/90 text-cyan-300 border border-cyan-400/40 backdrop-blur-md shadow-md pointer-events-none">
                           {item.extensionName || item.sourceName}
+                        </span>
+                      </div>
+                    ))}
+                  </div>
+                )}
+              </div>
+            )}
+
+            {/* Separate 18+ NSFW Search Results Panel */}
+            {sourceSearchMode === 'nsfw' && nsfwSearchActive && (
+              <div className="pt-3 border-t border-rose-500/20 space-y-4">
+                <div className="flex items-center justify-between text-xs font-mono">
+                  <span className="text-rose-400 font-bold flex items-center gap-1.5">
+                    <ShieldAlert className="w-4 h-4 text-rose-400" />
+                    <span>18+ NSFW RESULTS (Manga18fx, DoujinDesu, MangaDex Adult):</span>
+                  </span>
+                  <span className="text-rose-300 font-semibold">{nsfwResults.length} adult titles found</span>
+                </div>
+
+                {searchingNsfw ? (
+                  <div className="py-12 flex flex-col items-center justify-center gap-2">
+                    <Loader2 className="w-7 h-7 text-rose-500 animate-spin" />
+                    <p className="text-xs text-rose-300 font-mono">Concurrently querying Manga18fx & Adult feeds...</p>
+                  </div>
+                ) : nsfwResults.length === 0 ? (
+                  <div className="py-10 text-center text-slate-400 text-sm">
+                    No adult titles found for "{nsfwQuery}". Try a broader term like "Teacher", "Secret", or "Harem".
+                  </div>
+                ) : (
+                  <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 xl:grid-cols-6 gap-4">
+                    {nsfwResults.map((item, idx) => (
+                      <div key={`${item.sourceName || 'm18'}_${item.id}_${idx}`} className="relative group">
+                        <MangaCard manga={item} onSelect={onSelectManga} />
+                        <span className="absolute top-2 left-2 z-20 px-2 py-0.5 rounded-md text-[9px] font-mono font-black bg-rose-950/90 text-rose-300 border border-rose-500/50 backdrop-blur-md shadow-md pointer-events-none">
+                          {item.sourceName || '18+ Adult'}
                         </span>
                       </div>
                     ))}
@@ -578,6 +818,175 @@ export default function ExtensionsView({ onSelectManga, onOpenReader }) {
               </div>
             </div>
           )}
+        </div>
+      )}
+
+      {/* ----------------- TAB 2: DEDICATED 18+ NSFW SEARCH & DECK ----------------- */}
+      {activeSubTab === 'nsfw' && (
+        <div className="space-y-6">
+          {/* Hero Banner for 18+ NSFW Search Engine */}
+          <div className="p-6 sm:p-7 rounded-3xl bg-gradient-to-br from-rose-950/80 via-slate-950/95 to-slate-950 border border-rose-500/30 shadow-2xl relative overflow-hidden space-y-5">
+            <div className="absolute top-0 right-0 w-80 h-80 bg-rose-600/10 rounded-full blur-3xl pointer-events-none" />
+
+            <div className="relative z-10 flex flex-col md:flex-row md:items-center justify-between gap-4">
+              <div className="space-y-1.5">
+                <div className="flex items-center gap-2">
+                  <span className="px-2.5 py-0.5 rounded-full text-xs font-black bg-rose-500/20 text-rose-300 border border-rose-500/40 flex items-center gap-1.5 font-mono">
+                    <ShieldAlert className="w-3.5 h-3.5 text-rose-400" />
+                    ADULT CONTENT ENGINE
+                  </span>
+                  <span className="text-xs text-rose-300/80 font-mono">
+                    • Manga18fx & MangaDex Erotica
+                  </span>
+                </div>
+                <h2 className="text-xl sm:text-2xl font-black text-white tracking-tight font-['Outfit'] flex items-center gap-2.5">
+                  <span>18+ NSFW Sources Search Engine</span>
+                </h2>
+                <p className="text-xs sm:text-sm text-slate-300 max-w-2xl leading-relaxed">
+                  Search exclusively across adult manhwa, webtoons, and doujinshi from Manga18fx, DoujinDesu, and the MangaDex 18+ archive with zero safe filter pollution.
+                </p>
+              </div>
+
+              {/* Feed Switcher: Popular vs Latest */}
+              <div className="flex items-center gap-1.5 bg-slate-900/90 p-1.5 rounded-2xl border border-white/10 font-mono text-xs flex-shrink-0 self-start md:self-auto">
+                <button
+                  type="button"
+                  onClick={() => handleLoadNsfwFeed('popular')}
+                  className={`px-3 py-1.5 rounded-xl font-bold transition-all cursor-pointer flex items-center gap-1.5 ${
+                    nsfwFeedMode === 'popular'
+                      ? 'bg-rose-600 text-white shadow-md shadow-rose-600/30'
+                      : 'text-slate-400 hover:text-white'
+                  }`}
+                >
+                  <Flame className="w-3.5 h-3.5" />
+                  <span>Trending 18+</span>
+                </button>
+
+                <button
+                  type="button"
+                  onClick={() => handleLoadNsfwFeed('latest')}
+                  className={`px-3 py-1.5 rounded-xl font-bold transition-all cursor-pointer flex items-center gap-1.5 ${
+                    nsfwFeedMode === 'latest'
+                      ? 'bg-rose-600 text-white shadow-md shadow-rose-600/30'
+                      : 'text-slate-400 hover:text-white'
+                  }`}
+                >
+                  <Clock className="w-3.5 h-3.5" />
+                  <span>Latest Releases</span>
+                </button>
+              </div>
+            </div>
+
+            {/* Dedicated 18+ Search Bar */}
+            <form onSubmit={handleExecuteNsfwSearch} className="relative z-10 flex flex-col sm:flex-row items-stretch sm:items-center gap-3">
+              <div className="relative flex-1">
+                <ShieldAlert className="w-4 h-4 absolute left-3.5 top-1/2 -translate-y-1/2 text-rose-400 pointer-events-none" />
+                <input
+                  type="text"
+                  value={nsfwQuery}
+                  onChange={(e) => setNsfwQuery(e.target.value)}
+                  placeholder="Query adult titles (e.g. Teacher, Secret, Stepmother, Harem, Roommate, College)..."
+                  className="w-full bg-slate-900/90 border border-rose-500/40 focus:border-rose-400 rounded-2xl pl-10 pr-4 py-3 text-xs sm:text-sm text-slate-100 placeholder-slate-400 focus:outline-none transition-all font-sans ring-1 ring-rose-500/20"
+                />
+              </div>
+
+              <div className="flex items-center gap-2">
+                <button
+                  type="submit"
+                  disabled={searchingNsfw || !nsfwQuery.trim()}
+                  className="px-6 py-3 rounded-2xl bg-gradient-to-r from-rose-600 via-pink-600 to-rose-700 hover:from-rose-500 hover:to-pink-500 text-white text-xs sm:text-sm font-bold transition-all shadow-xl shadow-rose-600/40 flex items-center justify-center gap-2 cursor-pointer disabled:opacity-50 flex-shrink-0"
+                >
+                  {searchingNsfw ? (
+                    <Loader2 className="w-4 h-4 animate-spin text-white" />
+                  ) : (
+                    <Search className="w-4 h-4 text-white" />
+                  )}
+                  <span>Search 18+ Sources</span>
+                </button>
+
+                {nsfwFeedMode === 'search' && (
+                  <button
+                    type="button"
+                    onClick={() => {
+                      setNsfwQuery('');
+                      setNsfwResults([]);
+                      handleLoadNsfwFeed('popular');
+                    }}
+                    className="p-3 rounded-2xl bg-slate-800 text-slate-400 hover:text-white border border-white/10 transition-all cursor-pointer"
+                    title="Return to Trending"
+                  >
+                    <X className="w-4 h-4" />
+                  </button>
+                )}
+              </div>
+            </form>
+
+            {/* Quick 18+ Tag Shortcuts */}
+            <div className="relative z-10 flex flex-wrap items-center gap-1.5 text-xs font-mono pt-1">
+              <span className="text-slate-400 text-[11px] font-bold mr-1">QUICK TAGS::</span>
+              {['Teacher', 'Secret', 'Stepmother', 'Harem', 'Roommate', 'College', 'Romance', 'Manhwa', 'Neighbor', 'Office'].map(tag => (
+                <button
+                  key={tag}
+                  type="button"
+                  onClick={() => {
+                    setNsfwQuery(tag);
+                    handleExecuteNsfwSearch(null, tag);
+                  }}
+                  className="px-2.5 py-1 rounded-lg bg-rose-950/50 hover:bg-rose-900/70 text-rose-300 border border-rose-500/30 text-[11px] font-medium transition-all cursor-pointer hover:border-rose-400/50"
+                >
+                  #{tag}
+                </button>
+              ))}
+            </div>
+          </div>
+
+          {/* 18+ Content Display Grid */}
+          <div className="space-y-4">
+            <div className="flex items-center justify-between text-xs font-mono">
+              <span className="text-rose-400 font-bold flex items-center gap-2 tracking-wider">
+                <ShieldAlert className="w-4 h-4 text-rose-500" />
+                <span>
+                  {nsfwFeedMode === 'search'
+                    ? `SEARCH RESULTS FOR "${nsfwQuery}" (${nsfwResults.length})`
+                    : nsfwFeedMode === 'latest'
+                      ? `LATEST 18+ RELEASES (${nsfwPopularList.length})`
+                      : `TRENDING 18+ MANHWA & DOUJIN (${nsfwPopularList.length})`}
+                </span>
+              </span>
+
+              {nsfwFeedMode === 'search' && (
+                <button
+                  onClick={() => handleLoadNsfwFeed('popular')}
+                  className="text-xs text-rose-400 hover:underline cursor-pointer"
+                >
+                  ← Back to Trending
+                </button>
+              )}
+            </div>
+
+            {(searchingNsfw || loadingNsfwFeed) ? (
+              <div className="py-20 flex flex-col items-center justify-center gap-3">
+                <Loader2 className="w-8 h-8 text-rose-500 animate-spin" />
+                <p className="text-xs text-rose-300 font-mono">Retrieving adult titles from Manga18fx & Adult feeds...</p>
+              </div>
+            ) : (nsfwFeedMode === 'search' ? nsfwResults : nsfwPopularList).length === 0 ? (
+              <div className="py-16 text-center text-slate-400 text-sm space-y-2">
+                <p>No adult titles found matching your search.</p>
+                <p className="text-xs text-slate-500">Try one of the trending tags above or click Trending 18+.</p>
+              </div>
+            ) : (
+              <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 xl:grid-cols-6 gap-4 sm:gap-5">
+                {(nsfwFeedMode === 'search' ? nsfwResults : nsfwPopularList).map((manga, idx) => (
+                  <div key={`${manga.sourceName || 'm18'}_${manga.id}_${idx}`} className="relative group">
+                    <MangaCard manga={manga} onSelect={onSelectManga} />
+                    <span className="absolute top-2 left-2 z-20 px-2 py-0.5 rounded-md text-[9px] font-mono font-black bg-rose-950/90 text-rose-300 border border-rose-500/50 backdrop-blur-md shadow-md pointer-events-none">
+                      {manga.sourceName || '18+ Adult'}
+                    </span>
+                  </div>
+                ))}
+              </div>
+            )}
+          </div>
         </div>
       )}
 

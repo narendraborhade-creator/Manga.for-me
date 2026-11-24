@@ -38,6 +38,8 @@ export default function Navbar({
 }) {
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
   const [notificationsOpen, setNotificationsOpen] = useState(false);
+  const [logoFailed, setLogoFailed] = useState(false);
+  const [logoSrc, setLogoSrc] = useState(logoImg || './logo.png');
 
   const hasActiveFilters = selectedGenre !== 'All' || selectedSource !== 'All';
 
@@ -145,12 +147,24 @@ export default function Navbar({
             onClick={() => setActiveTab('manga')}
           >
             <div className="relative flex items-center justify-center w-10 h-10 sm:w-11 sm:h-11 rounded-xl overflow-hidden border border-white/10 shadow-md group-hover:scale-105 transition-all duration-300 bg-slate-950">
-              <img 
-                src={logoImg || './logo.png'} 
-                alt="KuroNeko Logo" 
-                className="w-full h-full object-cover object-center group-hover:scale-105 transition-transform duration-500" 
-                onError={(e) => { e.currentTarget.src = './logo.png'; }}
-              />
+              {!logoFailed ? (
+                <img 
+                  src={logoSrc} 
+                  alt="KuroNeko Logo" 
+                  className="w-full h-full object-cover object-center group-hover:scale-105 transition-transform duration-500" 
+                  onError={() => { 
+                    if (!String(logoSrc).endsWith('logo.jpg')) {
+                      setLogoSrc('./logo.jpg');
+                    } else {
+                      setLogoFailed(true);
+                    }
+                  }}
+                />
+              ) : (
+                <div className="w-full h-full flex items-center justify-center font-black text-rose-500 bg-rose-950/60 font-mono text-sm select-none">
+                  黒猫
+                </div>
+              )}
             </div>
             <div>
               <div className="flex items-center gap-2">
@@ -290,6 +304,24 @@ export default function Navbar({
                             </div>
                           </div>
                         ))}
+                        {suggestions.length > 0 && (
+                          <div className="pt-1.5 mt-1 border-t border-white/5">
+                            <button
+                              type="button"
+                              onClick={() => {
+                                setShowSuggestions(false);
+                                setActiveTab('sources');
+                              }}
+                              className="w-full py-1.5 px-2.5 rounded-lg bg-rose-950/40 hover:bg-rose-900/50 border border-rose-500/20 text-rose-300 hover:text-white text-[11px] font-mono font-bold flex items-center justify-between transition-all cursor-pointer"
+                            >
+                              <span className="flex items-center gap-1.5">
+                                <span className="px-1 py-0.2 rounded bg-rose-600 text-white text-[9px] font-black">18+</span>
+                                <span>Search "{searchQuery}" in 18+ NSFW Sources</span>
+                              </span>
+                              <span>→</span>
+                            </button>
+                          </div>
+                        )}
                       </div>
                     ) : isSearchingSuggestions ? (
                       <div className="p-4 text-center text-xs text-slate-400 flex items-center justify-center gap-2">
@@ -508,6 +540,22 @@ export default function Navbar({
                         </div>
                       </div>
                     ))}
+                    <div className="pt-1.5 mt-1 border-t border-white/5">
+                      <button
+                        type="button"
+                        onClick={() => {
+                          setShowSuggestions(false);
+                          setActiveTab('sources');
+                        }}
+                        className="w-full py-1.5 px-2.5 rounded-lg bg-rose-950/40 hover:bg-rose-900/50 border border-rose-500/20 text-rose-300 hover:text-white text-[11px] font-mono font-bold flex items-center justify-between transition-all cursor-pointer"
+                      >
+                        <span className="flex items-center gap-1.5">
+                          <span className="px-1 py-0.2 rounded bg-rose-600 text-white text-[9px] font-black">18+</span>
+                          <span>Search "{searchQuery}" in 18+ NSFW Sources</span>
+                        </span>
+                        <span>→</span>
+                      </button>
+                    </div>
                   </div>
                 ) : isSearchingSuggestions ? (
                   <div className="p-3 text-center text-xs text-slate-400 flex items-center justify-center gap-2">

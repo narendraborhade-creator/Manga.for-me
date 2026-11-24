@@ -347,9 +347,22 @@ fun ChapterRow(
             horizontalArrangement = Arrangement.SpaceBetween,
             verticalAlignment = Alignment.CenterVertically
         ) {
+            val displayTitle = if (chapter.title.isBlank() || 
+                chapter.title.equals("Chapter ${chapter.chapterNumber}", ignoreCase = true) ||
+                chapter.title.equals("Episode ${chapter.chapterNumber}", ignoreCase = true) ||
+                chapter.title.equals("Ch. ${chapter.chapterNumber}", ignoreCase = true) ||
+                chapter.title.equals("Ep. ${chapter.chapterNumber}", ignoreCase = true) ||
+                chapter.title.equals(chapter.chapterNumber, ignoreCase = true)) {
+                "Chapter ${chapter.chapterNumber}"
+            } else if (!chapter.title.startsWith("Chapter", ignoreCase = true) && !chapter.title.startsWith("Ch", ignoreCase = true) && !chapter.title.startsWith("Episode", ignoreCase = true) && !chapter.title.startsWith("Ep", ignoreCase = true)) {
+                "Chapter ${chapter.chapterNumber} • ${chapter.title}"
+            } else {
+                chapter.title
+            }
+
             Column {
                 Text(
-                    text = chapter.title,
+                    text = displayTitle,
                     color = if (isRead) Color.Gray else Color.White,
                     fontSize = 14.sp,
                     fontWeight = FontWeight.Medium
