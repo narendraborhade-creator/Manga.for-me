@@ -16,6 +16,7 @@ const UpdatesView = lazy(() => import('./components/UpdatesView'));
 const MoreView = lazy(() => import('./components/MoreView'));
 const ResponsiveHeroBanner = lazy(() => import('./components/ui/responsive-hero-banner'));
 import { getInstalledExtensions } from './services/extensionManager';
+import logoImg from './assets/logo.png';
 
 import { 
   fetchPopularManga, 
@@ -712,6 +713,7 @@ export default function App() {
                       {heroStyle === 'banner' ? (
                         <Suspense fallback={<div className="h-[460px] rounded-3xl bg-slate-900/60 animate-pulse border border-white/10" />}>
                           <ResponsiveHeroBanner
+                            logoUrl={logoImg}
                             backgroundImageUrl={spotlightItems[0]?.bannerUrl || spotlightItems[0]?.coverUrl || 'https://images.unsplash.com/photo-1579783900882-c0d3dad7b119?q=80&w=2000&auto=format&fit=crop'}
                             title={spotlightItems[0]?.englishTitle || spotlightItems[0]?.title || 'Universe of Manga'}
                             titleLine2={spotlightItems[0]?.author ? `by ${spotlightItems[0]?.author}` : 'Official Release'}
@@ -1245,7 +1247,7 @@ export default function App() {
       <footer className="border-t border-white/5 py-8 mt-12 mb-20 md:mb-0 text-center text-xs text-slate-500 bg-[#06080c]">
         <div className="max-w-7xl mx-auto px-4 flex flex-col sm:flex-row items-center justify-between gap-4">
           <div className="flex items-center gap-2.5 font-['Outfit'] font-bold text-slate-400">
-            <img src="/logo.jpg" alt="KuroNeko Logo" className="w-6 h-6 rounded-lg object-cover border border-white/10 shadow-sm" />
+            <img src={logoImg || './logo.png'} alt="KuroNeko Logo" className="w-6 h-6 rounded-lg object-cover border border-white/10 shadow-sm" onError={(e) => { e.currentTarget.src = './logo.png'; }} />
             <span>KuroNeko • 黒猫</span>
             <span className="text-slate-600">|</span>
             <span className="font-normal text-slate-500">Manga & Webtoon Terminal</span>

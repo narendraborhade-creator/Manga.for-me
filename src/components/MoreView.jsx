@@ -1,4 +1,5 @@
 import React, { useState, useEffect } from 'react';
+import logoImg from '../assets/logo.png';
 import { 
   Settings, 
   Layers, 
@@ -425,7 +426,7 @@ export default function MoreView({
       {/* Section 6: About Mihon Web Terminal */}
       <div className="p-6 rounded-2xl bg-slate-950 border border-white/10 text-center space-y-2">
         <div className="flex items-center justify-center gap-2 font-bold font-['Outfit'] text-slate-200">
-          <img src="/logo.jpg" alt="Logo" className="w-6 h-6 rounded-lg object-cover" />
+          <img src={logoImg || './logo.png'} alt="Logo" className="w-6 h-6 rounded-lg object-cover" onError={(e) => { e.currentTarget.src = './logo.png'; }} />
           <span>KuroNeko • Mihon Web Terminal v3.5</span>
         </div>
         <p className="text-xs text-slate-400 max-w-md mx-auto">

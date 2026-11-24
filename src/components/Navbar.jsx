@@ -17,6 +17,7 @@ import {
 } from 'lucide-react';
 import NotificationsDropdown from './NotificationsDropdown';
 import { searchManga, getFallbackCover, getReliableCoverUrl } from '../services/mangaApi';
+import logoImg from '../assets/logo.png';
 
 export default function Navbar({
   activeTab,
@@ -145,9 +146,10 @@ export default function Navbar({
           >
             <div className="relative flex items-center justify-center w-10 h-10 sm:w-11 sm:h-11 rounded-xl overflow-hidden border border-white/10 shadow-md group-hover:scale-105 transition-all duration-300 bg-slate-950">
               <img 
-                src="/logo.jpg" 
+                src={logoImg || './logo.png'} 
                 alt="KuroNeko Logo" 
                 className="w-full h-full object-cover object-center group-hover:scale-105 transition-transform duration-500" 
+                onError={(e) => { e.currentTarget.src = './logo.png'; }}
               />
             </div>
             <div>
