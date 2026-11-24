@@ -1015,7 +1015,7 @@ class MangaRepository(context: Context) {
 
             httpClient.newCall(reqBuilder.build()).execute().use { response ->
                 if (response.isSuccessful && response.body != null) {
-                    val bytes = response.body!!.bytes()
+                    val bytes = response.body?.bytes() ?: return null
                     if (bytes.isEmpty()) return null
 
                     // Detect proper image MIME type (avoid application/octet-stream rejection by Chromium)

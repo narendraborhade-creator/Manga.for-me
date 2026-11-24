@@ -1058,7 +1058,7 @@ export async function searchManga(query = '') {
  */
 export async function fetchMangaPillSearch(query = '') {
   const url = `${BASE_URL}/search?q=${encodeURIComponent(query.trim())}`;
-  const res = await fetch(url, { headers: HEADERS });
+  const res = await fetchWithTimeout(url, { headers: HEADERS }, 6000);
   if (!res.ok) throw new Error(`HTTP ${res.status}`);
   const html = await res.text();
 

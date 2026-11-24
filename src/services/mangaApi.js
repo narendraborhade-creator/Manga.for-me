@@ -1796,12 +1796,21 @@ export function isRedundantChapterTitle(title, chapterNumber) {
   const ch = String(chapterNumber || '').trim().toLowerCase();
   if (!raw) return true;
 
-  const rawNum = parseFloat(raw.replace(/[^0-9.]/g, ''));
-  const chNum = parseFloat(ch.replace(/[^0-9.]/g, ''));
-  if (!isNaN(rawNum) && !isNaN(chNum) && rawNum === chNum && !raw.match(/[a-zA-Z]{4,}/)) {
+  if (raw === ch || raw === `chapter ${ch}` || raw === `ch. ${ch}` || raw === `ch ${ch}` || raw === `ep. ${ch}` || raw === `ep ${ch}` || raw === `episode ${ch}`) {
     return true;
   }
-  return raw === `chapter ${ch}` || raw === `ch. ${ch}` || raw === `ch ${ch}` || raw === ch;
+
+  const stripped = raw
+    .replace(/\b(chapter|ch|ep|episode|volume|vol|part)\b/gi, '')
+    .replace(/[^0-9a-z]/gi, '')
+    .trim();
+  const cleanCh = ch.replace(/[^0-9a-z]/gi, '').trim();
+
+  if (!stripped || stripped === cleanCh || parseFloat(stripped) === parseFloat(cleanCh)) {
+    return true;
+  }
+
+  return false;
 }
 
 /**
@@ -2143,7 +2152,11 @@ export async function fetchMangaChapters(mangaId, order = 'desc', refresh = fals
 }
 
 export function getChapterSourceUrl(mangaId, chapterId, chapterNumber, mangaTitle) {
-  const num = String(chapterNumber || '').replace(/[^0-9.]/g, '') || (String(chapterId || '').match(/([0-9.]+)/)?.[1] || '1');
+  let num = String(chapterNumber || '').replace(/[^0-9.]/g, '');
+  if (!num) {
+    const m = String(chapterId || '').match(/(?:chapter-|:c|:ch|:ep|:)([0-9.]+)/i);
+    num = m ? m[1] : ([...String(chapterId || '').matchAll(/([0-9.]+)/g)].pop()?.[1] || '1');
+  }
   const mid = String(mangaId || '').toLowerCase();
   const cid = String(chapterId || '').toLowerCase();
   const title = String(mangaTitle || '').toLowerCase();

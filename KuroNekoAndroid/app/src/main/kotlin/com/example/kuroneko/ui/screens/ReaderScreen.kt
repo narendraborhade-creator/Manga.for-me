@@ -81,22 +81,18 @@ fun ReaderScreen(
                     modifier = Modifier.fillMaxSize(),
                     verticalArrangement = Arrangement.spacedBy(0.dp)
                 ) {
-                    itemsIndexed(pages) { index, page ->
-                        Box(
+                    itemsIndexed(pages, key = { _, page -> "${page.pageNumber}_${page.imageUrl}" }) { index, page ->
+                        AsyncImage(
+                            model = ImageRequest.Builder(LocalContext.current)
+                                .data(page.imageUrl)
+                                .crossfade(true)
+                                .build(),
+                            contentDescription = "Page ${index + 1}",
+                            contentScale = ContentScale.FillWidth,
                             modifier = Modifier
                                 .fillMaxWidth()
-                                .aspectRatio(0.72f)
-                        ) {
-                            AsyncImage(
-                                model = ImageRequest.Builder(LocalContext.current)
-                                    .data(page.imageUrl)
-                                    .crossfade(true)
-                                    .build(),
-                                contentDescription = "Page ${index + 1}",
-                                contentScale = ContentScale.FillWidth,
-                                modifier = Modifier.fillMaxSize()
-                            )
-                        }
+                                .wrapContentHeight()
+                        )
                     }
                 }
             } else {
