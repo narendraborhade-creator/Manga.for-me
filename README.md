@@ -1,79 +1,97 @@
-# KuroNeko (黒猫) — Manga & Anime Universe
+# KuroNeko (黒猫)
 
-A high-performance, dynamic anime discovery and manga reading application built with React 19, Vite, and Tailwind CSS. Featuring continuous chapter streams, high-definition AniList covers, instant client-side search, reader customisation, and offline local library tracking.
+KuroNeko is a manga and manhwa discovery and reading application built with React and Vite. It combines multiple community sources with MangaDex and AniList metadata, while keeping bookmarks, reading progress, history, reader preferences, and update settings in the browser.
 
-**Live Application (GitHub Pages):**  
-👉 **[https://narendraborhade-creator.github.io/Manga.for-me/](https://narendraborhade-creator.github.io/Manga.for-me/)**
+**Live application:** [narendraborhade-creator.github.io/Manga.for-me](https://narendraborhade-creator.github.io/Manga.for-me/)
 
----
+## Features
 
-## Highlights
+- Browse popular, latest, and recommended manga.
+- Search across supported providers and filter by genre or source.
+- View manga details, chapters, covers, ratings, news, and related titles.
+- Read in Webtoon, single-page, or double-page mode.
+- Use reading direction, fit, page-gap, auto-scroll, fullscreen, and keyboard controls.
+- Resume the last chapter and page from the **Continue Reading** shelf.
+- Manage bookmarks, statuses, categories, reading history, and chapter updates.
+- Export and import library data as JSON for backups or device migration.
+- Install and browse Mihon-compatible source repositories from the Extensions view.
+- Use the included Android application under [`KuroNekoAndroid/`](./KuroNekoAndroid/).
 
-### 📖 Manga Experience
-- **Complete Chapter Catalog:** Continuous chapter access across popular manhwa, webtoons, and manga series (from Chapter 1 up to latest).
-- **Direct Web Reader Bridge:** Seamless one-click reading with instant verified online reader integration for every chapter.
-- **Dynamic Reading Modes:** Seamless vertical Webtoon mode, Single Page, and Double Page spreads.
-- **Reading Enhancements:** Auto-scroller with speed tuning, OLED pure black theme, eye-care sepia filter, fullscreen toggle, and keyboard shortcuts.
-- **Fast Search:** Direct AniList GraphQL and catalog search running client-side with zero latency.
-- **Reliable Media CDN:** Unblocked AniList and official CDN cover art worldwide.
+## Tech stack
 
-### 🎬 Anime Discovery
-- **Trending & Airing Hub:** Real-time trending, all-time popular, and seasonal anime directly from the AniList API.
-- **Deep Metadata:** Studio information, air dates, episode counts, genres, descriptions, and playable YouTube trailers.
+- **Web:** React 19, Vite, Tailwind CSS 4, Lucide React
+- **API layer:** Node.js providers for MangaDex and community manga sources
+- **Metadata:** AniList and MangaDex
+- **Storage:** Browser `localStorage`
+- **Android:** Kotlin, Jetpack Compose, Android SDK 36
+- **Deployment:** GitHub Pages through [`.github/workflows/deploy.yml`](./.github/workflows/deploy.yml)
 
-### 📚 Mission Control & Library
-- **Continue Reading Shelf:** Mission-control carousel resuming your exact manga, chapter, and page position.
-- **Reading History & Tracker:** Chapter-by-chapter completed tracking with visual checkmarks and time elapsed.
-- **Universal Backup & Restore:** One-click JSON backup export and import to migrate your library across devices (phones, tablets, and desktop).
+## Run locally
 
----
-
-## Tech Stack
-
-- **Frontend:** React 19, Vite 8, Tailwind CSS 4, Lucide React
-- **Static Hosting:** GitHub Pages with GitHub Actions CI/CD (`.github/workflows/deploy.yml`)
-- **APIs & Data:** AniList GraphQL API, MangaDex API
-- **Persistence:** Browser `localStorage` for library bookmarks, reading history, and custom reader preferences
-
----
-
-## Local Development
+### Web application
 
 ```bash
-# Clone the repository
 git clone https://github.com/narendraborhade-creator/Manga.for-me.git
 cd Manga.for-me
-
-# Install dependencies
 npm install
-
-# Start local development server
 npm run dev
 ```
 
-Open [http://localhost:5173/Manga.for-me/](http://localhost:5173/Manga.for-me/) in your browser.
+Open [http://localhost:5173](http://localhost:5173). The Vite development server also exposes the application's `/api/*` routes.
 
----
+To run the production server locally:
 
-## Available Scripts
+```bash
+npm run build
+npm start
+```
+
+The production server listens on `http://localhost:3000` by default. Set `PORT` to use a different port:
+
+```bash
+PORT=8080 npm start
+```
+
+### Android application
+
+The Android project requires Java 17 and an Android SDK compatible with compile SDK 36.
+
+```bash
+cd KuroNekoAndroid
+./gradlew assembleDebug
+```
+
+The debug APK is written to `app/build/outputs/apk/debug/app-debug.apk`.
+
+## Available scripts
 
 | Command | Description |
 | --- | --- |
-| `npm run dev` | Launch the local Vite development server |
-| `npm run build` | Compile and bundle production assets to `dist/` |
-| `npm run preview` | Preview production build locally |
-| `npm run lint` | Run code quality checks with Oxlint |
+| `npm run dev` | Start the Vite development server |
+| `npm run build` | Create the production bundle in `dist/` |
+| `npm start` | Serve the built bundle and API routes with Node.js |
+| `npm run preview` | Preview the production bundle with Vite |
+| `npm run lint` | Run Oxlint |
 
----
+## API routes
 
-## Deployment to GitHub Pages
+The local Node/Vite API layer provides:
 
-This repository is configured for automated deployment to GitHub Pages via `.github/workflows/deploy.yml`.
+- `/api/manga/popular`
+- `/api/manga/search`
+- `/api/manga/details`
+- `/api/manga/read`
+- `/api/manga/news`
+- `/api/manga/recommendations`
+- `/api/extensions/repo`
+- `/api/extensions/source`
+- `/api/image-proxy`
 
-1. Any push to `main` triggers the automated Vite build and deploys to GitHub Pages.
-2. The bundled static assets are also committed to `docs/` and synced with the `gh-pages` branch for instant static serving.
+Provider availability and chapter coverage can change because the application relies on third-party services. KuroNeko does not host manga content.
 
----
+## Deployment
+
+Pushes to `main` trigger the GitHub Actions workflow. It installs dependencies, runs `npm run build`, prepares the SPA fallback, and deploys the resulting `dist/` directory to GitHub Pages. The workflow can also be started manually with **workflow_dispatch**.
 
 ## License
 
