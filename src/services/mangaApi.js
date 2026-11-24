@@ -30,8 +30,18 @@ export const FALLBACK_MANGA_CATALOG = [
     })
   },
   {
-    id: 'kat:worlds-strongest-troll.26644',
-    aliases: ['worlds-strongest-troll', 'world-s-strongest-troll', "world's strongest troll", "the world's strongest troll", 'asura:worlds-strongest-troll-f212c582'],
+    id: 'wc:01J76XYGVNHEER7G6M90C6YCTW',
+    aliases: [
+      '01J76XYGVNHEER7G6M90C6YCTW',
+      'wc:01J76XYGVNHEER7G6M90C6YCTW',
+      'kat:worlds-strongest-troll.26644',
+      'worlds-strongest-troll',
+      'world-s-strongest-troll',
+      "world's strongest troll",
+      "the world's strongest troll",
+      'asura:worlds-strongest-troll-7de80a82',
+      'asura:worlds-strongest-troll-f212c582'
+    ],
     title: "World's Strongest Troll",
     englishTitle: "World's Strongest Troll",
     coverUrl: 'https://mangakatana.com/imgs/cover/04e/1f/7b189.jpg',
@@ -41,21 +51,30 @@ export const FALLBACK_MANGA_CATALOG = [
     author: 'Dex',
     description: "Jaeyeong's chaotic VR gaming adventures in Arcadia as the legendary troll DEX who overcomes every insurmountable obstacle through sheer game knowledge and unconventional tactics!",
     tags: ['Action', 'Comedy', 'Fantasy', 'Virtual Reality', 'Manhwa'],
-    sourceName: 'MangaKatana',
-    totalChapters: 197,
-    latestChapter: '197',
-    chapters: Array.from({ length: 197 }, (_, i) => {
-      const chNum = 197 - i;
+    sourceName: 'WeebCentral',
+    totalChapters: 198,
+    latestChapter: '198',
+    chapters: Array.from({ length: 198 }, (_, i) => {
+      const chNum = 198 - i;
       return {
-        id: `kat_ch:worlds-strongest-troll.26644:c${chNum}`,
+        id: `wc_ch:01J76XYGVNHEER7G6M90C6YCTW:${chNum}`,
         chapter: String(chNum),
         title: `Chapter ${chNum}`,
       };
     })
   },
   {
-    id: 'webtoon:ks:my-in-laws-are-obsessed-with-me',
-    aliases: ['my-in-laws-are-obsessed-with-me', 'my in laws are obsessed with me', 'wc:01J76XYFAESZTJT5AQ1SPFKYXR', 'md:c44b5b1d-60cf-4faf-be2c-0a807200358f'],
+    id: 'wc:01J76XYFAESZTJT5AQ1SPFKYXR',
+    aliases: [
+      '01J76XYFAESZTJT5AQ1SPFKYXR',
+      'wc:01J76XYFAESZTJT5AQ1SPFKYXR',
+      'webtoon:ks:my-in-laws-are-obsessed-with-me',
+      'my-in-laws-are-obsessed-with-me',
+      'my in laws are obsessed with me',
+      'my-in-laws-are-my-beloved-in-laws',
+      'my in-laws are my beloved in-laws',
+      'md:c44b5b1d-60cf-4faf-be2c-0a807200358f'
+    ],
     title: 'My In-Laws Are Obsessed With Me',
     englishTitle: 'My In-Laws Are Obsessed With Me',
     coverUrl: 'https://s4.anilist.co/file/anilistcdn/media/manga/cover/medium/bx142894-SRinclU1kzu9.jpg',
@@ -65,13 +84,13 @@ export const FALLBACK_MANGA_CATALOG = [
     author: 'Seungu & Han Yoon-seol',
     description: 'Pereshati regresses after being betrayed and poisoned by her family. To safeguard her second life, she proposes a contract marriage with the cursed Grand Duke Therdeo Lapileon.',
     tags: ['Fantasy', 'Romance', 'Reincarnation', 'Drama', 'Manhwa'],
-    sourceName: 'King of Shojo',
-    totalChapters: 137,
-    latestChapter: '137',
-    chapters: Array.from({ length: 137 }, (_, i) => {
-      const chNum = 137 - i;
+    sourceName: 'WeebCentral',
+    totalChapters: 130,
+    latestChapter: '130',
+    chapters: Array.from({ length: 130 }, (_, i) => {
+      const chNum = 130 - i;
       return {
-        id: `webtoon:ks:my-in-laws-are-obsessed-with-me:${chNum}`,
+        id: `wc_ch:01J76XYFAESZTJT5AQ1SPFKYXR:${chNum}`,
         chapter: String(chNum),
         title: `Chapter ${chNum}`,
       };
@@ -1385,7 +1404,7 @@ export async function searchAniList(query) {
     const json = await res.json();
     const media = json?.data?.Page?.media || [];
     return media.map((m) => {
-      const t = m.title.english || m.title.romaji || m.title.userPreferred || 'Manga';
+      const t = m.title?.english || m.title?.romaji || m.title?.userPreferred || 'Manga';
 
       // Check if catalog item matches
       const normT = t.toLowerCase().replace(/[^a-z0-9]/g, '');
@@ -1414,7 +1433,7 @@ export async function searchAniList(query) {
       return formatMangaItem({
         id: `anilist:${m.id}`,
         title: t,
-        englishTitle: m.title.english || null,
+        englishTitle: m.title?.english || null,
         coverUrl: getReliableCoverUrl(t, m.coverImage?.large || m.coverImage?.extraLarge || m.coverImage?.medium),
         bannerUrl: m.bannerImage || null,
         status: m.status === 'FINISHED' ? 'Completed' : 'Ongoing',
@@ -1468,7 +1487,7 @@ export async function fetchAniListDetails(id) {
     const m = json?.data?.Media;
     if (!m) return null;
 
-    const t = m.title.english || m.title.romaji || m.title.userPreferred || 'Manga';
+    const t = m.title?.english || m.title?.romaji || m.title?.userPreferred || 'Manga';
 
     // Check catalog first
     const normT = t.toLowerCase().replace(/[^a-z0-9]/g, '');
@@ -1499,7 +1518,7 @@ export async function fetchAniListDetails(id) {
     return {
       id: `anilist:${m.id}`,
       title: t,
-      englishTitle: m.title.english || null,
+      englishTitle: m.title?.english || null,
       coverUrl: getReliableCoverUrl(t, m.coverImage?.extraLarge || m.coverImage?.large),
       bannerUrl: m.bannerImage || null,
       status: m.status === 'FINISHED' ? 'Completed' : 'Ongoing',
@@ -1658,6 +1677,12 @@ export const KNOWN_SERIES_TITLES = {
   '01j76xy7m0w9wwj55vjyyb2j1s': 'Tower of God',
   '01j76xya1tqykv6w4bcmr2wd5m': 'Wind Breaker',
   '01j76xyfaesztjt5aq1spfkyxr': 'My In-Laws Are Obsessed With Me',
+  '01j76xygvnheer7g6m90c6yctw': "World's Strongest Troll",
+  '01j76xyd44p5q8203e3fsrw939': 'Solo Leveling',
+  '01j76xyc218s1ezz7n80q68s2k': "Omniscient Reader's Viewpoint",
+  '01j76xych4cs9m5e9t97e3b5z4': 'Nano Machine',
+  '01j76xydry4j3b7h0w6c3j95sz': 'The Greatest Estate Developer',
+  '01j76xydez7sz9t0151sz47g74': 'Return of the Mount Hua Sect',
   '01j76xyd3q2q7hyymb3fsdpskc': 'Teenage Mercenary',
   '01j76xyea95pg5avmckc9tk492': 'Mercenary Enrollment',
   '01j76xygvnheer7g6m90c6yctw': "World's Strongest Troll",
@@ -1726,6 +1751,22 @@ export function isRedundantChapterTitle(title, chapterNumber) {
     return true;
   }
   return raw === `chapter ${ch}` || raw === `ch. ${ch}` || raw === `ch ${ch}` || raw === ch;
+}
+
+/**
+ * Authentic Title Matcher: verifies candidate title against query to prevent false-positive mapping
+ */
+export function isAuthenticSeriesMatch(query, candidateTitle) {
+  if (!query || !candidateTitle) return false;
+  const stopWords = new Set(['the', 'a', 'an', 'and', 'or', 'of', 'in', 'to', 'for', 'with', 'are', 'is', 'my', 'her', 'his', 'manga', 'series']);
+  const cleanQ = String(query).toLowerCase().replace(/[^a-z0-9\s]/g, ' ');
+  const qTokens = cleanQ.split(/\s+/).filter(t => t.length > 1 && !stopWords.has(t));
+  if (qTokens.length === 0) return false;
+
+  const cLower = String(candidateTitle).toLowerCase().replace(/[^a-z0-9\s]/g, ' ');
+  const matchedTokens = qTokens.filter(t => cLower.includes(t));
+  const threshold = Math.min(2, qTokens.length);
+  return matchedTokens.length >= threshold;
 }
 
 /**
@@ -2239,8 +2280,15 @@ export async function fetchChapterPages(chapterId, mangaId = null, chapterNumber
         if (sProxy.ok) sHtml = await sProxy.text();
       }
       if (sHtml) {
-        const m = sHtml.match(/href=["']https?:\/\/mangakatana\.com\/manga\/([^/?#'"]+)["']/i) || sHtml.match(/href=["']\/manga\/([^/?#'"]+)["']/i);
-        if (m) katSlug = m[1];
+        const matches = [...sHtml.matchAll(/<h3 class="title"><a href="https?:\/\/mangakatana\.com\/manga\/([^"/?#]+)">([^<]+)<\/a><\/h3>/gi)];
+        for (const match of matches) {
+          const candidateSlug = match[1];
+          const candidateTitle = match[2];
+          if (isAuthenticSeriesMatch(cleanTitle(mangaTitle || ''), candidateTitle)) {
+            katSlug = candidateSlug;
+            break;
+          }
+        }
       }
     } catch {}
   }
@@ -2257,7 +2305,16 @@ export async function fetchChapterPages(chapterId, mangaId = null, chapterNumber
         if (proxyRes.ok) html = await proxyRes.text();
       }
       if (html) {
-        const arrayMatch = html.match(/var\s+thzq\s*=\s*\[([^\]]+)\]/i) || html.match(/var\s+[a-z0-9_]+\s*=\s*\[([^\]]*https:[^\]]*)\]/i);
+        // Match var thzq specifically first (contains full chapter pages, avoiding 1-page preview arrays like ytaw)
+        let arrayMatch = html.match(/var\s+thzq\s*=\s*\[([^\]]+)\]/i);
+        if (!arrayMatch) {
+          const allMatches = [...html.matchAll(/var\s+[a-z0-9_]+\s*=\s*\[([^\]]*https:[^\]]*)\]/gi)];
+          let best = '';
+          for (const m of allMatches) {
+            if (m[1].length > best.length) best = m[1];
+          }
+          if (best) arrayMatch = [null, best];
+        }
         if (arrayMatch) {
           const rawUrls = [...arrayMatch[1].matchAll(/['"](https?:\/\/[^'"]+)['"]/g)].map(m => m[1]);
           if (rawUrls.length > 0) {
@@ -2276,10 +2333,79 @@ export async function fetchChapterPages(chapterId, mangaId = null, chapterNumber
   }
 
   // 1.5 Client-side WeebCentral chapter resolution (26-char IDs)
-  const wcTarget = cid.replace(/^wc_ch:|^wc:/, '').trim();
+  let wcTarget = cid.replace(/^wc_ch:|^wc:/, '').trim();
+  let wcChapId = null;
   if (/^[0-9A-Z]{26}$/i.test(wcTarget)) {
+    wcChapId = wcTarget;
+  } else if (wcTarget.includes(':')) {
+    const [potSeries, potNum] = wcTarget.split(':');
+    if (/^[0-9A-Z]{26}$/i.test(potSeries)) {
+      try {
+        const sUrl = `https://weebcentral.com/series/${potSeries}/full-chapter-list`;
+        let sHtml = '';
+        try {
+          const sRes = await fetch(sUrl, { signal: AbortSignal.timeout(5000) });
+          if (sRes.ok) sHtml = await sRes.text();
+        } catch {
+          const sProxy = await fetch(`https://api.allorigins.win/raw?url=${encodeURIComponent(sUrl)}`, { signal: AbortSignal.timeout(6000) });
+          if (sProxy.ok) sHtml = await sProxy.text();
+        }
+        if (sHtml) {
+          const chMatches = [...sHtml.matchAll(/<a[^>]+href="[^"]*chapters\/([0-9A-Z]{26})"[^>]*>([\s\S]*?)<\/a>/gi)];
+          const targetNum = String(potNum || chNum || '').replace(/[^0-9.]/g, '');
+          for (const cm of chMatches) {
+            const rawText = cm[2].replace(/<[^>]+>/g, ' ').replace(/\s+/g, ' ');
+            const numMatch = rawText.match(/(?:Chapter|Ch\.?|Episode|Ep\.?)\s*([0-9.]+)/i) || rawText.match(/([0-9.]+)/);
+            if (numMatch && (numMatch[1] === targetNum || parseFloat(numMatch[1]) === parseFloat(targetNum))) {
+              wcChapId = cm[1];
+              break;
+            }
+          }
+        }
+      } catch {}
+    }
+  }
+
+  if (!wcChapId) {
+    const rawMid = String(mangaId || '').replace(/^wc_ch:|^wc:|^kat:|^md:/, '').trim();
+    const tLower = String(mangaTitle || '').toLowerCase();
+    const mLower = rawMid.toLowerCase();
+    let wcSeries = null;
+    if (mLower.includes('in-law') || mLower.includes('inlaw') || tLower.includes('in-law') || tLower.includes('in law') || tLower.includes('obsessed')) {
+      wcSeries = '01J76XYFAESZTJT5AQ1SPFKYXR';
+    } else if (mLower.includes('strongest-troll') || tLower.includes('strongest troll')) {
+      wcSeries = '01J76XYGVNHEER7G6M90C6YCTW';
+    }
+    if (wcSeries) {
+      try {
+        const sUrl = `https://weebcentral.com/series/${wcSeries}/full-chapter-list`;
+        let sHtml = '';
+        try {
+          const sRes = await fetch(sUrl, { signal: AbortSignal.timeout(5000) });
+          if (sRes.ok) sHtml = await sRes.text();
+        } catch {
+          const sProxy = await fetch(`https://api.allorigins.win/raw?url=${encodeURIComponent(sUrl)}`, { signal: AbortSignal.timeout(6000) });
+          if (sProxy.ok) sHtml = await sProxy.text();
+        }
+        if (sHtml) {
+          const chMatches = [...sHtml.matchAll(/<a[^>]+href="[^"]*chapters\/([0-9A-Z]{26})"[^>]*>([\s\S]*?)<\/a>/gi)];
+          const targetNum = String(chNum || '').replace(/[^0-9.]/g, '') || '1';
+          for (const cm of chMatches) {
+            const rawText = cm[2].replace(/<[^>]+>/g, ' ').replace(/\s+/g, ' ');
+            const numMatch = rawText.match(/(?:Chapter|Ch\.?|Episode|Ep\.?)\s*([0-9.]+)/i) || rawText.match(/([0-9.]+)/);
+            if (numMatch && (numMatch[1] === targetNum || parseFloat(numMatch[1]) === parseFloat(targetNum))) {
+              wcChapId = cm[1];
+              break;
+            }
+          }
+        }
+      } catch {}
+    }
+  }
+
+  if (wcChapId) {
     try {
-      const targetUrl = `https://weebcentral.com/chapters/${wcTarget}/images?is_prev=False&current_page=1&reading_style=long_strip`;
+      const targetUrl = `https://weebcentral.com/chapters/${wcChapId}/images?is_prev=False&current_page=1&reading_style=long_strip`;
       let html = '';
       try {
         const res = await fetch(targetUrl, { signal: AbortSignal.timeout(6000) });

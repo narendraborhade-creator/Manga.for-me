@@ -412,11 +412,13 @@ export const VERIFIED_COMPLETE_ALIASES = {
   '01J76XYE3130E1W5HKTJ7VD912': 'kat:sakamoto-days.24831',
   'wc:01J76XYE23859ZWDP7BJ520AKY': 'kat:the-beginning-after-the-end.21950',
   '01J76XYE23859ZWDP7BJ520AKY': 'kat:the-beginning-after-the-end.21950',
-  'my-in-laws-are-obsessed-with-me': 'webtoon:ks:my-in-laws-are-obsessed-with-me',
-  'md:c44b5b1d-60cf-4faf-be2c-0a807200358f': 'webtoon:ks:my-in-laws-are-obsessed-with-me',
-  'c44b5b1d-60cf-4faf-be2c-0a807200358f': 'webtoon:ks:my-in-laws-are-obsessed-with-me',
-  'wc:01J76XYFAESZTJT5AQ1SPFKYXR': 'webtoon:ks:my-in-laws-are-obsessed-with-me',
-  '01J76XYFAESZTJT5AQ1SPFKYXR': 'webtoon:ks:my-in-laws-are-obsessed-with-me',
+  'my-in-laws-are-obsessed-with-me': 'wc:01J76XYFAESZTJT5AQ1SPFKYXR',
+  'my-in-laws-are-my-beloved-in-laws': 'wc:01J76XYFAESZTJT5AQ1SPFKYXR',
+  'webtoon:ks:my-in-laws-are-obsessed-with-me': 'wc:01J76XYFAESZTJT5AQ1SPFKYXR',
+  'md:c44b5b1d-60cf-4faf-be2c-0a807200358f': 'wc:01J76XYFAESZTJT5AQ1SPFKYXR',
+  'c44b5b1d-60cf-4faf-be2c-0a807200358f': 'wc:01J76XYFAESZTJT5AQ1SPFKYXR',
+  'wc:01J76XYFAESZTJT5AQ1SPFKYXR': 'wc:01J76XYFAESZTJT5AQ1SPFKYXR',
+  '01J76XYFAESZTJT5AQ1SPFKYXR': 'wc:01J76XYFAESZTJT5AQ1SPFKYXR',
   'surviving-the-game-as-a-barbarian': 'asura:surviving-the-game-as-a-barbarian-ab39de10',
   'greatest-estate-developer': 'asura:the-greatest-estate-developer-ab39de10',
   'the-greatest-estate-developer': 'asura:the-greatest-estate-developer-ab39de10',
@@ -425,15 +427,15 @@ export const VERIFIED_COMPLETE_ALIASES = {
   'to-hell-with-being-heir': 'thunder:forget-about-the-succession-im-here-to-heal',
 
   // World's Strongest Troll (All 198 complete chapters)
-  'asura:worlds-strongest-troll-f212c582': 'kat:worlds-strongest-troll.26644',
-  'asura:worlds-strongest-troll': 'kat:worlds-strongest-troll.26644',
-  'worlds-strongest-troll-f212c582': 'kat:worlds-strongest-troll.26644',
-  'worlds-strongest-troll': 'kat:worlds-strongest-troll.26644',
-  'world-s-strongest-troll': 'kat:worlds-strongest-troll.26644',
-  'the-worlds-strongest-troll': 'kat:worlds-strongest-troll.26644',
-  'the-world-s-strongest-troll': 'kat:worlds-strongest-troll.26644',
-  'wc:01J76XYGVNHEER7G6M90C6YCTW': 'kat:worlds-strongest-troll.26644',
-  '01J76XYGVNHEER7G6M90C6YCTW': 'kat:worlds-strongest-troll.26644',
+  'asura:worlds-strongest-troll-f212c582': 'wc:01J76XYGVNHEER7G6M90C6YCTW',
+  'asura:worlds-strongest-troll': 'wc:01J76XYGVNHEER7G6M90C6YCTW',
+  'worlds-strongest-troll-f212c582': 'wc:01J76XYGVNHEER7G6M90C6YCTW',
+  'worlds-strongest-troll': 'wc:01J76XYGVNHEER7G6M90C6YCTW',
+  'world-s-strongest-troll': 'wc:01J76XYGVNHEER7G6M90C6YCTW',
+  'the-worlds-strongest-troll': 'wc:01J76XYGVNHEER7G6M90C6YCTW',
+  'the-world-s-strongest-troll': 'wc:01J76XYGVNHEER7G6M90C6YCTW',
+  'wc:01J76XYGVNHEER7G6M90C6YCTW': 'wc:01J76XYGVNHEER7G6M90C6YCTW',
+  '01J76XYGVNHEER7G6M90C6YCTW': 'wc:01J76XYGVNHEER7G6M90C6YCTW',
 };
 
 export function normalizeTitleKey(str) {
@@ -1948,10 +1950,23 @@ export async function getChapterPages(rawChapterId, rawMangaId = '', rawChapterN
       providerResult = await getVortexChapterPages(chapterId);
     } else if (chapterId.startsWith('webtoon:')) {
       providerResult = await getWebtoonChapterPages(chapterId);
-    } else if (chapterId.startsWith('wc_ch:')) {
-      const wcTarget = chapterId.replace('wc_ch:', '');
-      if (/^[0-9A-Z]{26}$/.test(wcTarget)) {
+    } else if (chapterId.startsWith('wc_ch:') || chapterId.startsWith('wc:')) {
+      const wcTarget = chapterId.replace(/^(wc_ch:|wc:)/, '').trim();
+      if (/^[0-9A-Z]{26}$/i.test(wcTarget)) {
         providerResult = await getWeebCentralChapterPages(wcTarget);
+      } else if (wcTarget.includes(':')) {
+        const [seriesId, targetChNum] = wcTarget.split(':');
+        if (/^[0-9A-Z]{26}$/i.test(seriesId)) {
+          const sDet = await getWeebCentralDetails(seriesId).catch(() => null);
+          const chClean = (targetChNum || chNum || '').replace(/[^0-9.]/g, '');
+          const matched = sDet?.chapters?.find(c => {
+            const num = (c.chapter || '').replace(/[^0-9.]/g, '');
+            return num === chClean || parseFloat(num) === parseFloat(chClean);
+          });
+          if (matched) {
+            providerResult = await getWeebCentralChapterPages(matched.id.replace(/^(wc_ch:|wc:)/, ''));
+          }
+        }
       }
     } else if (chapterId.startsWith('thunder_ch:') || chapterId.startsWith('thunder:')) {
       providerResult = await getThunderChapterPages(chapterId);
@@ -1977,6 +1992,21 @@ export async function getChapterPages(rawChapterId, rawMangaId = '', rawChapterN
                   VERIFIED_COMPLETE_ALIASES[normTitle];
     if (alias && alias.startsWith('kat:')) {
       katSlug = alias.replace('kat:', '');
+    } else if (alias && alias.startsWith('wc:')) {
+      const wcId = alias.replace('wc:', '');
+      const wcDet = await getWeebCentralDetails(wcId).catch(() => null);
+      if (wcDet && Array.isArray(wcDet.chapters)) {
+        const matched = wcDet.chapters.find(c => {
+          const num = c.chapter?.replace(/[^0-9.]/g, '');
+          return num === chNum || parseFloat(num) === parseFloat(chNum);
+        });
+        if (matched) {
+          const wcRes = await getWeebCentralChapterPages(matched.id.replace(/^(wc_ch:|wc:)/, ''));
+          if (wcRes && Array.isArray(wcRes.pages) && wcRes.pages.length > 0) {
+            return wcRes;
+          }
+        }
+      }
     }
 
     if (!katSlug && chapterId.includes(':')) {
@@ -2030,15 +2060,15 @@ export async function getChapterPages(rawChapterId, rawMangaId = '', rawChapterN
     }
 
     if (normMid.includes('inlaw') || normMid.includes('in-law') || normTitle.includes('inlaw') || normTitle.includes('in-law') || normTitle.includes('obsessed')) {
-      const ksDet = await getWebtoonDetails('webtoon:ks:my-in-laws-are-obsessed-with-me').catch(() => null);
-      const matched = ksDet?.chapters?.find(c => {
+      const wcDet = await getWeebCentralDetails('01J76XYFAESZTJT5AQ1SPFKYXR').catch(() => null);
+      const matched = wcDet?.chapters?.find(c => {
         const num = c.chapter?.replace(/[^0-9.]/g, '');
         return num === chNum || parseFloat(num) === parseFloat(chNum);
       });
       if (matched) {
-        const ksRes = await getWebtoonChapterPages(matched.id);
-        if (ksRes && Array.isArray(ksRes.pages) && ksRes.pages.length > 0) {
-          return ksRes;
+        const wcRes = await getWeebCentralChapterPages(matched.id.replace('wc_ch:', ''));
+        if (wcRes && Array.isArray(wcRes.pages) && wcRes.pages.length > 0) {
+          return wcRes;
         }
       }
     }
