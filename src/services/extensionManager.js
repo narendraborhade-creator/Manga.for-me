@@ -3,7 +3,16 @@
  * Handles Extension Repositories, Extension Store, Installed Sources & Source Browsing.
  */
 
-import { getApiBaseUrl, fetchPopularManga, searchManga } from './mangaApi';
+import { 
+  getApiBaseUrl, 
+  fetchPopularManga, 
+  searchManga, 
+  fetchClientHtml, 
+  cleanTitle, 
+  decodeHtml, 
+  FALLBACK_MANGA_CATALOG, 
+  searchAniList 
+} from './mangaApi.js';
 
 const STORAGE_KEYS = {
   REPOSITORIES: 'mihon_repositories_v1',
@@ -150,13 +159,62 @@ export const DEFAULT_PREINSTALLED_EXTENSIONS = [
     sources: [
       { id: 'mangapill', name: 'MangaPill', language: 'en', homeUrl: 'https://mangapill.com', badge: 'Mirror CDN' }
     ]
+  },
+  {
+    pkg: 'eu.kanade.tachiyomi.extension.en.manga18fx',
+    name: 'Manga18fx',
+    versionName: '1.4.12',
+    lang: 'en',
+    iconUrl: 'https://cdn.jsdelivr.net/gh/keiyoushi/extensions-source@main/src/en/manga18fx/res/mipmap-xhdpi/ic_launcher.png',
+    repoId: 'keiyoushi',
+    installedAt: Date.now(),
+    enabled: true,
+    isPinned: false,
+    contentWarning: 'CONTENT_WARNING_NSFW',
+    sources: [
+      { id: 'manga18fx', name: 'Manga18fx', language: 'en', homeUrl: 'https://manga18fx.com', badge: '18+ Adult' }
+    ]
+  },
+  {
+    pkg: 'eu.kanade.tachiyomi.extension.all.doujindesu',
+    name: 'DoujinDesu',
+    versionName: '1.4.15',
+    lang: 'all',
+    iconUrl: 'https://cdn.jsdelivr.net/gh/keiyoushi/extensions-source@main/src/all/doujindesu/res/mipmap-xhdpi/ic_launcher.png',
+    repoId: 'keiyoushi',
+    installedAt: Date.now(),
+    enabled: true,
+    isPinned: false,
+    contentWarning: 'CONTENT_WARNING_NSFW',
+    sources: [
+      { id: 'doujindesu', name: 'DoujinDesu', language: 'all', homeUrl: 'https://doujindesu.tv', badge: '18+ Color' }
+    ]
   }
 ];
+
+export function isNsfwAllowed() {
+  try {
+    if (typeof window === 'undefined') return false;
+    return localStorage.getItem('kuroneko_show_nsfw') === 'true';
+  } catch {
+    return false;
+  }
+}
+
+export function setNsfwAllowed(allowed) {
+  try {
+    if (typeof window !== 'undefined') {
+      localStorage.setItem('kuroneko_show_nsfw', allowed ? 'true' : 'false');
+      notifyExtensionUpdate('nsfw_toggled', { allowed });
+    }
+  } catch {}
+}
 
 // Helper: Safely get/set localStorage with JSON
 function getStorageJSON(key, defaultValue) {
   try {
-    const raw = localStorage.getItem(key);
+    if (typeof window === 'undefined' || !window.localStorage) return defaultValue;
+    const raw = window.localStorage.getItem(key);
     return raw ? JSON.parse(raw) : defaultValue;
   } catch {
     return defaultValue;
@@ -165,7 +223,8 @@ function getStorageJSON(key, defaultValue) {
 
 function setStorageJSON(key, val) {
   try {
-    localStorage.setItem(key, JSON.stringify(val));
+    if (typeof window === 'undefined' || !window.localStorage) return;
+    window.localStorage.setItem(key, JSON.stringify(val));
   } catch (err) {
     console.warn(`Error writing to ${key}:`, err);
   }
@@ -357,7 +416,19 @@ export function getInstalledExtensions() {
     setStorageJSON(STORAGE_KEYS.INSTALLED_EXTENSIONS, DEFAULT_PREINSTALLED_EXTENSIONS);
     return DEFAULT_PREINSTALLED_EXTENSIONS;
   }
-  return saved;
+  const uninstalled = getStorageJSON('mihon_uninstalled_pkgs', []);
+  let modified = false;
+  const currentList = [...saved];
+  DEFAULT_PREINSTALLED_EXTENSIONS.forEach(defExt => {
+    if (!currentList.some(e => e.pkg === defExt.pkg) && !uninstalled.includes(defExt.pkg)) {
+      currentList.push(defExt);
+      modified = true;
+    }
+  });
+  if (modified) {
+    setStorageJSON(STORAGE_KEYS.INSTALLED_EXTENSIONS, currentList);
+  }
+  return currentList;
 }
 
 /**
@@ -384,6 +455,13 @@ export async function installExtension(ext) {
 
   const updated = [...installed, itemToInstall];
   setStorageJSON(STORAGE_KEYS.INSTALLED_EXTENSIONS, updated);
+  
+  // Remove from uninstalled history if reinstalling
+  const uninstalled = getStorageJSON('mihon_uninstalled_pkgs', []);
+  if (uninstalled.includes(ext.pkg)) {
+    setStorageJSON('mihon_uninstalled_pkgs', uninstalled.filter(p => p !== ext.pkg));
+  }
+
   notifyExtensionUpdate('extension_installed', itemToInstall);
   return updated;
 }
@@ -395,6 +473,10 @@ export function uninstallExtension(pkg) {
   const installed = getInstalledExtensions();
   const updated = installed.filter(e => e.pkg !== pkg);
   setStorageJSON(STORAGE_KEYS.INSTALLED_EXTENSIONS, updated);
+  const uninstalled = getStorageJSON('mihon_uninstalled_pkgs', []);
+  if (!uninstalled.includes(pkg)) {
+    setStorageJSON('mihon_uninstalled_pkgs', [...uninstalled, pkg]);
+  }
   notifyExtensionUpdate('extension_uninstalled', { pkg });
   return updated;
 }
@@ -421,34 +503,268 @@ export function togglePinExtension(pkg) {
   return updated;
 }
 
+// ----------------- CLIENT-SIDE EXTENSION SCRAPERS & RESOLVERS -----------------
+
+function formatMangaDexItem(item) {
+  if (!item) return null;
+  const attrs = item.attributes || {};
+  const rawTitle = attrs.title?.en 
+    || attrs.title?.['ja-ro'] 
+    || attrs.title?.['ko-ro'] 
+    || Object.values(attrs.title || {})[0] 
+    || 'Manga';
+  const title = cleanTitle(rawTitle);
+  const coverRel = (item.relationships || []).find(r => r.type === 'cover_art');
+  const coverUrl = coverRel?.attributes?.fileName
+    ? `https://uploads.mangadex.org/covers/${item.id}/${coverRel.attributes.fileName}.512.jpg`
+    : `https://s4.anilist.co/file/anilistcdn/media/manga/cover/medium/default.jpg`;
+  
+  const lastCh = attrs.lastChapter;
+  const numCh = lastCh && !isNaN(parseFloat(lastCh)) ? Math.floor(parseFloat(lastCh)) : null;
+
+  return {
+    id: `md:${item.id}`,
+    rawId: item.id,
+    title,
+    englishTitle: title,
+    coverUrl,
+    description: decodeHtml(attrs.description?.en || Object.values(attrs.description || {})[0] || ''),
+    sourceName: 'MangaDex',
+    status: attrs.status ? attrs.status.toUpperCase() : 'ONGOING',
+    score: '9.2',
+    year: attrs.year || new Date().getFullYear(),
+    tags: (attrs.tags || []).map(t => t.attributes?.name?.en).filter(Boolean).slice(0, 4),
+    totalChapters: numCh,
+    latestChapter: lastCh || (numCh ? String(numCh) : '1')
+  };
+}
+
+async function fetchMangaDexSourceManga(mode = 'popular', query = '', showNsfw = false) {
+  const ratingParams = showNsfw
+    ? '&contentRating[]=safe&contentRating[]=suggestive&contentRating[]=erotica&contentRating[]=pornographic'
+    : '&contentRating[]=safe&contentRating[]=suggestive';
+
+  let url;
+  if (query && query.trim()) {
+    url = `https://api.mangadex.org/manga?title=${encodeURIComponent(query.trim())}&limit=25&order[relevance]=desc&order[followedCount]=desc&includes[]=cover_art${ratingParams}`;
+  } else if (mode === 'latest') {
+    url = `https://api.mangadex.org/manga?limit=25&order[latestUploadedChapter]=desc&includes[]=cover_art${ratingParams}`;
+  } else {
+    url = `https://api.mangadex.org/manga?limit=25&order[followedCount]=desc&includes[]=cover_art${ratingParams}`;
+  }
+
+  try {
+    const res = await fetch(url, { signal: AbortSignal.timeout(8000) });
+    if (!res.ok) return [];
+    const json = await res.json();
+    return (json.data || []).map(formatMangaDexItem).filter(Boolean);
+  } catch (err) {
+    console.warn('fetchMangaDexSourceManga error:', err);
+    return [];
+  }
+}
+
+async function fetchMangaKatanaSourceManga(mode = 'popular', query = '') {
+  let targetUrl;
+  if (query && query.trim()) {
+    targetUrl = `https://mangakatana.com/?search=${encodeURIComponent(query.trim())}&search_by=book_name`;
+  } else if (mode === 'latest') {
+    targetUrl = 'https://mangakatana.com/latest';
+  } else {
+    targetUrl = 'https://mangakatana.com/manga';
+  }
+
+  try {
+    const html = await fetchClientHtml(targetUrl, 6000);
+    if (html) {
+      const items = [];
+      const itemRegex = /<div class="item"[^>]*>[\s\S]*?<div class="cover"[^>]*>\s*<a href="https:\/\/mangakatana\.com\/manga\/([^"]+)"[^>]*>\s*<img[^>]+(?:data-src|src)="([^"]+)"[^>]*alt="([^"]*)"[\s\S]*?<h3 class="title">\s*<a[^>]*>([\s\S]*?)<\/a>[\s\S]*?<\/div>/gi;
+      for (const m of html.matchAll(itemRegex)) {
+        const slug = m[1];
+        const cover = m[2];
+        const rawTitle = m[4] || m[3] || slug;
+        const title = cleanTitle(decodeHtml(rawTitle));
+        items.push({
+          id: `kat:${slug}`,
+          title,
+          englishTitle: title,
+          coverUrl: cover,
+          sourceName: 'MangaKatana',
+          status: 'Ongoing',
+          score: '9.4',
+          tags: ['Manga']
+        });
+      }
+      if (items.length > 0) return items;
+    }
+  } catch (err) {
+    console.warn('fetchMangaKatanaSourceManga error:', err);
+  }
+
+  return getFallbackSourceManga('mangakatana', query, mode);
+}
+
+async function fetchWeebCentralSourceManga(mode = 'popular', query = '') {
+  let targetUrl;
+  if (query && query.trim()) {
+    targetUrl = `https://weebcentral.com/search/data?text=${encodeURIComponent(query.trim())}`;
+  } else if (mode === 'latest') {
+    targetUrl = 'https://weebcentral.com/search/data?sort=Latest%20Updates&order=Desc';
+  } else {
+    targetUrl = 'https://weebcentral.com/search/data?sort=Popularity&order=Desc';
+  }
+
+  try {
+    const html = await fetchClientHtml(targetUrl, 6000);
+    if (html) {
+      const items = [];
+      const seriesRegex = /<article[^>]*>[\s\S]*?<a[^>]+href="[^"]*series\/([0-9A-Z]{26})[^"]*"[^>]*>[\s\S]*?<img[^>]+src="([^"]+)"[\s\S]*?<a[^>]+class="[^"]*line-clamp-2[^"]*"[^>]*>([\s\S]*?)<\/a>/gi;
+      for (const m of html.matchAll(seriesRegex)) {
+        const seriesId = m[1];
+        const cover = m[2];
+        const rawTitle = m[3];
+        const title = cleanTitle(decodeHtml(rawTitle).replace(/<[^>]+>/g, ''));
+        items.push({
+          id: `wc:${seriesId}`,
+          title,
+          englishTitle: title,
+          coverUrl: cover,
+          sourceName: 'WeebCentral',
+          status: 'Ongoing',
+          score: '9.5',
+          tags: ['Manhwa']
+        });
+      }
+      if (items.length > 0) return items;
+    }
+  } catch (err) {
+    console.warn('fetchWeebCentralSourceManga error:', err);
+  }
+
+  return getFallbackSourceManga('weebcentral', query, mode);
+}
+
+function isNsfwSource(sourceId) {
+  const s = String(sourceId || '').toLowerCase();
+  return s.includes('18') || s.includes('nsfw') || s.includes('doujin') || s.includes('hentai') || s.includes('erocool') || s.includes('asmhentai');
+}
+
+function adaptMangaToSource(manga, sourceId) {
+  const sId = String(sourceId || '').toLowerCase().trim();
+  let srcName = 'Manga Source';
+  if (sId.includes('katana') || sId === 'kat') srcName = 'MangaKatana';
+  else if (sId.includes('weeb') || sId === 'wc') srcName = 'WeebCentral';
+  else if (sId.includes('dex') || sId === 'md') srcName = 'MangaDex';
+  else if (sId.includes('asura')) srcName = 'Asura Scans';
+  else if (sId.includes('flame')) srcName = 'Flame Comics';
+  else if (sId.includes('thunder')) srcName = 'Thunder Scans';
+  else if (sId.includes('webtoon')) srcName = 'Webtoons';
+  else if (sId.includes('mangapill')) srcName = 'MangaPill';
+  else if (sId.includes('18') || sId.includes('doujin')) srcName = sourceId.toUpperCase();
+  else srcName = sourceId.charAt(0).toUpperCase() + sourceId.slice(1);
+
+  return {
+    ...manga,
+    id: manga.id.includes(':') ? manga.id : `${sId}:${manga.id}`,
+    sourceName: srcName
+  };
+}
+
+async function getFallbackSourceManga(sourceId, query = '', mode = 'popular') {
+  const sId = String(sourceId || '').toLowerCase().trim();
+  const q = String(query || '').toLowerCase().trim();
+  const isNsfw = isNsfwAllowed();
+
+  if (q) {
+    // 1. Search local verified catalog
+    const localMatches = FALLBACK_MANGA_CATALOG.filter(m => {
+      const t = (m.title || '').toLowerCase();
+      const eng = (m.englishTitle || '').toLowerCase();
+      const aliases = (m.aliases || []).map(a => String(a).toLowerCase());
+      return t.includes(q) || eng.includes(q) || aliases.some(a => a.includes(q));
+    }).map(m => adaptMangaToSource(m, sId));
+
+    if (localMatches.length > 0) {
+      return localMatches;
+    }
+
+    // 2. Query MangaDex or AniList
+    try {
+      if (sId.includes('dex') || sId === 'md' || isNsfwSource(sId)) {
+        const mdMatches = await fetchMangaDexSourceManga('search', q, isNsfw);
+        if (mdMatches.length > 0) return mdMatches;
+      }
+
+      const anilistMatches = await searchAniList(query);
+      if (anilistMatches && anilistMatches.length > 0) {
+        return anilistMatches.map(m => adaptMangaToSource(m, sId));
+      }
+    } catch {}
+
+    return [];
+  }
+
+  // Browse Popular / Latest without query
+  if (isNsfwSource(sId)) {
+    try {
+      const nsfwList = await fetchMangaDexSourceManga(mode, '', true);
+      if (nsfwList.length > 0) return nsfwList;
+    } catch {}
+  }
+
+  if (sId.includes('asura') || sId.includes('flame') || sId.includes('thunder')) {
+    return FALLBACK_MANGA_CATALOG.filter(m => {
+      const tags = (m.tags || []).map(t => t.toLowerCase());
+      return tags.includes('manhwa') || tags.includes('action') || (m.aliases || []).some(a => a.includes(sId));
+    }).map(m => adaptMangaToSource(m, sId));
+  }
+
+  if (sId.includes('webtoon')) {
+    return FALLBACK_MANGA_CATALOG.filter(m => {
+      const tags = (m.tags || []).map(t => t.toLowerCase());
+      return tags.includes('manhwa') || (m.author && m.author.includes('Park'));
+    }).map(m => adaptMangaToSource(m, sId));
+  }
+
+  if (sId.includes('mangapill')) {
+    return FALLBACK_MANGA_CATALOG.filter(m => {
+      const tags = (m.tags || []).map(t => t.toLowerCase());
+      return !tags.includes('manhwa');
+    }).map(m => adaptMangaToSource(m, sId));
+  }
+
+  return FALLBACK_MANGA_CATALOG.map(m => adaptMangaToSource(m, sId));
+}
+
 /**
  * Fetch Popular titles for a specific source
  */
 export async function fetchSourcePopular(sourceId) {
   const baseUrl = getApiBaseUrl();
-  const id = sourceId.toLowerCase();
+  const id = (sourceId || '').toLowerCase().trim();
 
   try {
     const url = baseUrl 
       ? `${baseUrl}/api/extensions/source?id=${encodeURIComponent(id)}&type=popular`
       : `/api/extensions/source?id=${encodeURIComponent(id)}&type=popular`;
-    const res = await fetch(url);
+    const res = await fetch(url, { signal: AbortSignal.timeout(4000) });
     if (res.ok) {
       const data = await res.json();
       if (Array.isArray(data) && data.length > 0) return data;
     }
-  } catch (err) {
-    console.warn(`fetchSourcePopular API warning for ${id}:`, err);
+  } catch {}
+
+  if (id.includes('dex') || id === 'md') {
+    return await fetchMangaDexSourceManga('popular', '', isNsfwAllowed());
+  }
+  if (id.includes('katana') || id === 'kat') {
+    return await fetchMangaKatanaSourceManga('popular', '');
+  }
+  if (id.includes('weeb') || id === 'wc') {
+    return await fetchWeebCentralSourceManga('popular', '');
   }
 
-  // Client-side fallback mapping
-  const allPopular = await fetchPopularManga();
-
-  return allPopular.filter(m => {
-    const sName = (m.sourceName || '').toLowerCase();
-    const mId = (m.id || '').toLowerCase();
-    return sName.includes(id) || id.includes(sName) || mId.startsWith(`${id}:`);
-  });
+  return await getFallbackSourceManga(id, '', 'popular');
 }
 
 /**
@@ -456,28 +772,30 @@ export async function fetchSourcePopular(sourceId) {
  */
 export async function fetchSourceLatest(sourceId) {
   const baseUrl = getApiBaseUrl();
-  const id = sourceId.toLowerCase();
+  const id = (sourceId || '').toLowerCase().trim();
 
   try {
     const url = baseUrl 
       ? `${baseUrl}/api/extensions/source?id=${encodeURIComponent(id)}&type=latest`
       : `/api/extensions/source?id=${encodeURIComponent(id)}&type=latest`;
-    const res = await fetch(url);
+    const res = await fetch(url, { signal: AbortSignal.timeout(4000) });
     if (res.ok) {
       const data = await res.json();
       if (Array.isArray(data) && data.length > 0) return data;
     }
-  } catch (err) {
-    console.warn(`fetchSourceLatest API warning for ${id}:`, err);
+  } catch {}
+
+  if (id.includes('dex') || id === 'md') {
+    return await fetchMangaDexSourceManga('latest', '', isNsfwAllowed());
+  }
+  if (id.includes('katana') || id === 'kat') {
+    return await fetchMangaKatanaSourceManga('latest', '');
+  }
+  if (id.includes('weeb') || id === 'wc') {
+    return await fetchWeebCentralSourceManga('latest', '');
   }
 
-  // Client-side fallback
-  const allPopular = await fetchPopularManga();
-  return allPopular.filter(m => {
-    const sName = (m.sourceName || '').toLowerCase();
-    const mId = (m.id || '').toLowerCase();
-    return sName.includes(id) || id.includes(sName) || mId.startsWith(`${id}:`);
-  });
+  return await getFallbackSourceManga(id, '', 'latest');
 }
 
 /**
@@ -486,28 +804,30 @@ export async function fetchSourceLatest(sourceId) {
 export async function searchSourceManga(sourceId, query) {
   if (!query || !query.trim()) return fetchSourcePopular(sourceId);
   const baseUrl = getApiBaseUrl();
-  const id = sourceId.toLowerCase();
+  const id = (sourceId || '').toLowerCase().trim();
 
   try {
     const url = baseUrl 
-      ? `${baseUrl}/api/extensions/source?id=${encodeURIComponent(id)}&type=search&q=${encodeURIComponent(query)}`
-      : `/api/extensions/source?id=${encodeURIComponent(id)}&type=search&q=${encodeURIComponent(query)}`;
-    const res = await fetch(url);
+      ? `${baseUrl}/api/extensions/source?id=${encodeURIComponent(id)}&type=search&q=${encodeURIComponent(query.trim())}`
+      : `/api/extensions/source?id=${encodeURIComponent(id)}&type=search&q=${encodeURIComponent(query.trim())}`;
+    const res = await fetch(url, { signal: AbortSignal.timeout(4000) });
     if (res.ok) {
       const data = await res.json();
       if (Array.isArray(data) && data.length > 0) return data;
     }
-  } catch (err) {
-    console.warn(`searchSourceManga API warning for ${id}:`, err);
+  } catch {}
+
+  if (id.includes('dex') || id === 'md') {
+    return await fetchMangaDexSourceManga('search', query.trim(), isNsfwAllowed());
+  }
+  if (id.includes('katana') || id === 'kat') {
+    return await fetchMangaKatanaSourceManga('search', query.trim());
+  }
+  if (id.includes('weeb') || id === 'wc') {
+    return await fetchWeebCentralSourceManga('search', query.trim());
   }
 
-  // Client-side fallback
-  const searchResults = await searchManga(query);
-  return searchResults.filter(m => {
-    const sName = (m.sourceName || '').toLowerCase();
-    const mId = (m.id || '').toLowerCase();
-    return sName.includes(id) || id.includes(sName) || mId.startsWith(`${id}:`);
-  });
+  return await getFallbackSourceManga(id, query.trim(), 'search');
 }
 
 /**
@@ -515,8 +835,13 @@ export async function searchSourceManga(sourceId, query) {
  */
 export async function searchAllInstalledSources(query, onSourceResult = null) {
   if (!query || !query.trim()) return [];
-  const installed = getInstalledExtensions().filter(e => e.enabled);
-  const resultsBySource = {};
+  const showNsfw = isNsfwAllowed();
+  const installed = getInstalledExtensions().filter(e => {
+    if (e.enabled === false) return false;
+    if (!showNsfw && e.contentWarning === 'CONTENT_WARNING_NSFW') return false;
+    return true;
+  });
+
   const allResults = [];
   const seenIds = new Set();
 
@@ -525,13 +850,13 @@ export async function searchAllInstalledSources(query, onSourceResult = null) {
       const primarySource = ext.sources[0]?.id || ext.name.toLowerCase();
       try {
         const list = await searchSourceManga(primarySource, query);
-        resultsBySource[ext.name] = list;
         if (onSourceResult) {
           onSourceResult(ext.name, list);
         }
         list.forEach(item => {
-          if (!seenIds.has(item.id)) {
-            seenIds.add(item.id);
+          const uniqueKey = `${ext.name}_${item.id}`;
+          if (!seenIds.has(uniqueKey)) {
+            seenIds.add(uniqueKey);
             allResults.push({
               ...item,
               extensionPkg: ext.pkg,

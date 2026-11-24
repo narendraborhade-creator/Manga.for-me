@@ -974,6 +974,26 @@ class MangaRepository(context: Context) {
         return ""
     }
 
+    fun fetchHtmlDirect(url: String): String {
+        return try {
+            val request = Request.Builder()
+                .url(url)
+                .header("User-Agent", "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/122.0.0.0 Safari/537.36")
+                .header("Accept", "text/html,application/xhtml+xml,application/xml;q=0.9,image/webp,*/*;q=0.8")
+                .header("Accept-Language", "en-US,en;q=0.9")
+                .build()
+            httpClient.newCall(request).execute().use { response ->
+                if (response.isSuccessful) {
+                    response.body?.string().orEmpty()
+                } else {
+                    ""
+                }
+            }
+        } catch (e: Exception) {
+            ""
+        }
+    }
+
     /**
      * Intercepts and streams images with verified Referer and User-Agent headers.
      * Guarantees 100% reliable image delivery, proper binary MIME types (never application/octet-stream),

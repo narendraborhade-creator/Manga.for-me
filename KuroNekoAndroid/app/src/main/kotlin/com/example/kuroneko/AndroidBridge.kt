@@ -54,6 +54,17 @@ class AndroidBridge(
     }
 
     @JavascriptInterface
+    fun fetchHtml(url: String): String {
+        return runBlocking(Dispatchers.IO) {
+            try {
+                repository.fetchHtmlDirect(url)
+            } catch (e: Exception) {
+                ""
+            }
+        }
+    }
+
+    @JavascriptInterface
     fun showToast(message: String) {
         android.os.Handler(android.os.Looper.getMainLooper()).post {
             Toast.makeText(context, message, Toast.LENGTH_SHORT).show()

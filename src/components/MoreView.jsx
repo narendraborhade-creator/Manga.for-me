@@ -11,6 +11,7 @@ import {
   ExternalLink, 
   Sliders, 
   ShieldCheck, 
+  ShieldAlert,
   Sparkles, 
   Palette, 
   Smartphone, 
@@ -37,6 +38,7 @@ import {
   saveMihonTracking,
   clearHistory
 } from '../services/storage';
+import { isNsfwAllowed, setNsfwAllowed } from '../services/extensionManager';
 
 export default function MoreView({
   onOpenBackup,
@@ -51,6 +53,14 @@ export default function MoreView({
   const [malInput, setMalInput] = useState(tracking.mal?.username || '');
   const [toastMsg, setToastMsg] = useState('');
   const [copiedLink, setCopiedLink] = useState(false);
+  const [nsfwEnabled, setNsfwEnabled] = useState(() => isNsfwAllowed());
+
+  const handleToggleNsfw = () => {
+    const nextVal = !nsfwEnabled;
+    setNsfwEnabled(nextVal);
+    setNsfwAllowed(nextVal);
+    showToast(`18+ NSFW content ${nextVal ? 'enabled' : 'disabled'}`);
+  };
 
   const showToast = (msg) => {
     setToastMsg(msg);
@@ -257,6 +267,36 @@ export default function MoreView({
             </div>
             <p className="text-[11px] text-slate-500">
               Automatically preloads and stacks the next chapter at the end of the scroll.
+            </p>
+          </div>
+
+          {/* 18+ NSFW Content Setting */}
+          <div className="p-4 rounded-xl bg-slate-950/80 border border-white/5 space-y-2">
+            <label className="text-xs text-slate-300 block font-semibold flex items-center gap-2">
+              <ShieldAlert className="w-4 h-4 text-rose-400" />
+              <span>18+ Adult & NSFW Content</span>
+            </label>
+            <div className="flex items-center justify-between pt-1">
+              <span className="text-xs text-slate-400">
+                {nsfwEnabled ? 'Enabled (18+ sources and titles visible)' : 'Disabled (Safe mode only)'}
+              </span>
+              <button
+                type="button"
+                aria-label="Toggle 18+ NSFW Content"
+                onClick={handleToggleNsfw}
+                className={`w-11 h-6 rounded-full transition-colors relative cursor-pointer ${
+                  nsfwEnabled ? 'bg-rose-600' : 'bg-slate-800'
+                }`}
+              >
+                <div
+                  className={`w-5 h-5 rounded-full bg-white transition-transform ${
+                    nsfwEnabled ? 'translate-x-5' : 'translate-x-0.5'
+                  }`}
+                />
+              </button>
+            </div>
+            <p className="text-[11px] text-slate-500">
+              User preference: Shows adult sources, 18+ manhwa, and mature content across source catalogs.
             </p>
           </div>
         </div>

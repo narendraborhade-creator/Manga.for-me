@@ -41,7 +41,9 @@ import {
   fetchSourceLatest,
   searchSourceManga,
   searchAllInstalledSources,
-  DEFAULT_REPOSITORIES
+  DEFAULT_REPOSITORIES,
+  isNsfwAllowed,
+  setNsfwAllowed
 } from '../services/extensionManager';
 import MangaCard from './MangaCard';
 
@@ -66,7 +68,13 @@ export default function ExtensionsView({ onSelectManga, onOpenReader }) {
   const [extensionSearch, setExtensionSearch] = useState('');
   const [selectedLang, setSelectedLang] = useState('all');
   const [statusFilter, setStatusFilter] = useState('all'); // 'all' | 'installed' | 'available'
-  const [showNsfw, setShowNsfw] = useState(false);
+  const [showNsfw, setShowNsfw] = useState(() => isNsfwAllowed());
+
+  const handleToggleNsfw = () => {
+    const nextVal = !showNsfw;
+    setShowNsfw(nextVal);
+    setNsfwAllowed(nextVal);
+  };
 
   // Source Browser Modal State
   const [browsingSource, setBrowsingSource] = useState(null); // { source, mode: 'popular'|'latest'|'search' }
@@ -295,16 +303,21 @@ export default function ExtensionsView({ onSelectManga, onOpenReader }) {
     }
   };
 
-  // Pinned vs Non-pinned installed extensions
-  const { pinnedSources, unpinnedSources } = useMemo(() => {
+  // Pinned vs Non-pinned installed extensions filtered by user NSFW preference
+  const { pinnedSources, unpinnedSources, hiddenNsfwCount } = useMemo(() => {
     const pinned = [];
     const unpinned = [];
+    let hiddenCount = 0;
     installedExtensions.forEach(ext => {
+      if (!showNsfw && ext.contentWarning === 'CONTENT_WARNING_NSFW') {
+        hiddenCount++;
+        return;
+      }
       if (ext.isPinned) pinned.push(ext);
       else unpinned.push(ext);
     });
-    return { pinnedSources: pinned, unpinnedSources: unpinned };
-  }, [installedExtensions]);
+    return { pinnedSources: pinned, unpinnedSources: unpinned, hiddenNsfwCount: hiddenCount };
+  }, [installedExtensions, showNsfw]);
 
   return (
     <div className="space-y-6 sm:space-y-8 animate-fadeIn font-['Plus_Jakarta_Sans',sans-serif]">
@@ -427,6 +440,25 @@ export default function ExtensionsView({ onSelectManga, onOpenReader }) {
                   <span>Global Search</span>
                 </button>
 
+                {/* 18+ NSFW Toggle in Installed Tab */}
+                <button
+                  type="button"
+                  onClick={handleToggleNsfw}
+                  className={`px-3 py-2.5 rounded-xl text-xs font-mono font-bold border transition-all flex items-center gap-1.5 cursor-pointer flex-shrink-0 ${
+                    showNsfw
+                      ? 'bg-rose-500/20 text-rose-300 border-rose-500/40 shadow-sm'
+                      : 'bg-slate-900 text-slate-400 border-white/10 hover:text-white'
+                  }`}
+                  title="Toggle 18+ NSFW Sources"
+                >
+                  {showNsfw ? (
+                    <ShieldAlert className="w-3.5 h-3.5 text-rose-400" />
+                  ) : (
+                    <ShieldCheck className="w-3.5 h-3.5 text-slate-400" />
+                  )}
+                  <span>18+ NSFW: {showNsfw ? 'ON' : 'OFF'}</span>
+                </button>
+
                 {globalSearchActive && (
                   <button
                     type="button"
@@ -443,6 +475,22 @@ export default function ExtensionsView({ onSelectManga, onOpenReader }) {
                 )}
               </div>
             </form>
+
+            {!showNsfw && hiddenNsfwCount > 0 && !globalSearchActive && (
+              <div className="pt-2 flex items-center justify-between text-xs text-slate-400 font-mono">
+                <span className="flex items-center gap-1.5">
+                  <ShieldCheck className="w-3.5 h-3.5 text-emerald-400" />
+                  <span>{hiddenNsfwCount} adult (18+ NSFW) sources hidden</span>
+                </span>
+                <button
+                  type="button"
+                  onClick={handleToggleNsfw}
+                  className="text-rose-400 hover:text-rose-300 font-bold hover:underline cursor-pointer"
+                >
+                  Enable 18+ Sources
+                </button>
+              </div>
+            )}
 
             {/* Global Search Results Panel */}
             {globalSearchActive && (
@@ -506,7 +554,7 @@ export default function ExtensionsView({ onSelectManga, onOpenReader }) {
               <div className="flex items-center justify-between text-xs font-mono font-bold text-slate-400 tracking-wider">
                 <span className="flex items-center gap-2">
                   <Radio className="w-3.5 h-3.5 text-cyan-400" />
-                  <span>ALL INSTALLED SOURCES ({installedExtensions.length})</span>
+                  <span>ALL INSTALLED SOURCES ({pinnedSources.length + unpinnedSources.length})</span>
                 </span>
                 <button
                   onClick={() => setActiveSubTab('extensions')}
@@ -518,7 +566,7 @@ export default function ExtensionsView({ onSelectManga, onOpenReader }) {
               </div>
 
               <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3">
-                {(unpinnedSources.length > 0 ? unpinnedSources : installedExtensions).map(ext => (
+                {unpinnedSources.map(ext => (
                   <SourceDeckCard
                     key={ext.pkg}
                     extension={ext}
@@ -577,7 +625,7 @@ export default function ExtensionsView({ onSelectManga, onOpenReader }) {
               {/* NSFW Toggle */}
               <button
                 type="button"
-                onClick={() => setShowNsfw(prev => !prev)}
+                onClick={handleToggleNsfw}
                 className={`px-3 py-2 rounded-xl text-xs font-mono font-bold border transition-all flex items-center gap-1.5 cursor-pointer flex-shrink-0 ${
                   showNsfw
                     ? 'bg-rose-500/20 text-rose-300 border-rose-500/40 shadow-sm'
