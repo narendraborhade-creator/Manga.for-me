@@ -50,6 +50,20 @@ class MangaRepository(context: Context) {
         "1/berserk" to "berserk.1087",
         "723/chainsaw-man" to "chainsaw-man.21890",
         "938/death-note" to "death-note.235",
+        "3/bleach" to "bleach.47",
+        "5/naruto" to "naruto.1205",
+        "17/hunter-x-hunter" to "hunter-x-hunter.102",
+        "2085/jujutsu-kaisen" to "jujutsu-kaisen.20224",
+        "467/demon-slayer" to "demon-slayer-kimetsu-no-yaiba.1293",
+        "50/attack-on-titan" to "shingeki-no-kyojin.131",
+        "60/vinland-saga" to "vinland-saga.81",
+        "4/vagabond" to "vagabond.84",
+        "8/kingdom" to "kingdom.92",
+        "asura:surviving-game-barbarian" to "surviving-the-game-as-a-barbarian.27138",
+        "asura:reincarnation-of-the-suicidal-battle-god-ab39de10" to "reincarnation-of-the-suicidal-battle-god.25816",
+        "asura:nano-machine-ab39de10" to "nano-machine.25193",
+        "asura:greatest-estate-developer" to "the-greatest-estate-developer.26244",
+        "asura:return-of-the-mount-hua-sect-ab39de10" to "return-of-the-blossoming-blade.25807",
         "kat:wind-breaker.467" to "wind-breaker.467",
         "kat:eleceed.115" to "eleceed.115"
     )
@@ -71,20 +85,44 @@ class MangaRepository(context: Context) {
         "01J76XYCRVY3QGYAMRR3STW941" to "01J76XYCRVY3QGYAMRR3STW941",
         "01J76XYFAESZTJT5AQ1SPFKYXR" to "01J76XYFAESZTJT5AQ1SPFKYXR",
         "01J76XYGVNHEER7G6M90C6YCTW" to "01J76XYGVNHEER7G6M90C6YCTW",
+        "01J76XYBD282Y3XKX0KRGD64Q5" to "01J76XYBD282Y3XKX0KRGD64Q5",
+        "01J76XY7M0W9WWJ55VJYYB2J1S" to "01J76XY7M0W9WWJ55VJYYB2J1S",
+        "01J76XYA1TQYKV6W4BCMR2WD5M" to "01J76XYA1TQYKV6W4BCMR2WD5M",
+        "01J76XYDT7H7ANER8KJG5R9SJV" to "01J76XYDT7H7ANER8KJG5R9SJV",
+        "01J76XYEVCSS5ANBCJZ4ZF9P65" to "01J76XYEVCSS5ANBCJZ4ZF9P65",
+        "01J76XYF6V9BDFSRRTY2C65SBS" to "01J76XYF6V9BDFSRRTY2C65SBS",
+        "01J76XYCPSY3C4BNPBRY8JMCBE" to "01J76XYCPSY3C4BNPBRY8JMCBE",
+        "01J76XYDMWWJX3T4BFWR84FQQK" to "01J76XYDMWWJX3T4BFWR84FQQK",
+        "01J76XYEZ1BQJM22H3RREE1XMG" to "01J76XYEZ1BQJM22H3RREE1XMG",
+        "01J76XYG976314R2DM2DKQRBGS" to "01J76XYG976314R2DM2DKQRBGS",
+        "01J76XYG12YTB3J27FVBM256V8" to "01J76XYG12YTB3J27FVBM256V8",
         "webtoon:ks:my-in-laws-are-obsessed-with-me" to "01J76XYFAESZTJT5AQ1SPFKYXR",
         "my-in-laws-are-obsessed-with-me" to "01J76XYFAESZTJT5AQ1SPFKYXR",
+        "my-in-laws-are-my-beloved-in-laws" to "01J76XYFAESZTJT5AQ1SPFKYXR",
         "kat:worlds-strongest-troll.26644" to "01J76XYGVNHEER7G6M90C6YCTW",
         "worlds-strongest-troll" to "01J76XYGVNHEER7G6M90C6YCTW",
-        "webtoon:solo-leveling" to "01J76XYD44P5Q8203E3FSRW939",
-        "solo-leveling" to "01J76XYD44P5Q8203E3FSRW939",
-        "webtoon:omniscient-reader" to "01J76XYC218S1EZZ7N80Q68S2K",
-        "omniscient-reader" to "01J76XYC218S1EZZ7N80Q68S2K",
-        "asura:nano-machine-ab39de10" to "01J76XYCH4CS9M5E9T97E3B5Z4",
-        "nano-machine" to "01J76XYCH4CS9M5E9T97E3B5Z4",
-        "asura:greatest-estate-developer" to "01J76XYDRY4J3B7H0W6C3J95SZ",
-        "estate-developer" to "01J76XYDRY4J3B7H0W6C3J95SZ",
-        "asura:return-of-the-mount-hua-sect-ab39de10" to "01J76XYDEZ7SZ9T0151SZ47G74",
-        "mount-hua" to "01J76XYDEZ7SZ9T0151SZ47G74"
+        "lookism" to "01J76XYBD282Y3XKX0KRGD64Q5",
+        "tower-of-god" to "01J76XY7M0W9WWJ55VJYYB2J1S",
+        "wind-breaker" to "01J76XYA1TQYKV6W4BCMR2WD5M",
+        "webtoon:solo-leveling" to "01J76XYCPSY3C4BNPBRY8JMCBE",
+        "solo-leveling" to "01J76XYCPSY3C4BNPBRY8JMCBE",
+        "webtoon:omniscient-reader" to "01J76XYDMWWJX3T4BFWR84FQQK",
+        "omniscient-reader" to "01J76XYDMWWJX3T4BFWR84FQQK",
+        "asura:nano-machine-ab39de10" to "01J76XYDT7H7ANER8KJG5R9SJV",
+        "nano-machine" to "01J76XYDT7H7ANER8KJG5R9SJV",
+        "asura:greatest-estate-developer" to "01J76XYF6V9BDFSRRTY2C65SBS",
+        "the-greatest-estate-developer" to "01J76XYF6V9BDFSRRTY2C65SBS",
+        "estate-developer" to "01J76XYF6V9BDFSRRTY2C65SBS",
+        "asura:return-of-the-mount-hua-sect-ab39de10" to "01J76XYEVCSS5ANBCJZ4ZF9P65",
+        "return-of-the-mount-hua-sect" to "01J76XYEVCSS5ANBCJZ4ZF9P65",
+        "mount-hua" to "01J76XYEVCSS5ANBCJZ4ZF9P65",
+        "doom-breaker" to "01J76XYEZ1BQJM22H3RREE1XMG",
+        "asura:reincarnation-of-the-suicidal-battle-god-ab39de10" to "01J76XYEZ1BQJM22H3RREE1XMG",
+        "barbarian" to "01J76XYG976314R2DM2DKQRBGS",
+        "surviving-the-game-as-a-barbarian" to "01J76XYG976314R2DM2DKQRBGS",
+        "asura:surviving-game-barbarian" to "01J76XYG976314R2DM2DKQRBGS",
+        "damn-reincarnation" to "01J76XYG12YTB3J27FVBM256V8",
+        "my-blasted-reincarnated-life" to "01J76XYG12YTB3J27FVBM256V8"
     )
 
     private val wcChapterCache = ConcurrentHashMap<String, ConcurrentHashMap<String, String>>()
@@ -383,19 +421,35 @@ class MangaRepository(context: Context) {
         return when {
             t.contains("in-law") || t.contains("in law") || t.contains("obsessed") || m.contains("in-law") || m.contains("inlaw") -> "01J76XYFAESZTJT5AQ1SPFKYXR"
             t.contains("strongest troll") || m.contains("strongest-troll") -> "01J76XYGVNHEER7G6M90C6YCTW"
-            t.contains("solo leveling") || m.contains("solo-leveling") -> "01J76XYD44P5Q8203E3FSRW939"
-            t.contains("omniscient reader") || m.contains("omniscient-reader") -> "01J76XYC218S1EZZ7N80Q68S2K"
-            t.contains("nano machine") || m.contains("nano-machine") -> "01J76XYCH4CS9M5E9T97E3B5Z4"
-            t.contains("estate developer") || m.contains("estate-developer") -> "01J76XYDRY4J3B7H0W6C3J95SZ"
-            t.contains("mount hua") || t.contains("blossoming blade") -> "01J76XYDEZ7SZ9T0151SZ47G74"
+            t.contains("solo leveling") || m.contains("solo-leveling") || m.contains("solo") -> "01J76XYCPSY3C4BNPBRY8JMCBE"
+            t.contains("omniscient reader") || m.contains("omniscient-reader") || m.contains("orv") -> "01J76XYDMWWJX3T4BFWR84FQQK"
+            t.contains("nano machine") || m.contains("nano-machine") -> "01J76XYDT7H7ANER8KJG5R9SJV"
+            t.contains("estate developer") || m.contains("estate-developer") -> "01J76XYF6V9BDFSRRTY2C65SBS"
+            t.contains("mount hua") || t.contains("blossoming blade") -> "01J76XYEVCSS5ANBCJZ4ZF9P65"
+            t.contains("doom breaker") || t.contains("suicidal battle god") -> "01J76XYEZ1BQJM22H3RREE1XMG"
+            t.contains("barbarian") -> "01J76XYG976314R2DM2DKQRBGS"
+            t.contains("damn reincarnation") || t.contains("blasted reincarnated") -> "01J76XYG12YTB3J27FVBM256V8"
+            t.contains("stepmother") || t.contains("fairy tale") -> "01J76XYDQ9JTWW4THBJWPXNJ9H"
+            t.contains("lookism") || m.contains("lookism") -> "01J76XYBD282Y3XKX0KRGD64Q5"
+            t.contains("tower of god") || m.contains("tower-of-god") -> "01J76XY7M0W9WWJ55VJYYB2J1S"
+            t.contains("wind breaker") || m.contains("wind-breaker") -> "01J76XYA1TQYKV6W4BCMR2WD5M"
+            t.contains("one piece") || m.contains("one-piece") -> "01J76XY7E9FNDZ1DBBM6PBJPFK"
+            t.contains("berserk") || m.contains("berserk") -> "01J76XY7EF75DJNQCV04HTPDZK"
             else -> null
         }
     }
 
     private fun findWeebCentralChapterId(seriesId: String, chNum: String): String? {
         val seriesCache = wcChapterCache[seriesId]
-        if (seriesCache != null && seriesCache.containsKey(chNum)) {
-            return seriesCache[chNum]
+        val cleanChNum = chNum.replace(Regex("[^0-9.]"), "")
+        if (seriesCache != null) {
+            val direct = seriesCache[cleanChNum] ?: seriesCache[chNum]
+            if (direct != null) return direct
+            val dbl = cleanChNum.toDoubleOrNull()
+            if (dbl != null) {
+                val matched = seriesCache.entries.find { it.key.toDoubleOrNull() == dbl }?.value
+                if (matched != null) return matched
+            }
         }
         try {
             val url = "https://weebcentral.com/series/$seriesId/full-chapter-list"
@@ -424,7 +478,12 @@ class MangaRepository(context: Context) {
                         val num = numMatch?.groupValues?.get(1) ?: "1"
                         map[num] = chapId
                     }
-                    return map[chNum]
+                    val direct = map[cleanChNum] ?: map[chNum]
+                    if (direct != null) return direct
+                    val dbl = cleanChNum.toDoubleOrNull()
+                    if (dbl != null) {
+                        return map.entries.find { it.key.toDoubleOrNull() == dbl }?.value
+                    }
                 }
             }
         } catch (_: Exception) {}
@@ -475,6 +534,9 @@ class MangaRepository(context: Context) {
             t.contains("estate developer") || m.contains("greatest-estate-developer") -> "the-greatest-estate-developer.26244"
             t.contains("magic emperor") || m.contains("magic-emperor") -> "magic-emperor.23439"
             t.contains("mount hua") || t.contains("blossoming blade") -> "return-of-the-blossoming-blade.25807"
+            t.contains("doom breaker") || t.contains("suicidal battle god") -> "reincarnation-of-the-suicidal-battle-god.25816"
+            t.contains("barbarian") -> "surviving-the-game-as-a-barbarian.27138"
+            t.contains("damn reincarnation") || t.contains("blasted reincarnated") -> "damn-reincarnation.26360"
             else -> null
         }
     }
@@ -488,10 +550,55 @@ class MangaRepository(context: Context) {
         val num = if (requestedChNum.isNotBlank()) {
             requestedChNum.replace(Regex("[^0-9.]"), "").ifEmpty { "1" }
         } else {
-            Regex("([0-9.]+)").find(chapterId)?.value ?: "1"
+            Regex("(?:chapter-|:c|:ch|:ep|:)([0-9.]+)").find(chapterId)?.groupValues?.get(1)
+                ?: Regex("([0-9.]+)").findAll(chapterId).lastOrNull()?.value
+                ?: "1"
         }
 
-        // 1. WeebCentral direct or resolved chapter fetch
+        // 1. Direct MangaPill Scraper (One Piece, Berserk, Death Note, Bleach, Naruto, Chainsaw Man, Jujutsu Kaisen, etc.)
+        if (chapterId.matches(Regex("^[0-9]+-[0-9]+/.*")) || chapterId.startsWith("mp:") || mangaId.matches(Regex("^[0-9]+/[a-z0-9-]+"))) {
+            try {
+                var mpPath = chapterId.replace(Regex("^mp:"), "").trim()
+                if (!mpPath.contains("/")) {
+                    val pMatch = Regex("^([0-9]+)").find(mangaId)?.value
+                    val slugMatch = Regex("/([a-z0-9-]+)").find(mangaId)?.groupValues?.get(1)
+                    if (pMatch != null && slugMatch != null) {
+                        val parsedN = num.toDoubleOrNull() ?: 1.0
+                        val code = 10000000 + (parsedN * 1000).toInt()
+                        mpPath = "$pMatch-$code/$slugMatch-chapter-$num"
+                    }
+                }
+                val url = "https://mangapill.com/chapters/$mpPath"
+                val request = Request.Builder()
+                    .url(url)
+                    .header("User-Agent", "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/124.0.0.0 Safari/537.36")
+                    .header("Referer", "https://mangapill.com/")
+                    .build()
+
+                httpClient.newCall(request).execute().use { response ->
+                    if (response.isSuccessful) {
+                        val html = response.body?.string().orEmpty()
+                        val imgPattern = Pattern.compile("<img[^>]+(?:data-src|src)=\"([^\"]+)\"", Pattern.CASE_INSENSITIVE)
+                        val matcher = imgPattern.matcher(html)
+                        val pageList = mutableListOf<ReaderPage>()
+                        var pageCount = 1
+                        while (matcher.find()) {
+                            val src = matcher.group(1).orEmpty()
+                            if (src.contains("mangapill.com") || src.contains("readdetectiveconan.com")) {
+                                pageList.add(ReaderPage(pageNumber = pageCount++, imageUrl = src))
+                            }
+                        }
+                        if (pageList.isNotEmpty()) {
+                            return@withContext pageList
+                        }
+                    }
+                }
+            } catch (e: Exception) {
+                e.printStackTrace()
+            }
+        }
+
+        // 2. WeebCentral direct or resolved chapter fetch
         var wcChapId: String? = null
         val rawWc = chapterId.replace(Regex("^(wc_ch:|wc:)"), "").trim()
         if (rawWc.contains(":")) {
@@ -548,11 +655,16 @@ class MangaRepository(context: Context) {
             }
         }
 
-        // 2. MangaKatana resolution
-        var slug = if (chapterId.startsWith("kat_ch:")) {
-            chapterId.replace("kat_ch:", "").split(":").firstOrNull()
+        // 3. MangaKatana resolution
+        var slug: String? = null
+        var specificChSlug: String? = null
+        if (chapterId.startsWith("kat_ch:")) {
+            val parts = chapterId.replace("kat_ch:", "").split(":")
+            slug = parts.firstOrNull()
+            specificChSlug = if (parts.size > 1) parts[1] else "c$num"
         } else {
-            resolveKatanaSlug(mangaId, requestedTitle)
+            slug = resolveKatanaSlug(mangaId, requestedTitle)
+            specificChSlug = "c$num"
         }
 
         // Dynamic search on MangaKatana if slug unknown, enforcing authentic title matching
@@ -585,7 +697,8 @@ class MangaRepository(context: Context) {
 
         if (slug != null) {
             try {
-                val url = "https://mangakatana.com/manga/$slug/c$num"
+                val targetSlug = if (!specificChSlug.isNullOrBlank()) specificChSlug else "c$num"
+                val url = "https://mangakatana.com/manga/$slug/$targetSlug"
                 val request = Request.Builder()
                     .url(url)
                     .header("User-Agent", "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/124.0.0.0 Safari/537.36")
@@ -634,6 +747,14 @@ class MangaRepository(context: Context) {
             } catch (e: Exception) {
                 e.printStackTrace()
             }
+        }
+
+        // 4. A Fortune-Telling Princess direct CDN
+        if (mangaId.contains("fortune-telling") || chapterId.contains("ftp") || chapterId.contains("fortune-telling") || requestedTitle.contains("fortune-telling", true)) {
+            val pageList = (1..28).map { p ->
+                ReaderPage(pageNumber = p, imageUrl = "https://afortunetellingprincess.com/wp-content/uploads/manga/a-fortune-telling-princess-manhwa/chapter-$num/$p.jpg")
+            }
+            return@withContext pageList
         }
 
         // 3. MangaDex fallback

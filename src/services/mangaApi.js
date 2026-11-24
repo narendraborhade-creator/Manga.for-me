@@ -169,56 +169,75 @@ export const FALLBACK_MANGA_CATALOG = [
     })
   },
   {
-    id: 'asura:nano-machine-ab39de10',
-    aliases: ['nano-machine', 'webtoon:nano-machine'],
+    id: 'wc:01J76XYDT7H7ANER8KJG5R9SJV',
+    aliases: [
+      '01J76XYDT7H7ANER8KJG5R9SJV',
+      'wc:01J76XYDT7H7ANER8KJG5R9SJV',
+      'asura:nano-machine-ab39de10',
+      'nano-machine',
+      'webtoon:nano-machine'
+    ],
     title: 'Nano Machine',
     englishTitle: 'Nano Machine',
     coverUrl: 'https://s4.anilist.co/file/anilistcdn/media/manga/cover/medium/bx120980-RZ9WLd0o9hyo.jpg',
     status: 'Ongoing',
-    score: '9.4',
+    score: '9.5',
     year: '2020',
     author: 'Jeolmu Hyeon',
     description: 'Cheon Yeo-woon is an illegitimate prince of the Demonic Cult marked for assassination until a descendant injects him with nanomachines.',
     tags: ['Action', 'Martial Arts', 'Sci-Fi', 'Murim'],
-    sourceName: 'Asura Scans',
-    totalChapters: 230,
-    latestChapter: '230',
-    chapters: Array.from({ length: 230 }, (_, i) => {
-      const chNum = 230 - i;
+    sourceName: 'WeebCentral',
+    totalChapters: 339,
+    latestChapter: '339',
+    chapters: Array.from({ length: 339 }, (_, i) => {
+      const chNum = 339 - i;
       return {
-        id: `asura_ch:nano-machine-ab39de10:${chNum}`,
+        id: `wc_ch:01J76XYDT7H7ANER8KJG5R9SJV:${chNum}`,
         chapter: String(chNum),
         title: `Chapter ${chNum}`,
       };
     })
   },
   {
-    id: 'asura:return-of-the-mount-hua-sect-ab39de10',
-    aliases: ['return-of-the-mount-hua-sect', 'mount-hua'],
+    id: 'wc:01J76XYEVCSS5ANBCJZ4ZF9P65',
+    aliases: [
+      '01J76XYEVCSS5ANBCJZ4ZF9P65',
+      'wc:01J76XYEVCSS5ANBCJZ4ZF9P65',
+      'asura:return-of-the-mount-hua-sect-ab39de10',
+      'return-of-the-mount-hua-sect',
+      'mount-hua',
+      'return-of-the-blossoming-blade'
+    ],
     title: 'Return of the Mount Hua Sect',
     englishTitle: 'Return of the Mount Hua Sect',
     coverUrl: 'https://s4.anilist.co/file/anilistcdn/media/manga/cover/medium/bx132144-i5B4VnG9sRgh.png',
     status: 'Ongoing',
-    score: '9.6',
+    score: '9.7',
     year: '2021',
     author: 'Biga',
     description: 'Chung Myung, the 13th disciple of the Great Mount Hua Sect, slays the Heavenly Demon and awakens a century later to restore his fallen sect.',
     tags: ['Action', 'Adventure', 'Comedy', 'Martial Arts'],
-    sourceName: 'Asura Scans',
-    totalChapters: 150,
-    latestChapter: '150',
-    chapters: Array.from({ length: 150 }, (_, i) => {
-      const chNum = 150 - i;
+    sourceName: 'WeebCentral',
+    totalChapters: 194,
+    latestChapter: '194',
+    chapters: Array.from({ length: 194 }, (_, i) => {
+      const chNum = 194 - i;
       return {
-        id: `asura_ch:return-of-the-mount-hua-sect-ab39de10:${chNum}`,
+        id: `wc_ch:01J76XYEVCSS5ANBCJZ4ZF9P65:${chNum}`,
         chapter: String(chNum),
         title: `Chapter ${chNum}`,
       };
     })
   },
   {
-    id: 'asura:reincarnation-of-the-suicidal-battle-god-ab39de10',
-    aliases: ['doom-breaker', 'reincarnation-of-the-suicidal-battle-god'],
+    id: 'wc:01J76XYEZ1BQJM22H3RREE1XMG',
+    aliases: [
+      '01J76XYEZ1BQJM22H3RREE1XMG',
+      'wc:01J76XYEZ1BQJM22H3RREE1XMG',
+      'asura:reincarnation-of-the-suicidal-battle-god-ab39de10',
+      'doom-breaker',
+      'reincarnation-of-the-suicidal-battle-god'
+    ],
     title: 'Doom Breaker',
     englishTitle: 'Reincarnation of the Suicidal Battle God',
     coverUrl: 'https://s4.anilist.co/file/anilistcdn/media/manga/cover/medium/bx136220-u9sewv3u02mN.jpg',
@@ -228,13 +247,13 @@ export const FALLBACK_MANGA_CATALOG = [
     author: 'Cheong-dam',
     description: 'Zephyr is the last surviving human in a world destroyed by gods. Granted a second chance by the gods who found his struggle entertaining, he regresses to get revenge.',
     tags: ['Action', 'Fantasy', 'Reincarnation', 'Manhwa'],
-    sourceName: 'Asura Scans',
-    totalChapters: 110,
-    latestChapter: '110',
-    chapters: Array.from({ length: 110 }, (_, i) => {
-      const chNum = 110 - i;
+    sourceName: 'WeebCentral',
+    totalChapters: 101,
+    latestChapter: '101',
+    chapters: Array.from({ length: 101 }, (_, i) => {
+      const chNum = 101 - i;
       return {
-        id: `asura_ch:reincarnation-of-the-suicidal-battle-god-ab39de10:${chNum}`,
+        id: `wc_ch:01J76XYEZ1BQJM22H3RREE1XMG:${chNum}`,
         chapter: String(chNum),
         title: `Chapter ${chNum}`,
       };
@@ -875,8 +894,15 @@ export const FALLBACK_MANGA_CATALOG = [
     })
   },
   {
-    id: 'webtoon:solo-leveling',
-    aliases: ['solo-leveling', 'solo'],
+    id: 'wc:01J76XYCPSY3C4BNPBRY8JMCBE',
+    aliases: [
+      '01J76XYCPSY3C4BNPBRY8JMCBE',
+      'wc:01J76XYCPSY3C4BNPBRY8JMCBE',
+      'webtoon:solo-leveling',
+      'webtoon:solo',
+      'solo-leveling',
+      'solo'
+    ],
     title: 'Solo Leveling',
     englishTitle: 'Solo Leveling (Only I Level Up)',
     coverUrl: 'https://s4.anilist.co/file/anilistcdn/media/manga/cover/large/bx105398-b673Vt5ZSuz3.jpg',
@@ -886,95 +912,119 @@ export const FALLBACK_MANGA_CATALOG = [
     author: 'Chugong & DUBU (REDICE)',
     description: '10 years ago, after "the Gate" that connected the real world with the monster world opened, ordinary hunter Sung Jin-woo receives a quest log that only he can see!',
     tags: ['Action', 'Fantasy', 'Supernatural', 'Manhwa'],
-    sourceName: 'Webtoon',
-    totalChapters: 200,
-    latestChapter: '200',
-    chapters: Array.from({ length: 200 }, (_, i) => {
-      const chNum = 200 - i;
+    sourceName: 'WeebCentral',
+    totalChapters: 201,
+    latestChapter: '201',
+    chapters: Array.from({ length: 201 }, (_, i) => {
+      const chNum = 201 - i;
       return {
-        id: `webtoon:solo:${chNum}`,
+        id: `wc_ch:01J76XYCPSY3C4BNPBRY8JMCBE:${chNum}`,
         chapter: String(chNum),
-        title: chNum === 200 ? 'Epilogue 21' : chNum === 1 ? 'Prologue' : `Chapter ${chNum}`,
+        title: `Chapter ${chNum}`,
       };
     })
   },
   {
-    id: 'webtoon:omniscient-reader',
-    aliases: ['omniscient-reader', 'orv', 'omniscient-readers-viewpoint'],
+    id: 'wc:01J76XYDMWWJX3T4BFWR84FQQK',
+    aliases: [
+      '01J76XYDMWWJX3T4BFWR84FQQK',
+      'wc:01J76XYDMWWJX3T4BFWR84FQQK',
+      'webtoon:omniscient-reader',
+      'webtoon:orv',
+      'omniscient-reader',
+      'orv',
+      'omniscient-readers-viewpoint'
+    ],
     title: "Omniscient Reader's Viewpoint",
     englishTitle: "Omniscient Reader's Viewpoint",
     coverUrl: 'https://s4.anilist.co/file/anilistcdn/media/manga/cover/large/bx119257-Pi21aq3ey9GG.jpg',
     status: 'Ongoing',
-    score: '9.5',
+    score: '9.6',
     year: '2020',
     author: 'sing N song & Sleepy-C',
     description: 'Kim Dokja was an ordinary office worker whose sole interest was reading web novels. When his favorite apocalyptic novel becomes reality, he is the only person who knows the ending!',
     tags: ['Action', 'Fantasy', 'Apocalypse', 'System'],
-    sourceName: 'Webtoon',
-    totalChapters: 220,
-    latestChapter: '220',
-    chapters: Array.from({ length: 220 }, (_, i) => {
-      const chNum = 220 - i;
+    sourceName: 'WeebCentral',
+    totalChapters: 312,
+    latestChapter: '312',
+    chapters: Array.from({ length: 312 }, (_, i) => {
+      const chNum = 312 - i;
       return {
-        id: `webtoon:orv:${chNum}`,
+        id: `wc_ch:01J76XYDMWWJX3T4BFWR84FQQK:${chNum}`,
         chapter: String(chNum),
         title: `Chapter ${chNum}`,
       };
     })
   },
-
-  // --- ASURA SCANS TOP HITS ---
   {
-    id: 'asura:damn-reincarnation-3ebcc5a9',
-    aliases: ['damn-reincarnation', 'my-blasted-reincarnated-life'],
+    id: 'wc:01J76XYG12YTB3J27FVBM256V8',
+    aliases: [
+      '01J76XYG12YTB3J27FVBM256V8',
+      'wc:01J76XYG12YTB3J27FVBM256V8',
+      'asura:damn-reincarnation-3ebcc5a9',
+      'damn-reincarnation',
+      'my-blasted-reincarnated-life'
+    ],
     title: 'My Blasted Reincarnated Life',
     englishTitle: 'Damn Reincarnation',
     coverUrl: 'https://s4.anilist.co/file/anilistcdn/media/manga/cover/large/bx151512-q0Xddr1JNKNq.png',
     status: 'Ongoing',
-    score: '9.2',
+    score: '9.3',
     year: '2022',
     author: 'Mokma & Jeong-Yeol Park',
     description: 'When the warrior Hamel sacrifices himself to protect his rival Bermut Lionhart, he vows to eliminate the demon kings. Reincarnated 300 years later as Eugene Lionhart in his rival bloodline, he begins his quest!',
     tags: ['Action', 'Adventure', 'Fantasy', 'Reincarnation'],
-    sourceName: 'Asura Scans',
-    totalChapters: 85,
-    latestChapter: '85',
-    chapters: Array.from({ length: 85 }, (_, i) => {
-      const chNum = 85 - i;
+    sourceName: 'WeebCentral',
+    totalChapters: 101,
+    latestChapter: '101',
+    chapters: Array.from({ length: 101 }, (_, i) => {
+      const chNum = 101 - i;
       return {
-        id: `asura_ch:damn-reincarnation-3ebcc5a9:${chNum}`,
+        id: `wc_ch:01J76XYG12YTB3J27FVBM256V8:${chNum}`,
         chapter: String(chNum),
         title: `Chapter ${chNum}`,
       };
     })
   },
   {
-    id: 'asura:surviving-game-barbarian',
-    aliases: ['surviving-the-game-as-a-barbarian', 'barbarian'],
+    id: 'wc:01J76XYG976314R2DM2DKQRBGS',
+    aliases: [
+      '01J76XYG976314R2DM2DKQRBGS',
+      'wc:01J76XYG976314R2DM2DKQRBGS',
+      'asura:surviving-game-barbarian',
+      'surviving-the-game-as-a-barbarian',
+      'barbarian'
+    ],
     title: 'Surviving The Game as a Barbarian',
     englishTitle: 'Surviving The Game as a Barbarian',
     coverUrl: 'https://s4.anilist.co/file/anilistcdn/media/manga/cover/medium/bx164857-MVeV0leMZb0m.jpg',
     status: 'Ongoing',
-    score: '9.3',
+    score: '9.4',
     year: '2023',
     author: 'Han D-Seul & Jung Yoon-kang',
     description: 'After playing the impossible 2D RPG Dungeon and Stone for 9 years, Lee Hansoo beats the final boss and wakes up inside the game as a savage barbarian!',
     tags: ['Action', 'Adventure', 'Fantasy', 'System'],
-    sourceName: 'Asura Scans',
-    totalChapters: 80,
-    latestChapter: '80',
-    chapters: Array.from({ length: 80 }, (_, i) => {
-      const chNum = 80 - i;
+    sourceName: 'WeebCentral',
+    totalChapters: 170,
+    latestChapter: '170',
+    chapters: Array.from({ length: 170 }, (_, i) => {
+      const chNum = 170 - i;
       return {
-        id: `asura_ch:surviving-the-game-as-a-barbarian-ab39de10:${chNum}`,
+        id: `wc_ch:01J76XYG976314R2DM2DKQRBGS:${chNum}`,
         chapter: String(chNum),
         title: `Chapter ${chNum}`,
       };
     })
   },
   {
-    id: 'asura:greatest-estate-developer',
-    aliases: ['the-greatest-estate-developer', 'estate-developer'],
+    id: 'wc:01J76XYF6V9BDFSRRTY2C65SBS',
+    aliases: [
+      '01J76XYF6V9BDFSRRTY2C65SBS',
+      'wc:01J76XYF6V9BDFSRRTY2C65SBS',
+      'asura:greatest-estate-developer',
+      'the-greatest-estate-developer',
+      'estate-developer'
+    ],
     title: 'The Greatest Estate Developer',
     englishTitle: 'The Greatest Estate Developer',
     coverUrl: 'https://s4.anilist.co/file/anilistcdn/media/manga/cover/large/bx140407-fJQr0fmqq1IO.png',
@@ -984,13 +1034,13 @@ export const FALLBACK_MANGA_CATALOG = [
     author: 'BK_Moon & Kim Hyunsoo',
     description: 'Civil engineering student Suho Kim falls asleep reading a fantasy novel and wakes up as Lloyd Frontera, a good-for-nothing noble in massive debt. Using modern engineering, he creates an empire!',
     tags: ['Comedy', 'Fantasy', 'Reincarnation', 'Architecture'],
-    sourceName: 'Asura Scans',
-    totalChapters: 165,
-    latestChapter: '165',
-    chapters: Array.from({ length: 165 }, (_, i) => {
-      const chNum = 165 - i;
+    sourceName: 'WeebCentral',
+    totalChapters: 225,
+    latestChapter: '225',
+    chapters: Array.from({ length: 225 }, (_, i) => {
+      const chNum = 225 - i;
       return {
-        id: `asura_ch:the-greatest-estate-developer-ab39de10:${chNum}`,
+        id: `wc_ch:01J76XYF6V9BDFSRRTY2C65SBS:${chNum}`,
         chapter: String(chNum),
         title: `Chapter ${chNum}`,
       };
@@ -1005,12 +1055,13 @@ export const KNOWN_CHAPTER_COUNTS = {
   'eleceed': 425,
   'mercenary enrollment': 230,
   'teenage mercenary': 230,
-  'nano machine': 230,
+  'nano machine': 339,
   'the beginning after the end': 190,
   'tbate': 190,
-  'return of the mount hua sect': 150,
-  'reincarnation of the suicidal battle god': 110,
-  'doom breaker': 110,
+  'return of the mount hua sect': 194,
+  'mount hua': 194,
+  'reincarnation of the suicidal battle god': 101,
+  'doom breaker': 101,
   'reaper of the drifting moon': 215,
   'murim login': 190,
   'a fortune-telling princess': 176,
@@ -1023,14 +1074,14 @@ export const KNOWN_CHAPTER_COUNTS = {
   'the fantasie of a stepmother': 173,
   'my in-laws are obsessed with me': 137,
   'my in laws are obsessed with me': 137,
-  'solo leveling': 200,
-  'omniscient reader': 240,
-  'omniscient readers viewpoint': 240,
-  'damn reincarnation': 85,
-  'surviving the game as a barbarian': 100,
-  'barbarian': 100,
-  'the greatest estate developer': 180,
-  'greatest estate developer': 180,
+  'solo leveling': 201,
+  'omniscient reader': 312,
+  'omniscient readers viewpoint': 312,
+  'damn reincarnation': 101,
+  'surviving the game as a barbarian': 170,
+  'barbarian': 170,
+  'the greatest estate developer': 225,
+  'greatest estate developer': 225,
   'one piece': 1120,
   'berserk': 376,
   'naruto': 700,
@@ -2135,6 +2186,55 @@ export function getChapterSourceUrl(mangaId, chapterId, chapterNumber, mangaTitl
   return `https://www.google.com/search?q=${encodeURIComponent(cleanTitle(title) + ' chapter ' + num + ' read online')}`;
 }
 
+async function fetchClientHtml(targetUrl, timeoutMs = 5000) {
+  // 1. Direct fetch (instant for local, WebView, Cordova, Electron, permissive servers)
+  try {
+    const res = await fetch(targetUrl, { signal: AbortSignal.timeout(Math.min(timeoutMs, 3000)) });
+    if (res.ok) {
+      const text = await res.text();
+      if (text && text.length > 200) return text;
+    }
+  } catch {}
+
+  // 2. allorigins raw
+  try {
+    const res = await fetch(`https://api.allorigins.win/raw?url=${encodeURIComponent(targetUrl)}`, { signal: AbortSignal.timeout(3500) });
+    if (res.ok) {
+      const text = await res.text();
+      if (text && text.length > 200) return text;
+    }
+  } catch {}
+
+  // 3. allorigins get JSON wrapper
+  try {
+    const res = await fetch(`https://api.allorigins.win/get?url=${encodeURIComponent(targetUrl)}`, { signal: AbortSignal.timeout(3500) });
+    if (res.ok) {
+      const json = await res.json();
+      if (json && json.contents && json.contents.length > 200) return json.contents;
+    }
+  } catch {}
+
+  // 4. codetabs proxy
+  try {
+    const res = await fetch(`https://api.codetabs.com/v1/proxy?quest=${encodeURIComponent(targetUrl)}`, { signal: AbortSignal.timeout(3500) });
+    if (res.ok) {
+      const text = await res.text();
+      if (text && text.length > 200) return text;
+    }
+  } catch {}
+
+  // 5. corsproxy.io
+  try {
+    const res = await fetch(`https://corsproxy.io/?url=${encodeURIComponent(targetUrl)}`, { signal: AbortSignal.timeout(3500) });
+    if (res.ok) {
+      const text = await res.text();
+      if (text && text.length > 200) return text;
+    }
+  } catch {}
+
+  return null;
+}
+
 /**
  * Fetch All Real Pages for a Chapter
  */
@@ -2187,17 +2287,163 @@ export async function fetchChapterPages(chapterId, mangaId = null, chapterNumber
     console.warn('fetchChapterPages API warning, attempting client-side resolution:', err.message);
   }
 
-  // Client-side direct resolution for A Fortune-Telling Princess on static hosting
-  const chNum = String(chapterNumber || '').replace(/[^0-9.]/g, '') || (String(chapterId || '').match(/([0-9.]+)/)?.[1] || '1');
+  // Client-side direct resolution on static hosting
+  let chNum = String(chapterNumber || '').replace(/[^0-9.]/g, '');
+  if (!chNum) {
+    const m = String(chapterId || '').match(/(?:chapter-|:c|:ch|:ep|:)([0-9.]+)/i);
+    if (m) {
+      chNum = m[1];
+    } else {
+      const allNums = [...String(chapterId || '').matchAll(/([0-9.]+)/g)];
+      chNum = allNums.length > 0 ? allNums[allNums.length - 1][1] : '1';
+    }
+  }
   const mid = String(mangaId || '').toLowerCase();
   const cid = String(chapterId || '').toLowerCase();
   const title = String(mangaTitle || '').toLowerCase();
   const sourceUrl = getChapterSourceUrl(mangaId, chapterId, chapterNumber, mangaTitle);
 
-  // 1. Client-side MangaKatana resolution (One Piece, Berserk, Jujutsu Kaisen, Chainsaw Man, etc.)
+  // 1. Client-side MangaPill Scraper (One Piece, Berserk, Death Note, Bleach, Naruto, Chainsaw Man, Jujutsu Kaisen, etc.)
+  if (/^[0-9]+-[0-9]+\//.test(cid) || cid.startsWith('mp:') || /^[0-9]+\/[a-z0-9-]+/.test(mid)) {
+    try {
+      let mpPath = cid.replace(/^mp:/, '').trim();
+      if (!mpPath.includes('/')) {
+        const pMatch = mid.match(/^([0-9]+)/)?.[1];
+        const slugMatch = mid.match(/\/([a-z0-9-]+)/)?.[1];
+        if (pMatch && slugMatch) {
+          const parsedN = parseFloat(chNum) || 1.0;
+          const code = 10000000 + Math.floor(parsedN * 1000);
+          mpPath = `${pMatch}-${code}/${slugMatch}-chapter-${chNum}`;
+        }
+      }
+      if (mpPath.includes('/')) {
+        const targetUrl = `https://mangapill.com/chapters/${mpPath}`;
+        const html = await fetchClientHtml(targetUrl, 5000);
+        if (html) {
+          const imgMatches = [...html.matchAll(/<img[^>]+(?:data-src|src)="([^"]+)"/gi)]
+            .map(m => m[1])
+            .filter(src => src && (src.includes('mangapill.com') || src.includes('readdetectiveconan.com')));
+          if (imgMatches.length > 0) {
+            const pages = imgMatches.map((imgUrl, idx) => ({
+              pageNumber: idx + 1,
+              url: baseUrl ? `${baseUrl}/api/image-proxy?url=${encodeURIComponent(imgUrl)}` : imgUrl,
+              originalUrl: imgUrl,
+            }));
+            return { chapterId, totalPages: pages.length, pages, sourceUrl };
+          }
+        }
+      }
+    } catch (err) {
+      console.warn('Client-side MangaPill resolution error:', err);
+    }
+  }
+
+  // 2. Client-side WeebCentral Chapter Resolution
+  const WC_SERIES_MAP = {
+    'nano-machine': '01J76XYDT7H7ANER8KJG5R9SJV',
+    'mount-hua': '01J76XYEVCSS5ANBCJZ4ZF9P65',
+    'return-of-the-mount-hua-sect': '01J76XYEVCSS5ANBCJZ4ZF9P65',
+    'blossoming-blade': '01J76XYEVCSS5ANBCJZ4ZF9P65',
+    'solo-leveling': '01J76XYCPSY3C4BNPBRY8JMCBE',
+    'omniscient-reader': '01J76XYDMWWJX3T4BFWR84FQQK',
+    'orv': '01J76XYDMWWJX3T4BFWR84FQQK',
+    'estate-developer': '01J76XYF6V9BDFSRRTY2C65SBS',
+    'the-greatest-estate-developer': '01J76XYF6V9BDFSRRTY2C65SBS',
+    'doom-breaker': '01J76XYEZ1BQJM22H3RREE1XMG',
+    'suicidal-battle-god': '01J76XYEZ1BQJM22H3RREE1XMG',
+    'barbarian': '01J76XYG976314R2DM2DKQRBGS',
+    'surviving-the-game-as-a-barbarian': '01J76XYG976314R2DM2DKQRBGS',
+    'damn-reincarnation': '01J76XYG12YTB3J27FVBM256V8',
+    'my-blasted-reincarnated-life': '01J76XYG12YTB3J27FVBM256V8',
+    'worlds-strongest-troll': '01J76XYGVNHEER7G6M90C6YCTW',
+    'my-in-laws-are-obsessed-with-me': '01J76XYFAESZTJT5AQ1SPFKYXR',
+    'my-in-laws-are-my-beloved-in-laws': '01J76XYFAESZTJT5AQ1SPFKYXR',
+    'lookism': '01J76XYBD282Y3XKX0KRGD64Q5',
+    'tower-of-god': '01J76XY7M0W9WWJ55VJYYB2J1S',
+    'wind-breaker': '01J76XYA1TQYKV6W4BCMR2WD5M',
+    'blue-lock': '01J76XYD7E91K8QP6CY0Y53900',
+    'eleceed': '01J76XYD3Q2Q7HYYMB3FSDPSKC',
+  };
+
+  let wcTarget = cid.replace(/^wc_ch:|^wc:/, '').trim();
+  let wcChapId = null;
+  if (/^[0-9A-Z]{26}$/i.test(wcTarget)) {
+    if (Object.values(WC_SERIES_MAP).includes(wcTarget)) {
+      wcTarget = `${wcTarget}:${chNum}`;
+    } else {
+      wcChapId = wcTarget;
+    }
+  }
+
+  if (!wcChapId) {
+    let targetSeriesId = null;
+    let targetSeriesChNum = chNum;
+    if (wcTarget.includes(':')) {
+      const [potSeries, potNum] = wcTarget.split(':');
+      if (/^[0-9A-Z]{26}$/i.test(potSeries)) {
+        targetSeriesId = potSeries;
+        targetSeriesChNum = potNum || chNum;
+      }
+    }
+    if (!targetSeriesId) {
+      for (const [k, v] of Object.entries(WC_SERIES_MAP)) {
+        if (mid.includes(k) || title.includes(k.replace(/-/g, ' ')) || cid.includes(k)) {
+          targetSeriesId = v;
+          break;
+        }
+      }
+    }
+    if (targetSeriesId) {
+      try {
+        const sUrl = `https://weebcentral.com/series/${targetSeriesId}/full-chapter-list`;
+        const sHtml = await fetchClientHtml(sUrl, 5000);
+        if (sHtml) {
+          const chMatches = [...sHtml.matchAll(/<a[^>]+href="[^"]*chapters\/([0-9A-Z]{26})"[^>]*>([\s\S]*?)<\/a>/gi)];
+          const cleanTarget = String(targetSeriesChNum || '1').replace(/[^0-9.]/g, '');
+          for (const cm of chMatches) {
+            const rawText = cm[2].replace(/<[^>]+>/g, ' ').replace(/\s+/g, ' ');
+            const numMatch = rawText.match(/(?:Chapter|Ch\.?|Episode|Ep\.?)\s*([0-9.]+)/i) || rawText.match(/([0-9.]+)/);
+            if (numMatch && (numMatch[1] === cleanTarget || parseFloat(numMatch[1]) === parseFloat(cleanTarget))) {
+              wcChapId = cm[1];
+              break;
+            }
+          }
+        }
+      } catch (err) {
+        console.warn('WeebCentral series chapter list error:', err);
+      }
+    }
+  }
+
+  if (wcChapId) {
+    try {
+      const targetUrl = `https://weebcentral.com/chapters/${wcChapId}/images?is_prev=False&current_page=1&reading_style=long_strip`;
+      const html = await fetchClientHtml(targetUrl, 6000);
+      if (html) {
+        const imgMatches = [...html.matchAll(/<img[^>]+src="([^"]+)"/gi)]
+          .map(m => m[1])
+          .filter(src => src && !src.includes('/static/') && !src.includes('brand.png') && !src.includes('logo') && !src.includes('favicon'));
+        if (imgMatches.length > 0) {
+          const pages = imgMatches.map((imgUrl, idx) => ({
+            pageNumber: idx + 1,
+            url: baseUrl ? `${baseUrl}/api/image-proxy?url=${encodeURIComponent(imgUrl)}` : imgUrl,
+            originalUrl: imgUrl,
+          }));
+          return { chapterId, totalPages: pages.length, pages, sourceUrl };
+        }
+      }
+    } catch (err) {
+      console.warn('Direct WeebCentral page resolution error:', err);
+    }
+  }
+
+  // 3. Client-side MangaKatana resolution
   let katSlug = null;
+  let specificChSlug = null;
   if (cid.startsWith('kat_ch:')) {
-    katSlug = cid.replace('kat_ch:', '').split(':')[0];
+    const parts = cid.replace('kat_ch:', '').split(':');
+    katSlug = parts[0];
+    specificChSlug = parts.length > 1 ? parts[1] : `c${chNum}`;
   } else if (title.includes('one piece') || mid.includes('one-piece')) {
     katSlug = 'one-piece.49';
   } else if (title.includes('one-punch') || title.includes('one punch') || mid.includes('one-punch')) {
@@ -2266,46 +2512,12 @@ export async function fetchChapterPages(chapterId, mangaId = null, chapterNumber
     katSlug = 'eleceed.115';
   }
 
-  // Dynamic search on MangaKatana if not mapped
-  if (!katSlug && title) {
-    try {
-      const q = encodeURIComponent(cleanTitle(mangaTitle || '').trim());
-      const sUrl = `https://mangakatana.com/?search=${q}&search_by=book_name`;
-      let sHtml = '';
-      try {
-        const sRes = await fetch(sUrl, { signal: AbortSignal.timeout(4000) });
-        if (sRes.ok) sHtml = await sRes.text();
-      } catch {
-        const sProxy = await fetch(`https://api.allorigins.win/raw?url=${encodeURIComponent(sUrl)}`, { signal: AbortSignal.timeout(5000) });
-        if (sProxy.ok) sHtml = await sProxy.text();
-      }
-      if (sHtml) {
-        const matches = [...sHtml.matchAll(/<h3 class="title"><a href="https?:\/\/mangakatana\.com\/manga\/([^"/?#]+)">([^<]+)<\/a><\/h3>/gi)];
-        for (const match of matches) {
-          const candidateSlug = match[1];
-          const candidateTitle = match[2];
-          if (isAuthenticSeriesMatch(cleanTitle(mangaTitle || ''), candidateTitle)) {
-            katSlug = candidateSlug;
-            break;
-          }
-        }
-      }
-    } catch {}
-  }
-
   if (katSlug) {
     try {
-      const targetUrl = `https://mangakatana.com/manga/${katSlug}/c${chNum}`;
-      let html = '';
-      try {
-        const res = await fetch(targetUrl, { signal: AbortSignal.timeout(5000) });
-        if (res.ok) html = await res.text();
-      } catch {
-        const proxyRes = await fetch(`https://api.allorigins.win/raw?url=${encodeURIComponent(targetUrl)}`, { signal: AbortSignal.timeout(6000) });
-        if (proxyRes.ok) html = await proxyRes.text();
-      }
+      const targetSlug = specificChSlug || `c${chNum}`;
+      const targetUrl = `https://mangakatana.com/manga/${katSlug}/${targetSlug}`;
+      const html = await fetchClientHtml(targetUrl, 5000);
       if (html) {
-        // Match var thzq specifically first (contains full chapter pages, avoiding 1-page preview arrays like ytaw)
         let arrayMatch = html.match(/var\s+thzq\s*=\s*\[([^\]]+)\]/i);
         if (!arrayMatch) {
           const allMatches = [...html.matchAll(/var\s+[a-z0-9_]+\s*=\s*\[([^\]]*https:[^\]]*)\]/gi)];
@@ -2329,106 +2541,6 @@ export async function fetchChapterPages(chapterId, mangaId = null, chapterNumber
       }
     } catch (err) {
       console.warn('Direct MangaKatana page resolution error:', err);
-    }
-  }
-
-  // 1.5 Client-side WeebCentral chapter resolution (26-char IDs)
-  let wcTarget = cid.replace(/^wc_ch:|^wc:/, '').trim();
-  let wcChapId = null;
-  if (/^[0-9A-Z]{26}$/i.test(wcTarget)) {
-    wcChapId = wcTarget;
-  } else if (wcTarget.includes(':')) {
-    const [potSeries, potNum] = wcTarget.split(':');
-    if (/^[0-9A-Z]{26}$/i.test(potSeries)) {
-      try {
-        const sUrl = `https://weebcentral.com/series/${potSeries}/full-chapter-list`;
-        let sHtml = '';
-        try {
-          const sRes = await fetch(sUrl, { signal: AbortSignal.timeout(5000) });
-          if (sRes.ok) sHtml = await sRes.text();
-        } catch {
-          const sProxy = await fetch(`https://api.allorigins.win/raw?url=${encodeURIComponent(sUrl)}`, { signal: AbortSignal.timeout(6000) });
-          if (sProxy.ok) sHtml = await sProxy.text();
-        }
-        if (sHtml) {
-          const chMatches = [...sHtml.matchAll(/<a[^>]+href="[^"]*chapters\/([0-9A-Z]{26})"[^>]*>([\s\S]*?)<\/a>/gi)];
-          const targetNum = String(potNum || chNum || '').replace(/[^0-9.]/g, '');
-          for (const cm of chMatches) {
-            const rawText = cm[2].replace(/<[^>]+>/g, ' ').replace(/\s+/g, ' ');
-            const numMatch = rawText.match(/(?:Chapter|Ch\.?|Episode|Ep\.?)\s*([0-9.]+)/i) || rawText.match(/([0-9.]+)/);
-            if (numMatch && (numMatch[1] === targetNum || parseFloat(numMatch[1]) === parseFloat(targetNum))) {
-              wcChapId = cm[1];
-              break;
-            }
-          }
-        }
-      } catch {}
-    }
-  }
-
-  if (!wcChapId) {
-    const rawMid = String(mangaId || '').replace(/^wc_ch:|^wc:|^kat:|^md:/, '').trim();
-    const tLower = String(mangaTitle || '').toLowerCase();
-    const mLower = rawMid.toLowerCase();
-    let wcSeries = null;
-    if (mLower.includes('in-law') || mLower.includes('inlaw') || tLower.includes('in-law') || tLower.includes('in law') || tLower.includes('obsessed')) {
-      wcSeries = '01J76XYFAESZTJT5AQ1SPFKYXR';
-    } else if (mLower.includes('strongest-troll') || tLower.includes('strongest troll')) {
-      wcSeries = '01J76XYGVNHEER7G6M90C6YCTW';
-    }
-    if (wcSeries) {
-      try {
-        const sUrl = `https://weebcentral.com/series/${wcSeries}/full-chapter-list`;
-        let sHtml = '';
-        try {
-          const sRes = await fetch(sUrl, { signal: AbortSignal.timeout(5000) });
-          if (sRes.ok) sHtml = await sRes.text();
-        } catch {
-          const sProxy = await fetch(`https://api.allorigins.win/raw?url=${encodeURIComponent(sUrl)}`, { signal: AbortSignal.timeout(6000) });
-          if (sProxy.ok) sHtml = await sProxy.text();
-        }
-        if (sHtml) {
-          const chMatches = [...sHtml.matchAll(/<a[^>]+href="[^"]*chapters\/([0-9A-Z]{26})"[^>]*>([\s\S]*?)<\/a>/gi)];
-          const targetNum = String(chNum || '').replace(/[^0-9.]/g, '') || '1';
-          for (const cm of chMatches) {
-            const rawText = cm[2].replace(/<[^>]+>/g, ' ').replace(/\s+/g, ' ');
-            const numMatch = rawText.match(/(?:Chapter|Ch\.?|Episode|Ep\.?)\s*([0-9.]+)/i) || rawText.match(/([0-9.]+)/);
-            if (numMatch && (numMatch[1] === targetNum || parseFloat(numMatch[1]) === parseFloat(targetNum))) {
-              wcChapId = cm[1];
-              break;
-            }
-          }
-        }
-      } catch {}
-    }
-  }
-
-  if (wcChapId) {
-    try {
-      const targetUrl = `https://weebcentral.com/chapters/${wcChapId}/images?is_prev=False&current_page=1&reading_style=long_strip`;
-      let html = '';
-      try {
-        const res = await fetch(targetUrl, { signal: AbortSignal.timeout(6000) });
-        if (res.ok) html = await res.text();
-      } catch {
-        const proxyRes = await fetch(`https://api.allorigins.win/raw?url=${encodeURIComponent(targetUrl)}`, { signal: AbortSignal.timeout(6500) });
-        if (proxyRes.ok) html = await proxyRes.text();
-      }
-      if (html) {
-        const imgMatches = [...html.matchAll(/<img[^>]+src="([^"]+)"/gi)]
-          .map(m => m[1])
-          .filter(src => src && !src.includes('/static/') && !src.includes('brand.png') && !src.includes('logo') && !src.includes('favicon'));
-        if (imgMatches.length > 0) {
-          const pages = imgMatches.map((imgUrl, idx) => ({
-            pageNumber: idx + 1,
-            url: baseUrl ? `${baseUrl}/api/image-proxy?url=${encodeURIComponent(imgUrl)}` : imgUrl,
-            originalUrl: imgUrl,
-          }));
-          return { chapterId, totalPages: pages.length, pages, sourceUrl };
-        }
-      }
-    } catch (err) {
-      console.warn('Direct WeebCentral page resolution error:', err);
     }
   }
 

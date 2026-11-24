@@ -350,8 +350,13 @@ export const VERIFIED_COMPLETE_ALIASES = {
   '01J76XYGGM22WZP7T4TKA4ZFAF': 'kat:kagurabachi.27050',
   'kingdom': 'kat:kingdom.143',
   '8/kingdom': 'kat:kingdom.143',
-  'solo-leveling': 'kat:solo-leveling.21708',
-  'webtoon:solo': 'kat:solo-leveling.21708',
+  'solo-leveling': 'wc:01J76XYCPSY3C4BNPBRY8JMCBE',
+  'webtoon:solo': 'wc:01J76XYCPSY3C4BNPBRY8JMCBE',
+  'webtoon:solo-leveling': 'wc:01J76XYCPSY3C4BNPBRY8JMCBE',
+  'omniscient-reader': 'wc:01J76XYDMWWJX3T4BFWR84FQQK',
+  'webtoon:orv': 'wc:01J76XYDMWWJX3T4BFWR84FQQK',
+  'webtoon:omniscient-reader': 'wc:01J76XYDMWWJX3T4BFWR84FQQK',
+  'omniscient-readers-viewpoint': 'wc:01J76XYDMWWJX3T4BFWR84FQQK',
 
   // Top Webtoons & Manhwa with Complete Katana / Scanlation Archives
   'lookism': 'kat:lookism.693',
@@ -377,20 +382,34 @@ export const VERIFIED_COMPLETE_ALIASES = {
   '01J76XYEA95PG5AVMCKC9TK492': 'kat:mercenary-enrollment.25375',
 
   // Reincarnation & Action manhwa
-  'damn-reincarnation': 'kat:damn-reincarnation.26360',
-  'my-blasted-reincarnation': 'kat:damn-reincarnation.26360',
-  'my-blasted-reincarnated-life': 'kat:damn-reincarnation.26360',
-  'nano-machine': 'asura:nano-machine-ab39de10',
-  'webtoon:nano-machine': 'asura:nano-machine-ab39de10',
+  'damn-reincarnation': 'wc:01J76XYG12YTB3J27FVBM256V8',
+  'my-blasted-reincarnation': 'wc:01J76XYG12YTB3J27FVBM256V8',
+  'my-blasted-reincarnated-life': 'wc:01J76XYG12YTB3J27FVBM256V8',
+  'asura:damn-reincarnation-3ebcc5a9': 'wc:01J76XYG12YTB3J27FVBM256V8',
+  'nano-machine': 'wc:01J76XYDT7H7ANER8KJG5R9SJV',
+  'webtoon:nano-machine': 'wc:01J76XYDT7H7ANER8KJG5R9SJV',
+  'asura:nano-machine-ab39de10': 'wc:01J76XYDT7H7ANER8KJG5R9SJV',
   'the-beginning-after-the-end': 'thunder:the-beginning-after-the-end',
   'tbate': 'thunder:the-beginning-after-the-end',
-  'doom-breaker': 'asura:reincarnation-of-the-suicidal-battle-god-ab39de10',
-  'reincarnation-of-the-suicidal-battle-god': 'asura:reincarnation-of-the-suicidal-battle-god-ab39de10',
-  'mount-hua': 'asura:return-of-the-mount-hua-sect-ab39de10',
-  'return-of-the-mount-hua-sect': 'asura:return-of-the-mount-hua-sect-ab39de10',
+  'doom-breaker': 'wc:01J76XYEZ1BQJM22H3RREE1XMG',
+  'reincarnation-of-the-suicidal-battle-god': 'wc:01J76XYEZ1BQJM22H3RREE1XMG',
+  'asura:reincarnation-of-the-suicidal-battle-god-ab39de10': 'wc:01J76XYEZ1BQJM22H3RREE1XMG',
+  'mount-hua': 'wc:01J76XYEVCSS5ANBCJZ4ZF9P65',
+  'return-of-the-mount-hua-sect': 'wc:01J76XYEVCSS5ANBCJZ4ZF9P65',
+  'asura:return-of-the-mount-hua-sect-ab39de10': 'wc:01J76XYEVCSS5ANBCJZ4ZF9P65',
   'reaper-of-the-drifting-moon': 'asura:reaper-of-the-drifting-moon-ab39de10',
   'murim-login': 'asura:murim-login-ab39de10',
-  'barbarian': 'asura:surviving-the-game-as-a-barbarian-ab39de10',
+  'barbarian': 'wc:01J76XYG976314R2DM2DKQRBGS',
+  'surviving-game-barbarian': 'wc:01J76XYG976314R2DM2DKQRBGS',
+  'surviving-the-game-as-a-barbarian': 'wc:01J76XYG976314R2DM2DKQRBGS',
+  'asura:surviving-game-barbarian': 'wc:01J76XYG976314R2DM2DKQRBGS',
+  'estate-developer': 'wc:01J76XYF6V9BDFSRRTY2C65SBS',
+  'the-greatest-estate-developer': 'wc:01J76XYF6V9BDFSRRTY2C65SBS',
+  'greatest-estate-developer': 'wc:01J76XYF6V9BDFSRRTY2C65SBS',
+  'asura:greatest-estate-developer': 'wc:01J76XYF6V9BDFSRRTY2C65SBS',
+  'worlds-strongest-troll': 'wc:01J76XYGVNHEER7G6M90C6YCTW',
+  'my-in-laws-are-obsessed-with-me': 'wc:01J76XYFAESZTJT5AQ1SPFKYXR',
+  'my-in-laws-are-my-beloved-in-laws': 'wc:01J76XYFAESZTJT5AQ1SPFKYXR',
   'a-fortune-telling-princess': 'webtoon:fortune-telling-princess',
   'fortune-telling-princess': 'webtoon:fortune-telling-princess',
   'md:0ba6b85e-3e87-454a-b81d-1040468248e1': 'webtoon:fortune-telling-princess',
@@ -1805,7 +1824,57 @@ export async function getChapterPages(rawChapterId, rawMangaId = '', rawChapterN
   let chapterId = String(rawChapterId || '');
   const mId = String(rawMangaId || '').toLowerCase();
   const title = String(rawTitle || '').toLowerCase();
-  const chNum = String(rawChapterNumber || '').replace(/[^0-9.]/g, '') || (chapterId.match(/([0-9.]+)/)?.[1] || '1');
+  let chNum = String(rawChapterNumber || '').replace(/[^0-9.]/g, '');
+  if (!chNum) {
+    const m = chapterId.match(/(?:chapter-|:c|:ch|:ep|:)([0-9.]+)/i);
+    if (m) {
+      chNum = m[1];
+    } else {
+      const allNums = [...chapterId.matchAll(/([0-9.]+)/g)];
+      chNum = allNums.length > 0 ? allNums[allNums.length - 1][1] : '1';
+    }
+  }
+
+  // Direct MangaPill Chapter Fetcher
+  if (/^[0-9]+-[0-9]+\//.test(chapterId) || chapterId.startsWith('mp:') || /^[0-9]+\/[a-z0-9-]+/.test(rawMangaId)) {
+    try {
+      let mpPath = chapterId.replace(/^mp:/, '').trim();
+      if (!mpPath.includes('/')) {
+        const pMatch = rawMangaId.match(/^([0-9]+)/)?.[1];
+        const slugMatch = rawMangaId.match(/\/([a-z0-9-]+)/)?.[1];
+        if (pMatch && slugMatch) {
+          const parsedN = parseFloat(chNum) || 1.0;
+          const code = 10000000 + Math.floor(parsedN * 1000);
+          mpPath = `${pMatch}-${code}/${slugMatch}-chapter-${chNum}`;
+        }
+      }
+      if (mpPath.includes('/')) {
+        const url = `${BASE_URL}/chapters/${mpPath}`;
+        const res = await fetchWithTimeout(url, { headers: { ...HEADERS, Referer: 'https://mangapill.com/' } }, 10000);
+        if (res.ok) {
+          const html = await res.text();
+          const imgRegex = /<img[^>]+(?:data-src|src)="([^"]+)"/gi;
+          let m;
+          const pages = [];
+          while ((m = imgRegex.exec(html)) !== null) {
+            const src = m[1];
+            if (src.includes('mangapill.com') || src.includes('readdetectiveconan.com')) {
+              pages.push({
+                pageNumber: pages.length + 1,
+                url: `/api/image-proxy?url=${encodeURIComponent(src)}`,
+                originalUrl: src
+              });
+            }
+          }
+          if (pages.length > 0) {
+            return { chapterId, totalPages: pages.length, pages };
+          }
+        }
+      }
+    } catch (mpErr) {
+      console.warn('MangaPill direct chapter fetch warning:', mpErr.message);
+    }
+  }
 
   // Universal AniList Chapter Resolver
   if (chapterId.startsWith('anilist_ch:')) {
