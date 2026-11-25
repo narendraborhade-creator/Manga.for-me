@@ -58,7 +58,8 @@ jobs:
             artifacts=$(gh api "/repos/${GITHUB_REPOSITORY}/actions/runs/${GITHUB_RUN_ID}/artifacts")
             count=$(jq '[.artifacts[] | select(.name == "github-pages" and .expired == false)] | length' <<< "$artifacts")
             if [ "$count" -gt 0 ]; then
-              echo "Pages artifact is available"
+              echo "Pages artifact is available; waiting for metadata to propagate"
+              sleep 10
               exit 0
             fi
             echo "Waiting for Pages artifact (attempt ${attempt}/12)..."
