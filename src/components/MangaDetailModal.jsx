@@ -16,10 +16,14 @@ import {
   Newspaper,
   ExternalLink,
   Flame,
-  Compass
+  Compass,
+  Download,
+  Trash2,
+  HardDrive
 } from 'lucide-react';
 import { getFallbackCover, fetchMangaDetails, fetchMangaRecommendations, fetchMangaNews, cleanTitle, decodeHtml, deduplicateChapters, getReliableCoverUrl, fetchLiveCover, isMachineId, unwrapProxyUrl, KNOWN_SERIES_TITLES, isRedundantChapterTitle } from '../services/mangaApi';
 import { getReadChaptersForManga } from '../services/storage';
+import { downloadChapterOffline, getDownloadedChaptersForManga, deleteDownloadedChapter } from '../services/downloadManager';
 
 export default function MangaDetailModal({
   mangaId,
@@ -49,12 +53,125 @@ export default function MangaDetailModal({
   const [readChapterIds, setReadChapterIds] = useState([]);
   const [visibleChapterCount, setVisibleChapterCount] = useState(200);
   const [isExpandedSynopsis, setIsExpandedSynopsis] = useState(false);
+  const [downloadedMap, setDownloadedMap] = useState({});
+  const [activeDownloadingId, setActiveDownloadingId] = useState(null);
+  const [activeDownloadPct, setActiveDownloadPct] = useState(0);
+  const [isBatchDownloading, setIsBatchDownloading] = useState(false);
+  const [batchProgressText, setBatchProgressText] = useState('');
+  const [downloadedOnly, setDownloadedOnly] = useState(false);
+  const [downloadErrorMsg, setDownloadErrorMsg] = useState(null);
   const scrollContainerRef = React.useRef(null);
 
+  const isMountedRef = React.useRef(true);
+  const chapterSortRef = React.useRef(chapterSort);
+  const loadSeqRef = React.useRef(0);
+  const downloadSessionRef = React.useRef(0);
   useEffect(() => {
+    chapterSortRef.current = chapterSort;
+  }, [chapterSort]);
+  useEffect(() => {
+    isMountedRef.current = true;
+    return () => {
+      isMountedRef.current = false;
+      downloadSessionRef.current += 1;
+    };
+  }, []);
+
+  const refreshDownloadedMap = useCallback(() => {
+    const primaryId = manga?.id || activeMangaId;
+    if (!primaryId) {
+      setDownloadedMap({});
+      return;
+    }
+    const map = { ...(getDownloadedChaptersForManga(primaryId) || {}) };
+    if (activeMangaId && activeMangaId !== primaryId) {
+      Object.assign(map, getDownloadedChaptersForManga(activeMangaId) || {});
+    }
+    setDownloadedMap(map);
+  }, [manga?.id, activeMangaId]);
+
+  useEffect(() => {
+    refreshDownloadedMap();
+    if (typeof window === 'undefined') return undefined;
+    window.addEventListener('kuroneko:downloads_updated', refreshDownloadedMap);
+    return () => window.removeEventListener('kuroneko:downloads_updated', refreshDownloadedMap);
+  }, [refreshDownloadedMap]);
+
+  const computeProgressPct = (prog, total) => {
+    if (typeof prog === 'number' && typeof total === 'number' && total > 0) {
+      return Math.max(0, Math.min(100, Math.round((prog / total) * 100)));
+    }
+    if (typeof prog === 'number') {
+      return Math.max(0, Math.min(100, Math.round(prog)));
+    }
+    if (prog && typeof prog.percent === 'number') {
+      return Math.max(0, Math.min(100, Math.round(prog.percent)));
+    }
+    if (prog && prog.total > 0) {
+      return Math.max(0, Math.min(100, Math.round(((prog.current || prog.loaded || 0) / prog.total) * 100)));
+    }
+    return 0;
+  };
+
+  const handleDownloadChapter = async (e, chap) => {
+    if (e) e.stopPropagation();
+    if (!chap || !manga || activeDownloadingId || isBatchDownloading) return;
+
+    setDownloadErrorMsg(null);
+    setActiveDownloadingId(chap.id);
+    setActiveDownloadPct(0);
+
+    try {
+      const targetManga = {
+        ...manga,
+        id: manga.id || activeMangaId,
+        coverUrl: initialCoverUrl || manga.coverUrl
+      };
+      const res = await downloadChapterOffline(targetManga, chap, (prog, total) => {
+        if (isMountedRef.current) {
+          setActiveDownloadPct(computeProgressPct(prog, total));
+        }
+      });
+      if (isMountedRef.current) {
+        refreshDownloadedMap();
+        if (!res?.success) {
+          setDownloadErrorMsg(res?.error || `Could not download Chapter ${chap.chapter}.`);
+        }
+      }
+    } catch (err) {
+      if (isMountedRef.current) {
+        setDownloadErrorMsg(err?.message || `Failed to download Chapter ${chap.chapter}.`);
+      }
+    } finally {
+      if (isMountedRef.current) {
+        setActiveDownloadingId(null);
+        setActiveDownloadPct(0);
+      }
+    }
+  };
+
+  const handleDeleteDownloadedChapter = async (e, chap) => {
+    if (e) e.stopPropagation();
+    if (!chap?.id) return;
+    setDownloadErrorMsg(null);
+    try {
+      await deleteDownloadedChapter(chap.id);
+      if (isMountedRef.current) {
+        refreshDownloadedMap();
+      }
+    } catch (err) {
+      if (isMountedRef.current) {
+        setDownloadErrorMsg(err?.message || 'Failed to delete offline chapter.');
+      }
+    }
+  };
+
+  useEffect(() => {
+    downloadSessionRef.current += 1;
     setActiveMangaId(mangaId);
     setVisibleChapterCount(200);
     setIsExpandedSynopsis(false);
+    setDownloadErrorMsg(null);
     if (scrollContainerRef.current) {
       scrollContainerRef.current.scrollTo({ top: 0, behavior: 'instant' });
     }
@@ -62,11 +179,13 @@ export default function MangaDetailModal({
 
   const handleSelectRecommendation = (rec) => {
     if (!rec || !rec.id) return;
+    downloadSessionRef.current += 1;
     setActiveMangaId(rec.id);
     setManga(null);
     setChapters([]);
     setLoading(true);
     setLoadingChapters(true);
+    setDownloadErrorMsg(null);
     if (scrollContainerRef.current) {
       scrollContainerRef.current.scrollTop = 0;
       scrollContainerRef.current.scrollTo({ top: 0, behavior: 'instant' });
@@ -94,6 +213,9 @@ export default function MangaDetailModal({
   const loadMangaData = useCallback((forceRefresh = false, targetId = null) => {
     const currentId = targetId || activeMangaId;
     if (!currentId) return;
+    const reqSeq = ++loadSeqRef.current;
+    const sortDir = chapterSortRef.current;
+
     if (forceRefresh) {
       setIsRefreshing(true);
     } else {
@@ -107,6 +229,7 @@ export default function MangaDetailModal({
 
     fetchMangaDetails(currentId, forceRefresh)
       .then((data) => {
+        if (!isMountedRef.current || reqSeq !== loadSeqRef.current) return;
         if (data) {
           setManga(data);
           if (data.chapters && Array.isArray(data.chapters) && data.chapters.length > 0) {
@@ -116,7 +239,7 @@ export default function MangaDetailModal({
               const numB = parseFloat(b.chapter);
               if (!isNaN(numA) && !isNaN(numB)) {
                 if (numA !== numB) {
-                  return chapterSort === 'asc' ? numA - numB : numB - numA;
+                  return sortDir === 'asc' ? numA - numB : numB - numA;
                 }
               }
               return 0;
@@ -124,34 +247,97 @@ export default function MangaDetailModal({
             setChapters(sorted);
           } else if (!forceRefresh) {
             // Auto-heal 0-chapter state so user never sees empty synchronized box
-            loadMangaData(true);
+            loadMangaData(true, currentId);
             return;
+          } else {
+            const offlineMap = getDownloadedChaptersForManga(currentId) || {};
+            const offlineVals = Object.values(offlineMap);
+            if (offlineVals.length > 0) {
+              const offlineChapters = offlineVals.map((m) => ({
+                id: m.chapterId,
+                chapter: m.chapterNumber || '1',
+                title: m.chapterTitle || '',
+                group: m.sourceName || 'Offline Saved',
+                publishedAt: m.downloadedAt || null
+              })).sort((a, b) => {
+                const numA = parseFloat(a.chapter) || 0;
+                const numB = parseFloat(b.chapter) || 0;
+                return sortDir === 'asc' ? numA - numB : numB - numA;
+              });
+              setChapters(offlineChapters);
+            }
           }
 
           // Fetch suggestions & recommendations for this manga
           setLoadingRecs(true);
           fetchMangaRecommendations(currentId, data.tags || [])
-            .then(recs => setRecommendations(recs || []))
-            .catch(() => setRecommendations([]))
-            .finally(() => setLoadingRecs(false));
+            .then(recs => {
+              if (isMountedRef.current && reqSeq === loadSeqRef.current) {
+                setRecommendations(recs || []);
+              }
+            })
+            .catch(() => {
+              if (isMountedRef.current && reqSeq === loadSeqRef.current) setRecommendations([]);
+            })
+            .finally(() => {
+              if (isMountedRef.current && reqSeq === loadSeqRef.current) setLoadingRecs(false);
+            });
 
           // Fetch latest industry news & release updates for this manga
           setLoadingNews(true);
           fetchMangaNews(data.englishTitle || data.title, 8)
-            .then(news => setMangaNews(news || []))
-            .catch(() => setMangaNews([]))
-            .finally(() => setLoadingNews(false));
+            .then(news => {
+              if (isMountedRef.current && reqSeq === loadSeqRef.current) {
+                setMangaNews(news || []);
+              }
+            })
+            .catch(() => {
+              if (isMountedRef.current && reqSeq === loadSeqRef.current) setMangaNews([]);
+            })
+            .finally(() => {
+              if (isMountedRef.current && reqSeq === loadSeqRef.current) setLoadingNews(false);
+            });
+        } else {
+          const offlineMap = getDownloadedChaptersForManga(currentId) || {};
+          const offlineVals = Object.values(offlineMap);
+          if (offlineVals.length > 0) {
+            const firstMeta = offlineVals[0];
+            setManga({
+              id: currentId,
+              title: firstMeta.mangaTitle || 'Offline Manga',
+              englishTitle: firstMeta.mangaTitle || 'Offline Manga',
+              coverUrl: initialCoverUrl || firstMeta.coverUrl || '',
+              sourceName: firstMeta.sourceName || 'Offline',
+              status: 'Offline Saved',
+              tags: ['Offline'],
+              description: 'Viewing offline downloaded chapters stored on this device.'
+            });
+            const offlineChapters = offlineVals.map((m) => ({
+              id: m.chapterId,
+              chapter: m.chapterNumber || '1',
+              title: m.chapterTitle || '',
+              group: m.sourceName || 'Offline Saved',
+              publishedAt: m.downloadedAt || null
+            })).sort((a, b) => {
+              const numA = parseFloat(a.chapter) || 0;
+              const numB = parseFloat(b.chapter) || 0;
+              return sortDir === 'asc' ? numA - numB : numB - numA;
+            });
+            setChapters(offlineChapters);
+          }
         }
       })
       .catch((err) => {
         console.error('loadMangaData error:', err);
       })
       .finally(() => {
-        setLoading(false);
-        setLoadingChapters(false);
-        setIsRefreshing(false);
+        if (isMountedRef.current && reqSeq === loadSeqRef.current) {
+          setLoading(false);
+          setLoadingChapters(false);
+          setIsRefreshing(false);
+        }
       });
-  }, [activeMangaId, initialCoverUrl, chapterSort]);
+  }, [activeMangaId, initialCoverUrl]);
 
   useEffect(() => {
     loadMangaData(false);
@@ -160,6 +346,7 @@ export default function MangaDetailModal({
   // Handle sort change
   const toggleSort = () => {
     const newSort = chapterSort === 'asc' ? 'desc' : 'asc';
+    chapterSortRef.current = newSort;
     setChapterSort(newSort);
     const sorted = [...chapters].sort((a, b) => {
       const numA = parseFloat(a.chapter);
@@ -174,9 +361,14 @@ export default function MangaDetailModal({
     setChapters(sorted);
   };
 
-  // Filter chapters based on search query
+  // Filter chapters based on search query and Downloaded Only toggle
+  const downloadedCount = chapters.length > 0
+    ? chapters.filter((c) => Boolean(c && downloadedMap[c.id])).length
+    : Object.keys(downloadedMap).length;
+
   const filteredChapters = chapters.filter((c) => {
     if (!c) return false;
+    if (downloadedOnly && !downloadedMap[c.id]) return false;
     if (!chapterSearch) return true;
     const q = chapterSearch.toLowerCase().trim();
     return (
@@ -192,6 +384,69 @@ export default function MangaDetailModal({
   );
   const firstChapter = sortedByNumAsc.length > 0 ? sortedByNumAsc[0] : null;
   const latestChapter = sortedByNumAsc.length > 0 ? sortedByNumAsc[sortedByNumAsc.length - 1] : null;
+
+  const nextUnreadToDownload = React.useMemo(() => {
+    const lastNum = lastReadChapter ? parseFloat(lastReadChapter) : NaN;
+    const unread = sortedByNumAsc.filter((c) => {
+      if (!c || downloadedMap[c.id]) return false;
+      if (readChapterIds.includes(c.id)) return false;
+      if (!isNaN(lastNum)) {
+        const chNum = parseFloat(c.chapter);
+        if (!isNaN(chNum) && chNum <= lastNum) return false;
+      }
+      return true;
+    });
+    if (unread.length > 0) return unread.slice(0, 5);
+    return sortedByNumAsc.filter((c) => c && !downloadedMap[c.id]).slice(0, 5);
+  }, [sortedByNumAsc, downloadedMap, readChapterIds, lastReadChapter]);
+
+  const handleDownloadNextUnread = async () => {
+    if (!manga || activeDownloadingId || isBatchDownloading || nextUnreadToDownload.length === 0) return;
+    const sessionId = downloadSessionRef.current;
+    setDownloadErrorMsg(null);
+    setIsBatchDownloading(true);
+    const queue = [...nextUnreadToDownload];
+    const targetManga = {
+      ...manga,
+      id: manga.id || activeMangaId,
+      coverUrl: initialCoverUrl || manga.coverUrl
+    };
+    let failedCount = 0;
+
+    try {
+      for (let i = 0; i < queue.length; i++) {
+        if (!isMountedRef.current || downloadSessionRef.current !== sessionId) break;
+        const chap = queue[i];
+        setBatchProgressText(`${i + 1}/${queue.length}`);
+        setActiveDownloadingId(chap.id);
+        setActiveDownloadPct(0);
+        try {
+          const res = await downloadChapterOffline(targetManga, chap, (prog, total) => {
+            if (isMountedRef.current && downloadSessionRef.current === sessionId) {
+              setActiveDownloadPct(computeProgressPct(prog, total));
+            }
+          });
+          if (!res?.success) failedCount++;
+        } catch {
+          failedCount++;
+        }
+        if (isMountedRef.current && downloadSessionRef.current === sessionId) {
+          refreshDownloadedMap();
+        }
+      }
+      if (failedCount > 0 && isMountedRef.current && downloadSessionRef.current === sessionId) {
+        setDownloadErrorMsg(`${failedCount} chapter(s) could not be downloaded offline.`);
+      }
+    } finally {
+      if (isMountedRef.current && downloadSessionRef.current === sessionId) {
+        setActiveDownloadingId(null);
+        setActiveDownloadPct(0);
+        setIsBatchDownloading(false);
+        setBatchProgressText('');
+        refreshDownloadedMap();
+      }
+    }
+  };
 
   const resumeChapterObj = lastReadChapter
     ? chapters.find((c) => String(c.chapter) === String(lastReadChapter))
@@ -342,7 +597,7 @@ export default function MangaDetailModal({
                   <div className="flex-1 min-w-0">
                     <div className="flex flex-wrap items-center justify-center sm:justify-start gap-1.5 sm:gap-2 mb-2">
                       <span className={`px-2.5 py-0.5 rounded-md text-[11px] font-bold uppercase tracking-wider ${
-                        manga.status === 'completed'
+                        String(manga.status || '').toLowerCase() === 'completed'
                           ? 'bg-emerald-500/20 text-emerald-400 border border-emerald-500/30'
                           : 'bg-rose-500/20 text-rose-400 border border-rose-500/30'
                       }`}>
@@ -361,6 +616,10 @@ export default function MangaDetailModal({
 
                       {(() => {
                         const src = manga.sourceName || (
+                          manga.id?.startsWith('kat:') ? 'MangaKatana' :
+                          manga.id?.startsWith('m18:') ? 'Manga18fx' :
+                          manga.id?.startsWith('nh:') || manga.id?.startsWith('nhentai:') ? 'NHentai' :
+                          manga.id?.startsWith('ext:') ? 'Extension Source' :
                           manga.id?.startsWith('flame:') ? 'Flame Comics' :
                           manga.id?.startsWith('thunder:') ? 'Thunder Scans' :
                           manga.id?.startsWith('asura:') ? 'Asura Scans' :
@@ -687,6 +946,39 @@ export default function MangaDetailModal({
                       <RefreshCw className={`w-3.5 h-3.5 ${isRefreshing ? 'animate-spin text-rose-400' : ''}`} />
                       <span className="text-[11px] font-semibold">{isRefreshing ? 'Updating...' : 'Check Updates'}</span>
                     </button>
+
+                    <button
+                      type="button"
+                      onClick={handleDownloadNextUnread}
+                      disabled={Boolean(activeDownloadingId) || isBatchDownloading || nextUnreadToDownload.length === 0}
+                      className="p-1.5 px-2.5 rounded-lg bg-cyan-500/15 hover:bg-cyan-500/25 text-cyan-300 hover:text-white border border-cyan-500/30 text-xs flex items-center gap-1.5 transition-all disabled:opacity-45 cursor-pointer"
+                      title="Download the next 5 unread chapters for offline reading"
+                    >
+                      {isBatchDownloading ? (
+                        <Loader2 className="w-3.5 h-3.5 animate-spin text-cyan-300" />
+                      ) : (
+                        <Download className="w-3.5 h-3.5 text-cyan-400" />
+                      )}
+                      <span className="text-[11px] font-semibold">
+                        {isBatchDownloading
+                          ? `Downloading (${batchProgressText})...`
+                          : 'Download Next 5 Unread'}
+                      </span>
+                    </button>
+
+                    <button
+                      type="button"
+                      onClick={() => setDownloadedOnly((prev) => !prev)}
+                      className={`p-1.5 px-2.5 rounded-lg border text-xs flex items-center gap-1.5 transition-all cursor-pointer ${
+                        downloadedOnly
+                          ? 'bg-emerald-500/20 border-emerald-500/40 text-emerald-300 font-bold shadow-sm'
+                          : 'bg-slate-900 border-white/10 text-slate-300 hover:text-white hover:bg-slate-800'
+                      }`}
+                      title="Filter list to downloaded offline chapters only"
+                    >
+                      <HardDrive className={`w-3.5 h-3.5 ${downloadedOnly ? 'text-emerald-400' : 'text-slate-400'}`} />
+                      <span className="text-[11px] font-semibold">Downloaded Only ({downloadedCount})</span>
+                    </button>
                   </div>
 
                   <div className="flex items-center gap-2 w-full sm:w-auto">
@@ -714,6 +1006,20 @@ export default function MangaDetailModal({
                   </div>
                 </div>
 
+                {downloadErrorMsg && (
+                  <div className="px-3 py-2 rounded-xl bg-rose-500/15 border border-rose-500/30 text-rose-300 text-xs flex items-center justify-between gap-2">
+                    <span>{downloadErrorMsg}</span>
+                    <button
+                      type="button"
+                      onClick={() => setDownloadErrorMsg(null)}
+                      className="text-rose-200 hover:text-white cursor-pointer"
+                      aria-label="Dismiss download error"
+                    >
+                      <X className="w-3.5 h-3.5" />
+                    </button>
+                  </div>
+                )}
+
                 {/* Chapter Cards List (Natural flow, no nested scroll trap) */}
                 <div className="space-y-1.5 rounded-2xl border border-white/10 bg-slate-950/60 p-2 sm:p-3">
                   {loadingChapters ? (
@@ -727,23 +1033,41 @@ export default function MangaDetailModal({
                         <Layers className="w-6 h-6 animate-pulse" />
                       </div>
                       <p className="text-sm font-semibold text-white">
-                        {chapterSearch ? `No chapters matching "${chapterSearch}"` : 'Chapters are being synchronized from primary sources...'}
+                        {downloadedOnly
+                          ? 'No downloaded chapters for this series yet'
+                          : chapterSearch
+                            ? `No chapters matching "${chapterSearch}"`
+                            : 'Chapters are being synchronized from primary sources...'}
                       </p>
                       <p className="text-xs text-slate-400 max-w-sm mx-auto">
-                        {chapterSearch ? 'Try a different chapter number or query.' : 'Click below to pull chapters directly from Thunder Scans, Asura, and WeebCentral.'}
+                        {downloadedOnly
+                          ? 'Turn off "Downloaded Only" or tap the download button on any chapter to save it offline.'
+                          : chapterSearch
+                            ? 'Try a different chapter number or query.'
+                            : 'Click below to pull chapters directly from Thunder Scans, Asura, and WeebCentral.'}
                       </p>
-                      <button
-                        type="button"
-                        onClick={() => {
-                          setChapterSearch('');
-                          loadMangaData(true);
-                        }}
-                        disabled={isRefreshing}
-                        className="px-4 py-2 rounded-xl text-xs font-bold btn-holo text-white shadow-md inline-flex items-center gap-2 cursor-pointer"
-                      >
-                        <RefreshCw className={`w-3.5 h-3.5 ${isRefreshing ? 'animate-spin' : ''}`} />
-                        <span>{isRefreshing ? 'Scanning Feeds...' : 'Force Refresh Chapters'}</span>
-                      </button>
+                      {downloadedOnly ? (
+                        <button
+                          type="button"
+                          onClick={() => setDownloadedOnly(false)}
+                          className="px-4 py-2 rounded-xl text-xs font-bold bg-emerald-600 hover:bg-emerald-500 text-white shadow-md inline-flex items-center gap-2 cursor-pointer"
+                        >
+                          <span>Show All Chapters</span>
+                        </button>
+                      ) : (
+                        <button
+                          type="button"
+                          onClick={() => {
+                            setChapterSearch('');
+                            loadMangaData(true);
+                          }}
+                          disabled={isRefreshing}
+                          className="px-4 py-2 rounded-xl text-xs font-bold btn-holo text-white shadow-md inline-flex items-center gap-2 cursor-pointer"
+                        >
+                          <RefreshCw className={`w-3.5 h-3.5 ${isRefreshing ? 'animate-spin' : ''}`} />
+                          <span>{isRefreshing ? 'Scanning Feeds...' : 'Force Refresh Chapters'}</span>
+                        </button>
+                      )}
                     </div>
                   ) : (
                     <>
@@ -751,6 +1075,8 @@ export default function MangaDetailModal({
                         const isRead = readChapterIds.includes(chap.id);
                         const isCurrentLastRead = String(chap.chapter) === String(lastReadChapter);
                         const isLatest = latestChapter && String(chap.chapter) === String(latestChapter.chapter);
+                        const isDownloaded = Boolean(downloadedMap[chap.id]);
+                        const isDownloadingThis = activeDownloadingId === chap.id;
 
                         return (
                           <div
@@ -820,6 +1146,51 @@ export default function MangaDetailModal({
                             </div>
 
                             <div className="flex items-center gap-2 flex-shrink-0">
+                              {isDownloadingThis ? (
+                                <button
+                                  type="button"
+                                  onClick={(e) => e.stopPropagation()}
+                                  className="px-2 py-1 rounded-lg bg-cyan-500/15 border border-cyan-500/30 text-cyan-300 text-[11px] font-mono font-bold flex items-center gap-1"
+                                  title="Downloading chapter for offline reading"
+                                >
+                                  <Loader2 className="w-3.5 h-3.5 animate-spin text-cyan-400" />
+                                  <span>{activeDownloadPct}%</span>
+                                </button>
+                              ) : isDownloaded ? (
+                                <div
+                                  onClick={(e) => e.stopPropagation()}
+                                  className="flex items-center gap-1"
+                                >
+                                  <span
+                                    className="px-2 py-1 rounded-lg bg-emerald-500/15 border border-emerald-500/30 text-emerald-300 text-[11px] font-semibold flex items-center gap-1"
+                                    title="Saved offline"
+                                  >
+                                    <Check className="w-3.5 h-3.5 text-emerald-400" />
+                                    <span className="hidden sm:inline">Offline</span>
+                                  </span>
+                                  <button
+                                    type="button"
+                                    onClick={(e) => handleDeleteDownloadedChapter(e, chap)}
+                                    className="p-1.5 rounded-lg bg-slate-900 hover:bg-rose-500/20 text-slate-400 hover:text-rose-400 border border-white/10 hover:border-rose-500/30 transition-all cursor-pointer"
+                                    title={`Delete downloaded Chapter ${chap.chapter}`}
+                                    aria-label={`Delete downloaded Chapter ${chap.chapter}`}
+                                  >
+                                    <Trash2 className="w-3.5 h-3.5" />
+                                  </button>
+                                </div>
+                              ) : (
+                                <button
+                                  type="button"
+                                  onClick={(e) => handleDownloadChapter(e, chap)}
+                                  disabled={Boolean(activeDownloadingId) || isBatchDownloading}
+                                  className="p-1.5 rounded-lg bg-white/5 hover:bg-cyan-500/20 text-slate-400 hover:text-cyan-300 border border-white/10 hover:border-cyan-500/40 transition-all disabled:opacity-40 cursor-pointer"
+                                  title={`Download Chapter ${chap.chapter} for offline reading`}
+                                  aria-label={`Download Chapter ${chap.chapter}`}
+                                >
+                                  <Download className="w-3.5 h-3.5" />
+                                </button>
+                              )}
+
                               <span className="opacity-80 group-hover:opacity-100 text-xs font-bold text-rose-400 flex items-center gap-1 transition-opacity">
                                 Read
                                 <Play className="w-3 h-3 fill-rose-400" />
@@ -883,7 +1254,7 @@ export default function MangaDetailModal({
                       {mangaNews.map((newsItem) => (
                         <a
                           key={newsItem.id}
-                          href={newsItem.link}
+                          href={/^https?:\/\//i.test(newsItem.link || '') ? newsItem.link : '#'}
                           target="_blank"
                           rel="noopener noreferrer"
                           className="group flex flex-col justify-between p-4 rounded-2xl bg-slate-900/60 hover:bg-slate-900 border border-white/10 hover:border-amber-400/50 transition-all hover:shadow-xl hover:shadow-amber-950/20 cursor-pointer"
