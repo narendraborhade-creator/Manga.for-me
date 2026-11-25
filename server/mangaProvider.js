@@ -2591,6 +2591,127 @@ export async function getMangaRecommendations(currentId = '', genres = [], limit
   }
 }
 
+function encodeExtTokenServer(str) {
+  return Buffer.from(String(str || ''), 'utf8').toString('base64url');
+}
+
+async function fetchMangaDexNsfwServer(type = 'popular', query = '', sourceLabel = 'MangaDex (18+)') {
+  const q = String(query || '').trim();
+  const orderParam = q
+    ? 'order[relevance]=desc'
+    : (type === 'latest' ? 'order[latestUploadedChapter]=desc' : 'order[followedCount]=desc');
+  const titleParam = q ? `title=${encodeURIComponent(q)}&` : '';
+  const url = `https://api.mangadex.org/manga?${titleParam}limit=24&${orderParam}&contentRating[]=erotica&contentRating[]=pornographic&includes[]=cover_art`;
+
+  const res = await fetchWithTimeout(url, {
+    headers: { 'User-Agent': 'KuroNeko/2.0 (Manga Reader)', Accept: 'application/json' }
+  }, 6000);
+  if (!res.ok) return [];
+  const data = await res.json();
+
+  return (data?.data || []).map((item) => {
+    const attrs = item.attributes || {};
+    const rawTitle = attrs.title?.en || attrs.title?.['ja-ro'] || attrs.title?.['ko-ro'] || Object.values(attrs.title || {})[0] || 'Adult Manga';
+    const title = cleanTitle(rawTitle);
+    const coverRel = (item.relationships || []).find((r) => r.type === 'cover_art');
+    const coverUrl = coverRel?.attributes?.fileName
+      ? `https://uploads.mangadex.org/covers/${item.id}/${coverRel.attributes.fileName}.512.jpg`
+      : getFallbackCover(title);
+    const lastCh = attrs.lastChapter;
+    const numCh = lastCh && !isNaN(parseFloat(lastCh)) ? Math.floor(parseFloat(lastCh)) : null;
+
+    return {
+      id: `md:${item.id}`,
+      rawId: item.id,
+      title,
+      englishTitle: title,
+      coverUrl,
+      description: decodeHtml(attrs.description?.en || Object.values(attrs.description || {})[0] || ''),
+      status: attrs.status ? attrs.status.toUpperCase() : 'ONGOING',
+      tags: ['18+ Adult', ...(attrs.tags || []).map((t) => t.attributes?.name?.en).filter(Boolean).slice(0, 3)],
+      sourceName: sourceLabel,
+      totalChapters: numCh,
+      latestChapter: lastCh || (numCh ? String(numCh) : '1'),
+      contentWarning: 'CONTENT_WARNING_NSFW',
+      isNsfw: true,
+    };
+  });
+}
+
+async function fetchNsfwSourceListingsServer(sourceId, type = 'popular', query = '') {
+  const s = String(sourceId || '').toLowerCase().trim();
+  const q = String(query || '').trim();
+
+  if (s.includes('nhentai')) {
+    try {
+      const apiUrl = q
+        ? `https://nhentai.net/api/galleries/search?query=${encodeURIComponent(q)}&sort=popular`
+        : (type === 'latest'
+            ? 'https://nhentai.net/api/galleries/all'
+            : 'https://nhentai.net/api/galleries/search?query=english&sort=popular');
+      const res = await fetchWithTimeout(apiUrl, { headers: { ...HEADERS, Accept: 'application/json', Referer: 'https://nhentai.net/' } }, 6000);
+      if (res.ok) {
+        const json = await res.json();
+        const extMap = { j: 'jpg', p: 'png', g: 'gif', w: 'webp' };
+        const items = (json?.result || []).slice(0, 24).map((g) => {
+          const title = cleanTitle(decodeHtml(g.title?.english || g.title?.pretty || g.title?.japanese || `Gallery #${g.id}`));
+          const coverExt = extMap[g.images?.cover?.t] || 'jpg';
+          const rawCover = g.media_id ? `https://t.nhentai.net/galleries/${g.media_id}/cover.${coverExt}` : '';
+          const galleryUrl = `https://nhentai.net/g/${g.id}/`;
+          return {
+            id: `ext:${encodeExtTokenServer('https://nhentai.net')}:${encodeExtTokenServer(galleryUrl)}`,
+            rawId: String(g.id),
+            title,
+            englishTitle: title,
+            coverUrl: rawCover ? `/api/image-proxy?url=${encodeURIComponent(rawCover)}` : getFallbackCover(title),
+            status: 'Completed',
+            tags: (g.tags || []).filter((t) => t.type === 'tag').map((t) => t.name).slice(0, 4),
+            sourceName: 'NHentai',
+            totalChapters: 1,
+            latestChapter: `${g.num_pages || 1} Pages`,
+            contentWarning: 'CONTENT_WARNING_NSFW',
+            isNsfw: true,
+          };
+        });
+        if (items.length > 0) return items;
+      }
+    } catch {}
+  }
+
+  if (s.includes('manga18')) {
+    try {
+      const targetUrl = q
+        ? `https://manga18fx.com/search?q=${encodeURIComponent(q)}`
+        : (type === 'latest' ? 'https://manga18fx.com/latest-releases' : 'https://manga18fx.com/popular-manga');
+      const res = await fetchWithTimeout(targetUrl, { headers: { ...HEADERS, Referer: 'https://manga18fx.com/' } }, 6000);
+      if (res.ok) {
+        const html = await res.text();
+        const items = [];
+        const regex = /<div class="bsx-item">[\s\S]*?<a href="\/manga\/([^"#?]+)"\s+title="([^"]+)"[\s\S]*?<img [^>]*(?:data-src|src)="([^"]+)"/gi;
+        for (const m of html.matchAll(regex)) {
+          const title = cleanTitle(decodeHtml(m[2]));
+          const rawCover = m[3];
+          items.push({
+            id: `m18:${m[1]}`,
+            rawId: m[1],
+            title,
+            englishTitle: title,
+            coverUrl: rawCover ? `/api/image-proxy?url=${encodeURIComponent(rawCover)}` : getFallbackCover(title),
+            sourceName: 'Manga18fx',
+            status: 'Ongoing',
+            tags: ['18+ Adult', 'Manhwa', 'Webtoon'],
+            contentWarning: 'CONTENT_WARNING_NSFW',
+            isNsfw: true,
+          });
+        }
+        if (items.length > 0) return items;
+      }
+    } catch {}
+  }
+
+  return await fetchMangaDexNsfwServer(type, q, sourceId || 'Adult Archive');
+}
+
 /**
  * Mihon / Tachiyomi Extension Source Provider Endpoint
  * Retrieves Popular, Latest, or Search listings for any specific installed source.
@@ -2600,6 +2721,10 @@ export async function getSourceListings(sourceId = '', type = 'popular', query =
   const q = String(query || '').trim();
 
   try {
+    if (/(?:nhentai|manga18|manhwa18|18fx|18\+|doujin|hentai|erocool|asmhentai|hiperdex|toonily|nsfw|adult|erotica|porn)/i.test(s)) {
+      return await fetchNsfwSourceListingsServer(sourceId, type, q);
+    }
+
     if (s.includes('katana') || s === 'kat') {
       if (type === 'latest') return await getLatestMangaKatana();
       if (type === 'search' && q) return await searchMangaKatana(q);
@@ -2613,7 +2738,9 @@ export async function getSourceListings(sourceId = '', type = 'popular', query =
     }
 
     if (s.includes('dex') || s === 'md') {
-      return await searchMangaDex(q || 'action');
+      if (q) return await searchMangaDex(q);
+      if (type === 'latest') return await getLatestMangaDex(24);
+      return await getPopularMangaDex(24);
     }
 
     if (s.includes('asura')) {
