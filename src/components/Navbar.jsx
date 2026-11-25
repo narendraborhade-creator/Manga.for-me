@@ -13,7 +13,8 @@ import {
   Loader2,
   SlidersHorizontal,
   Filter,
-  Layers
+  Layers,
+  ShieldAlert
 } from 'lucide-react';
 import NotificationsDropdown from './NotificationsDropdown';
 import { searchManga, getFallbackCover, getReliableCoverUrl } from '../services/mangaApi';
@@ -34,7 +35,10 @@ export default function Navbar({
   onOpenBackup,
   unreadUpdatesCount = 0,
   onSelectManga,
-  onOpenCommandPalette
+  onOpenCommandPalette,
+  nsfwAllowed = false,
+  onOpenNsfwSearch,
+  onToggleNsfw
 }) {
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
   const [notificationsOpen, setNotificationsOpen] = useState(false);
@@ -208,6 +212,22 @@ export default function Navbar({
                 </button>
               );
             })}
+
+            {nsfwAllowed && (
+              <button
+                type="button"
+                onClick={() => (onOpenNsfwSearch ? onOpenNsfwSearch('') : setActiveTab('nsfw'))}
+                className={`flex items-center gap-1.5 px-3 py-2 rounded-lg text-xs font-bold transition-all duration-200 cursor-pointer ${
+                  activeTab === 'nsfw'
+                    ? 'bg-rose-600 text-white shadow-md shadow-rose-600/30'
+                    : 'bg-rose-950/50 text-rose-300 hover:text-white hover:bg-rose-900/60 border border-rose-500/30'
+                }`}
+                title="Open 18+ NSFW Search Section"
+              >
+                <ShieldAlert className="w-3.5 h-3.5" />
+                <span>18+ NSFW</span>
+              </button>
+            )}
           </nav>
 
           {/* Search & Actions with HUD Reticle */}
@@ -304,13 +324,17 @@ export default function Navbar({
                             </div>
                           </div>
                         ))}
-                        {suggestions.length > 0 && (
+                        {nsfwAllowed && suggestions.length > 0 && (
                           <div className="pt-1.5 mt-1 border-t border-white/5">
                             <button
                               type="button"
                               onClick={() => {
                                 setShowSuggestions(false);
-                                setActiveTab('sources');
+                                if (onOpenNsfwSearch) {
+                                  onOpenNsfwSearch(searchQuery);
+                                } else {
+                                  setActiveTab('sources');
+                                }
                               }}
                               className="w-full py-1.5 px-2.5 rounded-lg bg-rose-950/40 hover:bg-rose-900/50 border border-rose-500/20 text-rose-300 hover:text-white text-[11px] font-mono font-bold flex items-center justify-between transition-all cursor-pointer"
                             >
@@ -329,8 +353,28 @@ export default function Navbar({
                         <span>Searching all sources...</span>
                       </div>
                     ) : (
-                      <div className="p-3 text-center text-xs text-slate-400">
-                        No matches found. Press Enter to search catalog.
+                      <div className="p-3 text-center text-xs text-slate-400 space-y-2">
+                        <p>No matches found. Press Enter to search catalog.</p>
+                        {nsfwAllowed && (
+                          <button
+                            type="button"
+                            onClick={() => {
+                              setShowSuggestions(false);
+                              if (onOpenNsfwSearch) {
+                                onOpenNsfwSearch(searchQuery);
+                              } else {
+                                setActiveTab('sources');
+                              }
+                            }}
+                            className="w-full py-1.5 px-2.5 rounded-lg bg-rose-950/40 hover:bg-rose-900/50 border border-rose-500/20 text-rose-300 hover:text-white text-[11px] font-mono font-bold flex items-center justify-between transition-all cursor-pointer"
+                          >
+                            <span className="flex items-center gap-1.5">
+                              <span className="px-1 py-0.2 rounded bg-rose-600 text-white text-[9px] font-black">18+</span>
+                              <span>Search "{searchQuery}" in 18+ NSFW Sources</span>
+                            </span>
+                            <span>→</span>
+                          </button>
+                        )}
                       </div>
                     )
                   ) : (
@@ -429,6 +473,24 @@ export default function Navbar({
             >
               <Download className="w-3.5 h-3.5" />
               <span className="hidden sm:inline">Backup</span>
+            </button>
+
+            {/* Mobile quick Sources trigger */}
+            <button
+              type="button"
+              onClick={() => setActiveTab('sources')}
+              title="Sources & Extensions"
+              aria-label="Sources & Extensions"
+              className={`md:hidden p-2 rounded-xl border text-xs font-medium flex items-center gap-1 transition-all ${
+                activeTab === 'sources'
+                  ? 'bg-rose-600 text-white border-rose-500'
+                  : 'bg-slate-900/80 border-white/10 text-slate-300 hover:text-white'
+              }`}
+            >
+              <Layers className="w-4 h-4" />
+              {installedSourcesCount > 0 && (
+                <span className="text-[10px] font-bold">{installedSourcesCount}</span>
+              )}
             </button>
 
             {/* Mobile menu trigger */}
@@ -540,12 +602,47 @@ export default function Navbar({
                         </div>
                       </div>
                     ))}
-                    <div className="pt-1.5 mt-1 border-t border-white/5">
+                    {nsfwAllowed && (
+                      <div className="pt-1.5 mt-1 border-t border-white/5">
+                        <button
+                          type="button"
+                          onClick={() => {
+                            setShowSuggestions(false);
+                            if (onOpenNsfwSearch) {
+                              onOpenNsfwSearch(searchQuery);
+                            } else {
+                              setActiveTab('sources');
+                            }
+                          }}
+                          className="w-full py-1.5 px-2.5 rounded-lg bg-rose-950/40 hover:bg-rose-900/50 border border-rose-500/20 text-rose-300 hover:text-white text-[11px] font-mono font-bold flex items-center justify-between transition-all cursor-pointer"
+                        >
+                          <span className="flex items-center gap-1.5">
+                            <span className="px-1 py-0.2 rounded bg-rose-600 text-white text-[9px] font-black">18+</span>
+                            <span>Search "{searchQuery}" in 18+ NSFW Sources</span>
+                          </span>
+                          <span>→</span>
+                        </button>
+                      </div>
+                    )}
+                  </div>
+                ) : isSearchingSuggestions ? (
+                  <div className="p-3 text-center text-xs text-slate-400 flex items-center justify-center gap-2">
+                    <Loader2 className="w-3.5 h-3.5 text-rose-500 animate-spin" />
+                    <span>Searching...</span>
+                  </div>
+                ) : (
+                  <div className="p-3 text-center text-xs text-slate-400 space-y-2">
+                    <p>No instant suggestions found.</p>
+                    {nsfwAllowed && (
                       <button
                         type="button"
                         onClick={() => {
                           setShowSuggestions(false);
-                          setActiveTab('sources');
+                          if (onOpenNsfwSearch) {
+                            onOpenNsfwSearch(searchQuery);
+                          } else {
+                            setActiveTab('sources');
+                          }
                         }}
                         className="w-full py-1.5 px-2.5 rounded-lg bg-rose-950/40 hover:bg-rose-900/50 border border-rose-500/20 text-rose-300 hover:text-white text-[11px] font-mono font-bold flex items-center justify-between transition-all cursor-pointer"
                       >
@@ -555,16 +652,7 @@ export default function Navbar({
                         </span>
                         <span>→</span>
                       </button>
-                    </div>
-                  </div>
-                ) : isSearchingSuggestions ? (
-                  <div className="p-3 text-center text-xs text-slate-400 flex items-center justify-center gap-2">
-                    <Loader2 className="w-3.5 h-3.5 text-rose-500 animate-spin" />
-                    <span>Searching...</span>
-                  </div>
-                ) : (
-                  <div className="p-3 text-center text-xs text-slate-400">
-                    No instant suggestions found.
+                    )}
                   </div>
                 )
               ) : (
@@ -624,6 +712,51 @@ export default function Navbar({
                 </button>
               );
             })}
+
+            {nsfwAllowed && (
+              <button
+                type="button"
+                onClick={() => {
+                  if (onOpenNsfwSearch) {
+                    onOpenNsfwSearch('');
+                  } else {
+                    setActiveTab('nsfw');
+                  }
+                  setMobileMenuOpen(false);
+                }}
+                className={`flex items-center justify-between px-4 py-2.5 rounded-xl text-sm font-semibold transition-all ${
+                  activeTab === 'nsfw'
+                    ? 'bg-rose-600 text-white'
+                    : 'bg-rose-950/40 text-rose-300 hover:text-white border border-rose-500/25'
+                }`}
+              >
+                <div className="flex items-center gap-3">
+                  <ShieldAlert className="w-4 h-4 text-rose-400" />
+                  <span>18+ NSFW Search</span>
+                </div>
+                <span className="text-[10px] px-2 py-0.5 rounded-full bg-rose-600/40 text-rose-200 font-bold">
+                  18+
+                </span>
+              </button>
+            )}
+
+            {onToggleNsfw && (
+              <button
+                type="button"
+                onClick={onToggleNsfw}
+                className="flex items-center justify-between px-4 py-2 rounded-xl text-xs font-semibold text-slate-400 hover:text-white hover:bg-white/5 transition-all"
+              >
+                <span className="flex items-center gap-2.5">
+                  <ShieldAlert className={`w-4 h-4 ${nsfwAllowed ? 'text-rose-400' : 'text-slate-500'}`} />
+                  <span>18+ NSFW Mode</span>
+                </span>
+                <span className={`px-2 py-0.5 rounded-full text-[10px] font-mono font-bold ${
+                  nsfwAllowed ? 'bg-rose-500/20 text-rose-300' : 'bg-slate-800 text-slate-400'
+                }`}>
+                  {nsfwAllowed ? 'ON' : 'OFF'}
+                </span>
+              </button>
+            )}
 
             {lastRead && (
               <div className="pt-2 mt-1 border-t border-white/5">
