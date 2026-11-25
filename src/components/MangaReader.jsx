@@ -824,7 +824,7 @@ export default function MangaReader({
     const currentSpeedLevel = settings.autoScrollSpeed || 2;
     const pixelsPerSecond = speedMap[currentSpeedLevel] || 95;
 
-    let lastTime = performance.now();
+    let lastTime = (typeof performance !== 'undefined' ? performance.now() : Date.now());
     let scrollAccumulator = 0;
     let running = true;
 
@@ -913,7 +913,7 @@ export default function MangaReader({
     const targetPage = Math.max(1, Math.min(pageNum, activeTotalPages || 1));
     setActivePageNumber(targetPage);
 
-    if (settings.readingMode === 'single') {
+    if (settings.readingMode === 'single' || settings.readingMode === 'spread') {
       setSinglePageNum(targetPage);
       recordReadingProgress({
         mangaId,
@@ -947,7 +947,7 @@ export default function MangaReader({
   }, [settings.readingMode, activeTotalPages, activeChapterId, mangaId, mangaTitle, mangaEnglishTitle, coverUrl, activeChapterNumber]);
 
   const handleNextPage = useCallback(() => {
-    if (settings.readingMode === 'single') {
+    if (settings.readingMode === 'single' || settings.readingMode === 'spread') {
       handleSinglePageNext();
     } else {
       if (activePageNumber < activeTotalPages) {
@@ -959,7 +959,7 @@ export default function MangaReader({
   }, [settings.readingMode, handleSinglePageNext, activePageNumber, activeTotalPages, scrollToPage, nextChapter, jumpToChapter]);
 
   const handlePrevPage = useCallback(() => {
-    if (settings.readingMode === 'single') {
+    if (settings.readingMode === 'single' || settings.readingMode === 'spread') {
       handleSinglePagePrev();
     } else {
       if (activePageNumber > 1) {
@@ -976,7 +976,7 @@ export default function MangaReader({
       if (e.target.tagName === 'INPUT' || e.target.tagName === 'TEXTAREA') return;
 
       if (e.key === 'ArrowRight' || e.key === 'd' || e.key === ' ') {
-        if (settings.readingMode === 'single') {
+        if (settings.readingMode === 'single' || settings.readingMode === 'spread') {
           if (settings.readingDirection === 'rtl') {
             handleSinglePagePrev();
           } else {
@@ -984,7 +984,7 @@ export default function MangaReader({
           }
         }
       } else if (e.key === 'ArrowLeft' || e.key === 'a') {
-        if (settings.readingMode === 'single') {
+        if (settings.readingMode === 'single' || settings.readingMode === 'spread') {
           if (settings.readingDirection === 'rtl') {
             handleSinglePageNext();
           } else {
