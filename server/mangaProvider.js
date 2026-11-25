@@ -47,6 +47,7 @@ import {
 } from './mangadexProvider.js';
 import {
   getPopularMangaKakalot,
+  getLatestMangaKakalot,
   searchMangaKakalot,
   getMangaKakalotDetails,
   getMangaKakalotChapterPages
@@ -55,6 +56,7 @@ import { getMangaNews } from './newsProvider.js';
 import {
   searchMangaKatana,
   getPopularMangaKatana,
+  getLatestMangaKatana,
   getMangaKatanaDetails,
   getMangaKatanaChapterPages
 } from './mangakatanaProvider.js';
@@ -401,15 +403,10 @@ export const VERIFIED_COMPLETE_ALIASES = {
   'murim-login': 'asura:murim-login-ab39de10',
   'barbarian': 'wc:01J76XYG976314R2DM2DKQRBGS',
   'surviving-game-barbarian': 'wc:01J76XYG976314R2DM2DKQRBGS',
-  'surviving-the-game-as-a-barbarian': 'wc:01J76XYG976314R2DM2DKQRBGS',
   'asura:surviving-game-barbarian': 'wc:01J76XYG976314R2DM2DKQRBGS',
   'estate-developer': 'wc:01J76XYF6V9BDFSRRTY2C65SBS',
-  'the-greatest-estate-developer': 'wc:01J76XYF6V9BDFSRRTY2C65SBS',
-  'greatest-estate-developer': 'wc:01J76XYF6V9BDFSRRTY2C65SBS',
   'asura:greatest-estate-developer': 'wc:01J76XYF6V9BDFSRRTY2C65SBS',
-  'worlds-strongest-troll': 'wc:01J76XYGVNHEER7G6M90C6YCTW',
   'my-in-laws-are-obsessed-with-me': 'wc:01J76XYFAESZTJT5AQ1SPFKYXR',
-  'my-in-laws-are-my-beloved-in-laws': 'wc:01J76XYFAESZTJT5AQ1SPFKYXR',
   'a-fortune-telling-princess': 'webtoon:fortune-telling-princess',
   'fortune-telling-princess': 'webtoon:fortune-telling-princess',
   'md:0ba6b85e-3e87-454a-b81d-1040468248e1': 'webtoon:fortune-telling-princess',
@@ -431,8 +428,6 @@ export const VERIFIED_COMPLETE_ALIASES = {
   '01J76XYE3130E1W5HKTJ7VD912': 'kat:sakamoto-days.24831',
   'wc:01J76XYE23859ZWDP7BJ520AKY': 'kat:the-beginning-after-the-end.21950',
   '01J76XYE23859ZWDP7BJ520AKY': 'kat:the-beginning-after-the-end.21950',
-  'my-in-laws-are-obsessed-with-me': 'wc:01J76XYFAESZTJT5AQ1SPFKYXR',
-  'my-in-laws-are-my-beloved-in-laws': 'wc:01J76XYFAESZTJT5AQ1SPFKYXR',
   'webtoon:ks:my-in-laws-are-obsessed-with-me': 'wc:01J76XYFAESZTJT5AQ1SPFKYXR',
   'md:c44b5b1d-60cf-4faf-be2c-0a807200358f': 'wc:01J76XYFAESZTJT5AQ1SPFKYXR',
   'c44b5b1d-60cf-4faf-be2c-0a807200358f': 'wc:01J76XYFAESZTJT5AQ1SPFKYXR',
@@ -641,7 +636,7 @@ export async function getPopularManga() {
         ...feat,
         englishTitle: feat.englishTitle || null,
         sourceName: feat.sourceName || 'MangaPill',
-        provider: 'mangapill',
+        provider: feat.provider || 'mangapill',
       });
     }
   });
@@ -670,7 +665,7 @@ export async function getPopularManga() {
   });
 
   try {
-    const [wcList, katList, dexList, flameList, thunderList, asuraList, vortexList, mkList, scrapedList] = await Promise.all([
+    const [katList, wcList, dexList, flameList, thunderList, asuraList, vortexList, mkList, scrapedList] = await Promise.all([
       getPopularMangaKatana(16).catch(() => []),
       getPopularWeebCentral(16).catch(() => []),
       getPopularMangaDex(12).catch(() => []),
@@ -825,7 +820,7 @@ export async function searchManga(query = '') {
 
   if (isNewQuery) {
     try {
-      const [wcLatest, wcAdded, katPopular, dexLatest, dexAdded, flamePopular, thunderPop, asuraPop, vortexPop] = await Promise.all([
+      const [katPopular, wcLatest, wcAdded, dexLatest, dexAdded, flamePopular, thunderPop, asuraPop, vortexPop] = await Promise.all([
         getPopularMangaKatana(20).catch(() => []),
         getLatestUpdatesWeebCentral(20).catch(() => []),
         getRecentlyAddedWeebCentral(16).catch(() => []),
@@ -1045,6 +1040,7 @@ export async function searchManga(query = '') {
     });
 
     const deduplicated = groupAndSelectBestManga(combined);
+    deduplicated.sort((a, b) => computeSearchRelevance(b, trimmed) - computeSearchRelevance(a, trimmed));
     setCache(cacheKey, deduplicated);
     return deduplicated;
   } catch (error) {
