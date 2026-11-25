@@ -10,7 +10,7 @@ const HEADERS = {
   'Referer': 'https://www.kakamanga.com/',
 };
 
-import { decodeHtml, cleanTitle } from './htmlUtils.js';
+import { decodeHtml, cleanTitle, getFallbackCover } from './htmlUtils.js';
 
 const BASE_URL = 'https://www.kakamanga.com';
 
@@ -43,6 +43,69 @@ async function fetchWithTimeout(url, options = {}, timeoutMs = 8000) {
   }
 }
 
+function parseKakalotList(html, { includeTotalChapters = false } = {}) {
+  const list = [];
+  const seen = new Set();
+  const parts = html.split(/<div class="itemupdate|<div class="list-truyen-item-wrap/i);
+
+  for (let i = 1; i < parts.length; i++) {
+    const block = parts[i];
+    const linkMatch = block.match(/href="https:\/\/www\.kakamanga\.com\/manga\/([^"/]+)"/i) || block.match(/href="\/manga\/([^"/]+)"/i);
+    const dataSrcMatch = block.match(/<img[^>]+data-src="([^"]+)"/i);
+    const srcMatch = block.match(/<img[^>]+src="([^"]+)"/i);
+    const altMatch = block.match(/<img[^>]+alt="([^"]*)"/i);
+
+    if (!linkMatch) continue;
+    const slug = linkMatch[1];
+    if (seen.has(slug)) continue;
+    seen.add(slug);
+
+    let rawTitle = altMatch?.[1]?.trim() || slug.replace(/-/g, ' ');
+    const dataSrc = dataSrcMatch?.[1]?.trim() || '';
+    const src = srcMatch?.[1]?.trim() || '';
+    const candidateCover = (dataSrc.startsWith('http') ? dataSrc : '') || (src.startsWith('http') ? src : '');
+    let rawCover = candidateCover;
+
+    if (!rawCover) {
+      rawCover = `https://img-r1.2xstorage.com/thumb/${slug}.webp`;
+    }
+
+    if (rawCover.startsWith('https://www.mangakakalot.gghttps://')) {
+      rawCover = rawCover.replace('https://www.mangakakalot.gg', '');
+    }
+
+    const chMatch = block.match(/href="[^"]*\/chapter-([0-9.]+)"[^>]*title="([^"]+)"/i) || block.match(/<a[^>]*href="[^"]*\/chapter-([0-9.]+)"[^>]*>([^<]+)<\/a>/i);
+    const clean = cleanTitle(rawTitle);
+    const coverUrl = rawCover
+      ? (rawCover.startsWith('/api/image-proxy') ? rawCover : `/api/image-proxy?url=${encodeURIComponent(rawCover)}`)
+      : getFallbackCover(rawTitle);
+
+    const item = {
+      id: `mk:${slug}`,
+      slug,
+      title: clean,
+      englishTitle: clean,
+      coverUrl,
+      status: 'Ongoing',
+      author: 'MangaKakalot',
+      latestChapter: includeTotalChapters ? (chMatch ? chMatch[1] : null) : (chMatch ? `Chapter ${chMatch[1]}` : 'Latest'),
+      tags: ['Manga', 'Action'],
+      sourceName: 'MangaKakalot',
+      provider: 'mangakakalot',
+    };
+
+    if (includeTotalChapters) {
+      item.totalChapters = item.latestChapter && !isNaN(parseFloat(item.latestChapter))
+        ? Math.floor(parseFloat(item.latestChapter))
+        : null;
+    }
+
+    list.push(item);
+  }
+
+  return list;
+}
+
 /**
  * Fetch 50+ Latest Manga Releases from MangaKakalot / KakaManga
  */
@@ -55,58 +118,7 @@ export async function getPopularMangaKakalot() {
     const res = await fetchWithTimeout(`${BASE_URL}/`, { headers: HEADERS }, 6000);
     if (!res.ok) throw new Error(`HTTP ${res.status}`);
     const html = await res.text();
-
-    const list = [];
-    const parts = html.split(/<div class="itemupdate/i);
-
-    for (let i = 1; i < parts.length; i++) {
-      const block = parts[i];
-      const linkMatch = block.match(/href="https:\/\/www\.kakamanga\.com\/manga\/([^"/]+)"/i) || block.match(/href="\/manga\/([^"/]+)"/i);
-      const imgMatch = block.match(/<img[^>]+(?:data-src|src)="([^"]+)"[^>]*alt="([^"]*)"/i) || block.match(/<img[^>]*alt="([^"]*)"[^>]+(?:data-src|src)="([^"]+)"/i);
-
-      if (linkMatch) {
-        const slug = linkMatch[1];
-        let rawTitle = slug.replace(/-/g, ' ');
-        let rawCover = '';
-
-        if (imgMatch) {
-          if (imgMatch[1]?.startsWith('http')) {
-            rawCover = imgMatch[1];
-            if (imgMatch[2]) rawTitle = imgMatch[2];
-          } else if (imgMatch[2]?.startsWith('http')) {
-            rawCover = imgMatch[2];
-            if (imgMatch[1]) rawTitle = imgMatch[1];
-          }
-        }
-
-        if (!rawCover) {
-          rawCover = `https://img-r1.2xstorage.com/thumb/${slug}.webp`;
-        }
-
-        // Clean double-prefixed URLs
-        if (rawCover.startsWith('https://www.mangakakalot.gghttps://')) {
-          rawCover = rawCover.replace('https://www.mangakakalot.gg', '');
-        }
-
-        // Extract latest chapter
-        const chMatch = block.match(/href="[^"]*\/chapter-([0-9.]+)"[^>]*title="([^"]+)"/i) || block.match(/<a[^>]*href="[^"]*\/chapter-([0-9.]+)"[^>]*>([^<]+)<\/a>/i);
-        const latestCh = chMatch ? `Chapter ${chMatch[1]}` : 'Latest';
-
-        list.push({
-          id: `mk:${slug}`,
-          slug,
-          title: cleanTitle(rawTitle),
-          englishTitle: cleanTitle(rawTitle),
-          coverUrl: rawCover ? (rawCover.startsWith("/api/image-proxy") ? rawCover : `/api/image-proxy?url=${encodeURIComponent(rawCover)}`) : getFallbackCover(rawTitle),
-          status: 'Ongoing',
-          author: 'MangaKakalot',
-          latestChapter: latestCh,
-          tags: ['Manga', 'Action'],
-          sourceName: 'MangaKakalot',
-          provider: 'mangakakalot',
-        });
-      }
-    }
+    const list = parseKakalotList(html);
 
     if (list.length > 0) {
       setCache(cacheKey, list);
@@ -117,6 +129,33 @@ export async function getPopularMangaKakalot() {
   }
 
   return [];
+}
+
+/**
+ * Fetch Latest Manga Releases from MangaKakalot / KakaManga
+ */
+export async function getLatestMangaKakalot(limit = 24) {
+  const cacheKey = `mk_latest_v1_${limit}`;
+  const cached = getCached(cacheKey);
+  if (cached) return cached;
+
+  try {
+    const res = await fetchWithTimeout(`${BASE_URL}/manga-list/latest-manga`, { headers: HEADERS }, 6000);
+    if (res.ok) {
+      const html = await res.text();
+      const list = parseKakalotList(html);
+      if (list.length > 0) {
+        const sliced = list.slice(0, limit);
+        setCache(cacheKey, sliced);
+        return sliced;
+      }
+    }
+  } catch (err) {
+    console.warn('getLatestMangaKakalot error:', err.message);
+  }
+
+  const popular = await getPopularMangaKakalot();
+  return popular.slice(0, limit);
 }
 
 /**
@@ -151,14 +190,20 @@ export async function getMangaKakalotDetails(slug, bypassCache = false) {
 
       const descMatch = html.match(/id="contentBox"[^>]*>([\s\S]*?)<\/div>/i);
       if (descMatch) {
-        description = descMatch[1].replace(/<[^>]+>/g, '').replace(/summary\s*:\s*/i, '').trim();
+        description = decodeHtml(descMatch[1].replace(/<[^>]+>/g, '').replace(/summary\s*:\s*/i, '').trim());
       }
 
-      const statusMatch = html.match(/Status\s*:\s*([^<]+)/i);
-      if (statusMatch) status = statusMatch[1].trim();
+      const statusMatch = html.match(/Status\s*:\s*([^<\n\r]+|<[^>]+>([^<]+)<\/[^>]+>)/i);
+      if (statusMatch) {
+        const cleanSt = (statusMatch[2] || statusMatch[1]).replace(/<[^>]+>/g, '').trim();
+        if (cleanSt) status = cleanSt;
+      }
 
-      const authorMatch = html.match(/Author\(s\)\s*:\s*([^<]+)/i);
-      if (authorMatch) authors = authorMatch[1].trim();
+      const authorMatch = html.match(/Author\(s\)\s*:\s*([\s\S]*?)<\/li>/i) || html.match(/Author\(s\)\s*:\s*([^<\n\r]+)/i);
+      if (authorMatch) {
+        const cleanAuth = decodeHtml(authorMatch[1].replace(/<[^>]+>/g, ' ').replace(/\s+/g, ' ').trim());
+        if (cleanAuth) authors = cleanAuth;
+      }
     }
 
     // 2. Fetch full chapter list via the official JSON chapters endpoint
@@ -185,6 +230,8 @@ export async function getMangaKakalotDetails(slug, bypassCache = false) {
       }
     }
 
+    chapters.sort((a, b) => (parseFloat(b.chapter) || 0) - (parseFloat(a.chapter) || 0));
+
     const result = {
       id: `mk:${cleanSlug}`,
       slug: cleanSlug,
@@ -195,6 +242,7 @@ export async function getMangaKakalotDetails(slug, bypassCache = false) {
       status,
       author: authors,
       tags,
+      provider: 'mangakakalot',
       sourceName: 'MangaKakalot',
       chapters,
       totalChapters: chapters.length,
@@ -234,18 +282,22 @@ export async function getMangaKakalotChapterPages(rawChapterId) {
     if (!res.ok) throw new Error(`HTTP ${res.status}`);
     const html = await res.text();
 
-    const imgMatches = [
-      ...html.matchAll(/<img[^>]+(?:data-src|src)="([^"]*2xstorage\.com\/[^"]+)"/gi),
-      ...html.matchAll(/<img[^>]+(?:data-src|src)="([^"]*kakamanga\.com\/[^"]+)"/gi),
-      ...html.matchAll(/<img[^>]+(?:data-src|src)="([^"]*chapter[^"]*\.(?:jpg|jpeg|png|webp))"/gi),
-    ];
-
     const seenUrls = new Set();
     const rawImages = [];
+    const imgTags = [...html.matchAll(/<img\b[^>]*>/gi)];
 
-    for (const m of imgMatches) {
-      let u = m[1];
+    for (const tagMatch of imgTags) {
+      const tag = tagMatch[0];
+      const dataSrcM = tag.match(/\bdata-src="([^"]+)"/i);
+      const srcM = tag.match(/\bsrc="([^"]+)"/i);
+      const u = (dataSrcM?.[1] || srcM?.[1] || '').trim();
+      if (!u || !u.startsWith('http')) continue;
       if (u.includes('avatar') || u.includes('logo') || u.includes('icon') || u.includes('banner')) continue;
+      const isChapterHost =
+        u.includes('2xstorage.com/') ||
+        u.includes('kakamanga.com/') ||
+        /chapter[^"]*\.(?:jpg|jpeg|png|webp)/i.test(u);
+      if (!isChapterHost) continue;
       if (!seenUrls.has(u)) {
         seenUrls.add(u);
         rawImages.push(u);
@@ -295,54 +347,7 @@ export async function searchMangaKakalot(query = '') {
     const res = await fetchWithTimeout(searchUrl, { headers: HEADERS }, 6000);
     if (!res.ok) return [];
     const html = await res.text();
-
-    const list = [];
-    const parts = html.split(/<div class="itemupdate/i);
-    for (let i = 1; i < parts.length; i++) {
-      const block = parts[i];
-      const linkMatch = block.match(/href="https:\/\/www\.kakamanga\.com\/manga\/([^"/]+)"/i) || block.match(/href="\/manga\/([^"/]+)"/i);
-      const imgMatch = block.match(/<img[^>]+(?:data-src|src)="([^"]+)"[^>]*alt="([^"]*)"/i) || block.match(/<img[^>]*alt="([^"]*)"[^>]+(?:data-src|src)="([^"]+)"/i);
-
-      if (linkMatch) {
-        const slug = linkMatch[1];
-        let rawTitle = slug.replace(/-/g, ' ');
-        let rawCover = '';
-
-        if (imgMatch) {
-          if (imgMatch[1]?.startsWith('http')) {
-            rawCover = imgMatch[1];
-            if (imgMatch[2]) rawTitle = imgMatch[2];
-          } else if (imgMatch[2]?.startsWith('http')) {
-            rawCover = imgMatch[2];
-            if (imgMatch[1]) rawTitle = imgMatch[1];
-          }
-        }
-
-        if (!rawCover) {
-          rawCover = `https://img-r1.2xstorage.com/thumb/${slug}.webp`;
-        }
-
-        // Extract latest chapter
-        const chMatch = block.match(/href="[^"]*\/chapter-([0-9.]+)"[^>]*title="([^"]+)"/i) || block.match(/<a[^>]*href="[^"]*\/chapter-([0-9.]+)"[^>]*>([^<]+)<\/a>/i);
-        const latestCh = chMatch ? chMatch[1] : null;
-        const totalChapters = latestCh && !isNaN(parseFloat(latestCh)) ? Math.floor(parseFloat(latestCh)) : null;
-
-        list.push({
-          id: `mk:${slug}`,
-          slug,
-          title: cleanTitle(rawTitle),
-          englishTitle: cleanTitle(rawTitle),
-          coverUrl: rawCover ? (rawCover.startsWith("/api/image-proxy") ? rawCover : `/api/image-proxy?url=${encodeURIComponent(rawCover)}`) : getFallbackCover(rawTitle),
-          status: 'Ongoing',
-          author: 'MangaKakalot',
-          latestChapter: latestCh,
-          totalChapters,
-          tags: ['Manga', 'Action'],
-          sourceName: 'MangaKakalot',
-          provider: 'mangakakalot',
-        });
-      }
-    }
+    const list = parseKakalotList(html, { includeTotalChapters: true });
 
     if (list.length > 0) {
       setCache(cacheKey, list);
