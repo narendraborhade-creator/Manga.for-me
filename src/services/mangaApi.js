@@ -1455,11 +1455,12 @@ export async function searchAniList(query) {
     return media.map((m) => {
       const t = m.title?.english || m.title?.romaji || m.title?.userPreferred || 'Manga';
 
-      // Check if catalog item matches
+      // Check if catalog item matches accurately (avoid short substring hijacks like "secret" -> "secretary")
       const normT = t.toLowerCase().replace(/[^a-z0-9]/g, '');
       const catalogMatch = FALLBACK_MANGA_CATALOG.find((cat) => {
         const normCat = cat.title.toLowerCase().replace(/[^a-z0-9]/g, '');
-        return normCat === normT || normCat.includes(normT) || normT.includes(normCat);
+        const normEng = (cat.englishTitle || '').toLowerCase().replace(/[^a-z0-9]/g, '');
+        return (normT && normCat === normT) || (normT && normEng === normT);
       });
       if (catalogMatch) {
         return formatMangaItem({
@@ -1538,11 +1539,12 @@ export async function fetchAniListDetails(id) {
 
     const t = m.title?.english || m.title?.romaji || m.title?.userPreferred || 'Manga';
 
-    // Check catalog first
+    // Check catalog first with exact normalized title match (prevent "secret" matching "secretary")
     const normT = t.toLowerCase().replace(/[^a-z0-9]/g, '');
     const catalogMatch = FALLBACK_MANGA_CATALOG.find((cat) => {
       const normCat = cat.title.toLowerCase().replace(/[^a-z0-9]/g, '');
-      return normCat === normT || normCat.includes(normT) || normT.includes(normCat);
+      const normEng = (cat.englishTitle || '').toLowerCase().replace(/[^a-z0-9]/g, '');
+      return (normT && normCat === normT) || (normT && normEng === normT);
     });
     if (catalogMatch) {
       return {
