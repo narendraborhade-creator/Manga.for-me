@@ -82,6 +82,7 @@ export const getBookmarks = () => {
 };
 
 export const setBookmark = (mangaId, mangaData, status = 'reading') => {
+  if (!mangaId || !mangaData) return getBookmarks();
   const bookmarks = getBookmarks();
   const targetNorm = getNormalizedMangaKey(mangaId, mangaData.title, mangaData.englishTitle);
 
@@ -101,6 +102,7 @@ export const setBookmark = (mangaId, mangaData, status = 'reading') => {
     coverUrl: mangaData.coverUrl,
     latestChapter: mangaData.latestChapter || 'Unknown',
     status, // 'reading', 'plan_to_read', 'completed', 'on_hold', 'favorite'
+    category: mangaData.category || null,
     updatedAt: new Date().toISOString(),
     rating: mangaData.rating || null,
   };
@@ -256,6 +258,9 @@ export const getReaderSettings = () => {
   // Migrate legacy default gap (8 or 10) to 0 for continuous seamless reading
   if (saved.pageGap === 8 || saved.pageGap === 10) {
     saved.pageGap = 0;
+  }
+  if (saved.readingMode === 'double') {
+    saved.readingMode = 'spread';
   }
   return { ...DEFAULT_SETTINGS, ...saved };
 };
