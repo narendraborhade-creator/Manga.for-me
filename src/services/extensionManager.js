@@ -333,7 +333,8 @@ export async function fetchRepositoryIndex(repo) {
         : (data.extensionList?.extensions || data.extensions || []);
 
       if (Array.isArray(rawList) && rawList.length > 0) {
-        const normalized = rawList.map(ext => normalizeExtension(ext, repo.id));
+        const repoBaseUrl = String(endpoint || repo.url || '').replace(/\/[^/]+$/, '');
+        const normalized = rawList.map(ext => normalizeExtension(ext, repo.id, repoBaseUrl));
         // Cache normalized extensions
         setStorageJSON(cacheKey, {
           timestamp: Date.now(),
@@ -361,50 +362,171 @@ export async function fetchRepositoryIndex(repo) {
   throw new Error(`Failed to load repository index: ${lastError?.message || 'Network error'}`);
 }
 
+function sanitizeHttpUrl(url) {
+  if (!url || typeof url !== 'string') return null;
+  const trimmed = url.trim();
+  if (!trimmed) return null;
+  try {
+    const parsed = new URL(trimmed);
+    if (parsed.protocol === 'https:' || parsed.protocol === 'http:') {
+      return parsed.toString();
+    }
+  } catch {}
+  return null;
+}
+
 /**
  * Normalize diverse extension schemas into unified Mihon Extension model
  */
-function normalizeExtension(raw, repoId) {
+function normalizeExtension(raw, repoId, repoBaseUrl = '') {
   const pkg = raw.pkg || raw.packageName || `ext.${raw.name?.toLowerCase().replace(/[^a-z0-9]/g, '')}`;
   const name = raw.name || 'Unnamed Source';
   const versionName = raw.version || raw.versionName || '1.4.0';
-  const iconUrl = raw.resources?.iconUrl || raw.icon || raw.iconUrl || 
-    `https://cdn.jsdelivr.net/gh/keiyoushi/extensions-source@main/src/${raw.lang || 'all'}/${pkg.split('.').pop()}/res/mipmap-xhdpi/ic_launcher.png`;
+  const versionCode = raw.versionCode || raw.code || raw.version || null;
+  const rawApk = raw.resources?.apkUrl || raw.apkUrl || (
+    raw.apk
+      ? (String(raw.apk).startsWith('http') ? raw.apk : (repoBaseUrl ? `${repoBaseUrl}/apk/${raw.apk}` : null))
+      : null
+  );
+  const apkUrl = sanitizeHttpUrl(rawApk);
+  const jarUrl = sanitizeHttpUrl(raw.resources?.jarUrl || raw.jarUrl || null);
+  const iconUrl = raw.resources?.iconUrl || raw.icon || raw.iconUrl ||
+    (repoBaseUrl && raw.pkg
+      ? `${repoBaseUrl}/icon/${pkg}.png`
+      : `https://cdn.jsdelivr.net/gh/keiyoushi/extensions-source@main/src/${raw.lang || 'all'}/${pkg.split('.').pop()}/res/mipmap-xhdpi/ic_launcher.png`);
 
-  // Sources array inside extension
-  let sources = [];
-  if (Array.isArray(raw.sources) && raw.sources.length > 0) {
-    sources = raw.sources.map(s => ({
-      id: String(s.id || s.name?.toLowerCase().replace(/[^a-z0-9]/g, '')),
-      name: s.name || name,
-      language: s.lang || s.language || raw.lang || 'all',
-      homeUrl: s.baseUrl || s.homeUrl || ''
-    }));
-  } else {
-    sources = [{
-      id: name.toLowerCase().replace(/[^a-z0-9]/g, ''),
-      name,
-      language: raw.lang || 'all',
-      homeUrl: raw.baseUrl || ''
-    }];
+  // Content rating: preserve NSFW, MIXED, and SAFE
+  let contentWarning = 'CONTENT_WARNING_SAFE';
+  if (raw.contentWarning === 'CONTENT_WARNING_NSFW' || raw.nsfw === 1 || raw.nsfw === true || raw.isNsfw === true) {
+    contentWarning = 'CONTENT_WARNING_NSFW';
+  } else if (raw.contentWarning === 'CONTENT_WARNING_MIXED') {
+    contentWarning = 'CONTENT_WARNING_MIXED';
+  } else if (raw.contentWarning === 'CONTENT_WARNING_SAFE') {
+    contentWarning = 'CONTENT_WARNING_SAFE';
   }
 
-  // Content rating: Safe or NSFW
-  let contentWarning = 'CONTENT_WARNING_SAFE';
-  if (raw.nsfw === 1 || raw.nsfw === true || raw.contentWarning === 'CONTENT_WARNING_NSFW' || raw.isNsfw) {
-    contentWarning = 'CONTENT_WARNING_NSFW';
+  // Normalize every sub-source inside extension
+  const rawSources = Array.isArray(raw.sources) && raw.sources.length > 0
+    ? raw.sources
+    : [{
+        id: name.toLowerCase().replace(/[^a-z0-9]/g, ''),
+        name,
+        language: raw.lang || 'all',
+        homeUrl: raw.baseUrl || raw.homeUrl || ''
+      }];
+
+  const sources = rawSources.map(s => ({
+    ...s,
+    id: String(s.id || s.name?.toLowerCase().replace(/[^a-z0-9]/g, '') || name.toLowerCase().replace(/[^a-z0-9]/g, '')),
+    name: s.name || name,
+    language: s.lang || s.language || raw.lang || 'all',
+    homeUrl: s.baseUrl || s.homeUrl || '',
+    isNsfw: contentWarning === 'CONTENT_WARNING_NSFW' || s.nsfw === 1 || s.nsfw === true || s.isNsfw === true
+  }));
+
+  if (!raw.contentWarning && raw.nsfw !== 1 && raw.nsfw !== true && raw.isNsfw !== true) {
+    const hasNsfwSub = sources.some(s => s.isNsfw);
+    const hasSafeSub = sources.some(s => !s.isNsfw);
+    if (hasNsfwSub && hasSafeSub) {
+      contentWarning = 'CONTENT_WARNING_MIXED';
+    } else if (hasNsfwSub) {
+      contentWarning = 'CONTENT_WARNING_NSFW';
+    }
   }
 
   return {
+    ...raw,
     pkg,
     name,
     versionName,
+    versionCode,
     lang: raw.lang || sources[0]?.language || 'all',
     iconUrl,
+    apkUrl,
+    jarUrl,
     repoId,
     contentWarning,
+    isMultiSource: sources.length > 1,
     sources
   };
+}
+
+function hydrateExtensionShape(ext) {
+  if (!ext) return ext;
+  const sources = (Array.isArray(ext.sources) && ext.sources.length > 0
+    ? ext.sources
+    : [{
+        id: (ext.name || ext.pkg || 'source').toLowerCase().replace(/[^a-z0-9]/g, ''),
+        name: ext.name || 'Unnamed Source',
+        language: ext.lang || 'all',
+        homeUrl: ext.baseUrl || ext.homeUrl || ''
+      }]
+  ).map(s => ({
+    ...s,
+    id: String(s.id || s.name?.toLowerCase().replace(/[^a-z0-9]/g, '') || ''),
+    name: s.name || ext.name || 'Unnamed Source',
+    language: s.language || s.lang || ext.lang || 'all',
+    homeUrl: s.homeUrl || s.baseUrl || '',
+    isNsfw: typeof s.isNsfw === 'boolean'
+      ? s.isNsfw
+      : (ext.contentWarning === 'CONTENT_WARNING_NSFW' || s.nsfw === 1 || s.nsfw === true)
+  }));
+
+  return {
+    ...ext,
+    apkUrl: ext.apkUrl || ext.resources?.apkUrl || null,
+    jarUrl: ext.jarUrl || ext.resources?.jarUrl || null,
+    versionCode: ext.versionCode || ext.code || ext.version || null,
+    contentWarning: ext.contentWarning || 'CONTENT_WARNING_SAFE',
+    isMultiSource: sources.length > 1,
+    sources
+  };
+}
+
+/**
+ * Flatten every individual sub-source across all enabled/installed extensions
+ */
+export function flattenExtensionSources(extensions, includeNsfw = true) {
+  const list = Array.isArray(extensions) ? extensions : getInstalledExtensions();
+  const flattened = [];
+
+  for (const rawExt of list) {
+    if (!rawExt || rawExt.enabled === false) continue;
+    const ext = hydrateExtensionShape(rawExt);
+    const extSources = ext.sources || [];
+
+    for (const src of extSources) {
+      const subIsNsfw = Boolean(
+        src.isNsfw ||
+        ext.contentWarning === 'CONTENT_WARNING_NSFW' ||
+        isNsfwSource(src.id) ||
+        isNsfwSource(src.name) ||
+        isNsfwSource(src.homeUrl)
+      );
+      if (!includeNsfw && (subIsNsfw || ext.contentWarning === 'CONTENT_WARNING_NSFW')) {
+        continue;
+      }
+
+      flattened.push({
+        ...src,
+        id: String(src.id || src.name || ext.name || '').trim(),
+        name: src.name || ext.name || 'Unnamed Source',
+        language: src.language || ext.lang || 'all',
+        homeUrl: src.homeUrl || '',
+        extensionPkg: ext.pkg,
+        extensionName: ext.name,
+        iconUrl: ext.iconUrl,
+        apkUrl: sanitizeHttpUrl(ext.apkUrl) || null,
+        contentWarning: ext.contentWarning,
+        isNsfw: subIsNsfw,
+        isPinned: Boolean(ext.isPinned),
+        enabled: ext.enabled !== false,
+        totalExtensionSources: extSources.length
+      });
+    }
+  }
+
+  return flattened;
 }
 
 /**
@@ -413,8 +535,9 @@ function normalizeExtension(raw, repoId) {
 export function getInstalledExtensions() {
   const saved = getStorageJSON(STORAGE_KEYS.INSTALLED_EXTENSIONS, null);
   if (!saved || !Array.isArray(saved) || saved.length === 0) {
-    setStorageJSON(STORAGE_KEYS.INSTALLED_EXTENSIONS, DEFAULT_PREINSTALLED_EXTENSIONS);
-    return DEFAULT_PREINSTALLED_EXTENSIONS;
+    const initial = DEFAULT_PREINSTALLED_EXTENSIONS.map(hydrateExtensionShape);
+    setStorageJSON(STORAGE_KEYS.INSTALLED_EXTENSIONS, initial);
+    return initial;
   }
   const uninstalled = getStorageJSON('mihon_uninstalled_pkgs', []);
   let modified = false;
@@ -428,7 +551,7 @@ export function getInstalledExtensions() {
   if (modified) {
     setStorageJSON(STORAGE_KEYS.INSTALLED_EXTENSIONS, currentList);
   }
-  return currentList;
+  return currentList.map(hydrateExtensionShape);
 }
 
 /**
