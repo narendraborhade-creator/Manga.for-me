@@ -90,7 +90,9 @@ class MainActivity : ComponentActivity() {
         settings.databaseEnabled = true
         settings.allowFileAccess = true
         settings.allowContentAccess = true
-        settings.allowFileAccessFromFileURLs = false
+        // Required for Vite ES module (<script type="module">) bundles loaded from file:///android_asset/www/
+        // External untrusted origins are blocked from entering this WebView by shouldOverrideUrlLoading.
+        settings.allowFileAccessFromFileURLs = true
         settings.allowUniversalAccessFromFileURLs = false
         settings.cacheMode = WebSettings.LOAD_DEFAULT
         settings.mixedContentMode = WebSettings.MIXED_CONTENT_ALWAYS_ALLOW
