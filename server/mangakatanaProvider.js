@@ -59,7 +59,7 @@ export async function searchMangaKatana(query = '') {
         const slug = slugMatch[1];
         const titleMatch = html.match(/<h1 class="heading">([^<]+)<\/h1>/i) || html.match(/<title>([^<]+)<\/title>/i);
         const imgMatch = html.match(/<div class="cover"[^>]*>\s*<img[^>]+src="([^"]+)"/i) || html.match(/<meta property="og:image" content="([^"]+)"/i);
-        const chMatches = [...html.matchAll(/<div class="chapter">\s*<a href="https:\/\/mangakatana\.com\/manga\/[^/]+\/([^"]+)"[^>]*>([^<]+)<\/a>/gi)];
+        const chMatches = [...html.matchAll(/<div class="chapter">\s*<a href="(?:https:\/\/mangakatana\.com)?\/manga\/[^/]+\/([^"]+)"[^>]*>([^<]+)<\/a>/gi)];
         const rawImg = imgMatch ? imgMatch[1] : '';
         const title = titleMatch ? decodeHtml(titleMatch[1].replace(/\s*-\s*MangaKatana.*$/i, '').trim()) : slug;
         const latestChStr = chMatches.length > 0 ? chMatches[0][2].trim() : 'Latest';
@@ -119,7 +119,7 @@ export async function searchMangaKatana(query = '') {
                 const slug = fbSlugMatch[1];
                 const titleMatch = fbHtml.match(/<h1 class="heading">([^<]+)<\/h1>/i) || fbHtml.match(/<title>([^<]+)<\/title>/i);
                 const imgMatch = fbHtml.match(/<div class="cover"[^>]*>\s*<img[^>]+src="([^"]+)"/i) || fbHtml.match(/<meta property="og:image" content="([^"]+)"/i);
-                const chMatches = [...fbHtml.matchAll(/<div class="chapter">\s*<a href="https:\/\/mangakatana\.com\/manga\/[^/]+\/([^"]+)"[^>]*>([^<]+)<\/a>/gi)];
+                const chMatches = [...fbHtml.matchAll(/<div class="chapter">\s*<a href="(?:https:\/\/mangakatana\.com)?\/manga\/[^/]+\/([^"]+)"[^>]*>([^<]+)<\/a>/gi)];
                 const rawImg = imgMatch ? imgMatch[1] : '';
                 const title = titleMatch ? decodeHtml(titleMatch[1].replace(/\s*-\s*MangaKatana.*$/i, '').trim()) : slug;
                 const latestChStr = chMatches.length > 0 ? chMatches[0][2].trim() : 'Latest';
@@ -256,10 +256,10 @@ export async function getMangaKatanaDetails(mangaId, bypassCache = false) {
     const genreMatches = [...html.matchAll(/<a href="https:\/\/mangakatana\.com\/genre\/[^"]*">([^<]+)<\/a>/gi)].map(g => g[1]);
 
     // Chapters - extract from table rows including published update time
-    const trMatches = [...html.matchAll(/<tr[^>]*>\s*<td>\s*<div class="chapter">\s*<a href="https:\/\/mangakatana\.com\/manga\/[^/]+\/([^"]+)"[^>]*>([\s\S]*?)<\/a>\s*<\/div>\s*<\/td>(?:\s*<td>\s*<div class="update_time">([^<]*)<\/div>\s*<\/td>)?/gi)];
+    const trMatches = [...html.matchAll(/<tr[^>]*>\s*<td>\s*<div class="chapter">\s*<a href="(?:https:\/\/mangakatana\.com)?\/manga\/[^/]+\/([^"]+)"[^>]*>([\s\S]*?)<\/a>\s*<\/div>\s*<\/td>(?:\s*<td>\s*<div class="update_time">([^<]*)<\/div>\s*<\/td>)?/gi)];
     const chMatches = trMatches.length > 0 
       ? trMatches.map(m => ({ slug: m[1], text: m[2], date: m[3] }))
-      : [...html.matchAll(/<div class="chapter"[^>]*>\s*<a href="https:\/\/mangakatana\.com\/manga\/[^/]+\/([^"]+)"[^>]*>([\s\S]*?)<\/a>/gi)].map(m => ({ slug: m[1], text: m[2], date: null }));
+      : [...html.matchAll(/<div class="chapter"[^>]*>\s*<a href="(?:https:\/\/mangakatana\.com)?\/manga\/[^/]+\/([^"]+)"[^>]*>([\s\S]*?)<\/a>/gi)].map(m => ({ slug: m[1], text: m[2], date: null }));
 
     const chapters = [];
     const seenCh = new Set();
@@ -357,7 +357,9 @@ export async function getMangaKatanaChapterPages(rawChapterId) {
     let rawUrls = [];
     const allMatches = [...html.matchAll(/var\s+([a-zA-Z0-9_]+)\s*=\s*\[([^\]]*https?:[^\]]*)\]/gi)];
     for (const match of allMatches) {
-      const urls = [...match[2].matchAll(/['"](https?:\/\/[^'"]+)['"]/g)].map(m => m[1]);
+      const urls = [...match[2].matchAll(/['"](https?:\/\/[^'"]+)['"]/g)]
+        .map(m => m[1])
+        .filter(u => /\.(?:jpg|jpeg|png|webp|gif|avif)(?:\?|$)/i.test(u) || u.includes('/token/'));
       if (urls.length > rawUrls.length) {
         rawUrls = urls;
       }
@@ -405,6 +407,60 @@ export async function getMangaKatanaChapterPages(rawChapterId) {
 }
 
 /**
+ * Parse MangaKatana list HTML blocks into standardized manga objects
+ */
+function parseMangaKatanaList(html, limit = Infinity, defaultTags = ['Manga']) {
+  const listStart = html.indexOf('id="book_list"');
+  const altStart = listStart !== -1 ? listStart : html.indexOf('id="latest_list"');
+  let listSection = html;
+  if (altStart !== -1) {
+    const listEnd = html.indexOf('class="uk-width-medium-1-3', altStart);
+    listSection = listEnd !== -1 ? html.slice(altStart, listEnd) : html.slice(altStart);
+  }
+
+  const items = listSection.split('<div class="item"').slice(1);
+  const list = [];
+  const seen = new Set();
+
+  for (const item of items) {
+    if (list.length >= limit) break;
+    const slugMatch = item.match(/href="(?:https:\/\/mangakatana\.com)?\/manga\/([^"/]+)"/i);
+    const imgMatch = item.match(/<img[^>]+(?:data-src|src)="([^"]+)"/i);
+    const titleMatch = item.match(/<h3 class="title">\s*<a[^>]*>([^<]+)<\/a>/i);
+    const chMatch = item.match(/Update chapter\s*([0-9.]+)/i) || item.match(/class="chapter"[^>]*>\s*<a[^>]*>\s*(?:Chapter\s*)?([0-9.]+)/i);
+    const statusMatch = item.match(/class="status\s+([^"]+)"/i);
+    const genreMatches = [...item.matchAll(/<a href="https:\/\/mangakatana\.com\/genre\/[^"]*">([^<]+)<\/a>/gi)].map(g => g[1]);
+
+    if (slugMatch && titleMatch) {
+      const slug = slugMatch[1];
+      if (seen.has(slug)) continue;
+      seen.add(slug);
+
+      const rawImg = imgMatch ? imgMatch[1] : '';
+      const title = decodeHtml(titleMatch[1].trim());
+      const totalCh = chMatch ? parseFloat(chMatch[1]) : 0;
+
+      list.push({
+        id: `kat:${slug}`,
+        slug,
+        title: cleanTitle(title),
+        englishTitle: cleanTitle(title),
+        coverUrl: rawImg ? `/api/image-proxy?url=${encodeURIComponent(rawImg)}` : '',
+        rawCoverUrl: rawImg,
+        latestChapter: chMatch ? `Chapter ${chMatch[1]}` : 'Latest',
+        totalChapters: totalCh,
+        status: statusMatch ? (statusMatch[1].includes('completed') ? 'Completed' : 'Ongoing') : 'Ongoing',
+        tags: genreMatches.length > 0 ? genreMatches : defaultTags,
+        provider: 'mangakatana',
+        sourceName: 'MangaKatana',
+      });
+    }
+  }
+
+  return list;
+}
+
+/**
  * Fetch Popular Manga from MangaKatana
  */
 export async function getPopularMangaKatana(limit = 24) {
@@ -417,50 +473,7 @@ export async function getPopularMangaKatana(limit = 24) {
     const res = await fetchWithTimeout(url, { headers: HEADERS }, 6000);
     if (!res.ok) return [];
     const html = await res.text();
-
-    const listStart = html.indexOf('id="book_list"');
-    if (listStart === -1) return [];
-    const listEnd = html.indexOf('class="uk-width-medium-1-3', listStart);
-    const listSection = listEnd !== -1 ? html.slice(listStart, listEnd) : html.slice(listStart);
-
-    const items = listSection.split('<div class="item"').slice(1);
-    const list = [];
-    const seen = new Set();
-
-    for (const item of items) {
-      if (list.length >= limit) break;
-      const slugMatch = item.match(/href="(?:https:\/\/mangakatana\.com)?\/manga\/([^"/]+)"/i);
-      const imgMatch = item.match(/<img[^>]+src="([^"]+)"/i);
-      const titleMatch = item.match(/<h3 class="title">\s*<a[^>]*>([^<]+)<\/a>/i);
-      const chMatch = item.match(/Update chapter\s*([0-9.]+)/i);
-      const statusMatch = item.match(/class="status\s+([^"]+)"/i);
-      const genreMatches = [...item.matchAll(/<a href="https:\/\/mangakatana\.com\/genre\/[^"]*">([^<]+)<\/a>/gi)].map(g => g[1]);
-
-      if (slugMatch && titleMatch) {
-        const slug = slugMatch[1];
-        if (seen.has(slug)) continue;
-        seen.add(slug);
-
-        const rawImg = imgMatch ? imgMatch[1] : '';
-        const title = decodeHtml(titleMatch[1].trim());
-        const totalCh = chMatch ? parseFloat(chMatch[1]) : 0;
-
-        list.push({
-          id: `kat:${slug}`,
-          slug,
-          title: cleanTitle(title),
-          englishTitle: cleanTitle(title),
-          coverUrl: rawImg ? `/api/image-proxy?url=${encodeURIComponent(rawImg)}` : '',
-          rawCoverUrl: rawImg,
-          latestChapter: chMatch ? `Chapter ${chMatch[1]}` : 'Latest',
-          totalChapters: totalCh,
-          status: statusMatch ? (statusMatch[1].includes('completed') ? 'Completed' : 'Ongoing') : 'Ongoing',
-          tags: genreMatches.length > 0 ? genreMatches : ['Manga', 'Popular'],
-          provider: 'mangakatana',
-          sourceName: 'MangaKatana',
-        });
-      }
-    }
+    const list = parseMangaKatanaList(html, limit, ['Manga', 'Popular']);
 
     setCache(cacheKey, list);
     return list;
@@ -468,4 +481,30 @@ export async function getPopularMangaKatana(limit = 24) {
     console.warn('getPopularMangaKatana error:', err.message);
     return [];
   }
+}
+
+/**
+ * Fetch Latest Manga Updates from MangaKatana
+ */
+export async function getLatestMangaKatana(limit = 24) {
+  const cacheKey = `kat_latest_${limit}`;
+  const cached = getCached(cacheKey);
+  if (cached) return cached;
+
+  try {
+    const url = `${BASE_URL}/latest`;
+    const res = await fetchWithTimeout(url, { headers: HEADERS }, 6000);
+    if (res.ok) {
+      const html = await res.text();
+      const list = parseMangaKatanaList(html, limit, ['Manga', 'Latest']);
+      if (list.length > 0) {
+        setCache(cacheKey, list);
+        return list;
+      }
+    }
+  } catch (err) {
+    console.warn('getLatestMangaKatana error:', err.message);
+  }
+
+  return await getPopularMangaKatana(limit);
 }
