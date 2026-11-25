@@ -196,9 +196,10 @@ export default function MangaReader({
   const [settings, setSettings] = useState(() => {
     const saved = getReaderSettings() || {};
     const effectiveGap = (saved.pageGap === 8 || saved.pageGap === 10) ? 0 : (saved.pageGap ?? 0);
+    const safeMode = saved.readingMode === 'double' ? 'spread' : (saved.readingMode || 'webtoon');
     return {
       theme: saved.theme || 'oled',
-      readingMode: saved.readingMode || 'webtoon',
+      readingMode: ['webtoon', 'single', 'spread'].includes(safeMode) ? safeMode : 'webtoon',
       fitMode: saved.fitMode || 'full',
       pageGap: effectiveGap,
       readingDirection: saved.readingDirection || 'ltr',
