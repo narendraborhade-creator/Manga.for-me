@@ -90,7 +90,7 @@ class MainActivity : ComponentActivity() {
         settings.databaseEnabled = true
         settings.allowFileAccess = true
         settings.allowContentAccess = true
-        settings.allowFileAccessFromFileURLs = true
+        settings.allowFileAccessFromFileURLs = false
         settings.allowUniversalAccessFromFileURLs = false
         settings.cacheMode = WebSettings.LOAD_DEFAULT
         settings.mixedContentMode = WebSettings.MIXED_CONTENT_ALWAYS_ALLOW
@@ -107,6 +107,19 @@ class MainActivity : ComponentActivity() {
         // Inject Native Android Bridge
         webView.addJavascriptInterface(AndroidBridge(this, repository), "AndroidBridge")
 
+        // Handle file / APK downloads triggered inside WebView
+        webView.setDownloadListener { url, userAgent, contentDisposition, mimetype, _ ->
+            if (!url.isNullOrBlank()) {
+                AndroidBridge.enqueueDownload(
+                    context = this@MainActivity,
+                    url = url,
+                    mimeTypeHint = mimetype,
+                    contentDisposition = contentDisposition,
+                    userAgent = userAgent
+                )
+            }
+        }
+
         webView.webChromeClient = object : WebChromeClient() {
             override fun onProgressChanged(view: WebView?, newProgress: Int) {
                 if (newProgress < 100) {
@@ -119,63 +132,86 @@ class MainActivity : ComponentActivity() {
         }
 
         webView.webViewClient = object : WebViewClient() {
+            private val interceptedCdnHosts = listOf(
+                "mangakatana.com",
+                "lowee.us",
+                "compsci88.com",
+                "planeptune",
+                "lastation",
+                "weebcentral.com",
+                "mangadex.org",
+                "mangadex.network",
+                "mangapill.com",
+                "readdetectiveconan.com",
+                "asuracomic",
+                "asurascans",
+                "afortunetellingprincess.com",
+                "kingofshojo.com",
+                "readsololeveling.org",
+                "manga18fx.com",
+                "kakamanga.com",
+                "chapmanganato.com",
+                "mangakakalot.com",
+                "nhentai",
+                "toonily",
+                "hiperdex",
+                "manhwa18",
+                "doujindesu",
+                "e-hentai",
+                "ehgt.org",
+                "hath.network",
+                "imgur",
+                "2xstorage",
+                "flamecomics",
+                "thunderscans",
+                "vortexscans",
+                "webtoons.com",
+                "pstatic.net"
+            )
+
+            private fun extractProxyTarget(urlStr: String, uri: Uri): String? {
+                var target = uri.getQueryParameter("url")
+                if (target.isNullOrBlank()) {
+                    val idx = urlStr.indexOf("url=")
+                    if (idx != -1) {
+                        val raw = urlStr.substring(idx + 4).substringBefore("&_reload=").substringBefore("&_retry=")
+                        target = Uri.decode(raw)
+                    }
+                }
+                val trimmed = target?.trim().orEmpty()
+                if (trimmed.isBlank()) return null
+                val normalized = if (trimmed.startsWith("//")) "https:$trimmed" else trimmed
+                return if (normalized.startsWith("http://", ignoreCase = true) ||
+                    normalized.startsWith("https://", ignoreCase = true)
+                ) {
+                    normalized
+                } else {
+                    null
+                }
+            }
+
             override fun shouldInterceptRequest(view: WebView?, request: WebResourceRequest?): WebResourceResponse? {
                 val uri = request?.url ?: return null
                 val urlStr = uri.toString()
 
-                // Intercept /api/image-proxy?url=...
-                if (urlStr.contains("/api/image-proxy") || uri.path?.contains("image-proxy") == true) {
-                    var target = uri.getQueryParameter("url")
-                    if (target.isNullOrBlank()) {
-                        val idx = urlStr.indexOf("url=")
-                        if (idx != -1) {
-                            val raw = urlStr.substring(idx + 4).substringBefore("&_reload=").substringBefore("&_retry=")
-                            target = Uri.decode(raw)
-                        }
-                    }
-                    if (!target.isNullOrBlank()) {
+                // Intercept /api/image-proxy?url=... and images.weserv.nl/?url=...
+                if (urlStr.contains("/api/image-proxy") ||
+                    uri.path?.contains("image-proxy") == true ||
+                    urlStr.contains("weserv.nl")
+                ) {
+                    val target = extractProxyTarget(urlStr, uri)
+                    if (target != null) {
                         val resp = repository.fetchImageStream(target)
                         if (resp != null) return resp
                     }
                 }
 
-                // Intercept images.weserv.nl/?url=...
-                if (urlStr.contains("weserv.nl")) {
-                    var target = uri.getQueryParameter("url")
-                    if (target.isNullOrBlank()) {
-                        val idx = urlStr.indexOf("url=")
-                        if (idx != -1) {
-                            val raw = urlStr.substring(idx + 4).substringBefore("&_reload=").substringBefore("&_retry=")
-                            target = Uri.decode(raw)
-                        }
-                    }
-                    if (!target.isNullOrBlank()) {
-                        val resp = repository.fetchImageStream(target)
-                        if (resp != null) return resp
-                    }
-                }
-
-                // Intercept direct manga CDN image domains to supply required Referer and User-Agent
+                // Intercept direct manga & extension CDN image domains to supply required Referer and User-Agent
                 val host = uri.host?.lowercase().orEmpty()
-                if (host.contains("mangakatana.com") || 
-                    host.contains("lowee.us") ||
-                    host.contains("compsci88.com") || 
-                    host.contains("planeptune") || 
-                    host.contains("lastation") || 
-                    host.contains("weebcentral.com") ||
-                    host.contains("mangadex.org") || 
-                    host.contains("mangadex.network") || 
-                    host.contains("mangapill.com") || 
-                    host.contains("readdetectiveconan.com") || 
-                    host.contains("asuracomic") || 
-                    host.contains("asurascans") || 
-                    host.contains("afortunetellingprincess.com") ||
-                    host.contains("kingofshojo.com") ||
-                    host.contains("readsololeveling.org") ||
-                    host.contains("manga18fx.com") ||
-                    host.contains("kakamanga.com") ||
-                    host.contains("chapmanganato.com") ||
-                    host.contains("mangakakalot.com")) {
+                if (host.isNotBlank() &&
+                    !host.startsWith("api.") &&
+                    interceptedCdnHosts.any { host == it || host.endsWith(".$it") || host.contains(it) }
+                ) {
                     val resp = repository.fetchImageStream(urlStr, host)
                     if (resp != null) return resp
                 }
@@ -184,16 +220,40 @@ class MainActivity : ComponentActivity() {
             }
 
             override fun shouldOverrideUrlLoading(view: WebView?, request: WebResourceRequest?): Boolean {
-                val url = request?.url?.toString() ?: return false
-                // Keep local asset URLs, localhost, and GitHub Pages inside WebView
-                if (url.startsWith("file:///android_asset/") || 
-                    url.contains("narendraborhade-creator.github.io") || 
-                    url.contains("localhost")) {
+                val uri = request?.url ?: return false
+                val scheme = uri.scheme?.lowercase().orEmpty()
+                val host = uri.host?.lowercase().orEmpty()
+                val cleanPath = uri.path?.lowercase().orEmpty()
+
+                // Keep bundled app assets, exact localhost, and GitHub Pages origin inside WebView
+                if (scheme == "file" && cleanPath.startsWith("/android_asset/")) {
                     return false
                 }
-                // Open external links (like Discord, Patreon, MangaUpdates) in device browser
+                if ((scheme == "http" || scheme == "https") &&
+                    (host == "localhost" || host == "127.0.0.1" ||
+                        (scheme == "https" && host == "narendraborhade-creator.github.io"))
+                ) {
+                    return false
+                }
+
+                // Trigger native DownloadManager for http(s) APK / CBZ links without opening arbitrary external hosts inside privileged WebView
+                if ((scheme == "http" || scheme == "https") &&
+                    (cleanPath.endsWith(".apk") || cleanPath.endsWith(".cbz"))
+                ) {
+                    AndroidBridge.enqueueDownload(
+                        context = this@MainActivity,
+                        url = uri.toString(),
+                        fileName = cleanPath.substringAfterLast('/')
+                    )
+                    return true
+                }
+
+                // Open external http(s) links (like Discord, Patreon, MangaUpdates) in device browser
+                if (scheme != "http" && scheme != "https") {
+                    return true
+                }
                 return try {
-                    val intent = Intent(Intent.ACTION_VIEW, Uri.parse(url))
+                    val intent = Intent(Intent.ACTION_VIEW, uri)
                     startActivity(intent)
                     true
                 } catch (e: Exception) {
@@ -208,6 +268,7 @@ class MainActivity : ComponentActivity() {
     }
 
     override fun onDestroy() {
+        (webView.parent as? ViewGroup)?.removeView(webView)
         webView.destroy()
         super.onDestroy()
     }
