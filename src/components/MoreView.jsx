@@ -43,7 +43,8 @@ import { isNsfwAllowed, setNsfwAllowed } from '../services/extensionManager';
 export default function MoreView({
   onOpenBackup,
   onGoToSources,
-  onGoToBrowse
+  onGoToBrowse,
+  onOpenNsfwSection
 }) {
   const [categories, setCategories] = useState(() => getCategories());
   const [newCatInput, setNewCatInput] = useState('');
@@ -54,6 +55,13 @@ export default function MoreView({
   const [toastMsg, setToastMsg] = useState('');
   const [copiedLink, setCopiedLink] = useState(false);
   const [nsfwEnabled, setNsfwEnabled] = useState(() => isNsfwAllowed());
+
+  useEffect(() => {
+    const syncNsfw = () => setNsfwEnabled(isNsfwAllowed());
+    if (typeof window === 'undefined') return undefined;
+    window.addEventListener('mihon:extension_update', syncNsfw);
+    return () => window.removeEventListener('mihon:extension_update', syncNsfw);
+  }, []);
 
   const handleToggleNsfw = () => {
     const nextVal = !nsfwEnabled;
@@ -117,8 +125,11 @@ export default function MoreView({
     const a = document.createElement('a');
     a.href = url;
     a.download = `mihon_backup_${new Date().toISOString().slice(0, 10)}.json`;
+    a.rel = 'noopener noreferrer';
+    document.body.appendChild(a);
     a.click();
-    URL.revokeObjectURL(url);
+    document.body.removeChild(a);
+    setTimeout(() => URL.revokeObjectURL(url), 1000);
     showToast('Backup JSON downloaded');
   };
 
@@ -127,11 +138,19 @@ export default function MoreView({
     const encoded = encodeDataForUrl(jsonStr);
     if (!encoded) return;
     const url = `${window.location.origin}${window.location.pathname}#sync_data=${encoded}`;
-    navigator.clipboard.writeText(url).then(() => {
-      setCopiedLink(true);
-      setTimeout(() => setCopiedLink(false), 2000);
-      showToast('1-Click Sync URL copied to clipboard');
-    });
+    if (navigator.clipboard?.writeText) {
+      navigator.clipboard.writeText(url)
+        .then(() => {
+          setCopiedLink(true);
+          setTimeout(() => setCopiedLink(false), 2000);
+          showToast('1-Click Sync URL copied to clipboard');
+        })
+        .catch(() => {
+          showToast('Could not access clipboard');
+        });
+    } else {
+      showToast('Clipboard API unavailable');
+    }
   };
 
   return (
@@ -191,13 +210,13 @@ export default function MoreView({
               Default Reading Mode
             </label>
             <select
-              value={readerSettings.readingMode || 'webtoon'}
+              value={readerSettings.readingMode === 'double' ? 'spread' : (readerSettings.readingMode || 'webtoon')}
               onChange={(e) => handleUpdateReader('readingMode', e.target.value)}
               className="w-full bg-slate-900 border border-white/10 rounded-xl px-3 py-2 text-xs text-slate-200 focus:outline-none focus:border-rose-500"
             >
               <option value="webtoon">Webtoon (Continuous Vertical)</option>
               <option value="single">Single Page (Standard)</option>
-              <option value="double">Double Page (Spread)</option>
+              <option value="spread">Double Page (Spread)</option>
             </select>
             <p className="text-[11px] text-slate-500">
               Webtoon offers seamless 0-gap vertical scrolling for manhwa and webcomics.
@@ -271,14 +290,14 @@ export default function MoreView({
           </div>
 
           {/* 18+ NSFW Content Setting */}
-          <div className="p-4 rounded-xl bg-slate-950/80 border border-white/5 space-y-2">
-            <label className="text-xs text-slate-300 block font-semibold flex items-center gap-2">
+          <div className="p-4 rounded-xl bg-slate-950/80 border border-white/5 space-y-2.5 md:col-span-2">
+            <label className="text-xs text-slate-300 font-semibold flex items-center gap-2">
               <ShieldAlert className="w-4 h-4 text-rose-400" />
-              <span>18+ Adult & NSFW Content</span>
+              <span>18+ Adult & NSFW Content (Opt-In)</span>
             </label>
             <div className="flex items-center justify-between pt-1">
               <span className="text-xs text-slate-400">
-                {nsfwEnabled ? 'Enabled (18+ sources and titles visible)' : 'Disabled (Safe mode only)'}
+                {nsfwEnabled ? 'Enabled (18+ sources and NSFW search section unlocked)' : 'Disabled (Safe mode only)'}
               </span>
               <button
                 type="button"
@@ -296,8 +315,21 @@ export default function MoreView({
               </button>
             </div>
             <p className="text-[11px] text-slate-500">
-              User preference: Shows adult sources, 18+ manhwa, and mature content across source catalogs.
+              Optional user preference: Unlocks adult extensions, Manga18fx, DoujinDesu, NHentai, and the dedicated 18+ NSFW search bar.
             </p>
+            {nsfwEnabled && onOpenNsfwSection && (
+              <div className="pt-1">
+                <button
+                  type="button"
+                  onClick={onOpenNsfwSection}
+                  className="px-3.5 py-2 rounded-xl bg-rose-600 hover:bg-rose-500 text-white font-bold text-xs shadow-md shadow-rose-600/25 inline-flex items-center gap-1.5 transition-all cursor-pointer"
+                >
+                  <ShieldAlert className="w-3.5 h-3.5" />
+                  <span>Open 18+ NSFW Search Section</span>
+                  <ExternalLink className="w-3.5 h-3.5" />
+                </button>
+              </div>
+            )}
           </div>
         </div>
       </div>
