@@ -2272,15 +2272,16 @@ export function isValidProxyTarget(rawUrl) {
     return false;
   }
 
-  // IPv6 checks
+  // IPv6 & IPv4-mapped IPv6 checks
   if (hostname.startsWith('[') || hostname.includes(':')) {
     const cleanIpv6 = hostname.replace(/[[\]]/g, '').toLowerCase();
     if (
       cleanIpv6 === '::1' ||
       cleanIpv6 === '::' ||
       cleanIpv6.startsWith('fe80:') ||
-      cleanIpv6.startsWith('fc00:') ||
-      cleanIpv6.startsWith('fd00:')
+      /^f[cd][0-9a-f]{2}:/i.test(cleanIpv6) ||
+      cleanIpv6.startsWith('::ffff:') ||
+      cleanIpv6.includes('::ffff:')
     ) {
       return false;
     }
@@ -2423,11 +2424,33 @@ export async function proxyImage(imageUrl, res) {
           fetchHeaders['User-Agent'] = USER_AGENT;
         }
 
-        const testRes = await fetchWithTimeout(imageUrl, {
-          headers: fetchHeaders,
-        }, 4500);
+        let currentTarget = imageUrl;
+        let testRes = null;
+        for (let hop = 0; hop < 3; hop++) {
+          if (!isValidProxyTarget(currentTarget)) {
+            testRes = null;
+            break;
+          }
+          testRes = await fetchWithTimeout(currentTarget, {
+            headers: fetchHeaders,
+            redirect: 'manual',
+          }, 4500);
 
-        if (testRes.ok) {
+          if (testRes.status >= 300 && testRes.status < 400) {
+            const loc = testRes.headers.get('location');
+            if (!loc) break;
+            const resolvedLoc = new URL(loc, currentTarget).toString();
+            if (!isValidProxyTarget(resolvedLoc)) {
+              testRes = null;
+              break;
+            }
+            currentTarget = resolvedLoc;
+            continue;
+          }
+          break;
+        }
+
+        if (testRes && testRes.ok) {
           // Check content-length header to prevent memory exhaustion DoS
           const cl = parseInt(testRes.headers.get('content-length') || '0', 10);
           if (cl > MAX_IMAGE_SIZE_BYTES) {
@@ -2450,31 +2473,6 @@ export async function proxyImage(imageUrl, res) {
       return;
     }
 
-    const rawContentType = finalRes.headers.get('content-type') || 'image/jpeg';
-    // Reject non-image responses (e.g. text/html or scripts)
-    const lowerCt = rawContentType.toLowerCase();
-    if (
-      lowerCt.includes('text/html') || 
-      lowerCt.includes('javascript') || 
-      lowerCt.includes('application/json')
-    ) {
-      if (!res.headersSent) {
-        res.statusCode = 502;
-        res.setHeader('Content-Type', 'text/plain');
-        res.setHeader('Cache-Control', 'no-cache, no-store');
-        res.end('Non-image response from upstream');
-      }
-      return;
-    }
-
-    const contentType = lowerCt.startsWith('image/') ? rawContentType : 'image/jpeg';
-    res.setHeader('Content-Type', contentType);
-    res.setHeader('Cache-Control', 'public, max-age=86400, immutable');
-    res.setHeader('X-Content-Type-Options', 'nosniff');
-    res.setHeader('X-Frame-Options', 'DENY');
-    res.setHeader('Referrer-Policy', 'no-referrer');
-    res.setHeader('Content-Security-Policy', "default-src 'none'; img-src 'self' data:; style-src 'unsafe-inline'");
-
     const buffer = await finalRes.arrayBuffer();
     if (buffer.byteLength > MAX_IMAGE_SIZE_BYTES) {
       if (!res.headersSent) {
@@ -2485,7 +2483,42 @@ export async function proxyImage(imageUrl, res) {
       return;
     }
 
-    res.end(Buffer.from(buffer));
+    const buf = Buffer.from(buffer);
+    const rawContentType = (finalRes.headers.get('content-type') || '').split(';')[0].trim();
+    const lowerCt = rawContentType.toLowerCase();
+    const hasMagicImage =
+      (buf.length >= 2 && buf[0] === 0xff && buf[1] === 0xd8) || // JPEG
+      (buf.length >= 4 && buf[0] === 0x89 && buf[1] === 0x50 && buf[2] === 0x4e && buf[3] === 0x47) || // PNG
+      (buf.length >= 12 && buf[0] === 0x52 && buf[1] === 0x49 && buf[2] === 0x46 && buf[3] === 0x46) || // WEBP
+      (buf.length >= 3 && buf[0] === 0x47 && buf[1] === 0x49 && buf[2] === 0x46); // GIF
+
+    const isAllowedImageCt = lowerCt.startsWith('image/') && !lowerCt.includes('svg');
+    const isOctetImage = (lowerCt === 'application/octet-stream' || lowerCt === '') && hasMagicImage;
+
+    if (!isAllowedImageCt && !isOctetImage) {
+      if (!res.headersSent) {
+        res.statusCode = 502;
+        res.setHeader('Content-Type', 'text/plain');
+        res.setHeader('Cache-Control', 'no-cache, no-store');
+        res.end('Non-image response from upstream');
+      }
+      return;
+    }
+
+    let contentType = isAllowedImageCt ? rawContentType : 'image/jpeg';
+    if (isOctetImage && buf.length >= 4) {
+      if (buf[0] === 0x89 && buf[1] === 0x50) contentType = 'image/png';
+      else if (buf[0] === 0x52 && buf[1] === 0x49) contentType = 'image/webp';
+      else if (buf[0] === 0x47 && buf[1] === 0x49) contentType = 'image/gif';
+    }
+    res.setHeader('Content-Type', contentType);
+    res.setHeader('Cache-Control', 'public, max-age=86400, immutable');
+    res.setHeader('X-Content-Type-Options', 'nosniff');
+    res.setHeader('X-Frame-Options', 'DENY');
+    res.setHeader('Referrer-Policy', 'no-referrer');
+    res.setHeader('Content-Security-Policy', "default-src 'none'; img-src 'self' data:; style-src 'unsafe-inline'");
+
+    res.end(buf);
   } catch (err) {
     console.warn('proxyImage fetch warning:', err.message);
     if (!res.headersSent) {
