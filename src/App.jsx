@@ -15,7 +15,7 @@ const ExtensionsView = lazy(() => import('./components/ExtensionsView'));
 const UpdatesView = lazy(() => import('./components/UpdatesView'));
 const MoreView = lazy(() => import('./components/MoreView'));
 const ResponsiveHeroBanner = lazy(() => import('./components/ui/responsive-hero-banner'));
-import { getInstalledExtensions } from './services/extensionManager';
+import { getInstalledExtensions, isNsfwAllowed, setNsfwAllowed } from './services/extensionManager';
 import logoImg from './assets/logo.png';
 
 import { 
@@ -56,7 +56,9 @@ import {
   SlidersHorizontal,
   Search,
   Newspaper,
-  ExternalLink
+  ExternalLink,
+  Layers,
+  ShieldAlert
 } from 'lucide-react';
 
 const GENRES = [
@@ -144,6 +146,8 @@ export default function App() {
   const [selectedGenre, setSelectedGenre] = useState('All');
   const [selectedSource, setSelectedSource] = useState('All'); // 'All' | 'WeebCentral' | 'Webtoon' | 'MangaPill'
   const [installedSourcesCount, setInstalledSourcesCount] = useState(8);
+  const [nsfwAllowed, setNsfwAllowedState] = useState(() => isNsfwAllowed());
+  const [nsfwLaunchState, setNsfwLaunchState] = useState({ subTab: null, query: '', nonce: 0 });
 
   // Local Storage States
   const [bookmarks, setBookmarks] = useState({});
@@ -223,7 +227,31 @@ export default function App() {
     setUpdates(getUpdates());
     try {
       setInstalledSourcesCount(getInstalledExtensions().length);
+      setNsfwAllowedState(isNsfwAllowed());
     } catch {}
+  }, []);
+
+  const handleOpenNsfwSearch = useCallback((query = '') => {
+    setNsfwAllowed(true);
+    setNsfwAllowedState(true);
+    setNsfwLaunchState({
+      subTab: 'nsfw',
+      query: String(query || '').trim(),
+      nonce: Date.now()
+    });
+    setActiveTab('nsfw');
+    if (typeof window !== 'undefined') {
+      window.scrollTo({ top: 0, behavior: 'smooth' });
+    }
+  }, []);
+
+  const handleToggleNsfw = useCallback(() => {
+    const next = !isNsfwAllowed();
+    setNsfwAllowed(next);
+    setNsfwAllowedState(next);
+    if (!next) {
+      setActiveTab((prev) => (prev === 'nsfw' ? 'manga' : prev));
+    }
   }, []);
 
   useEffect(() => {
@@ -232,6 +260,7 @@ export default function App() {
     const handleExtUpdate = () => {
       try {
         setInstalledSourcesCount(getInstalledExtensions().length);
+        setNsfwAllowedState(isNsfwAllowed());
       } catch {}
     };
     window.addEventListener('mihon:extension_update', handleExtUpdate);
@@ -272,6 +301,7 @@ export default function App() {
     }
 
     return () => {
+      window.removeEventListener('mihon:extension_update', handleExtUpdate);
       window.removeEventListener('kuroneko:reading_progress_updated', handleProgressUpdate);
     };
   }, [refreshStorageData]);
@@ -525,6 +555,9 @@ export default function App() {
         unreadUpdatesCount={updates.filter((u) => !u.read).length}
         onSelectManga={handleOpenMangaDetails}
         onOpenCommandPalette={() => setIsCommandPaletteOpen(true)}
+        nsfwAllowed={nsfwAllowed}
+        onOpenNsfwSearch={handleOpenNsfwSearch}
+        onToggleNsfw={handleToggleNsfw}
       />
 
       {/* Main Container */}
@@ -686,6 +719,31 @@ export default function App() {
                     </button>
                   );
                 })}
+
+                <button
+                  type="button"
+                  onClick={() => {
+                    setActiveTab('sources');
+                    window.scrollTo({ top: 0, behavior: 'smooth' });
+                  }}
+                  className="px-3 py-1.5 rounded-xl text-xs font-semibold whitespace-nowrap transition-all cursor-pointer flex items-center gap-1.5 bg-cyan-950/60 hover:bg-cyan-900/60 text-cyan-300 hover:text-white border border-cyan-500/30"
+                  title="Open Sources & Extensions Deck"
+                >
+                  <Layers className="w-3.5 h-3.5 text-cyan-400" />
+                  <span>All Extensions ({installedSourcesCount})</span>
+                </button>
+
+                {nsfwAllowed && (
+                  <button
+                    type="button"
+                    onClick={() => handleOpenNsfwSearch(searchQuery)}
+                    className="px-3 py-1.5 rounded-xl text-xs font-bold whitespace-nowrap transition-all cursor-pointer flex items-center gap-1.5 bg-rose-950/60 hover:bg-rose-900/70 text-rose-300 hover:text-white border border-rose-500/35"
+                    title="Open 18+ NSFW Sources Search"
+                  >
+                    <ShieldAlert className="w-3.5 h-3.5 text-rose-400" />
+                    <span>18+ NSFW Search</span>
+                  </button>
+                )}
               </div>
 
               {/* If Not Searching: Show Hero Carousel & Categories */}
@@ -776,7 +834,7 @@ export default function App() {
                             primaryButtonText="Explore Catalog"
                             onPrimaryClick={scrollToCatalog}
                             secondaryButtonText={bookmarks[spotlightItems[0]?.id] ? 'Saved in Library' : 'Add to Library'}
-                            onSecondaryClick={() => handleToggleBookmark(spotlightItems[0]?.id)}
+                            onSecondaryClick={() => spotlightItems[0] && handleToggleBookmark(spotlightItems[0])}
                             partnersTitle="Connected Multi-Source Manga Providers"
                             partners={[
                               {
@@ -899,7 +957,7 @@ export default function App() {
                         {mangaNews.slice(0, 3).map((item) => (
                           <a
                             key={item.id}
-                            href={item.link}
+                            href={/^https?:\/\//i.test(item.link || '') ? item.link : '#'}
                             target="_blank"
                             rel="noopener noreferrer"
                             className="group p-3.5 rounded-2xl bg-slate-900/60 hover:bg-slate-900 border border-white/10 hover:border-amber-400/40 transition-all flex flex-col justify-between cursor-pointer"
@@ -1083,10 +1141,13 @@ export default function App() {
             </div>
           }
         >
-          {activeTab === 'sources' && (
+          {(activeTab === 'sources' || activeTab === 'nsfw') && (
             <ExtensionsView
               onSelectManga={handleOpenMangaDetails}
               onOpenReader={handleOpenReader}
+              initialSubTab={activeTab === 'nsfw' ? 'nsfw' : 'sources'}
+              initialNsfwQuery={activeTab === 'nsfw' ? nsfwLaunchState.query : ''}
+              launchKey={activeTab === 'nsfw' ? nsfwLaunchState.nonce : 0}
             />
           )}
 
@@ -1123,6 +1184,7 @@ export default function App() {
               onOpenBackup={() => setIsBackupOpen(true)}
               onGoToSources={() => setActiveTab('sources')}
               onGoToBrowse={() => setActiveTab('manga')}
+              onOpenNsfwSection={() => handleOpenNsfwSearch('')}
             />
           )}
         </Suspense>
@@ -1260,12 +1322,13 @@ export default function App() {
 
       {/* Mobile Bottom Navigation Bar (Phone-Optimized, Safe-Area aware, Modern Editorial Style) */}
       {!readerState.active && (
-        <nav className="md:hidden fixed bottom-0 left-0 right-0 z-40 bg-[#080a11]/95 backdrop-blur-2xl border-t border-white/10 px-2 py-1.5 pb-[calc(0.5rem+env(safe-area-inset-bottom))] shadow-2xl">
-          <div className="grid grid-cols-5 items-center justify-around max-w-md mx-auto">
+        <nav className="md:hidden fixed bottom-0 left-0 right-0 z-40 bg-[#080a11]/95 backdrop-blur-2xl border-t border-white/10 px-1.5 py-1.5 pb-[calc(0.5rem+env(safe-area-inset-bottom))] shadow-2xl">
+          <div className="grid grid-cols-6 items-center justify-around max-w-md mx-auto">
             {[
               { id: 'library', label: 'Library', icon: Bookmark, badge: Object.keys(bookmarks).length || null },
               { id: 'updates', label: 'Updates', icon: Bell, badge: updates.filter((u) => !u.read).length || null },
               { id: 'manga', label: 'Browse', icon: BookOpen },
+              { id: 'sources', label: 'Sources', icon: Layers, badge: installedSourcesCount || null },
               { id: 'history', label: 'History', icon: History, badge: history.length || null },
               { id: 'more', label: 'More', icon: SlidersHorizontal },
             ].map((tab) => {
@@ -1279,21 +1342,21 @@ export default function App() {
                     window.scrollTo({ top: 0, behavior: 'smooth' });
                   }}
                   aria-label={tab.label}
-                  className={`flex flex-col items-center justify-center py-1 px-1 rounded-xl transition-all relative ${
+                  className={`flex flex-col items-center justify-center py-1 px-0.5 rounded-xl transition-all relative ${
                     isActive
                       ? 'text-rose-400 font-semibold'
                       : 'text-slate-400 hover:text-slate-200'
                   }`}
                 >
                   <div className="relative">
-                    <Icon className={`w-5 h-5 ${isActive ? 'text-rose-500' : ''}`} />
+                    <Icon className={`w-4.5 h-4.5 ${isActive ? 'text-rose-500' : ''}`} />
                     {tab.badge ? (
-                      <span className="absolute -top-1 -right-2 px-1 text-[9px] font-bold rounded-full bg-rose-600 text-white min-w-[14px] text-center border border-white/20">
+                      <span className="absolute -top-1 -right-2 px-1 text-[8px] font-bold rounded-full bg-rose-600 text-white min-w-[13px] text-center border border-white/20">
                         {tab.badge > 99 ? '99+' : tab.badge}
                       </span>
                     ) : null}
                   </div>
-                  <span className="text-[11px] mt-0.5 tracking-tight font-medium">
+                  <span className="text-[10px] mt-0.5 tracking-tight font-medium truncate max-w-full">
                     {tab.label}
                   </span>
                 </button>
