@@ -148,8 +148,28 @@ export default function ExtensionsView({
     setNsfwFeedMode('search');
 
     try {
-      const results = await searchNsfwSources(queryToUse.trim());
-      if (currentSeq === nsfwSearchSeq.current) {
+      const seenStream = new Set();
+      const results = await searchNsfwSources(queryToUse.trim(), (srcName, list) => {
+        if (currentSeq !== nsfwSearchSeq.current || !Array.isArray(list) || list.length === 0) return;
+        setNsfwResults((prev) => {
+          const next = [...prev];
+          for (const item of list) {
+            if (!item || !item.title) continue;
+            const k = `${srcName}:${item.id || item.title}`;
+            if (seenStream.has(k)) continue;
+            seenStream.add(k);
+            next.push({
+              ...item,
+              sourceName: item.sourceName || srcName,
+              extensionName: srcName,
+              contentWarning: 'CONTENT_WARNING_NSFW',
+              isNsfw: true
+            });
+          }
+          return next;
+        });
+      });
+      if (currentSeq === nsfwSearchSeq.current && Array.isArray(results) && results.length > 0) {
         setNsfwResults(results);
       }
     } finally {
@@ -861,7 +881,7 @@ export default function ExtensionsView({
                   <span className="text-rose-300 font-semibold">{nsfwResults.length} adult titles found</span>
                 </div>
 
-                {searchingNsfw ? (
+                {searchingNsfw && nsfwResults.length === 0 ? (
                   <div className="py-12 flex flex-col items-center justify-center gap-2">
                     <Loader2 className="w-7 h-7 text-rose-500 animate-spin" />
                     <p className="text-xs text-rose-300 font-mono">Concurrently querying Manga18fx & Adult feeds...</p>
@@ -871,15 +891,23 @@ export default function ExtensionsView({
                     No adult titles found for "{nsfwQuery}". Try a broader term like "Teacher", "Secret", or "Harem".
                   </div>
                 ) : (
-                  <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 xl:grid-cols-6 gap-4">
-                    {nsfwResults.map((item, idx) => (
-                      <div key={`${item.sourceName || 'm18'}_${item.id}_${idx}`} className="relative group">
-                        <MangaCard manga={item} onSelect={onSelectManga} />
-                        <span className="absolute top-2 left-2 z-20 px-2 py-0.5 rounded-md text-[9px] font-mono font-black bg-rose-950/90 text-rose-300 border border-rose-500/50 backdrop-blur-md shadow-md pointer-events-none">
-                          {item.sourceName || '18+ Adult'}
-                        </span>
+                  <div className="space-y-3">
+                    {searchingNsfw && (
+                      <div className="flex items-center gap-2 text-[11px] font-mono text-rose-300">
+                        <Loader2 className="w-3.5 h-3.5 animate-spin text-rose-400" />
+                        <span>Streaming additional 18+ sources in background...</span>
                       </div>
-                    ))}
+                    )}
+                    <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 xl:grid-cols-6 gap-4">
+                      {nsfwResults.map((item, idx) => (
+                        <div key={`${item.sourceName || 'm18'}_${item.id}_${idx}`} className="relative group">
+                          <MangaCard manga={item} onSelect={onSelectManga} />
+                          <span className="absolute top-2 left-2 z-20 px-2 py-0.5 rounded-md text-[9px] font-mono font-black bg-rose-950/90 text-rose-300 border border-rose-500/50 backdrop-blur-md shadow-md pointer-events-none">
+                            {item.sourceName || '18+ Adult'}
+                          </span>
+                        </div>
+                      ))}
+                    </div>
                   </div>
                 )}
               </div>
@@ -1260,7 +1288,7 @@ export default function ExtensionsView({
               )}
             </div>
 
-            {(searchingNsfw || loadingNsfwFeed) ? (
+            {(searchingNsfw || loadingNsfwFeed) && (nsfwFeedMode === 'search' ? nsfwResults : nsfwPopularList).length === 0 ? (
               <div className="py-20 flex flex-col items-center justify-center gap-3">
                 <Loader2 className="w-8 h-8 text-rose-500 animate-spin" />
                 <p className="text-xs text-rose-300 font-mono">Retrieving adult titles from Manga18fx & Adult feeds...</p>
@@ -1271,15 +1299,23 @@ export default function ExtensionsView({
                 <p className="text-xs text-slate-500">Try one of the trending tags above or click Trending 18+.</p>
               </div>
             ) : (
-              <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 xl:grid-cols-6 gap-4 sm:gap-5">
-                {(nsfwFeedMode === 'search' ? nsfwResults : nsfwPopularList).map((manga, idx) => (
-                  <div key={`${manga.sourceName || 'm18'}_${manga.id}_${idx}`} className="relative group">
-                    <MangaCard manga={manga} onSelect={onSelectManga} />
-                    <span className="absolute top-2 left-2 z-20 px-2 py-0.5 rounded-md text-[9px] font-mono font-black bg-rose-950/90 text-rose-300 border border-rose-500/50 backdrop-blur-md shadow-md pointer-events-none">
-                      {manga.sourceName || '18+ Adult'}
-                    </span>
+              <div className="space-y-3">
+                {searchingNsfw && nsfwFeedMode === 'search' && (
+                  <div className="flex items-center gap-2 text-[11px] font-mono text-rose-300">
+                    <Loader2 className="w-3.5 h-3.5 animate-spin text-rose-400" />
+                    <span>Streaming additional 18+ sources in background...</span>
                   </div>
-                ))}
+                )}
+                <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 xl:grid-cols-6 gap-4 sm:gap-5">
+                  {(nsfwFeedMode === 'search' ? nsfwResults : nsfwPopularList).map((manga, idx) => (
+                    <div key={`${manga.sourceName || 'm18'}_${manga.id}_${idx}`} className="relative group">
+                      <MangaCard manga={manga} onSelect={onSelectManga} />
+                      <span className="absolute top-2 left-2 z-20 px-2 py-0.5 rounded-md text-[9px] font-mono font-black bg-rose-950/90 text-rose-300 border border-rose-500/50 backdrop-blur-md shadow-md pointer-events-none">
+                        {manga.sourceName || '18+ Adult'}
+                      </span>
+                    </div>
+                  ))}
+                </div>
               </div>
             )}
           </div>
