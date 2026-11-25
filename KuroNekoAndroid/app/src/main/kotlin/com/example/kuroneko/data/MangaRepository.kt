@@ -2,6 +2,8 @@ package com.example.kuroneko.data
 
 import android.content.Context
 import android.content.SharedPreferences
+import android.net.Uri
+import android.util.Base64
 import android.webkit.WebResourceResponse
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.withContext
@@ -12,8 +14,11 @@ import okhttp3.RequestBody.Companion.toRequestBody
 import org.json.JSONArray
 import org.json.JSONObject
 import java.io.ByteArrayInputStream
+import java.io.ByteArrayOutputStream
+import java.net.URL
 import java.net.URLEncoder
 import java.util.concurrent.ConcurrentHashMap
+import java.util.concurrent.Semaphore
 import java.util.concurrent.TimeUnit
 import java.util.regex.Pattern
 
@@ -127,6 +132,25 @@ class MangaRepository(context: Context) {
     )
 
     private val wcChapterCache = ConcurrentHashMap<String, ConcurrentHashMap<String, String>>()
+    private val imageStreamSemaphore = Semaphore(6)
+
+    private fun getOrCreateWcChapterMap(seriesId: String): ConcurrentHashMap<String, String> {
+        synchronized(wcChapterCache) {
+            if (wcChapterCache.size >= 500 && !wcChapterCache.containsKey(seriesId)) {
+                wcChapterCache.clear()
+            }
+            return wcChapterCache.computeIfAbsent(seriesId) { ConcurrentHashMap() }
+        }
+    }
+
+    private data class ImagePayload(val bytes: ByteArray, val mimeType: String)
+
+    private companion object {
+        const val MODERN_USER_AGENT =
+            "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/124.0.0.0 Safari/537.36"
+        const val MAX_OFFLINE_IMAGE_BYTES = 15 * 1024 * 1024
+        const val MAX_STREAM_IMAGE_BYTES = 25 * 1024 * 1024
+    }
 
     // Pre-populated verified catalog with direct CDN URLs (zero Vercel load)
     val catalog: List<MangaItem> = listOf(
@@ -590,7 +614,7 @@ class MangaRepository(context: Context) {
                         Pattern.CASE_INSENSITIVE
                     )
                     val matcher = chPattern.matcher(html)
-                    val map = wcChapterCache.computeIfAbsent(seriesId) { ConcurrentHashMap() }
+                    val map = getOrCreateWcChapterMap(seriesId)
 
                     while (matcher.find()) {
                         val chapId = matcher.group(1).orEmpty()
@@ -1147,7 +1171,7 @@ class MangaRepository(context: Context) {
                         val matcher = chPattern.matcher(html)
                         val chaptersList = mutableListOf<JSONObject>()
                         val seen = mutableSetOf<String>()
-                        val chCacheMap = wcChapterCache.computeIfAbsent(wcSeriesId) { ConcurrentHashMap() }
+                        val chCacheMap = getOrCreateWcChapterMap(wcSeriesId)
 
                         while (matcher.find()) {
                             val chapId = matcher.group(1).orEmpty()
@@ -1291,24 +1315,221 @@ class MangaRepository(context: Context) {
         return ""
     }
 
-    fun fetchHtmlDirect(url: String): String {
+    private fun extractOrigin(url: String): String {
         return try {
-            val request = Request.Builder()
+            val u = URL(url)
+            if (u.protocol.isNullOrBlank() || u.host.isNullOrBlank()) {
+                ""
+            } else if (u.port != -1 && u.port != u.defaultPort) {
+                "${u.protocol}://${u.host}:${u.port}/"
+            } else {
+                "${u.protocol}://${u.host}/"
+            }
+        } catch (_: Exception) {
+            ""
+        }
+    }
+
+    private fun unwrapProxyImageUrl(rawUrl: String): String {
+        var trimmed = rawUrl.trim()
+        if (trimmed.contains("/api/image-proxy") || trimmed.contains("weserv.nl")) {
+            try {
+                val target = Uri.parse(trimmed).getQueryParameter("url")
+                if (!target.isNullOrBlank()) {
+                    trimmed = target.trim()
+                }
+            } catch (_: Exception) {
+            }
+        }
+        return if (trimmed.startsWith("//")) "https:$trimmed" else trimmed
+    }
+
+    private fun resolveImageReferer(url: String): String {
+        return when {
+            url.contains("mangakatana.com", ignoreCase = true) -> "https://mangakatana.com/"
+            url.contains("lowee.us", ignoreCase = true) ||
+                url.contains("compsci88.com", ignoreCase = true) ||
+                url.contains("planeptune", ignoreCase = true) ||
+                url.contains("lastation", ignoreCase = true) ||
+                url.contains("weebcentral.com", ignoreCase = true) -> "https://weebcentral.com/"
+            url.contains("mangadex.org", ignoreCase = true) ||
+                url.contains("mangadex.network", ignoreCase = true) -> "https://mangadex.org/"
+            url.contains("mangapill.com", ignoreCase = true) ||
+                url.contains("readdetectiveconan.com", ignoreCase = true) -> "https://mangapill.com/"
+            url.contains("asuracomic", ignoreCase = true) ||
+                url.contains("asurascans", ignoreCase = true) -> "https://asurascans.com/"
+            url.contains("afortunetellingprincess.com", ignoreCase = true) -> "https://afortunetellingprincess.com/"
+            url.contains("kingofshojo.com", ignoreCase = true) -> "https://kingofshojo.com/"
+            url.contains("readsololeveling.org", ignoreCase = true) -> "https://readsololeveling.org/"
+            url.contains("manga18fx.com", ignoreCase = true) -> "https://manga18fx.com/"
+            url.contains("kakamanga.com", ignoreCase = true) ||
+                url.contains("2xstorage", ignoreCase = true) ||
+                url.contains("chapmanganato.com", ignoreCase = true) ||
+                url.contains("mangakakalot.com", ignoreCase = true) -> "https://www.kakamanga.com/"
+            url.contains("nhentai", ignoreCase = true) -> "https://nhentai.net/"
+            url.contains("toonily", ignoreCase = true) -> "https://toonily.com/"
+            url.contains("hiperdex", ignoreCase = true) -> "https://hiperdex.com/"
+            url.contains("manhwa18.net", ignoreCase = true) -> "https://manhwa18.net/"
+            url.contains("manhwa18", ignoreCase = true) -> "https://manhwa18.com/"
+            url.contains("doujindesu", ignoreCase = true) -> "https://doujindesu.tv/"
+            url.contains("e-hentai", ignoreCase = true) ||
+                url.contains("ehgt.org", ignoreCase = true) ||
+                url.contains("hath.network", ignoreCase = true) -> "https://e-hentai.org/"
+            else -> extractOrigin(url).ifBlank { "https://mangakatana.com/" }
+        }
+    }
+
+    private fun hasImageMagicBytes(bytes: ByteArray): Boolean {
+        val isJpeg = bytes.size >= 2 && bytes[0] == 0xFF.toByte() && bytes[1] == 0xD8.toByte()
+        val isPng = bytes.size >= 4 &&
+            bytes[0] == 0x89.toByte() && bytes[1] == 0x50.toByte() &&
+            bytes[2] == 0x4E.toByte() && bytes[3] == 0x47.toByte()
+        val isWebp = bytes.size >= 12 &&
+            bytes[0] == 0x52.toByte() && bytes[1] == 0x49.toByte() &&
+            bytes[2] == 0x46.toByte() && bytes[3] == 0x46.toByte() &&
+            bytes[8] == 0x57.toByte() && bytes[9] == 0x45.toByte() &&
+            bytes[10] == 0x42.toByte() && bytes[11] == 0x50.toByte()
+        val isGif = bytes.size >= 3 &&
+            bytes[0] == 0x47.toByte() && bytes[1] == 0x49.toByte() && bytes[2] == 0x46.toByte()
+        return isJpeg || isPng || isWebp || isGif
+    }
+
+    private fun detectImageMimeType(url: String, rawContentType: String, bytes: ByteArray): String {
+        if (rawContentType.startsWith("image/", ignoreCase = true) &&
+            !rawContentType.contains("octet-stream", ignoreCase = true)
+        ) {
+            return rawContentType
+        }
+        return when {
+            bytes.size >= 2 && bytes[0] == 0xFF.toByte() && bytes[1] == 0xD8.toByte() -> "image/jpeg"
+            bytes.size >= 4 && bytes[0] == 0x89.toByte() && bytes[1] == 0x50.toByte() -> "image/png"
+            bytes.size >= 12 && bytes[0] == 0x52.toByte() && bytes[1] == 0x49.toByte() -> "image/webp"
+            bytes.size >= 3 && bytes[0] == 0x47.toByte() && bytes[1] == 0x49.toByte() && bytes[2] == 0x46.toByte() -> "image/gif"
+            url.contains(".png", ignoreCase = true) -> "image/png"
+            url.contains(".webp", ignoreCase = true) -> "image/webp"
+            url.contains(".gif", ignoreCase = true) -> "image/gif"
+            url.contains(".svg", ignoreCase = true) -> "image/svg+xml"
+            else -> "image/jpeg"
+        }
+    }
+
+    private fun fetchImageBytes(
+        rawUrl: String,
+        refererHint: String = "",
+        maxBytes: Int = MAX_STREAM_IMAGE_BYTES
+    ): ImagePayload? {
+        return try {
+            val url = unwrapProxyImageUrl(rawUrl)
+            if (!url.startsWith("http://", ignoreCase = true) &&
+                !url.startsWith("https://", ignoreCase = true)
+            ) {
+                return null
+            }
+
+            val cleanHint = refererHint.trim()
+            val referer = if (cleanHint.isNotBlank() &&
+                !cleanHint.equals("null", ignoreCase = true) &&
+                !cleanHint.equals("undefined", ignoreCase = true)
+            ) {
+                if (cleanHint.startsWith("http://", ignoreCase = true) ||
+                    cleanHint.startsWith("https://", ignoreCase = true)
+                ) {
+                    cleanHint
+                } else {
+                    "https://$cleanHint/"
+                }
+            } else {
+                resolveImageReferer(url)
+            }
+
+            val isMangaDex = url.contains("mangadex.org", ignoreCase = true) ||
+                url.contains("mangadex.network", ignoreCase = true)
+
+            val reqBuilder = Request.Builder()
                 .url(url)
-                .header("User-Agent", "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/122.0.0.0 Safari/537.36")
-                .header("Accept", "text/html,application/xhtml+xml,application/xml;q=0.9,image/webp,*/*;q=0.8")
+                .header("Referer", referer)
+                .header("Accept", "image/avif,image/webp,image/apng,image/svg+xml,image/*,*/*;q=0.8")
+                .header("User-Agent", if (isMangaDex) "KuroNekoMobile/1.0" else MODERN_USER_AGENT)
+
+            httpClient.newCall(reqBuilder.build()).execute().use { response ->
+                if (!response.isSuccessful || response.body == null) return null
+
+                val contentLength = response.header("Content-Length")?.toLongOrNull() ?: -1L
+                if (contentLength > maxBytes) return null
+
+                val inputStream = response.body?.byteStream() ?: return null
+                val buffer = ByteArray(8192)
+                val output = ByteArrayOutputStream()
+                var totalRead = 0
+                while (true) {
+                    val read = inputStream.read(buffer)
+                    if (read == -1) break
+                    totalRead += read
+                    if (totalRead > maxBytes) return null
+                    output.write(buffer, 0, read)
+                }
+                val bytes = output.toByteArray()
+                if (bytes.isEmpty()) return null
+
+                val rawContentType = response.header("Content-Type")?.substringBefore(";")?.trim().orEmpty()
+                if (!rawContentType.startsWith("image/", ignoreCase = true) && !hasImageMagicBytes(bytes)) {
+                    if (rawContentType.startsWith("text/", ignoreCase = true) ||
+                        rawContentType.contains("json", ignoreCase = true) ||
+                        rawContentType.contains("javascript", ignoreCase = true) ||
+                        rawContentType.contains("xml", ignoreCase = true)
+                    ) {
+                        return null
+                    }
+                }
+
+                ImagePayload(
+                    bytes = bytes,
+                    mimeType = detectImageMimeType(url, rawContentType, bytes)
+                )
+            }
+        } catch (_: Exception) {
+            null
+        }
+    }
+
+    fun fetchHtmlDirect(url: String): String {
+        val trimmed = url.trim()
+        if (!trimmed.startsWith("http://", ignoreCase = true) &&
+            !trimmed.startsWith("https://", ignoreCase = true)
+        ) {
+            return ""
+        }
+        return try {
+            val reqBuilder = Request.Builder()
+                .url(trimmed)
+                .header("User-Agent", MODERN_USER_AGENT)
+                .header("Accept", "text/html,application/xhtml+xml,application/xml;q=0.9,application/json,image/webp,*/*;q=0.8")
                 .header("Accept-Language", "en-US,en;q=0.9")
-                .build()
-            httpClient.newCall(request).execute().use { response ->
+
+            val origin = extractOrigin(trimmed)
+            if (origin.isNotBlank()) {
+                reqBuilder.header("Referer", origin)
+            }
+
+            httpClient.newCall(reqBuilder.build()).execute().use { response ->
                 if (response.isSuccessful) {
                     response.body?.string().orEmpty()
                 } else {
                     ""
                 }
             }
-        } catch (e: Exception) {
+        } catch (_: Exception) {
             ""
         }
+    }
+
+    fun fetchImageDataUri(imageUrl: String, refererHint: String = ""): String {
+        val payload = fetchImageBytes(
+            rawUrl = imageUrl,
+            refererHint = refererHint,
+            maxBytes = MAX_OFFLINE_IMAGE_BYTES
+        ) ?: return ""
+        return "data:${payload.mimeType};base64,${Base64.encodeToString(payload.bytes, Base64.NO_WRAP)}"
     }
 
     /**
@@ -1317,89 +1538,34 @@ class MangaRepository(context: Context) {
      * and null character encoding so Android's Chromium WebView decodes pages flawlessly.
      */
     fun fetchImageStream(url: String, hostHint: String? = null): WebResourceResponse? {
-        return try {
-            val referer = when {
-                url.contains("mangakatana.com", ignoreCase = true) -> "https://mangakatana.com/"
-                url.contains("lowee.us", ignoreCase = true) ||
-                url.contains("compsci88.com", ignoreCase = true) ||
-                url.contains("planeptune", ignoreCase = true) ||
-                url.contains("lastation", ignoreCase = true) ||
-                url.contains("weebcentral.com", ignoreCase = true) -> "https://weebcentral.com/"
-                url.contains("mangadex.org", ignoreCase = true) || url.contains("mangadex.network", ignoreCase = true) -> "https://mangadex.org/"
-                url.contains("mangapill.com", ignoreCase = true) || url.contains("readdetectiveconan.com", ignoreCase = true) -> "https://mangapill.com/"
-                url.contains("asuracomic", ignoreCase = true) || url.contains("asurascans", ignoreCase = true) -> "https://asurascans.com/"
-                url.contains("afortunetellingprincess.com", ignoreCase = true) -> "https://afortunetellingprincess.com/"
-                url.contains("kingofshojo.com", ignoreCase = true) -> "https://kingofshojo.com/"
-                url.contains("readsololeveling.org", ignoreCase = true) -> "https://readsololeveling.org/"
-                url.contains("manga18fx.com", ignoreCase = true) -> "https://manga18fx.com/"
-                url.contains("kakamanga.com", ignoreCase = true) ||
-                url.contains("chapmanganato.com", ignoreCase = true) ||
-                url.contains("mangakakalot.com", ignoreCase = true) -> "https://www.kakamanga.com/"
-                else -> "https://mangakatana.com/"
-            }
+        imageStreamSemaphore.acquire()
+        val payload = try {
+            fetchImageBytes(
+                rawUrl = url,
+                refererHint = hostHint.orEmpty(),
+                maxBytes = MAX_STREAM_IMAGE_BYTES
+            )
+        } finally {
+            imageStreamSemaphore.release()
+        } ?: return null
 
-            val isMangaDex = url.contains("mangadex.org", ignoreCase = true) || url.contains("mangadex.network", ignoreCase = true)
+        val headers = mapOf(
+            "Access-Control-Allow-Origin" to "*",
+            "Access-Control-Allow-Methods" to "GET, OPTIONS",
+            "Cache-Control" to "public, max-age=604800",
+            "Content-Type" to payload.mimeType,
+            "Content-Length" to payload.bytes.size.toString()
+        )
 
-            val reqBuilder = Request.Builder()
-                .url(url)
-                .header("Referer", referer)
-                .header("Accept", "image/avif,image/webp,image/apng,image/svg+xml,image/*,*/*;q=0.8")
-
-            if (!isMangaDex) {
-                reqBuilder.header("User-Agent", "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/124.0.0.0 Safari/537.36")
-            } else {
-                reqBuilder.header("User-Agent", "KuroNekoMobile/1.0")
-            }
-
-            httpClient.newCall(reqBuilder.build()).execute().use { response ->
-                if (response.isSuccessful && response.body != null) {
-                    val bytes = response.body?.bytes() ?: return null
-                    if (bytes.isEmpty()) return null
-
-                    // Detect proper image MIME type (avoid application/octet-stream rejection by Chromium)
-                    val rawContentType = response.header("Content-Type")?.substringBefore(";")?.trim().orEmpty()
-                    val mimeType = if (rawContentType.startsWith("image/", ignoreCase = true) && !rawContentType.contains("octet-stream", ignoreCase = true)) {
-                        rawContentType
-                    } else if (bytes.size >= 2 && bytes[0] == 0xFF.toByte() && bytes[1] == 0xD8.toByte()) {
-                        "image/jpeg"
-                    } else if (bytes.size >= 4 && bytes[0] == 0x89.toByte() && bytes[1] == 0x50.toByte()) {
-                        "image/png"
-                    } else if (bytes.size >= 12 && bytes[0] == 0x52.toByte() && bytes[1] == 0x49.toByte()) {
-                        "image/webp"
-                    } else {
-                        when {
-                            url.contains(".png", ignoreCase = true) -> "image/png"
-                            url.contains(".webp", ignoreCase = true) -> "image/webp"
-                            url.contains(".gif", ignoreCase = true) -> "image/gif"
-                            url.contains(".svg", ignoreCase = true) -> "image/svg+xml"
-                            else -> "image/jpeg"
-                        }
-                    }
-
-                    val headers = mapOf(
-                        "Access-Control-Allow-Origin" to "*",
-                        "Access-Control-Allow-Methods" to "GET, OPTIONS",
-                        "Cache-Control" to "public, max-age=604800",
-                        "Content-Type" to mimeType,
-                        "Content-Length" to bytes.size.toString()
-                    )
-
-                    // IMPORTANT: encoding must be null for binary image types in WebResourceResponse
-                    WebResourceResponse(
-                        mimeType,
-                        null,
-                        200,
-                        "OK",
-                        headers,
-                        ByteArrayInputStream(bytes)
-                    )
-                } else {
-                    null
-                }
-            }
-        } catch (e: Exception) {
-            null
-        }
+        // IMPORTANT: encoding must be null for binary image types in WebResourceResponse
+        return WebResourceResponse(
+            payload.mimeType,
+            null,
+            200,
+            "OK",
+            headers,
+            ByteArrayInputStream(payload.bytes)
+        )
     }
 
     // --- Local Persistence for Bookmarks (No server needed) ---
