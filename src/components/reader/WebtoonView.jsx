@@ -3,19 +3,20 @@ import React, { useState, useEffect, useRef } from 'react';
 import { ChevronLeft, ChevronRight, Loader2, AlertCircle, RotateCw, Check, Home, Sparkles } from 'lucide-react';
 
 function WebtoonPageItem({ p, ch, idx, chIdx, settings }) {
+  const safeUrl = p?.url || '';
   const [hasError, setHasError] = useState(false);
   const [isReloading, setIsReloading] = useState(false);
   const [isLoaded, setIsLoaded] = useState(false);
-  const [currentSrc, setCurrentSrc] = useState(p.url);
+  const [currentSrc, setCurrentSrc] = useState(safeUrl);
   const retriedCountRef = useRef(0);
 
   useEffect(() => {
-    setCurrentSrc(p.url);
+    setCurrentSrc(safeUrl);
     setHasError(false);
     setIsReloading(false);
     setIsLoaded(false);
     retriedCountRef.current = 0;
-  }, [p.url]);
+  }, [safeUrl]);
 
   const getProxyUrl = (raw) => {
     if (!raw) return '';
@@ -228,9 +229,9 @@ export default function WebtoonView({
             }`}
             style={{ gap: `${settings.pageGap ?? 0}px` }}
           >
-            {ch.pages.map((p, idx) => (
+            {(Array.isArray(ch?.pages) ? ch.pages : []).filter((p) => p && (p.url || p.originalUrl)).map((p, idx) => (
               <WebtoonPageItem
-                key={`${ch.id}-p-${p.pageNumber}`}
+                key={`${ch.id}-p-${p.pageNumber ?? idx + 1}`}
                 p={p}
                 ch={ch}
                 idx={idx}
