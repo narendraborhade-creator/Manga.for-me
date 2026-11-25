@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useMemo, useCallback } from 'react';
+import React, { useState, useEffect, useMemo, useCallback, useRef } from 'react';
 import { 
   Radio, 
   Download, 
@@ -21,10 +21,12 @@ import {
   X, 
   SlidersHorizontal,
   ChevronRight,
+  ChevronDown,
   ShieldCheck,
   ShieldAlert,
   Loader2,
-  BookOpen
+  BookOpen,
+  Smartphone
 } from 'lucide-react';
 
 import {
@@ -37,6 +39,7 @@ import {
   uninstallExtension,
   toggleExtensionState,
   togglePinExtension,
+  flattenExtensionSources,
   fetchSourcePopular,
   fetchSourceLatest,
   searchSourceManga,
@@ -48,11 +51,29 @@ import {
   isNsfwAllowed,
   setNsfwAllowed
 } from '../services/extensionManager';
+import { triggerFileDownload } from '../services/downloadManager';
 import MangaCard from './MangaCard';
 
-export default function ExtensionsView({ onSelectManga, onOpenReader }) {
-  // Navigation Tabs: 'sources' | 'extensions' | 'repositories'
-  const [activeSubTab, setActiveSubTab] = useState('sources');
+function extractDomain(url) {
+  if (!url) return '';
+  try {
+    return new URL(url).hostname.replace(/^www\./i, '');
+  } catch {
+    return String(url).replace(/^https?:\/\//i, '').split('/')[0];
+  }
+}
+
+export default function ExtensionsView({
+  onSelectManga,
+  onOpenReader,
+  initialSubTab = null,
+  initialNsfwQuery = '',
+  launchKey = 0
+}) {
+  // Navigation Tabs: 'sources' | 'nsfw' | 'extensions' | 'repositories'
+  const [activeSubTab, setActiveSubTab] = useState(() => initialSubTab || 'sources');
+  const [sourcesViewMode, setSourcesViewMode] = useState('grouped'); // 'grouped' | 'individual'
+  const [expandedStorePkgs, setExpandedStorePkgs] = useState({});
 
   // Repositories State
   const [repositories, setRepositories] = useState([]);
@@ -102,20 +123,24 @@ export default function ExtensionsView({ onSelectManga, onOpenReader }) {
   const [nsfwPopularList, setNsfwPopularList] = useState([]);
 
   const nsfwSearchSeq = useRef(0);
+  const browseSeqRef = useRef(0);
+  const globalSearchSeqRef = useRef(0);
   const hasAttemptedNsfwFeedRef = useRef(false);
+  const nsfwQueryRef = useRef(nsfwQuery);
+  useEffect(() => {
+    nsfwQueryRef.current = nsfwQuery;
+  }, [nsfwQuery]);
 
   // Handle Dedicated 18+ NSFW Search
-  const handleExecuteNsfwSearch = async (e, directQuery = null) => {
+  const handleExecuteNsfwSearch = useCallback(async (e, directQuery = null) => {
     if (e && e.preventDefault) e.preventDefault();
-    const queryToUse = directQuery !== null ? directQuery : nsfwQuery;
+    const queryToUse = directQuery !== null ? String(directQuery) : nsfwQueryRef.current;
     if (!queryToUse.trim()) return;
 
     const currentSeq = ++nsfwSearchSeq.current;
 
-    if (!showNsfw) {
-      setShowNsfw(true);
-      setNsfwAllowed(true);
-    }
+    setShowNsfw(true);
+    setNsfwAllowed(true);
 
     setSearchingNsfw(true);
     setNsfwSearchActive(true);
@@ -132,7 +157,24 @@ export default function ExtensionsView({ onSelectManga, onOpenReader }) {
         setSearchingNsfw(false);
       }
     }
-  };
+  }, []);
+
+  // Sync external initialSubTab / initialNsfwQuery launch props
+  useEffect(() => {
+    if (initialSubTab) {
+      setActiveSubTab(initialSubTab);
+      if (initialSubTab === 'nsfw') {
+        setShowNsfw(true);
+        setNsfwAllowed(true);
+      }
+    }
+    if (initialNsfwQuery && initialNsfwQuery.trim()) {
+      const q = initialNsfwQuery.trim();
+      setActiveSubTab('nsfw');
+      setNsfwQuery(q);
+      handleExecuteNsfwSearch(null, q);
+    }
+  }, [initialSubTab, initialNsfwQuery, launchKey, handleExecuteNsfwSearch]);
 
   // Load 18+ NSFW Popular or Latest Feed
   const handleLoadNsfwFeed = useCallback(async (mode = 'popular') => {
@@ -146,13 +188,13 @@ export default function ExtensionsView({ onSelectManga, onOpenReader }) {
     }
   }, []);
 
-  // When switching to the dedicated 'nsfw' tab, load popular feed once safely
+  // When switching to the dedicated 'nsfw' tab, load popular feed once safely if 18+ mode is enabled
   useEffect(() => {
-    if (activeSubTab === 'nsfw' && !hasAttemptedNsfwFeedRef.current && !loadingNsfwFeed) {
+    if (activeSubTab === 'nsfw' && showNsfw && !hasAttemptedNsfwFeedRef.current && !loadingNsfwFeed && !initialNsfwQuery?.trim()) {
       hasAttemptedNsfwFeedRef.current = true;
       handleLoadNsfwFeed('popular');
     }
-  }, [activeSubTab, loadingNsfwFeed, handleLoadNsfwFeed]);
+  }, [activeSubTab, showNsfw, loadingNsfwFeed, handleLoadNsfwFeed, initialNsfwQuery]);
 
   // Load repositories and installed extensions
   const refreshInstalled = useCallback(() => {
@@ -170,6 +212,7 @@ export default function ExtensionsView({ onSelectManga, onOpenReader }) {
     const handleUpdate = () => {
       refreshInstalled();
       refreshRepos();
+      setShowNsfw(isNsfwAllowed());
     };
 
     window.addEventListener('mihon:extension_update', handleUpdate);
@@ -202,10 +245,38 @@ export default function ExtensionsView({ onSelectManga, onOpenReader }) {
 
     setAvailableExtensions(combined);
     setLoadingExtensions(false);
+
+    // Enrich already-installed extensions with apkUrl/jarUrl/full multi-sources from live repos
+    if (combined.length > 0) {
+      const byPkg = new Map(combined.map(c => [c.pkg, c]));
+      const byName = new Map(combined.map(c => [String(c.name || '').toLowerCase(), c]));
+      const curInstalled = getInstalledExtensions();
+      let changed = false;
+      const enriched = curInstalled.map(inst => {
+        const match = byPkg.get(inst.pkg) || byName.get(String(inst.name || '').toLowerCase());
+        if (!match) return inst;
+        const nextApk = inst.apkUrl || match.apkUrl || null;
+        const nextJar = inst.jarUrl || match.jarUrl || null;
+        const nextSources = (Array.isArray(match.sources) && match.sources.length > (inst.sources?.length || 0))
+          ? match.sources
+          : inst.sources;
+        if (nextApk !== inst.apkUrl || nextJar !== inst.jarUrl || nextSources !== inst.sources) {
+          changed = true;
+          return { ...inst, apkUrl: nextApk, jarUrl: nextJar, sources: nextSources };
+        }
+        return inst;
+      });
+      if (changed) {
+        try {
+          window.localStorage.setItem('mihon_installed_extensions_v1', JSON.stringify(enriched));
+          setInstalledExtensions(enriched);
+        } catch {}
+      }
+    }
   }, []);
 
   useEffect(() => {
-    if (activeSubTab === 'extensions' && availableExtensions.length === 0) {
+    if ((activeSubTab === 'extensions' || activeSubTab === 'sources') && availableExtensions.length === 0) {
       loadExtensionsCatalog();
     }
   }, [activeSubTab, availableExtensions.length, loadExtensionsCatalog]);
@@ -273,17 +344,25 @@ export default function ExtensionsView({ onSelectManga, onOpenReader }) {
     const q = extensionSearch.toLowerCase().trim();
 
     return availableExtensions.filter(ext => {
-      // Search query filter
+      // Search query filter (match extension name, pkg, or any provided sub-source name/homeUrl)
       if (q) {
         const matchName = ext.name.toLowerCase().includes(q);
         const matchPkg = ext.pkg.toLowerCase().includes(q);
-        if (!matchName && !matchPkg) return false;
+        const matchSubSource = Array.isArray(ext.sources) && ext.sources.some(s =>
+          (s.name && s.name.toLowerCase().includes(q)) ||
+          (s.homeUrl && s.homeUrl.toLowerCase().includes(q))
+        );
+        if (!matchName && !matchPkg && !matchSubSource) return false;
       }
 
-      // Language filter
+      // Language filter (match extension primary lang or any provided sub-source language)
       if (selectedLang !== 'all') {
+        const targetLang = selectedLang.toLowerCase();
         const extLang = (ext.lang || '').toLowerCase();
-        if (extLang !== selectedLang.toLowerCase()) return false;
+        const matchSubLang = Array.isArray(ext.sources) && ext.sources.some(s =>
+          (s.language || '').toLowerCase() === targetLang
+        );
+        if (extLang !== targetLang && !matchSubLang) return false;
       }
 
       // Status filter
@@ -318,23 +397,47 @@ export default function ExtensionsView({ onSelectManga, onOpenReader }) {
   }, [availableExtensions]);
 
   // Open Source Browser modal
-  const handleOpenSourceBrowse = async (source, mode = 'popular') => {
-    setBrowsingSource({ source, mode });
-    setSourceQuery('');
+  const handleOpenSourceBrowse = async (extension, mode = 'popular', targetSource = null, customQuery = '') => {
+    const reqSeq = ++browseSeqRef.current;
+    const subSrc = targetSource
+      || extension.sources?.[0]
+      || { id: (extension.name || '').toLowerCase(), name: extension.name, language: extension.lang || 'all', homeUrl: '' };
+
+    const sourceMeta = {
+      ...subSrc,
+      contentWarning: extension.contentWarning,
+      isNsfw: extension.contentWarning === 'CONTENT_WARNING_NSFW' || Boolean(subSrc.isNsfw)
+    };
+
+    setBrowsingSource({ source: extension, mode, activeSubSource: subSrc });
+    if (!customQuery) {
+      setSourceQuery('');
+    }
     setLoadingSourceManga(true);
     setSourceMangaList([]);
 
     try {
-      const sourceId = source.sources[0]?.id || source.name.toLowerCase();
-      const list = mode === 'latest' 
-        ? await fetchSourceLatest(sourceId) 
-        : await fetchSourcePopular(sourceId);
-      setSourceMangaList(list);
+      const sourceId = subSrc.id || extension.name.toLowerCase();
+      let list;
+      if (mode === 'search' && customQuery.trim()) {
+        list = await searchSourceManga(sourceId, customQuery.trim(), sourceMeta);
+      } else {
+        list = mode === 'latest'
+          ? await fetchSourceLatest(sourceId, sourceMeta)
+          : await fetchSourcePopular(sourceId, sourceMeta);
+      }
+      if (reqSeq === browseSeqRef.current) {
+        setSourceMangaList(list);
+      }
     } catch (err) {
       console.warn('Source browse error:', err);
-      setSourceMangaList([]);
+      if (reqSeq === browseSeqRef.current) {
+        setSourceMangaList([]);
+      }
     } finally {
-      setLoadingSourceManga(false);
+      if (reqSeq === browseSeqRef.current) {
+        setLoadingSourceManga(false);
+      }
     }
   };
 
@@ -342,13 +445,27 @@ export default function ExtensionsView({ onSelectManga, onOpenReader }) {
   const handleSourceSearch = async (e) => {
     e.preventDefault();
     if (!browsingSource) return;
+    const reqSeq = ++browseSeqRef.current;
     setLoadingSourceManga(true);
     try {
-      const sourceId = browsingSource.source.sources[0]?.id || browsingSource.source.name.toLowerCase();
-      const list = await searchSourceManga(sourceId, sourceQuery);
-      setSourceMangaList(list);
+      const subSrc = browsingSource.activeSubSource
+        || browsingSource.source.sources?.[0]
+        || { id: browsingSource.source.name.toLowerCase(), name: browsingSource.source.name };
+      const sourceMeta = {
+        ...subSrc,
+        contentWarning: browsingSource.source.contentWarning,
+        isNsfw: browsingSource.source.contentWarning === 'CONTENT_WARNING_NSFW' || Boolean(subSrc.isNsfw)
+      };
+      const sourceId = subSrc.id || browsingSource.source.name.toLowerCase();
+      setBrowsingSource((prev) => (prev ? { ...prev, mode: sourceQuery.trim() ? 'search' : 'popular' } : prev));
+      const list = await searchSourceManga(sourceId, sourceQuery, sourceMeta);
+      if (reqSeq === browseSeqRef.current) {
+        setSourceMangaList(list);
+      }
     } finally {
-      setLoadingSourceManga(false);
+      if (reqSeq === browseSeqRef.current) {
+        setLoadingSourceManga(false);
+      }
     }
   };
 
@@ -356,6 +473,7 @@ export default function ExtensionsView({ onSelectManga, onOpenReader }) {
   const handleExecuteGlobalSearch = async (e) => {
     e.preventDefault();
     if (!globalQuery.trim()) return;
+    const reqSeq = ++globalSearchSeqRef.current;
 
     setSearchingGlobal(true);
     setGlobalSearchActive(true);
@@ -363,11 +481,20 @@ export default function ExtensionsView({ onSelectManga, onOpenReader }) {
 
     try {
       const results = await searchAllInstalledSources(globalQuery.trim());
-      setGlobalResults(results);
+      if (reqSeq === globalSearchSeqRef.current) {
+        setGlobalResults(results);
+      }
     } finally {
-      setSearchingGlobal(false);
+      if (reqSeq === globalSearchSeqRef.current) {
+        setSearchingGlobal(false);
+      }
     }
   };
+
+  // Flattened individual sub-sources across installed extensions
+  const flattenedSources = useMemo(() => {
+    return flattenExtensionSources(installedExtensions, showNsfw) || [];
+  }, [installedExtensions, showNsfw]);
 
   // Pinned vs Non-pinned installed extensions filtered by user NSFW preference
   const { pinnedSources, unpinnedSources, hiddenNsfwCount } = useMemo(() => {
@@ -418,7 +545,9 @@ export default function ExtensionsView({ onSelectManga, onOpenReader }) {
               <Radio className="w-4 h-4 text-emerald-400 animate-pulse" />
               <div>
                 <div className="text-[10px] text-slate-400 font-mono">INSTALLED</div>
-                <div className="text-sm font-bold text-white font-mono">{installedExtensions.length} Sources</div>
+                <div className="text-sm font-bold text-white font-mono">
+                  {installedExtensions.length} Ext • {flattenedSources.length} Sources
+                </div>
               </div>
             </div>
 
@@ -445,7 +574,7 @@ export default function ExtensionsView({ onSelectManga, onOpenReader }) {
         {/* Mihon Segmented Tabs Switcher */}
         <div className="relative z-10 mt-6 pt-5 border-t border-white/10 flex items-center gap-2 overflow-x-auto scrollbar-none font-mono">
           {[
-            { id: 'sources', label: 'Installed Sources', icon: Radio, count: installedExtensions.length },
+            { id: 'sources', label: 'Installed Sources', icon: Radio, count: flattenedSources.length },
             { id: 'nsfw', label: '18+ NSFW Search', icon: ShieldAlert, count: '18+', isNsfwTab: true },
             { id: 'extensions', label: 'Extension Store', icon: Download, count: availableExtensions.length || '1.6k+' },
             { id: 'repositories', label: 'Repositories', icon: Globe, count: repositories.length }
@@ -457,10 +586,6 @@ export default function ExtensionsView({ onSelectManga, onOpenReader }) {
                 key={tab.id}
                 onClick={() => {
                   setActiveSubTab(tab.id);
-                  if (tab.id === 'nsfw' && !showNsfw) {
-                    setShowNsfw(true);
-                    setNsfwAllowed(true);
-                  }
                 }}
                 className={`flex items-center gap-2 px-4 sm:px-5 py-2.5 rounded-xl text-xs sm:text-sm font-bold transition-all cursor-pointer whitespace-nowrap ${
                   isActive
@@ -514,10 +639,6 @@ export default function ExtensionsView({ onSelectManga, onOpenReader }) {
                   type="button"
                   onClick={() => {
                     setSourceSearchMode('nsfw');
-                    if (!showNsfw) {
-                      setShowNsfw(true);
-                      setNsfwAllowed(true);
-                    }
                   }}
                   className={`flex items-center gap-1.5 px-3 py-1.5 rounded-lg font-bold transition-all cursor-pointer ${
                     sourceSearchMode === 'nsfw'
@@ -649,8 +770,6 @@ export default function ExtensionsView({ onSelectManga, onOpenReader }) {
                           setNsfwSearchActive(false);
                           setNsfwQuery('');
                           setNsfwResults([]);
-                          setNsfwFeedMode('popular');
-                          handleLoadNsfwFeed('popular');
                         }}
                         className="p-2.5 rounded-xl bg-slate-800 text-slate-400 hover:text-white border border-white/10 transition-all cursor-pointer"
                         title="Clear 18+ search"
@@ -702,7 +821,7 @@ export default function ExtensionsView({ onSelectManga, onOpenReader }) {
               <div className="pt-3 border-t border-white/10 space-y-4">
                 <div className="flex items-center justify-between text-xs font-mono">
                   <span className="text-cyan-300 font-bold">
-                    RESULTS ACROSS {installedExtensions.filter(e => e.enabled).length} ACTIVE SOURCES:
+                    RESULTS ACROSS {flattenedSources.length} ACTIVE SOURCES:
                   </span>
                   <span className="text-slate-400">{globalResults.length} titles found</span>
                 </div>
@@ -718,11 +837,11 @@ export default function ExtensionsView({ onSelectManga, onOpenReader }) {
                   </div>
                 ) : (
                   <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 xl:grid-cols-6 gap-4">
-                    {globalResults.map(item => (
-                      <div key={`${item.extensionPkg}_${item.id}`} className="relative group">
+                    {globalResults.map((item, idx) => (
+                      <div key={`${item.extensionPkg || item.sourceName}_${item.id}_${idx}`} className="relative group">
                         <MangaCard manga={item} onSelect={onSelectManga} />
                         <span className="absolute top-2 left-2 z-20 px-2 py-0.5 rounded-md text-[9px] font-mono font-bold bg-slate-950/90 text-cyan-300 border border-cyan-400/40 backdrop-blur-md shadow-md pointer-events-none">
-                          {item.extensionName || item.sourceName}
+                          {item.sourceName || item.extensionName}
                         </span>
                       </div>
                     ))}
@@ -767,8 +886,154 @@ export default function ExtensionsView({ onSelectManga, onOpenReader }) {
             )}
           </div>
 
+          {/* Segmented View Switcher: Grouped Extensions vs All Individual Sources */}
+          {!globalSearchActive && !(sourceSearchMode === 'nsfw' && nsfwSearchActive) && (
+            <div className="flex flex-wrap items-center justify-between gap-3">
+              <div className="inline-flex items-center gap-1 p-1 rounded-xl bg-slate-900/90 border border-white/10 font-mono text-xs">
+                <button
+                  type="button"
+                  onClick={() => setSourcesViewMode('grouped')}
+                  className={`px-3 py-1.5 rounded-lg font-bold transition-all cursor-pointer flex items-center gap-1.5 ${
+                    sourcesViewMode === 'grouped'
+                      ? 'bg-cyan-600 text-white shadow-sm'
+                      : 'text-slate-400 hover:text-white'
+                  }`}
+                >
+                  <Layers className="w-3.5 h-3.5" />
+                  <span>Grouped Extensions ({pinnedSources.length + unpinnedSources.length})</span>
+                </button>
+                <button
+                  type="button"
+                  onClick={() => setSourcesViewMode('individual')}
+                  className={`px-3 py-1.5 rounded-lg font-bold transition-all cursor-pointer flex items-center gap-1.5 ${
+                    sourcesViewMode === 'individual'
+                      ? 'bg-cyan-600 text-white shadow-sm'
+                      : 'text-slate-400 hover:text-white'
+                  }`}
+                >
+                  <Radio className="w-3.5 h-3.5" />
+                  <span>All Individual Sources ({flattenedSources.length})</span>
+                </button>
+              </div>
+
+              <button
+                onClick={() => setActiveSubTab('extensions')}
+                className="text-xs font-mono font-bold text-cyan-400 hover:text-cyan-300 hover:underline flex items-center gap-1 cursor-pointer"
+              >
+                <span>Install More Sources</span>
+                <ChevronRight className="w-3 h-3" />
+              </button>
+            </div>
+          )}
+
+          {/* Individual Flattened Sources View */}
+          {!globalSearchActive && !(sourceSearchMode === 'nsfw' && nsfwSearchActive) && sourcesViewMode === 'individual' && (
+            <div className="space-y-3">
+              <div className="flex items-center justify-between text-xs font-mono font-bold text-slate-400 tracking-wider">
+                <span className="flex items-center gap-2">
+                  <Radio className="w-3.5 h-3.5 text-cyan-400" />
+                  <span>ALL INDIVIDUAL SOURCES ({flattenedSources.length})</span>
+                </span>
+              </div>
+
+              <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3">
+                {flattenedSources.map((subSource, idx) => {
+                  const parentExt = installedExtensions.find((e) => e.pkg === subSource.extensionPkg) || {
+                    pkg: subSource.extensionPkg,
+                    name: subSource.extensionName || subSource.name,
+                    iconUrl: subSource.iconUrl,
+                    apkUrl: subSource.apkUrl,
+                    contentWarning: subSource.contentWarning,
+                    sources: [subSource]
+                  };
+                  const domain = extractDomain(subSource.homeUrl);
+                  const lang = (subSource.language || 'all').toUpperCase();
+                  const isNsfwItem = subSource.isNsfw || subSource.contentWarning === 'CONTENT_WARNING_NSFW';
+
+                  return (
+                    <div
+                      key={`${subSource.extensionPkg}_${subSource.id}_${idx}`}
+                      className="p-4 rounded-2xl border bg-slate-900/75 border-white/10 hover:border-cyan-500/35 transition-all flex flex-col justify-between gap-3 shadow-md group"
+                    >
+                      <div className="flex items-start justify-between gap-2">
+                        <div className="flex items-center gap-3 min-w-0">
+                          <div className="w-10 h-10 rounded-xl bg-slate-950 border border-white/10 overflow-hidden flex items-center justify-center flex-shrink-0">
+                            {subSource.iconUrl ? (
+                              <img src={subSource.iconUrl} alt={subSource.name} className="w-full h-full object-cover" />
+                            ) : (
+                              <Radio className="w-5 h-5 text-cyan-400" />
+                            )}
+                          </div>
+                          <div className="min-w-0">
+                            <div className="flex items-center gap-1.5 flex-wrap">
+                              <h3 className="text-sm font-bold text-white truncate group-hover:text-cyan-300 transition-colors font-['Outfit']">
+                                {subSource.name}
+                              </h3>
+                              {isNsfwItem && (
+                                <span className="px-1.5 py-0.2 rounded text-[9px] font-mono font-bold bg-rose-500/20 text-rose-300 border border-rose-500/40">
+                                  18+
+                                </span>
+                              )}
+                            </div>
+                            <div className="flex items-center gap-1.5 text-[10px] font-mono text-slate-400 mt-0.5 flex-wrap">
+                              <span className="px-1.5 py-0.2 rounded bg-slate-800 text-slate-200 font-bold">
+                                {lang}
+                              </span>
+                              {domain && (
+                                <span className="text-slate-400 truncate max-w-[140px]" title={subSource.homeUrl}>
+                                  {domain}
+                                </span>
+                              )}
+                            </div>
+                            {subSource.extensionName && subSource.extensionName !== subSource.name && (
+                              <div className="text-[10px] text-cyan-400/80 font-mono truncate mt-0.5">
+                                {subSource.extensionName}
+                              </div>
+                            )}
+                          </div>
+                        </div>
+
+                        {subSource.apkUrl && (
+                          <button
+                            type="button"
+                            onClick={() => triggerFileDownload(subSource.apkUrl, `${subSource.extensionPkg || subSource.name}.apk`)}
+                            className="p-1.5 rounded-lg bg-slate-800 hover:bg-emerald-500/20 text-slate-300 hover:text-emerald-300 border border-white/10 hover:border-emerald-500/40 transition-all cursor-pointer flex-shrink-0"
+                            title="Download Extension APK"
+                            aria-label={`Download ${subSource.extensionName || subSource.name} APK`}
+                          >
+                            <Smartphone className="w-3.5 h-3.5" />
+                          </button>
+                        )}
+                      </div>
+
+                      <div className="grid grid-cols-2 gap-2 pt-2 border-t border-white/5 font-mono text-xs">
+                        <button
+                          type="button"
+                          onClick={() => handleOpenSourceBrowse(parentExt, 'popular', subSource)}
+                          className="px-3 py-1.5 rounded-xl bg-cyan-950/60 hover:bg-cyan-900/60 border border-cyan-500/30 hover:border-cyan-400 text-cyan-300 hover:text-white transition-all flex items-center justify-center gap-1.5 cursor-pointer font-bold"
+                        >
+                          <Flame className="w-3 h-3 text-cyan-400 fill-cyan-400" />
+                          <span>Popular</span>
+                        </button>
+
+                        <button
+                          type="button"
+                          onClick={() => handleOpenSourceBrowse(parentExt, 'latest', subSource)}
+                          className="px-3 py-1.5 rounded-xl bg-slate-800/80 hover:bg-slate-800 border border-white/10 hover:border-white/20 text-slate-300 hover:text-white transition-all flex items-center justify-center gap-1.5 cursor-pointer font-bold"
+                        >
+                          <Clock className="w-3 h-3 text-slate-400" />
+                          <span>Latest</span>
+                        </button>
+                      </div>
+                    </div>
+                  );
+                })}
+              </div>
+            </div>
+          )}
+
           {/* Pinned Sources Shelf (Mihon-Style Top Row) */}
-          {pinnedSources.length > 0 && !globalSearchActive && (
+          {pinnedSources.length > 0 && !globalSearchActive && !(sourceSearchMode === 'nsfw' && nsfwSearchActive) && sourcesViewMode === 'grouped' && (
             <div className="space-y-3">
               <div className="flex items-center gap-2 text-xs font-mono font-bold text-amber-400 tracking-wider">
                 <Pin className="w-3.5 h-3.5 fill-amber-400 text-amber-400" />
@@ -779,6 +1044,7 @@ export default function ExtensionsView({ onSelectManga, onOpenReader }) {
                   <SourceDeckCard
                     key={ext.pkg}
                     extension={ext}
+                    showNsfw={showNsfw}
                     onOpenBrowse={handleOpenSourceBrowse}
                     onTogglePin={togglePinExtension}
                     onToggleActive={toggleExtensionState}
@@ -789,20 +1055,13 @@ export default function ExtensionsView({ onSelectManga, onOpenReader }) {
           )}
 
           {/* All Installed Sources */}
-          {!globalSearchActive && (
+          {!globalSearchActive && !(sourceSearchMode === 'nsfw' && nsfwSearchActive) && sourcesViewMode === 'grouped' && (
             <div className="space-y-3">
               <div className="flex items-center justify-between text-xs font-mono font-bold text-slate-400 tracking-wider">
                 <span className="flex items-center gap-2">
                   <Radio className="w-3.5 h-3.5 text-cyan-400" />
-                  <span>ALL INSTALLED SOURCES ({pinnedSources.length + unpinnedSources.length})</span>
+                  <span>ALL INSTALLED EXTENSIONS ({pinnedSources.length + unpinnedSources.length})</span>
                 </span>
-                <button
-                  onClick={() => setActiveSubTab('extensions')}
-                  className="text-cyan-400 hover:text-cyan-300 hover:underline flex items-center gap-1 cursor-pointer"
-                >
-                  <span>Install More Sources</span>
-                  <ChevronRight className="w-3 h-3" />
-                </button>
               </div>
 
               <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3">
@@ -810,6 +1069,7 @@ export default function ExtensionsView({ onSelectManga, onOpenReader }) {
                   <SourceDeckCard
                     key={ext.pkg}
                     extension={ext}
+                    showNsfw={showNsfw}
                     onOpenBrowse={handleOpenSourceBrowse}
                     onTogglePin={togglePinExtension}
                     onToggleActive={toggleExtensionState}
@@ -822,7 +1082,43 @@ export default function ExtensionsView({ onSelectManga, onOpenReader }) {
       )}
 
       {/* ----------------- TAB 2: DEDICATED 18+ NSFW SEARCH & DECK ----------------- */}
-      {activeSubTab === 'nsfw' && (
+      {activeSubTab === 'nsfw' && !showNsfw && (
+        <div className="p-8 sm:p-12 rounded-3xl bg-gradient-to-br from-rose-950/60 via-slate-950/95 to-slate-950 border border-rose-500/30 shadow-2xl text-center space-y-5">
+          <div className="w-14 h-14 mx-auto rounded-2xl bg-rose-500/20 border border-rose-500/40 flex items-center justify-center">
+            <ShieldAlert className="w-7 h-7 text-rose-400" />
+          </div>
+          <div className="space-y-2 max-w-xl mx-auto">
+            <h2 className="text-xl sm:text-2xl font-black text-white font-['Outfit']">
+              18+ NSFW Sources Are Currently Hidden
+            </h2>
+            <p className="text-xs sm:text-sm text-slate-300 leading-relaxed">
+              Adult (18+) manga, manhwa, and doujinshi search is opt-in so your main library and Safe Mode search stay clean. Enable 18+ Mode if you want to browse and search adult sources.
+            </p>
+          </div>
+          <div className="flex flex-wrap items-center justify-center gap-3">
+            <button
+              type="button"
+              onClick={() => {
+                setShowNsfw(true);
+                setNsfwAllowed(true);
+              }}
+              className="px-6 py-3 rounded-2xl bg-gradient-to-r from-rose-600 to-pink-600 hover:from-rose-500 hover:to-pink-500 text-white text-xs sm:text-sm font-bold shadow-lg shadow-rose-600/30 transition-all cursor-pointer flex items-center gap-2"
+            >
+              <ShieldAlert className="w-4 h-4" />
+              <span>Enable 18+ NSFW Search</span>
+            </button>
+            <button
+              type="button"
+              onClick={() => setActiveSubTab('sources')}
+              className="px-5 py-3 rounded-2xl bg-slate-900 hover:bg-slate-800 text-slate-300 hover:text-white border border-white/10 text-xs sm:text-sm font-bold transition-all cursor-pointer"
+            >
+              Stay in Safe Mode
+            </button>
+          </div>
+        </div>
+      )}
+
+      {activeSubTab === 'nsfw' && showNsfw && (
         <div className="space-y-6">
           {/* Hero Banner for 18+ NSFW Search Engine */}
           <div className="p-6 sm:p-7 rounded-3xl bg-gradient-to-br from-rose-950/80 via-slate-950/95 to-slate-950 border border-rose-500/30 shadow-2xl relative overflow-hidden space-y-5">
@@ -1110,86 +1406,179 @@ export default function ExtensionsView({ onSelectManga, onOpenReader }) {
                 <span>STORE CATALOG: ONLINE</span>
               </div>
 
-              <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-3">
+              <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-3 items-start">
                 {filteredExtensions.map(ext => {
-                  const isInstalled = installedExtensions.some(e => e.pkg === ext.pkg);
+                  const installedExt = installedExtensions.find(e => e.pkg === ext.pkg);
+                  const isInstalled = Boolean(installedExt);
                   const isInstalling = installingPkgs[ext.pkg];
+                  const rawSourcesList = Array.isArray(ext.sources) ? ext.sources : [];
+                  const sourcesList = showNsfw ? rawSourcesList : rawSourcesList.filter(s => !s?.isNsfw);
+                  const isExpanded = Boolean(expandedStorePkgs[ext.pkg]);
 
                   return (
                     <div
                       key={ext.pkg}
-                      className="p-4 rounded-2xl bg-slate-900/80 hover:bg-slate-900 border border-white/10 hover:border-cyan-500/30 transition-all flex items-center justify-between gap-3 shadow-sm group"
+                      className="p-4 rounded-2xl bg-slate-900/80 hover:bg-slate-900 border border-white/10 hover:border-cyan-500/30 transition-all flex flex-col gap-3 shadow-sm group"
                     >
-                      <div className="flex items-center gap-3 min-w-0">
-                        {/* Extension Icon with Fallback */}
-                        <div className="w-11 h-11 rounded-xl bg-slate-950 border border-white/10 flex items-center justify-center overflow-hidden flex-shrink-0">
-                          {ext.iconUrl ? (
-                            <img
-                              src={ext.iconUrl}
-                              alt={ext.name}
-                              className="w-full h-full object-cover"
-                              onError={(e) => {
-                                e.currentTarget.style.display = 'none';
-                                e.currentTarget.nextElementSibling.style.display = 'flex';
-                              }}
-                            />
-                          ) : null}
-                          <div className="w-full h-full hidden items-center justify-center text-sm font-extrabold text-cyan-300 font-mono">
-                            {ext.name.slice(0, 2).toUpperCase()}
+                      <div className="flex items-start justify-between gap-3">
+                        <div className="flex items-center gap-3 min-w-0">
+                          {/* Extension Icon with Fallback */}
+                          <div className="w-11 h-11 rounded-xl bg-slate-950 border border-white/10 flex items-center justify-center overflow-hidden flex-shrink-0">
+                            {ext.iconUrl ? (
+                              <img
+                                src={ext.iconUrl}
+                                alt={ext.name}
+                                className="w-full h-full object-cover"
+                                onError={(e) => {
+                                  e.currentTarget.style.display = 'none';
+                                  if (e.currentTarget.nextElementSibling) {
+                                    e.currentTarget.nextElementSibling.style.display = 'flex';
+                                  }
+                                }}
+                              />
+                            ) : null}
+                            <div className={`w-full h-full items-center justify-center text-sm font-extrabold text-cyan-300 font-mono ${ext.iconUrl ? 'hidden' : 'flex'}`}>
+                              {ext.name.slice(0, 2).toUpperCase()}
+                            </div>
                           </div>
-                        </div>
 
-                        <div className="min-w-0">
-                          <div className="flex items-center gap-1.5 flex-wrap">
-                            <h3 className="text-sm font-bold text-white truncate group-hover:text-cyan-300 transition-colors">
-                              {ext.name}
-                            </h3>
-                            {ext.contentWarning === 'CONTENT_WARNING_NSFW' && (
-                              <span className="px-1.5 py-0.2 rounded text-[9px] font-mono font-bold bg-rose-500/20 text-rose-300 border border-rose-500/40">
-                                18+
+                          <div className="min-w-0">
+                            <div className="flex items-center gap-1.5 flex-wrap">
+                              <h3 className="text-sm font-bold text-white truncate group-hover:text-cyan-300 transition-colors">
+                                {ext.name}
+                              </h3>
+                              {ext.contentWarning === 'CONTENT_WARNING_NSFW' && (
+                                <span className="px-1.5 py-0.2 rounded text-[9px] font-mono font-bold bg-rose-500/20 text-rose-300 border border-rose-500/40">
+                                  18+
+                                </span>
+                              )}
+                              {sourcesList.length > 1 && (
+                                <span className="px-1.5 py-0.2 rounded text-[9px] font-mono font-bold bg-cyan-500/15 text-cyan-300 border border-cyan-500/30">
+                                  {sourcesList.length} sources
+                                </span>
+                              )}
+                            </div>
+                            <div className="flex items-center gap-2 text-[10px] font-mono text-slate-400 mt-0.5">
+                              <span className="uppercase px-1.5 py-0.2 rounded bg-slate-800 text-slate-300 font-bold">
+                                {ext.lang || 'ALL'}
                               </span>
-                            )}
+                              <span>v{ext.versionName}</span>
+                            </div>
                           </div>
-                          <div className="flex items-center gap-2 text-[10px] font-mono text-slate-400 mt-0.5">
-                            <span className="uppercase px-1.5 py-0.2 rounded bg-slate-800 text-slate-300 font-bold">
-                              {ext.lang || 'ALL'}
-                            </span>
-                            <span>v{ext.versionName}</span>
-                          </div>
+                        </div>
+
+                        {/* Action Buttons */}
+                        <div className="flex items-center gap-1.5 flex-shrink-0 flex-wrap justify-end">
+                          {ext.apkUrl && (
+                            <button
+                              type="button"
+                              onClick={() => triggerFileDownload(ext.apkUrl, `${ext.pkg || ext.name}.apk`)}
+                              className="px-2.5 py-1.5 rounded-xl bg-slate-800 hover:bg-emerald-500/20 text-slate-300 hover:text-emerald-300 border border-white/10 hover:border-emerald-500/40 text-[11px] font-bold font-mono flex items-center gap-1 transition-all cursor-pointer"
+                              title="Download Extension APK"
+                            >
+                              <Smartphone className="w-3.5 h-3.5" />
+                              <span className="hidden xl:inline">Download APK</span>
+                            </button>
+                          )}
+
+                          {isInstalled ? (
+                            <div className="flex items-center gap-1.5">
+                              <span className="px-2.5 py-1.5 rounded-xl bg-emerald-500/15 border border-emerald-500/30 text-emerald-300 text-xs font-bold font-mono flex items-center gap-1">
+                                <CheckCircle2 className="w-3.5 h-3.5 text-emerald-400" />
+                                <span className="hidden sm:inline">Installed</span>
+                              </span>
+                              <button
+                                onClick={() => handleUninstall(ext.pkg)}
+                                className="p-2 rounded-xl bg-slate-800 hover:bg-rose-500/20 text-slate-400 hover:text-rose-400 border border-white/10 hover:border-rose-500/30 transition-all cursor-pointer"
+                                title="Uninstall extension"
+                              >
+                                <Trash2 className="w-3.5 h-3.5" />
+                              </button>
+                            </div>
+                          ) : (
+                            <button
+                              onClick={() => handleInstallExtension(ext)}
+                              disabled={isInstalling}
+                              className="px-3.5 py-1.5 rounded-xl bg-gradient-to-r from-rose-600 to-indigo-600 hover:from-rose-500 hover:to-indigo-500 text-white text-xs font-bold transition-all shadow-md shadow-rose-600/20 flex items-center gap-1.5 cursor-pointer disabled:opacity-50"
+                            >
+                              {isInstalling ? (
+                                <Loader2 className="w-3.5 h-3.5 animate-spin" />
+                              ) : (
+                                <Download className="w-3.5 h-3.5" />
+                              )}
+                              <span>{isInstalling ? 'Installing' : 'Install'}</span>
+                            </button>
+                          )}
                         </div>
                       </div>
 
-                      {/* Action Button */}
-                      <div className="flex-shrink-0">
-                        {isInstalled ? (
-                          <div className="flex items-center gap-1.5">
-                            <span className="px-2.5 py-1.5 rounded-xl bg-emerald-500/15 border border-emerald-500/30 text-emerald-300 text-xs font-bold font-mono flex items-center gap-1">
-                              <CheckCircle2 className="w-3.5 h-3.5 text-emerald-400" />
-                              <span className="hidden sm:inline">Installed</span>
-                            </span>
+                      {/* Expandable Sub-Sources List */}
+                      {sourcesList.length > 0 && (
+                        <div className="pt-2 border-t border-white/5 space-y-2">
+                          <div className="flex items-center justify-between gap-2">
                             <button
-                              onClick={() => handleUninstall(ext.pkg)}
-                              className="p-2 rounded-xl bg-slate-800 hover:bg-rose-500/20 text-slate-400 hover:text-rose-400 border border-white/10 hover:border-rose-500/30 transition-all cursor-pointer"
-                              title="Uninstall extension"
+                              type="button"
+                              onClick={() => setExpandedStorePkgs(prev => ({ ...prev, [ext.pkg]: !prev[ext.pkg] }))}
+                              className="text-[11px] font-mono font-semibold text-cyan-400 hover:text-cyan-300 flex items-center gap-1 cursor-pointer"
                             >
-                              <Trash2 className="w-3.5 h-3.5" />
+                              {isExpanded ? (
+                                <ChevronDown className="w-3.5 h-3.5" />
+                              ) : (
+                                <ChevronRight className="w-3.5 h-3.5" />
+                              )}
+                              <span>View All Sources ({sourcesList.length})</span>
                             </button>
-                          </div>
-                        ) : (
-                          <button
-                            onClick={() => handleInstallExtension(ext)}
-                            disabled={isInstalling}
-                            className="px-3.5 py-1.5 rounded-xl bg-gradient-to-r from-rose-600 to-indigo-600 hover:from-rose-500 hover:to-indigo-500 text-white text-xs font-bold transition-all shadow-md shadow-rose-600/20 flex items-center gap-1.5 cursor-pointer disabled:opacity-50"
-                          >
-                            {isInstalling ? (
-                              <Loader2 className="w-3.5 h-3.5 animate-spin" />
-                            ) : (
-                              <Download className="w-3.5 h-3.5" />
+
+                            {ext.apkUrl && (
+                              <button
+                                type="button"
+                                onClick={() => triggerFileDownload(ext.apkUrl, `${ext.pkg || ext.name}.apk`)}
+                                className="xl:hidden text-[10px] font-mono font-bold text-emerald-300 hover:text-emerald-200 flex items-center gap-1 cursor-pointer"
+                              >
+                                <Download className="w-3 h-3" />
+                                <span>Download APK</span>
+                              </button>
                             )}
-                            <span>{isInstalling ? 'Installing' : 'Install'}</span>
-                          </button>
-                        )}
-                      </div>
+                          </div>
+
+                          {isExpanded && (
+                            <div className="space-y-1.5 max-h-48 overflow-y-auto pr-1 scrollbar-thin">
+                              {sourcesList.map((subSrc, idx) => {
+                                const domain = extractDomain(subSrc.homeUrl);
+                                return (
+                                  <div
+                                    key={`${ext.pkg}_sub_${subSrc.id || idx}`}
+                                    className="px-2.5 py-1.5 rounded-xl bg-slate-950/80 border border-white/5 flex items-center justify-between gap-2 text-[11px]"
+                                  >
+                                    <div className="min-w-0">
+                                      <div className="flex items-center gap-1.5">
+                                        <span className="font-semibold text-slate-200 truncate">{subSrc.name}</span>
+                                        <span className="uppercase px-1 py-0.2 rounded bg-slate-800 text-slate-300 text-[9px] font-mono font-bold">
+                                          {subSrc.language || ext.lang || 'all'}
+                                        </span>
+                                      </div>
+                                      {domain && (
+                                        <p className="text-[10px] font-mono text-slate-500 truncate">{domain}</p>
+                                      )}
+                                    </div>
+
+                                    {isInstalled && (
+                                      <button
+                                        type="button"
+                                        onClick={() => handleOpenSourceBrowse(installedExt || ext, 'popular', subSrc)}
+                                        className="px-2 py-1 rounded-lg bg-cyan-500/15 hover:bg-cyan-500/25 text-cyan-300 border border-cyan-500/30 text-[10px] font-mono font-bold flex items-center gap-1 flex-shrink-0 cursor-pointer"
+                                      >
+                                        <BookOpen className="w-3 h-3" />
+                                        <span>Browse</span>
+                                      </button>
+                                    )}
+                                  </div>
+                                );
+                              })}
+                            </div>
+                          )}
+                        </div>
+                      )}
                     </div>
                   );
                 })}
@@ -1325,7 +1714,7 @@ export default function ExtensionsView({ onSelectManga, onOpenReader }) {
                     {!repo.isOfficial && (
                       <button
                         onClick={() => {
-                          if (confirm(`Remove repository "${repo.name}"?`)) {
+                          if (window.confirm(`Remove repository "${repo.name}"?`)) {
                             removeRepository(repo.id);
                             refreshRepos();
                           }
@@ -1369,7 +1758,7 @@ export default function ExtensionsView({ onSelectManga, onOpenReader }) {
             
             {/* Modal Header */}
             <div className="p-4 sm:p-5 border-b border-white/10 bg-slate-900/80 flex items-center justify-between gap-3">
-              <div className="flex items-center gap-3">
+              <div className="flex items-center gap-3 min-w-0">
                 <div className="w-9 h-9 rounded-xl bg-slate-950 border border-white/10 overflow-hidden flex items-center justify-center flex-shrink-0">
                   {browsingSource.source.iconUrl ? (
                     <img src={browsingSource.source.iconUrl} alt="" className="w-full h-full object-cover" />
@@ -1377,23 +1766,34 @@ export default function ExtensionsView({ onSelectManga, onOpenReader }) {
                     <Radio className="w-4 h-4 text-cyan-400" />
                   )}
                 </div>
-                <div>
-                  <h3 className="text-base font-extrabold text-white flex items-center gap-2 font-['Outfit']">
-                    <span>{browsingSource.source.name}</span>
+                <div className="min-w-0">
+                  <h3 className="text-base font-extrabold text-white flex items-center gap-2 font-['Outfit'] flex-wrap">
+                    <span className="truncate">
+                      {browsingSource.activeSubSource?.name || browsingSource.source.name}
+                    </span>
+                    {browsingSource.activeSubSource?.language && (
+                      <span className="px-1.5 py-0.5 rounded bg-slate-800 text-slate-300 text-[10px] font-mono uppercase">
+                        {browsingSource.activeSubSource.language}
+                      </span>
+                    )}
                     <span className="text-xs font-mono font-normal text-cyan-400 uppercase">
                       [{browsingSource.mode.toUpperCase()}]
                     </span>
                   </h3>
-                  <p className="text-[11px] text-slate-400 font-mono">
-                    Scraping live from {browsingSource.source.sources[0]?.homeUrl || 'extension feed'}
+                  <p className="text-[11px] text-slate-400 font-mono truncate">
+                    Scraping live from {browsingSource.activeSubSource?.homeUrl || browsingSource.source.sources?.[0]?.homeUrl || 'extension feed'}
                   </p>
                 </div>
               </div>
 
-              <div className="flex items-center gap-2">
+              <div className="flex items-center gap-2 flex-shrink-0">
                 {/* Switch between Popular and Latest */}
                 <button
-                  onClick={() => handleOpenSourceBrowse(browsingSource.source, browsingSource.mode === 'popular' ? 'latest' : 'popular')}
+                  onClick={() => handleOpenSourceBrowse(
+                    browsingSource.source,
+                    browsingSource.mode === 'popular' ? 'latest' : 'popular',
+                    browsingSource.activeSubSource
+                  )}
                   className="px-3 py-1.5 rounded-xl bg-slate-800 hover:bg-slate-700 text-xs font-mono text-slate-300 font-bold border border-white/10 transition-all flex items-center gap-1.5 cursor-pointer"
                 >
                   <RefreshCw className="w-3 h-3 text-cyan-400" />
@@ -1409,6 +1809,50 @@ export default function ExtensionsView({ onSelectManga, onOpenReader }) {
               </div>
             </div>
 
+            {/* Source Stream / Language Switcher Bar for Multi-Source Extensions */}
+            {browsingSource.source.sources?.length > 1 && (
+              <div className="px-3 sm:px-4 py-2.5 bg-slate-950/80 border-b border-white/10 flex items-center gap-1.5 overflow-x-auto scrollbar-none font-mono text-[11px]">
+                <span className="text-cyan-400 font-bold flex items-center gap-1 flex-shrink-0 mr-1">
+                  <Radio className="w-3.5 h-3.5 text-cyan-400" />
+                  <span>STREAMS ({browsingSource.source.sources.length}):</span>
+                </span>
+                {browsingSource.source.sources.map((sub, idx) => {
+                  const activeSub = browsingSource.activeSubSource;
+                  const isActiveSub = (sub.id && activeSub?.id && sub.id === activeSub.id)
+                    || (sub.name === activeSub?.name && sub.language === activeSub?.language);
+                  return (
+                    <button
+                      key={`${sub.id || sub.name}_${idx}`}
+                      type="button"
+                      onClick={() => {
+                        if (sourceQuery.trim()) {
+                          handleOpenSourceBrowse(browsingSource.source, 'search', sub, sourceQuery);
+                        } else {
+                          handleOpenSourceBrowse(
+                            browsingSource.source,
+                            browsingSource.mode === 'search' ? 'popular' : browsingSource.mode,
+                            sub
+                          );
+                        }
+                      }}
+                      className={`px-2.5 py-1 rounded-lg font-bold whitespace-nowrap transition-all cursor-pointer flex items-center gap-1.5 ${
+                        isActiveSub
+                          ? 'bg-cyan-600 text-white shadow-sm shadow-cyan-500/30'
+                          : 'bg-slate-900 text-slate-300 hover:text-white border border-white/10 hover:border-cyan-500/40'
+                      }`}
+                    >
+                      <span>{sub.name}</span>
+                      <span className={`text-[9px] uppercase px-1 rounded ${
+                        isActiveSub ? 'bg-black/25 text-white' : 'bg-slate-800 text-slate-400'
+                      }`}>
+                        {sub.language || 'all'}
+                      </span>
+                    </button>
+                  );
+                })}
+              </div>
+            )}
+
             {/* In-Source Search Bar */}
             <div className="p-3 sm:p-4 bg-slate-900/40 border-b border-white/5">
               <form onSubmit={handleSourceSearch} className="flex items-center gap-2">
@@ -1418,7 +1862,7 @@ export default function ExtensionsView({ onSelectManga, onOpenReader }) {
                     type="text"
                     value={sourceQuery}
                     onChange={(e) => setSourceQuery(e.target.value)}
-                    placeholder={`Search titles exclusively within ${browsingSource.source.name}...`}
+                    placeholder={`Search titles exclusively within ${browsingSource.activeSubSource?.name || browsingSource.source.name}...`}
                     className="w-full bg-slate-900 border border-white/10 rounded-xl pl-9 pr-3 py-2 text-xs text-white placeholder-slate-500 focus:outline-none focus:border-cyan-400"
                   />
                 </div>
@@ -1436,11 +1880,13 @@ export default function ExtensionsView({ onSelectManga, onOpenReader }) {
               {loadingSourceManga ? (
                 <div className="py-24 flex flex-col items-center justify-center gap-3">
                   <Loader2 className="w-8 h-8 text-cyan-400 animate-spin" />
-                  <p className="text-xs text-slate-400 font-mono">Fetching catalog directly from {browsingSource.source.name}...</p>
+                  <p className="text-xs text-slate-400 font-mono">
+                    Fetching catalog directly from {browsingSource.activeSubSource?.name || browsingSource.source.name}...
+                  </p>
                 </div>
               ) : sourceMangaList.length === 0 ? (
                 <div className="py-20 text-center text-slate-400 text-sm">
-                  No manga found from {browsingSource.source.name} for this query.
+                  No manga found from {browsingSource.activeSubSource?.name || browsingSource.source.name} for this query.
                 </div>
               ) : (
                 <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 gap-4">
@@ -1466,19 +1912,21 @@ export default function ExtensionsView({ onSelectManga, onOpenReader }) {
 }
 
 // ----------------- COMPONENT: SOURCE DECK CARD -----------------
-function SourceDeckCard({ extension, onOpenBrowse, onTogglePin, onToggleActive }) {
+function SourceDeckCard({ extension, showNsfw = false, onOpenBrowse, onTogglePin, onToggleActive }) {
   const isPinned = !!extension.isPinned;
   const isEnabled = extension.enabled !== false;
   const sourceName = extension.name;
   const lang = (extension.lang || 'all').toUpperCase();
-  const primarySource = extension.sources?.[0];
+  const rawSources = Array.isArray(extension.sources) ? extension.sources : [];
+  const sources = showNsfw ? rawSources : rawSources.filter(s => !s?.isNsfw);
+  const primarySource = sources[0] || extension.sources?.[0];
 
   return (
     <div className={`p-4 rounded-2xl border transition-all duration-300 flex flex-col justify-between gap-3 shadow-md group ${
       isPinned 
         ? 'bg-slate-900/90 border-amber-500/40 hover:border-amber-400 shadow-amber-500/5' 
         : 'bg-slate-900/70 border-white/10 hover:border-cyan-500/30'
-    }`}>
+    } ${!isEnabled ? 'opacity-60' : ''}`}>
       
       {/* Top Details */}
       <div className="flex items-start justify-between gap-2">
@@ -1491,9 +1939,16 @@ function SourceDeckCard({ extension, onOpenBrowse, onTogglePin, onToggleActive }
             )}
           </div>
           <div className="min-w-0">
-            <h3 className="text-sm font-bold text-white truncate group-hover:text-cyan-300 transition-colors font-['Outfit']">
-              {sourceName}
-            </h3>
+            <div className="flex items-center gap-1.5 flex-wrap">
+              <h3 className="text-sm font-bold text-white truncate group-hover:text-cyan-300 transition-colors font-['Outfit']">
+                {sourceName}
+              </h3>
+              {sources.length > 1 && (
+                <span className="px-1.5 py-0.2 rounded text-[9px] font-mono font-bold bg-cyan-500/15 text-cyan-300 border border-cyan-500/30">
+                  {sources.length} sources
+                </span>
+              )}
+            </div>
             <div className="flex items-center gap-2 text-[10px] font-mono text-slate-400 mt-0.5">
               <span className="px-1.5 py-0.2 rounded bg-slate-800 text-slate-300 font-bold">
                 {lang}
@@ -1505,37 +1960,86 @@ function SourceDeckCard({ extension, onOpenBrowse, onTogglePin, onToggleActive }
           </div>
         </div>
 
-        {/* Pin Button */}
-        <button
-          onClick={() => onTogglePin(extension.pkg)}
-          className={`p-1.5 rounded-lg border transition-all cursor-pointer ${
-            isPinned 
-              ? 'bg-amber-500/20 text-amber-300 border-amber-500/40' 
-              : 'text-slate-500 hover:text-slate-300 border-transparent hover:border-white/10'
-          }`}
-          title={isPinned ? 'Unpin source' : 'Pin source to top'}
-        >
-          <Pin className={`w-3.5 h-3.5 ${isPinned ? 'fill-amber-400' : ''}`} />
-        </button>
+        <div className="flex items-center gap-1 flex-shrink-0">
+          {onToggleActive && (
+            <button
+              type="button"
+              onClick={() => onToggleActive(extension.pkg, !isEnabled)}
+              className={`px-2 py-1 rounded-lg text-[10px] font-mono font-bold border transition-all cursor-pointer ${
+                isEnabled
+                  ? 'bg-emerald-500/15 text-emerald-300 border-emerald-500/30 hover:bg-emerald-500/25'
+                  : 'bg-slate-800 text-slate-400 border-white/10 hover:text-white'
+              }`}
+              title={isEnabled ? 'Disable in global search' : 'Enable in global search'}
+            >
+              {isEnabled ? 'ON' : 'OFF'}
+            </button>
+          )}
+
+          {/* Pin Button */}
+          <button
+            onClick={() => onTogglePin(extension.pkg)}
+            className={`p-1.5 rounded-lg border transition-all cursor-pointer ${
+              isPinned 
+                ? 'bg-amber-500/20 text-amber-300 border-amber-500/40' 
+                : 'text-slate-500 hover:text-slate-300 border-transparent hover:border-white/10'
+            }`}
+            title={isPinned ? 'Unpin source' : 'Pin source to top'}
+          >
+            <Pin className={`w-3.5 h-3.5 ${isPinned ? 'fill-amber-400' : ''}`} />
+          </button>
+        </div>
       </div>
 
-      {/* Action Buttons: Browse Popular / Latest / Search */}
-      <div className="grid grid-cols-2 gap-2 pt-2 border-t border-white/5 font-mono text-xs">
-        <button
-          onClick={() => onOpenBrowse(extension, 'popular')}
-          className="px-3 py-1.5 rounded-xl bg-cyan-950/60 hover:bg-cyan-900/60 border border-cyan-500/30 hover:border-cyan-400 text-cyan-300 hover:text-white transition-all flex items-center justify-center gap-1.5 cursor-pointer font-bold"
-        >
-          <Flame className="w-3 h-3 text-cyan-400 fill-cyan-400" />
-          <span>Popular</span>
-        </button>
+      {/* All Sub-Sources Pills */}
+      {sources.length > 0 && (
+        <div className="flex flex-wrap gap-1.5 max-h-24 overflow-y-auto pr-0.5 scrollbar-thin">
+          {sources.map((sub, idx) => (
+            <button
+              key={`${sub.id || sub.name}_${idx}`}
+              type="button"
+              onClick={() => onOpenBrowse(extension, 'popular', sub)}
+              className="px-2 py-1 rounded-lg bg-slate-950/90 hover:bg-cyan-950/70 border border-white/10 hover:border-cyan-400/50 text-[10px] font-mono text-slate-300 hover:text-cyan-200 transition-all flex items-center gap-1 cursor-pointer"
+              title={`Browse ${sub.name} (${(sub.language || 'all').toUpperCase()})`}
+            >
+              <span className="truncate max-w-[130px] font-semibold">{sub.name}</span>
+              <span className="text-slate-500">•</span>
+              <span className="uppercase text-cyan-400 font-bold">{sub.language || 'all'}</span>
+            </button>
+          ))}
+        </div>
+      )}
 
-        <button
-          onClick={() => onOpenBrowse(extension, 'latest')}
-          className="px-3 py-1.5 rounded-xl bg-slate-800/80 hover:bg-slate-800 border border-white/10 hover:border-white/20 text-slate-300 hover:text-white transition-all flex items-center justify-center gap-1.5 cursor-pointer font-bold"
-        >
-          <Clock className="w-3 h-3 text-slate-400" />
-          <span>Latest</span>
-        </button>
+      {/* Action Buttons: Browse Popular / Latest / Download APK */}
+      <div className="space-y-2 pt-2 border-t border-white/5 font-mono text-xs">
+        <div className="grid grid-cols-2 gap-2">
+          <button
+            onClick={() => onOpenBrowse(extension, 'popular', primarySource)}
+            className="px-3 py-1.5 rounded-xl bg-cyan-950/60 hover:bg-cyan-900/60 border border-cyan-500/30 hover:border-cyan-400 text-cyan-300 hover:text-white transition-all flex items-center justify-center gap-1.5 cursor-pointer font-bold"
+          >
+            <Flame className="w-3 h-3 text-cyan-400 fill-cyan-400" />
+            <span>Popular</span>
+          </button>
+
+          <button
+            onClick={() => onOpenBrowse(extension, 'latest', primarySource)}
+            className="px-3 py-1.5 rounded-xl bg-slate-800/80 hover:bg-slate-800 border border-white/10 hover:border-white/20 text-slate-300 hover:text-white transition-all flex items-center justify-center gap-1.5 cursor-pointer font-bold"
+          >
+            <Clock className="w-3 h-3 text-slate-400" />
+            <span>Latest</span>
+          </button>
+        </div>
+
+        {extension.apkUrl && (
+          <button
+            type="button"
+            onClick={() => triggerFileDownload(extension.apkUrl, `${extension.pkg || extension.name}.apk`)}
+            className="w-full px-3 py-1.5 rounded-xl bg-emerald-500/10 hover:bg-emerald-500/20 border border-emerald-500/30 text-emerald-300 hover:text-white transition-all flex items-center justify-center gap-1.5 cursor-pointer font-bold text-[11px]"
+          >
+            <Download className="w-3.5 h-3.5 text-emerald-400" />
+            <span>Download APK</span>
+          </button>
+        )}
       </div>
 
     </div>
