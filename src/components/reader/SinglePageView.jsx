@@ -55,6 +55,15 @@ export default function SinglePageView({
     setHasError(false);
     retriedCountRef.current += 1;
     const targetUrl = curPage.originalUrl || curPage.url;
+    if (typeof window !== 'undefined' && window.AndroidBridge && typeof window.AndroidBridge.fetchImageBase64 === 'function' && /^https?:\/\//i.test(targetUrl)) {
+      try {
+        const b64 = window.AndroidBridge.fetchImageBase64(targetUrl, loadedChapters[0]?.sourceUrl || '');
+        if (b64 && b64.startsWith('data:image/')) {
+          setCurrentSrc(b64);
+          return;
+        }
+      } catch {}
+    }
     const proxyUrl = getProxyUrl(targetUrl);
     const sep = proxyUrl.includes('?') ? '&' : '?';
     const newSrc = `${proxyUrl}${sep}_reload=${Date.now()}`;
@@ -63,15 +72,29 @@ export default function SinglePageView({
 
   const handleImageError = () => {
     if (!curPage) return;
+    const targetUrl = curPage.originalUrl || curPage.url || '';
     if (retriedCountRef.current === 0) {
       retriedCountRef.current = 1;
-      const targetUrl = curPage.originalUrl || curPage.url;
-      setCurrentSrc(getProxyUrl(targetUrl));
-      return;
+      if (typeof window !== 'undefined' && window.AndroidBridge && typeof window.AndroidBridge.fetchImageBase64 === 'function' && /^https?:\/\//i.test(targetUrl)) {
+        try {
+          const b64 = window.AndroidBridge.fetchImageBase64(targetUrl, loadedChapters[0]?.sourceUrl || '');
+          if (b64 && b64.startsWith('data:image/')) {
+            setCurrentSrc(b64);
+            return;
+          }
+        } catch {}
+      }
+      if (getApiBaseUrl() || (typeof window !== 'undefined' && window.AndroidBridge)) {
+        setCurrentSrc(getProxyUrl(targetUrl));
+        return;
+      }
+      if (targetUrl && currentSrc !== targetUrl && /^https?:\/\//i.test(targetUrl)) {
+        setCurrentSrc(targetUrl);
+        return;
+      }
     }
-    if (retriedCountRef.current === 1) {
+    if (retriedCountRef.current <= 1 && targetUrl && !targetUrl.startsWith('data:') && !targetUrl.includes('/api/image-proxy')) {
       retriedCountRef.current = 2;
-      const targetUrl = curPage.originalUrl || curPage.url;
       const fallbackUrl = `https://images.weserv.nl/?url=${encodeURIComponent(targetUrl)}`;
       setCurrentSrc(fallbackUrl);
       return;
