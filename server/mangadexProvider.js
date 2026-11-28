@@ -3,6 +3,8 @@
  * Flagship source from the Keiyoushi ecosystem
  */
 
+import dns from 'node:dns';
+try { dns.setDefaultResultOrder?.('ipv4first'); } catch {}
 import { cleanTitle, getFallbackCover } from './htmlUtils.js';
 
 const BASE_URL = 'https://api.mangadex.org';
@@ -34,7 +36,7 @@ async function fetchWithTimeout(url, options = {}, timeoutMs = 10000) {
       ...options,
       signal: controller.signal,
       headers: {
-        'User-Agent': 'KuroNeko/2.0 (Manga Reader)',
+        'User-Agent': 'KuroNekoManga/2.0',
         Accept: 'application/json',
         ...(options.headers || {}),
       },
@@ -105,6 +107,7 @@ function formatMangaDexItem(item) {
 
   const lastCh = attrs.lastChapter;
   const numCh = lastCh && !isNaN(parseFloat(lastCh)) ? Math.floor(parseFloat(lastCh)) : null;
+  const isNsfw = attrs.contentRating === 'erotica' || attrs.contentRating === 'pornographic';
 
   return {
     id: `md:${id}`,
@@ -117,6 +120,8 @@ function formatMangaDexItem(item) {
     status: attrs.status ? attrs.status.toUpperCase() : 'ONGOING',
     year: attrs.year || null,
     contentRating: attrs.contentRating || 'safe',
+    contentWarning: isNsfw ? 'CONTENT_WARNING_NSFW' : 'CONTENT_WARNING_SAFE',
+    isNsfw,
     genres: genres.slice(0, 5),
     rating: '4.8',
     source: 'MangaDex',
@@ -254,7 +259,7 @@ export async function getMangaDexDetails(rawId, bypassCache = false) {
     // 2. Fetch Chapters (English, sorted descending, up to 500 per batch, paginating if total > 500)
     let chapters = [];
     try {
-      const initialFeedUrl = `${BASE_URL}/manga/${cleanId}/feed?translatedLanguage[]=en&order[chapter]=desc&limit=500&offset=0&includeExternalUrl=0&contentRating[]=safe&contentRating[]=suggestive&contentRating[]=erotica`;
+      const initialFeedUrl = `${BASE_URL}/manga/${cleanId}/feed?translatedLanguage[]=en&order[chapter]=desc&limit=500&offset=0&includeExternalUrl=0&contentRating[]=safe&contentRating[]=suggestive&contentRating[]=erotica&contentRating[]=pornographic`;
       const initialRes = await fetchWithTimeout(initialFeedUrl, {}, 8000);
       if (initialRes.ok) {
         const feedData = await initialRes.json();
@@ -266,7 +271,7 @@ export async function getMangaDexDetails(rawId, bypassCache = false) {
           const remainingBatches = [];
           const maxToFetch = Math.min(totalChaptersCount, 1500);
           for (let offset = 500; offset < maxToFetch; offset += 500) {
-            const nextUrl = `${BASE_URL}/manga/${cleanId}/feed?translatedLanguage[]=en&order[chapter]=desc&limit=500&offset=${offset}&includeExternalUrl=0&contentRating[]=safe&contentRating[]=suggestive&contentRating[]=erotica`;
+            const nextUrl = `${BASE_URL}/manga/${cleanId}/feed?translatedLanguage[]=en&order[chapter]=desc&limit=500&offset=${offset}&includeExternalUrl=0&contentRating[]=safe&contentRating[]=suggestive&contentRating[]=erotica&contentRating[]=pornographic`;
             remainingBatches.push(
               fetchWithTimeout(nextUrl, {}, 8000)
                 .then(r => r.ok ? r.json() : null)
@@ -338,7 +343,10 @@ export async function getMangaDexChapterPages(rawChapterId, preferDataSaver = tr
 
   try {
     const url = `${BASE_URL}/at-home/server/${cleanId}`;
-    const res = await fetchWithTimeout(url, {}, 6000);
+    let res = await fetchWithTimeout(url, {}, 9500).catch(() => null);
+    if (!res || (!res.ok && res.status >= 500)) {
+      res = await fetchWithTimeout(url, {}, 9500);
+    }
     if (!res.ok) throw new Error(`At-Home API error: HTTP ${res.status}`);
     const data = await res.json();
 
