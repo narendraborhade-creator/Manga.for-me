@@ -80,9 +80,10 @@ export const DEFAULT_PREINSTALLED_EXTENSIONS = [
     installedAt: Date.now(),
     enabled: true,
     isPinned: true,
-    contentWarning: 'CONTENT_WARNING_SAFE',
+    contentWarning: 'CONTENT_WARNING_MIXED',
     sources: [
-      { id: 'mangadex', name: 'MangaDex', language: 'all', homeUrl: 'https://mangadex.org', badge: 'Official Multi' }
+      { id: 'mangadex', name: 'MangaDex', language: 'all', homeUrl: 'https://mangadex.org', badge: 'Official Multi' },
+      { id: 'mangadex_nsfw', name: 'MangaDex (18+)', language: 'all', homeUrl: 'https://mangadex.org', badge: '18+ Erotica', isNsfw: true }
     ]
   },
   {
@@ -172,7 +173,22 @@ export const DEFAULT_PREINSTALLED_EXTENSIONS = [
     isPinned: false,
     contentWarning: 'CONTENT_WARNING_NSFW',
     sources: [
-      { id: 'manga18fx', name: 'Manga18fx', language: 'en', homeUrl: 'https://manga18fx.com', badge: '18+ Adult' }
+      { id: 'manga18fx', name: 'Manga18fx', language: 'en', homeUrl: 'https://manga18fx.com', badge: '18+ Adult', isNsfw: true }
+    ]
+  },
+  {
+    pkg: 'eu.kanade.tachiyomi.extension.all.nhentai',
+    name: 'NHentai',
+    versionName: '1.4.40',
+    lang: 'all',
+    iconUrl: 'https://cdn.jsdelivr.net/gh/keiyoushi/extensions-source@main/src/all/nhentai/res/mipmap-xhdpi/ic_launcher.png',
+    repoId: 'keiyoushi',
+    installedAt: Date.now(),
+    enabled: true,
+    isPinned: false,
+    contentWarning: 'CONTENT_WARNING_NSFW',
+    sources: [
+      { id: 'nhentai', name: 'NHentai', language: 'all', homeUrl: 'https://nhentai.net', badge: '18+ Doujin', isNsfw: true }
     ]
   },
   {
@@ -187,7 +203,172 @@ export const DEFAULT_PREINSTALLED_EXTENSIONS = [
     isPinned: false,
     contentWarning: 'CONTENT_WARNING_NSFW',
     sources: [
-      { id: 'doujindesu', name: 'DoujinDesu', language: 'all', homeUrl: 'https://doujindesu.tv', badge: '18+ Color' }
+      { id: 'doujindesu', name: 'DoujinDesu', language: 'all', homeUrl: 'https://doujindesu.tv', badge: '18+ Color', isNsfw: true }
+    ]
+  },
+  {
+    pkg: 'eu.kanade.tachiyomi.extension.en.hiperdex',
+    name: 'HiperDEX',
+    versionName: '1.4.25',
+    lang: 'en',
+    iconUrl: 'https://cdn.jsdelivr.net/gh/keiyoushi/extensions-source@main/src/en/hiperdex/res/mipmap-xhdpi/ic_launcher.png',
+    repoId: 'keiyoushi',
+    installedAt: Date.now(),
+    enabled: true,
+    isPinned: false,
+    contentWarning: 'CONTENT_WARNING_NSFW',
+    sources: [
+      { id: 'hiperdex', name: 'HiperDEX', language: 'en', homeUrl: 'https://hiperdex.com', badge: '18+ Manhwa', isNsfw: true }
+    ]
+  },
+  {
+    pkg: 'eu.kanade.tachiyomi.extension.en.toonily',
+    name: 'Toonily',
+    versionName: '1.4.30',
+    lang: 'en',
+    iconUrl: 'https://cdn.jsdelivr.net/gh/keiyoushi/extensions-source@main/src/en/toonily/res/mipmap-xhdpi/ic_launcher.png',
+    repoId: 'keiyoushi',
+    installedAt: Date.now(),
+    enabled: true,
+    isPinned: false,
+    contentWarning: 'CONTENT_WARNING_NSFW',
+    sources: [
+      { id: 'toonily', name: 'Toonily', language: 'en', homeUrl: 'https://toonily.com', badge: '18+ Webtoon', isNsfw: true }
+    ]
+  },
+  {
+    pkg: 'eu.kanade.tachiyomi.extension.en.manhwa18',
+    name: 'Manhwa18',
+    versionName: '1.4.18',
+    lang: 'en',
+    iconUrl: 'https://cdn.jsdelivr.net/gh/keiyoushi/extensions-source@main/src/en/manhwa18/res/mipmap-xhdpi/ic_launcher.png',
+    repoId: 'keiyoushi',
+    installedAt: Date.now(),
+    enabled: true,
+    isPinned: false,
+    contentWarning: 'CONTENT_WARNING_NSFW',
+    sources: [
+      { id: 'manhwa18', name: 'Manhwa18', language: 'en', homeUrl: 'https://manhwa18.com', badge: '18+ Manhwa', isNsfw: true }
+    ]
+  },
+  {
+    pkg: 'eu.kanade.tachiyomi.extension.en.manhwa18cc',
+    name: 'Manhwa18.cc',
+    versionName: '1.4.14',
+    lang: 'en',
+    iconUrl: 'https://cdn.jsdelivr.net/gh/keiyoushi/extensions-source@main/src/en/manhwa18cc/res/mipmap-xhdpi/ic_launcher.png',
+    repoId: 'keiyoushi',
+    installedAt: Date.now(),
+    enabled: true,
+    isPinned: false,
+    contentWarning: 'CONTENT_WARNING_NSFW',
+    sources: [
+      { id: 'manhwa18cc', name: 'Manhwa18.cc', language: 'en', homeUrl: 'https://manhwa18.cc', badge: '18+ Raw/En', isNsfw: true }
+    ]
+  },
+  {
+    pkg: 'eu.kanade.tachiyomi.extension.en.manytoon',
+    name: 'ManyToon',
+    versionName: '1.4.22',
+    lang: 'en',
+    iconUrl: 'https://cdn.jsdelivr.net/gh/keiyoushi/extensions-source@main/src/en/manytoon/res/mipmap-xhdpi/ic_launcher.png',
+    repoId: 'keiyoushi',
+    installedAt: Date.now(),
+    enabled: true,
+    isPinned: false,
+    contentWarning: 'CONTENT_WARNING_NSFW',
+    sources: [
+      { id: 'manytoon', name: 'ManyToon', language: 'en', homeUrl: 'https://manytoon.com', badge: '18+ Webtoon', isNsfw: true }
+    ]
+  },
+  {
+    pkg: 'eu.kanade.tachiyomi.extension.en.hentairead',
+    name: 'HentaiRead',
+    versionName: '1.4.16',
+    lang: 'en',
+    iconUrl: 'https://cdn.jsdelivr.net/gh/keiyoushi/extensions-source@main/src/en/hentairead/res/mipmap-xhdpi/ic_launcher.png',
+    repoId: 'keiyoushi',
+    installedAt: Date.now(),
+    enabled: true,
+    isPinned: false,
+    contentWarning: 'CONTENT_WARNING_NSFW',
+    sources: [
+      { id: 'hentairead', name: 'HentaiRead', language: 'en', homeUrl: 'https://hentairead.com', badge: '18+ English', isNsfw: true }
+    ]
+  },
+  {
+    pkg: 'eu.kanade.tachiyomi.extension.all.asmhentai',
+    name: 'AsmHentai',
+    versionName: '1.4.11',
+    lang: 'all',
+    iconUrl: 'https://cdn.jsdelivr.net/gh/keiyoushi/extensions-source@main/src/all/asmhentai/res/mipmap-xhdpi/ic_launcher.png',
+    repoId: 'keiyoushi',
+    installedAt: Date.now(),
+    enabled: true,
+    isPinned: false,
+    contentWarning: 'CONTENT_WARNING_NSFW',
+    sources: [
+      { id: 'asmhentai', name: 'AsmHentai', language: 'all', homeUrl: 'https://asmhentai.com', badge: '18+ Gallery', isNsfw: true }
+    ]
+  },
+  {
+    pkg: 'eu.kanade.tachiyomi.extension.all.ehentai',
+    name: 'E-Hentai',
+    versionName: '1.4.29',
+    lang: 'all',
+    iconUrl: 'https://cdn.jsdelivr.net/gh/keiyoushi/extensions-source@main/src/all/ehentai/res/mipmap-xhdpi/ic_launcher.png',
+    repoId: 'keiyoushi',
+    installedAt: Date.now(),
+    enabled: true,
+    isPinned: false,
+    contentWarning: 'CONTENT_WARNING_NSFW',
+    sources: [
+      { id: 'ehentai', name: 'E-Hentai', language: 'all', homeUrl: 'https://e-hentai.org', badge: '18+ Archive', isNsfw: true }
+    ]
+  },
+  {
+    pkg: 'eu.kanade.tachiyomi.extension.en.allporncomic',
+    name: 'AllPornComic',
+    versionName: '1.4.10',
+    lang: 'en',
+    iconUrl: 'https://cdn.jsdelivr.net/gh/keiyoushi/extensions-source@main/src/en/allporncomic/res/mipmap-xhdpi/ic_launcher.png',
+    repoId: 'keiyoushi',
+    installedAt: Date.now(),
+    enabled: true,
+    isPinned: false,
+    contentWarning: 'CONTENT_WARNING_NSFW',
+    sources: [
+      { id: 'allporncomic', name: 'AllPornComic', language: 'en', homeUrl: 'https://allporncomic.com', badge: '18+ Comics', isNsfw: true }
+    ]
+  },
+  {
+    pkg: 'eu.kanade.tachiyomi.extension.all.hentaifox',
+    name: 'HentaiFox',
+    versionName: '1.4.14',
+    lang: 'all',
+    iconUrl: 'https://cdn.jsdelivr.net/gh/keiyoushi/extensions-source@main/src/all/hentaifox/res/mipmap-xhdpi/ic_launcher.png',
+    repoId: 'keiyoushi',
+    installedAt: Date.now(),
+    enabled: true,
+    isPinned: false,
+    contentWarning: 'CONTENT_WARNING_NSFW',
+    sources: [
+      { id: 'hentaifox', name: 'HentaiFox', language: 'all', homeUrl: 'https://hentaifox.com', badge: '18+ Doujin', isNsfw: true }
+    ]
+  },
+  {
+    pkg: 'eu.kanade.tachiyomi.extension.all.imhentai',
+    name: 'IMHentai',
+    versionName: '1.4.12',
+    lang: 'all',
+    iconUrl: 'https://cdn.jsdelivr.net/gh/keiyoushi/extensions-source@main/src/all/imhentai/res/mipmap-xhdpi/ic_launcher.png',
+    repoId: 'keiyoushi',
+    installedAt: Date.now(),
+    enabled: true,
+    isPinned: false,
+    contentWarning: 'CONTENT_WARNING_NSFW',
+    sources: [
+      { id: 'imhentai', name: 'IMHentai', language: 'all', homeUrl: 'https://imhentai.xxx', badge: '18+ Gallery', isNsfw: true }
     ]
   }
 ];
@@ -790,6 +971,19 @@ async function fetchMangaDexSourceManga(mode = 'popular', query = '', showNsfw =
 }
 
 export async function fetchManga18fxSourceManga(mode = 'popular', query = '') {
+  const baseUrl = getApiBaseUrl();
+  if (baseUrl) {
+    try {
+      const q = String(query || '').trim();
+      const apiUrl = `${baseUrl}/api/extensions/source?id=manga18fx&type=${mode}${q ? `&q=${encodeURIComponent(q)}` : ''}`;
+      const res = await fetch(apiUrl, { signal: AbortSignal.timeout(4500) });
+      if (res.ok) {
+        const data = await res.json();
+        if (Array.isArray(data) && data.length > 0) return data;
+      }
+    } catch {}
+  }
+
   let targetUrl;
   if (query && query.trim()) {
     targetUrl = `https://manga18fx.com/search?q=${encodeURIComponent(query.trim())}`;
@@ -803,11 +997,15 @@ export async function fetchManga18fxSourceManga(mode = 'popular', query = '') {
     const html = await fetchClientHtml(targetUrl, 6000);
     if (html) {
       const items = [];
-      const regex = /<div class="bsx-item">[\s\S]*?<a href="\/manga\/([^"#?]+)"\s+title="([^"]+)"[\s\S]*?<img [^>]*(?:data-src|src)="([^"]+)"/gi;
+      const seenSlugs = new Set();
+      const regex = /<div class="(?:bsx-item|page-item-detail|bixbox)[\s\S]{0,1800}?<a[^>]+href="(?:https?:\/\/manga18fx\.com)?\/manga\/([^"#?/]+)\/?"[^>]*?(?:title="([^"]+)")?[\s\S]{0,800}?<img [^>]*(?:data-src|data-lazy-src|src)="([^"]+)"/gi;
       for (const m of html.matchAll(regex)) {
         const slug = m[1];
-        const rawTitle = m[2];
-        const cover = m[3];
+        if (!slug || seenSlugs.has(slug)) continue;
+        seenSlugs.add(slug);
+        const rawTitle = m[2] || slug.replace(/-/g, ' ');
+        let cover = m[3];
+        if (cover && cover.startsWith('//')) cover = `https:${cover}`;
         const title = cleanTitle(decodeHtml(rawTitle));
         items.push({
           id: `m18:${slug}`,
@@ -815,6 +1013,7 @@ export async function fetchManga18fxSourceManga(mode = 'popular', query = '') {
           title,
           englishTitle: title,
           coverUrl: cover,
+          rawCoverUrl: cover,
           sourceName: 'Manga18fx',
           status: 'Ongoing',
           score: '9.6',
@@ -929,7 +1128,7 @@ async function fetchWeebCentralSourceManga(mode = 'popular', query = '') {
 
 function isNsfwSource(sourceIdOrName) {
   const s = String(sourceIdOrName || '').toLowerCase();
-  return /(?:manga18|manhwa18|18fx|18\+|nsfw|doujin|hentai|erocool|asmhentai|hiperdex|toonily|nhentai|adult|erotica|porn)/i.test(s);
+  return /(?:manga18|manhwa18|18fx|18\+|nsfw|doujin|hentai|erocool|asmhentai|hentaifox|imhentai|hentairead|hiperdex|toonily|manytoon|allporncomic|ehentai|e-hentai|nhentai|adult|erotica|porn|smut)/i.test(s);
 }
 
 function makeExtMangaId(homeUrl, mangaUrl) {
@@ -1020,6 +1219,7 @@ async function getFallbackSourceManga(sourceId, query = '', mode = 'popular', so
         const mdNsfw = await fetchMangaDexSourceManga('search', q, true, true);
         if (mdNsfw.length > 0) return mdNsfw;
       } catch {}
+      return [];
     }
 
     // 1. Search local verified catalog
@@ -1036,8 +1236,8 @@ async function getFallbackSourceManga(sourceId, query = '', mode = 'popular', so
 
     // 2. Query MangaDex or AniList
     try {
-      if (sId.includes('dex') || sId === 'md' || metaNsfw) {
-        const mdMatches = await fetchMangaDexSourceManga('search', q, isNsfw, metaNsfw);
+      if (sId.includes('dex') || sId === 'md') {
+        const mdMatches = await fetchMangaDexSourceManga('search', q, isNsfw, false);
         if (mdMatches.length > 0) return mdMatches;
       }
 
@@ -1056,6 +1256,7 @@ async function getFallbackSourceManga(sourceId, query = '', mode = 'popular', so
       const nsfwList = await fetchMangaDexSourceManga(mode, '', true, true);
       if (nsfwList.length > 0) return nsfwList;
     } catch {}
+    return [];
   }
 
   if (sId.includes('asura') || sId.includes('flame') || sId.includes('thunder')) {
@@ -1362,12 +1563,24 @@ async function fetchSourceCatalog(sourceId, mode = 'popular', query = '', source
   const metaHome = String(sourceMeta?.homeUrl || sourceMeta?.baseUrl || '').toLowerCase();
   const q = String(query || '').trim();
 
+  const metaHomeUrl = String(sourceMeta?.homeUrl || sourceMeta?.baseUrl || '').trim();
+  const homeParam = metaHomeUrl ? `&homeUrl=${encodeURIComponent(metaHomeUrl)}` : '';
+
   // 1. NHentai API / HTML client handler
-  if (id.includes('nhentai') || metaName.includes('nhentai') || metaHome.includes('nhentai.net')) {
+  if ((id.includes('nhentai') || metaName.includes('nhentai') || metaHome.includes('nhentai.net')) &&
+      !id.includes('asm') && !id.includes('imhentai')) {
     return await fetchNHentaiSourceManga(mode, q, sourceMeta);
   }
 
-  // 2. Manga18fx client scraper
+  // 1b. AniList 18+ Adult Catalog handler
+  if (id === 'anilist_nsfw' || metaName === 'anilist (18+)') {
+    return await fetchAniListNsfwSourceManga(mode, q);
+  }
+
+  // 2. Manga18fx scraper (including mangadex_nsfw)
+  if (id === 'mangadex_nsfw' || metaName === 'mangadex (18+)') {
+    return await fetchMangaDexSourceManga(mode, q, true, true);
+  }
   if (id.includes('manga18') || id === 'manga18fx' || metaHome.includes('manga18fx')) {
     return await fetchManga18fxSourceManga(mode, q);
   }
@@ -1387,9 +1600,9 @@ async function fetchSourceCatalog(sourceId, mode = 'popular', query = '', source
   if (matchedServerId) {
     try {
       const url = baseUrl
-        ? `${baseUrl}/api/extensions/source?id=${encodeURIComponent(matchedServerId)}&type=${mode}${q ? `&q=${encodeURIComponent(q)}` : ''}`
-        : `/api/extensions/source?id=${encodeURIComponent(matchedServerId)}&type=${mode}${q ? `&q=${encodeURIComponent(q)}` : ''}`;
-      const res = await fetch(url, { signal: AbortSignal.timeout(4000) });
+        ? `${baseUrl}/api/extensions/source?id=${encodeURIComponent(matchedServerId)}&type=${mode}${q ? `&q=${encodeURIComponent(q)}` : ''}${homeParam}`
+        : `/api/extensions/source?id=${encodeURIComponent(matchedServerId)}&type=${mode}${q ? `&q=${encodeURIComponent(q)}` : ''}${homeParam}`;
+      const res = await fetch(url, { signal: AbortSignal.timeout(4500) });
       if (res.ok) {
         const data = await res.json();
         if (Array.isArray(data) && data.length > 0) return data;
@@ -1407,33 +1620,37 @@ async function fetchSourceCatalog(sourceId, mode = 'popular', query = '', source
     return await fetchWeebCentralSourceManga(mode, q);
   }
 
-  // 3. Generic extension HTML catalog scraper when homeUrl is provided
-  if (sourceMeta?.homeUrl || sourceMeta?.baseUrl) {
-    return await fetchGenericExtensionManga(sourceMeta, mode, q);
-  }
-
-  // 4. DoujinDesu & adult sources without homeUrl
   const isNsfw = Boolean(
     sourceMeta?.isNsfw ||
     sourceMeta?.contentWarning === 'CONTENT_WARNING_NSFW' ||
     id.includes('doujin') ||
     isNsfwSource(id) ||
-    isNsfwSource(metaName)
+    isNsfwSource(metaName) ||
+    isNsfwSource(metaHome)
   );
+
+  // 3. Backend proxy first for generic extension sites (avoids Cloudflare/CORS blocks in browser)
+  if (metaHomeUrl || isNsfw) {
+    try {
+      const url = baseUrl
+        ? `${baseUrl}/api/extensions/source?id=${encodeURIComponent(id || metaName)}&type=${mode}${q ? `&q=${encodeURIComponent(q)}` : ''}${homeParam}`
+        : `/api/extensions/source?id=${encodeURIComponent(id || metaName)}&type=${mode}${q ? `&q=${encodeURIComponent(q)}` : ''}${homeParam}`;
+      const res = await fetch(url, { signal: AbortSignal.timeout(5000) });
+      if (res.ok) {
+        const data = await res.json();
+        if (Array.isArray(data) && data.length > 0) return data;
+      }
+    } catch {}
+  }
+
+  // 4. Generic extension HTML catalog scraper when homeUrl is provided
+  if (metaHomeUrl) {
+    return await fetchGenericExtensionManga(sourceMeta, mode, q);
+  }
+
   if (isNsfw) {
     return await fetchMangaDexSourceManga(mode, q, true, true);
   }
-
-  try {
-    const url = baseUrl
-      ? `${baseUrl}/api/extensions/source?id=${encodeURIComponent(id)}&type=${mode}${q ? `&q=${encodeURIComponent(q)}` : ''}`
-      : `/api/extensions/source?id=${encodeURIComponent(id)}&type=${mode}${q ? `&q=${encodeURIComponent(q)}` : ''}`;
-    const res = await fetch(url, { signal: AbortSignal.timeout(4000) });
-    if (res.ok) {
-      const data = await res.json();
-      if (Array.isArray(data) && data.length > 0) return data;
-    }
-  } catch {}
 
   return await getFallbackSourceManga(id, q, mode, sourceMeta);
 }
@@ -1476,18 +1693,18 @@ function getUniqueSubSources(extensions, includeNsfw = true, maxCount = 60) {
   return unique;
 }
 
-function getInstalledNsfwSubSources(maxCount = 40) {
+function getInstalledNsfwSubSources(maxCount = 0) {
   const installed = getInstalledExtensions().filter(e => e && e.enabled !== false);
   const flat = flattenExtensionSources(installed, true);
   const unique = [];
-  const seenKeys = new Set(['manga18fx', 'mangadex_nsfw', 'mangadex']);
+  const seenKeys = new Set();
 
   for (const sub of flat) {
     const isMixed = sub.contentWarning === 'CONTENT_WARNING_MIXED';
-    const isSubNsfw = Boolean(
+    const isSafeSubOfMixed = isMixed && String(sub.id || '').toLowerCase() === 'mangadex';
+    const isSubNsfw = !isSafeSubOfMixed && Boolean(
       sub.isNsfw ||
       sub.contentWarning === 'CONTENT_WARNING_NSFW' ||
-      isMixed ||
       isNsfwSource(sub.id) ||
       isNsfwSource(sub.name) ||
       isNsfwSource(sub.homeUrl)
@@ -1502,6 +1719,92 @@ function getInstalledNsfwSubSources(maxCount = 40) {
   }
 
   return unique;
+}
+
+/**
+ * Return EVERY available 18+ NSFW source across built-ins, installed extensions, and repo catalogs
+ */
+export function getAllNsfwSources(availableCatalog = [], installedList = null) {
+  const installed = Array.isArray(installedList) ? installedList : getInstalledExtensions();
+  const installedPkgs = new Set(installed.map(e => e.pkg));
+  const result = [];
+  const seenKeys = new Set();
+
+  const pushUnique = (sub, isInstalled, parentExt = null) => {
+    const subId = String(sub.id || sub.name || '').toLowerCase().trim();
+    const home = String(sub.homeUrl || sub.baseUrl || '').toLowerCase().replace(/\/+$/, '');
+    const key = `${subId}|${home}`;
+    if (!subId || seenKeys.has(key)) return;
+    seenKeys.add(key);
+    result.push({
+      ...sub,
+      id: String(sub.id || sub.name || '').trim(),
+      name: sub.name || parentExt?.name || '18+ Source',
+      language: sub.language || parentExt?.lang || 'all',
+      homeUrl: sub.homeUrl || sub.baseUrl || '',
+      extensionPkg: sub.extensionPkg || parentExt?.pkg || '',
+      extensionName: sub.extensionName || parentExt?.name || sub.name,
+      iconUrl: sub.iconUrl || parentExt?.iconUrl || null,
+      apkUrl: sanitizeHttpUrl(sub.apkUrl || parentExt?.apkUrl) || null,
+      contentWarning: 'CONTENT_WARNING_NSFW',
+      isNsfw: true,
+      isInstalled,
+      enabled: parentExt ? parentExt.enabled !== false : true,
+      parentExtension: parentExt || null,
+    });
+  };
+
+  // Built-in Adult Archive engines
+  pushUnique({
+    id: 'anilist_nsfw',
+    name: 'AniList (18+)',
+    language: 'all',
+    homeUrl: 'https://anilist.co',
+    badge: '18+ Catalog',
+    extensionPkg: 'builtin.anilist.nsfw',
+    extensionName: 'AniList (18+)',
+    iconUrl: 'https://anilist.co/img/icons/android-chrome-512x512.png',
+  }, true);
+
+  // Installed NSFW & Mixed 18+ sub-sources first
+  for (const ext of installed) {
+    const hydrated = hydrateExtensionShape(ext);
+    for (const src of (hydrated.sources || [])) {
+      const subNsfw = Boolean(
+        src.isNsfw ||
+        hydrated.contentWarning === 'CONTENT_WARNING_NSFW' ||
+        isNsfwSource(src.id) ||
+        isNsfwSource(src.name) ||
+        isNsfwSource(src.homeUrl)
+      );
+      if (subNsfw) {
+        pushUnique(src, true, hydrated);
+      }
+    }
+  }
+
+  // All remaining NSFW & Mixed sources from connected extension repositories (Keiyoushi etc.)
+  for (const rawExt of (Array.isArray(availableCatalog) ? availableCatalog : [])) {
+    if (!rawExt) continue;
+    const ext = hydrateExtensionShape(rawExt);
+    const isExtInstalled = installedPkgs.has(ext.pkg);
+    const extIsNsfw = ext.contentWarning === 'CONTENT_WARNING_NSFW' || ext.contentWarning === 'CONTENT_WARNING_MIXED' || isNsfwSource(ext.name);
+    for (const src of (ext.sources || [])) {
+      const subNsfw = Boolean(
+        src.isNsfw ||
+        ext.contentWarning === 'CONTENT_WARNING_NSFW' ||
+        isNsfwSource(src.id) ||
+        isNsfwSource(src.name) ||
+        isNsfwSource(src.homeUrl) ||
+        (extIsNsfw && src.id !== 'mangadex')
+      );
+      if (subNsfw) {
+        pushUnique(src, isExtInstalled, ext);
+      }
+    }
+  }
+
+  return result;
 }
 
 /**
@@ -1557,24 +1860,16 @@ export async function searchNsfwSources(query, onSourceResult = null) {
   const allResults = [];
   const seenKeys = new Set();
 
-  const installed = getInstalledExtensions();
-  const isPkgDisabled = (pkgId) => {
-    const found = installed.find((e) => e.pkg === pkgId);
-    return found && found.enabled === false;
-  };
-
+  const installedSubSources = getInstalledNsfwSubSources(0);
   const nsfwSources = [
     { id: 'anilist_nsfw', name: 'AniList (18+)', fn: () => fetchAniListNsfwSourceManga('search', q) }
   ];
-  if (!isPkgDisabled('eu.kanade.tachiyomi.extension.all.manga18fx')) {
-    nsfwSources.push({ id: 'manga18fx', name: 'Manga18fx', fn: () => fetchManga18fxSourceManga('search', q) });
-  }
-  if (!isPkgDisabled('eu.kanade.tachiyomi.extension.all.mangadex')) {
-    nsfwSources.push({ id: 'mangadex_nsfw', name: 'MangaDex (18+)', fn: () => fetchMangaDexSourceManga('search', q, true, true) });
-  }
+  const addedIds = new Set(['anilist_nsfw']);
 
-  const installedSubSources = getInstalledNsfwSubSources(40);
   installedSubSources.forEach(sub => {
+    const subKey = String(sub.id || sub.name || '').toLowerCase().trim();
+    if (!subKey || addedIds.has(subKey)) return;
+    addedIds.add(subKey);
     nsfwSources.push({
       id: sub.id,
       name: sub.name || sub.extensionName,
@@ -1582,33 +1877,44 @@ export async function searchNsfwSources(query, onSourceResult = null) {
     });
   });
 
-  await Promise.allSettled(
-    nsfwSources.map(async (src) => {
-      try {
-        const list = await src.fn();
-        if (!Array.isArray(list)) return;
-        if (onSourceResult) {
-          onSourceResult(src.name, list);
-        }
-        list.forEach(item => {
-          if (!item || !item.title) return;
-          const key = `${src.id}:${item.id || cleanTitle(item.title).toLowerCase()}`;
-          if (!seenKeys.has(key)) {
-            seenKeys.add(key);
-            allResults.push({
-              ...item,
-              sourceName: item.sourceName || src.name,
-              extensionName: src.name,
-              contentWarning: 'CONTENT_WARNING_NSFW',
-              isNsfw: true
-            });
+  if (!addedIds.has('manga18fx')) {
+    nsfwSources.push({ id: 'manga18fx', name: 'Manga18fx', fn: () => fetchManga18fxSourceManga('search', q) });
+  }
+  if (!addedIds.has('mangadex_nsfw')) {
+    nsfwSources.push({ id: 'mangadex_nsfw', name: 'MangaDex (18+)', fn: () => fetchMangaDexSourceManga('search', q, true, true) });
+  }
+
+  const CONCURRENCY = 8;
+  for (let i = 0; i < nsfwSources.length; i += CONCURRENCY) {
+    const batch = nsfwSources.slice(i, i + CONCURRENCY);
+    await Promise.allSettled(
+      batch.map(async (src) => {
+        try {
+          const list = await src.fn();
+          if (!Array.isArray(list)) return;
+          if (onSourceResult) {
+            onSourceResult(src.name, list);
           }
-        });
-      } catch (err) {
-        console.warn(`NSFW search on ${src.name} failed:`, err);
-      }
-    })
-  );
+          list.forEach(item => {
+            if (!item || !item.title) return;
+            const key = `${src.id}:${item.id || cleanTitle(item.title).toLowerCase()}`;
+            if (!seenKeys.has(key)) {
+              seenKeys.add(key);
+              allResults.push({
+                ...item,
+                sourceName: item.sourceName || src.name,
+                extensionName: src.name,
+                contentWarning: 'CONTENT_WARNING_NSFW',
+                isNsfw: true
+              });
+            }
+          });
+        } catch (err) {
+          console.warn(`NSFW search on ${src.name} failed:`, err);
+        }
+      })
+    );
+  }
 
   return allResults;
 }
@@ -1623,7 +1929,9 @@ async function fetchNsfwFeed(mode = 'popular') {
     fetchMangaDexSourceManga(mode, '', true, true)
   ];
 
-  const extraSubSources = getInstalledNsfwSubSources(6);
+  const extraSubSources = getInstalledNsfwSubSources(0).filter(
+    s => !['manga18fx', 'mangadex_nsfw'].includes(String(s.id || '').toLowerCase())
+  );
   for (const sub of extraSubSources) {
     tasks.push(
       mode === 'latest'
