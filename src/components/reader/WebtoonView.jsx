@@ -34,6 +34,15 @@ function WebtoonPageItem({ p, ch, idx, chIdx, settings }) {
     setIsLoaded(false);
     retriedCountRef.current += 1;
     const targetUrl = p.originalUrl || p.url;
+    if (typeof window !== 'undefined' && window.AndroidBridge && typeof window.AndroidBridge.fetchImageBase64 === 'function' && /^https?:\/\//i.test(targetUrl)) {
+      try {
+        const b64 = window.AndroidBridge.fetchImageBase64(targetUrl, ch?.sourceUrl || '');
+        if (b64 && b64.startsWith('data:image/')) {
+          setCurrentSrc(b64);
+          return;
+        }
+      } catch {}
+    }
     const proxyUrl = getProxyUrl(targetUrl);
     const sep = proxyUrl.includes('?') ? '&' : '?';
     const newSrc = `${proxyUrl}${sep}_reload=${Date.now()}`;
@@ -41,15 +50,29 @@ function WebtoonPageItem({ p, ch, idx, chIdx, settings }) {
   };
 
   const handleImageError = () => {
+    const targetUrl = p.originalUrl || p.url || '';
     if (retriedCountRef.current === 0) {
       retriedCountRef.current = 1;
-      const targetUrl = p.originalUrl || p.url;
-      setCurrentSrc(getProxyUrl(targetUrl));
-      return;
+      if (typeof window !== 'undefined' && window.AndroidBridge && typeof window.AndroidBridge.fetchImageBase64 === 'function' && /^https?:\/\//i.test(targetUrl)) {
+        try {
+          const b64 = window.AndroidBridge.fetchImageBase64(targetUrl, ch?.sourceUrl || '');
+          if (b64 && b64.startsWith('data:image/')) {
+            setCurrentSrc(b64);
+            return;
+          }
+        } catch {}
+      }
+      if (getApiBaseUrl() || (typeof window !== 'undefined' && window.AndroidBridge)) {
+        setCurrentSrc(getProxyUrl(targetUrl));
+        return;
+      }
+      if (targetUrl && currentSrc !== targetUrl && /^https?:\/\//i.test(targetUrl)) {
+        setCurrentSrc(targetUrl);
+        return;
+      }
     }
-    if (retriedCountRef.current === 1) {
+    if (retriedCountRef.current <= 1 && targetUrl && !targetUrl.startsWith('data:') && !targetUrl.includes('/api/image-proxy')) {
       retriedCountRef.current = 2;
-      const targetUrl = p.originalUrl || p.url;
       const fallbackUrl = `https://images.weserv.nl/?url=${encodeURIComponent(targetUrl)}`;
       setCurrentSrc(fallbackUrl);
       return;
