@@ -91,6 +91,21 @@ function MangaCard({
               return;
             }
 
+            // Step 1b: On Android APK, try native OkHttp bridge directly with proper Referer
+            if (!target.dataset.bridgeTried && typeof window !== 'undefined' && window.AndroidBridge && typeof window.AndroidBridge.fetchImageBase64 === 'function') {
+              const candidateUrl = unwrapProxyUrl(manga.rawCoverUrl || manga.coverUrl);
+              if (candidateUrl && /^https?:\/\//i.test(candidateUrl)) {
+                target.dataset.bridgeTried = 'true';
+                try {
+                  const dataUri = window.AndroidBridge.fetchImageBase64(candidateUrl, '');
+                  if (dataUri && dataUri.startsWith('data:image/')) {
+                    target.src = dataUri;
+                    return;
+                  }
+                } catch {}
+              }
+            }
+
             // Step 2: If raw provider cover exists and wasn't the failing src
             const raw = unwrapProxyUrl(manga.rawCoverUrl);
             if (raw && target.src !== raw && !raw.includes('nocover') && !raw.includes('placeholder')) {
