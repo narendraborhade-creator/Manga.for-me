@@ -88,7 +88,7 @@ const server = http.createServer(async (req, res) => {
     }
 
     if (pathname === '/api/manga/details') {
-      const id = (urlObj.searchParams.get('id') || '').slice(0, 200);
+      const id = (urlObj.searchParams.get('id') || '').slice(0, 600);
       const refresh = urlObj.searchParams.get('refresh') === 'true';
       const details = await getMangaDetails(id, refresh);
       res.setHeader('Content-Type', 'application/json');
@@ -97,8 +97,8 @@ const server = http.createServer(async (req, res) => {
     }
 
     if (pathname === '/api/manga/read') {
-      const chapterId = (urlObj.searchParams.get('chapterId') || '').slice(0, 300);
-      const mangaId = (urlObj.searchParams.get('mangaId') || '').slice(0, 300);
+      const chapterId = (urlObj.searchParams.get('chapterId') || '').slice(0, 600);
+      const mangaId = (urlObj.searchParams.get('mangaId') || '').slice(0, 600);
       const ch = (urlObj.searchParams.get('ch') || '').slice(0, 50);
       const title = (urlObj.searchParams.get('title') || '').slice(0, 300);
       const result = await getChapterPages(chapterId, mangaId, ch, title);
@@ -145,7 +145,8 @@ const server = http.createServer(async (req, res) => {
       const sourceId = urlObj.searchParams.get('id') || '';
       const type = urlObj.searchParams.get('type') || 'popular';
       const q = urlObj.searchParams.get('q') || '';
-      const list = await getSourceListings(sourceId, type, q);
+      const homeUrl = urlObj.searchParams.get('homeUrl') || '';
+      const list = await getSourceListings(sourceId, type, q, homeUrl);
       res.setHeader('Content-Type', 'application/json');
       res.end(JSON.stringify(list));
       return;
