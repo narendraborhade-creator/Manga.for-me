@@ -177,7 +177,8 @@ export default async (req) => {
       const sourceId = urlObj.searchParams.get('id') || '';
       const type = urlObj.searchParams.get('type') || 'popular';
       const q = urlObj.searchParams.get('q') || '';
-      const list = await getSourceListings(sourceId, type, q);
+      const homeUrl = urlObj.searchParams.get('homeUrl') || '';
+      const list = await getSourceListings(sourceId, type, q, homeUrl);
       return jsonResponse(list || []);
     }
 
