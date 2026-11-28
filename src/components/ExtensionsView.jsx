@@ -47,6 +47,7 @@ import {
   searchNsfwSources,
   fetchNsfwPopular,
   fetchNsfwLatest,
+  getAllNsfwSources,
   DEFAULT_REPOSITORIES,
   isNsfwAllowed,
   setNsfwAllowed
@@ -121,6 +122,8 @@ export default function ExtensionsView({
   const [nsfwFeedMode, setNsfwFeedMode] = useState('popular'); // 'popular' | 'latest' | 'search'
   const [loadingNsfwFeed, setLoadingNsfwFeed] = useState(false);
   const [nsfwPopularList, setNsfwPopularList] = useState([]);
+  const [nsfwSourceFilter, setNsfwSourceFilter] = useState('');
+  const [nsfwSourceScope, setNsfwSourceScope] = useState('all'); // 'installed' | 'all'
 
   const nsfwSearchSeq = useRef(0);
   const browseSeqRef = useRef(0);
@@ -296,7 +299,7 @@ export default function ExtensionsView({
   }, []);
 
   useEffect(() => {
-    if ((activeSubTab === 'extensions' || activeSubTab === 'sources') && availableExtensions.length === 0) {
+    if ((activeSubTab === 'extensions' || activeSubTab === 'sources' || activeSubTab === 'nsfw') && availableExtensions.length === 0) {
       loadExtensionsCatalog();
     }
   }, [activeSubTab, availableExtensions.length, loadExtensionsCatalog]);
@@ -516,6 +519,25 @@ export default function ExtensionsView({
     return flattenExtensionSources(installedExtensions, showNsfw) || [];
   }, [installedExtensions, showNsfw]);
 
+  // Complete list of 18+ NSFW sources across built-ins, installed extensions, and Keiyoushi repo
+  const allNsfwSources = useMemo(() => {
+    return getAllNsfwSources(availableExtensions, installedExtensions) || [];
+  }, [availableExtensions, installedExtensions]);
+
+  const filteredNsfwSources = useMemo(() => {
+    const q = nsfwSourceFilter.toLowerCase().trim();
+    return allNsfwSources.filter((src) => {
+      if (nsfwSourceScope === 'installed' && !src.isInstalled) return false;
+      if (q) {
+        const nameMatch = (src.name || '').toLowerCase().includes(q);
+        const urlMatch = (src.homeUrl || '').toLowerCase().includes(q);
+        const langMatch = (src.language || '').toLowerCase().includes(q);
+        if (!nameMatch && !urlMatch && !langMatch) return false;
+      }
+      return true;
+    });
+  }, [allNsfwSources, nsfwSourceFilter, nsfwSourceScope]);
+
   // Pinned vs Non-pinned installed extensions filtered by user NSFW preference
   const { pinnedSources, unpinnedSources, hiddenNsfwCount } = useMemo(() => {
     const pinned = [];
@@ -595,7 +617,7 @@ export default function ExtensionsView({
         <div className="relative z-10 mt-6 pt-5 border-t border-white/10 flex items-center gap-2 overflow-x-auto scrollbar-none font-mono">
           {[
             { id: 'sources', label: 'Installed Sources', icon: Radio, count: flattenedSources.length },
-            { id: 'nsfw', label: '18+ NSFW Search', icon: ShieldAlert, count: '18+', isNsfwTab: true },
+            { id: 'nsfw', label: '18+ NSFW Search', icon: ShieldAlert, count: allNsfwSources.length || '18+', isNsfwTab: true },
             { id: 'extensions', label: 'Extension Store', icon: Download, count: availableExtensions.length || '1.6k+' },
             { id: 'repositories', label: 'Repositories', icon: Globe, count: repositories.length }
           ].map(tab => {
@@ -876,7 +898,7 @@ export default function ExtensionsView({
                 <div className="flex items-center justify-between text-xs font-mono">
                   <span className="text-rose-400 font-bold flex items-center gap-1.5">
                     <ShieldAlert className="w-4 h-4 text-rose-400" />
-                    <span>18+ NSFW RESULTS (Manga18fx, DoujinDesu, MangaDex Adult):</span>
+                    <span>18+ NSFW RESULTS (All Active 18+ Sources):</span>
                   </span>
                   <span className="text-rose-300 font-semibold">{nsfwResults.length} adult titles found</span>
                 </div>
@@ -1160,14 +1182,14 @@ export default function ExtensionsView({
                     ADULT CONTENT ENGINE
                   </span>
                   <span className="text-xs text-rose-300/80 font-mono">
-                    • Manga18fx & MangaDex Erotica
+                    • {allNsfwSources.length} 18+ Sources & Archives
                   </span>
                 </div>
                 <h2 className="text-xl sm:text-2xl font-black text-white tracking-tight font-['Outfit'] flex items-center gap-2.5">
                   <span>18+ NSFW Sources Search Engine</span>
                 </h2>
                 <p className="text-xs sm:text-sm text-slate-300 max-w-2xl leading-relaxed">
-                  Search exclusively across adult manhwa, webtoons, and doujinshi from Manga18fx, DoujinDesu, and the MangaDex 18+ archive with zero safe filter pollution.
+                  Browse and search all 18+ adult manga, manhwa, webtoons, and doujinshi sources (Manga18fx, NHentai, HiperDEX, Toonily, Manhwa18, DoujinDesu, AniList 18+, MangaDex 18+, and Keiyoushi 18+ sources).
                 </p>
               </div>
 
@@ -1262,6 +1284,145 @@ export default function ExtensionsView({
                 </button>
               ))}
             </div>
+          </div>
+
+          {/* All 18+ NSFW Sources Deck (Built-in, Installed & Keiyoushi 18+ Repo Sources) */}
+          <div className="p-4 sm:p-5 rounded-2xl bg-slate-950/90 border border-rose-500/25 shadow-lg space-y-4">
+            <div className="flex flex-col md:flex-row md:items-center justify-between gap-3">
+              <div className="flex items-center gap-2 text-xs font-mono font-bold text-rose-300 tracking-wider">
+                <Radio className="w-4 h-4 text-rose-400" />
+                <span>ALL 18+ NSFW SOURCES ({filteredNsfwSources.length})</span>
+              </div>
+
+              <div className="flex flex-wrap items-center gap-2">
+                <div className="flex items-center gap-1 bg-slate-900 p-1 rounded-xl border border-white/10 font-mono text-[11px]">
+                  <button
+                    type="button"
+                    onClick={() => setNsfwSourceScope('installed')}
+                    className={`px-2.5 py-1 rounded-lg font-bold transition-all cursor-pointer ${
+                      nsfwSourceScope === 'installed'
+                        ? 'bg-rose-600 text-white'
+                        : 'text-slate-400 hover:text-white'
+                    }`}
+                  >
+                    Active ({allNsfwSources.filter(s => s.isInstalled).length})
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => setNsfwSourceScope('all')}
+                    className={`px-2.5 py-1 rounded-lg font-bold transition-all cursor-pointer ${
+                      nsfwSourceScope === 'all'
+                        ? 'bg-rose-600 text-white'
+                        : 'text-slate-400 hover:text-white'
+                    }`}
+                  >
+                    All Repo 18+ ({allNsfwSources.length})
+                  </button>
+                </div>
+
+                <div className="relative">
+                  <Search className="w-3.5 h-3.5 absolute left-3 top-1/2 -translate-y-1/2 text-slate-400 pointer-events-none" />
+                  <input
+                    type="text"
+                    value={nsfwSourceFilter}
+                    onChange={(e) => setNsfwSourceFilter(e.target.value)}
+                    placeholder="Filter 18+ sources..."
+                    className="bg-slate-900 border border-white/10 focus:border-rose-400 rounded-xl pl-8 pr-3 py-1.5 text-xs text-slate-100 placeholder-slate-500 focus:outline-none font-mono w-44 sm:w-56"
+                  />
+                </div>
+              </div>
+            </div>
+
+            {filteredNsfwSources.length === 0 ? (
+              <div className="py-6 text-center text-xs text-slate-400 font-mono">
+                No 18+ sources match "{nsfwSourceFilter}".
+              </div>
+            ) : (
+              <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3 max-h-[420px] overflow-y-auto pr-1">
+                {filteredNsfwSources.map((src, idx) => {
+                  const extTarget = src.parentExtension || {
+                    pkg: src.extensionPkg || `ext.${src.id}`,
+                    name: src.extensionName || src.name,
+                    lang: src.language || 'all',
+                    iconUrl: src.iconUrl,
+                    apkUrl: src.apkUrl,
+                    contentWarning: 'CONTENT_WARNING_NSFW',
+                    sources: [src]
+                  };
+                  const domain = extractDomain(src.homeUrl);
+                  return (
+                    <div
+                      key={`${src.extensionPkg || src.id}_${src.id}_${idx}`}
+                      className="p-3.5 rounded-2xl border bg-slate-900/80 border-rose-500/20 hover:border-rose-400/50 transition-all flex flex-col justify-between gap-2.5 shadow-md"
+                    >
+                      <div className="flex items-start justify-between gap-2">
+                        <div className="flex items-center gap-2.5 min-w-0">
+                          <div className="w-9 h-9 rounded-xl bg-slate-950 border border-rose-500/30 overflow-hidden flex items-center justify-center flex-shrink-0">
+                            {src.iconUrl ? (
+                              <img src={src.iconUrl} alt={src.name} className="w-full h-full object-cover" />
+                            ) : (
+                              <ShieldAlert className="w-4 h-4 text-rose-400" />
+                            )}
+                          </div>
+                          <div className="min-w-0">
+                            <div className="flex items-center gap-1.5">
+                              <h4 className="text-xs font-bold text-white truncate">{src.name}</h4>
+                              <span className="px-1.5 py-0.2 rounded text-[9px] font-mono font-black bg-rose-500/20 text-rose-300 border border-rose-500/40">18+</span>
+                            </div>
+                            <div className="flex items-center gap-1.5 text-[10px] font-mono text-slate-400 mt-0.5">
+                              <span className="px-1.5 rounded bg-slate-800 text-slate-200 font-bold uppercase">{src.language || 'all'}</span>
+                              {domain && <span className="truncate max-w-[130px]">{domain}</span>}
+                            </div>
+                          </div>
+                        </div>
+
+                        {src.apkUrl && (
+                          <button
+                            type="button"
+                            onClick={() => triggerFileDownload(src.apkUrl, `${src.extensionPkg || src.name}.apk`)}
+                            className="p-1.5 rounded-lg bg-slate-800 hover:bg-emerald-500/20 text-slate-300 hover:text-emerald-300 border border-white/10 transition-all cursor-pointer flex-shrink-0"
+                            title="Download Extension APK"
+                          >
+                            <Smartphone className="w-3.5 h-3.5" />
+                          </button>
+                        )}
+                      </div>
+
+                      <div className="grid grid-cols-2 gap-2 pt-2 border-t border-white/5 font-mono text-[11px]">
+                        <button
+                          type="button"
+                          onClick={async () => {
+                            if (!src.isInstalled && src.parentExtension) {
+                              await installExtension(src.parentExtension);
+                              refreshInstalled();
+                            }
+                            handleOpenSourceBrowse(extTarget, 'popular', src);
+                          }}
+                          className="px-2.5 py-1.5 rounded-xl bg-rose-950/70 hover:bg-rose-900/70 border border-rose-500/35 text-rose-200 hover:text-white transition-all flex items-center justify-center gap-1 cursor-pointer font-bold"
+                        >
+                          <Flame className="w-3 h-3 text-rose-400" />
+                          <span>Popular</span>
+                        </button>
+                        <button
+                          type="button"
+                          onClick={async () => {
+                            if (!src.isInstalled && src.parentExtension) {
+                              await installExtension(src.parentExtension);
+                              refreshInstalled();
+                            }
+                            handleOpenSourceBrowse(extTarget, 'latest', src);
+                          }}
+                          className="px-2.5 py-1.5 rounded-xl bg-slate-800/80 hover:bg-slate-800 border border-white/10 text-slate-300 hover:text-white transition-all flex items-center justify-center gap-1 cursor-pointer font-bold"
+                        >
+                          <Clock className="w-3 h-3 text-slate-400" />
+                          <span>Latest</span>
+                        </button>
+                      </div>
+                    </div>
+                  );
+                })}
+              </div>
+            )}
           </div>
 
           {/* 18+ Content Display Grid */}
