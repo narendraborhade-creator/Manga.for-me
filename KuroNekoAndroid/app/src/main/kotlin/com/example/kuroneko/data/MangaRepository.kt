@@ -406,7 +406,24 @@ class MangaRepository(context: Context) {
 
     suspend fun getMangaDetails(mangaId: String): MangaDetail = withContext(Dispatchers.IO) {
         val manga = catalog.find { it.id == mangaId }
-            ?: catalog.first()
+            ?: return@withContext MangaDetail(
+                manga = MangaItem(
+                    id = mangaId,
+                    title = mangaId,
+                    englishTitle = null,
+                    coverUrl = "",
+                    status = "Ongoing",
+                    score = "0.0",
+                    year = "",
+                    author = "",
+                    tags = emptyList(),
+                    sourceName = "",
+                    totalChapters = 0,
+                    latestChapter = "",
+                    description = ""
+                ),
+                chapters = emptyList()
+            )
 
         val chapters = (manga.totalChapters downTo 1).map { chNum ->
             ChapterItem(
@@ -425,13 +442,19 @@ class MangaRepository(context: Context) {
         val qLower = query.lowercase().trim()
         val cLower = candidateTitle.lowercase().trim()
 
-        // Distinct series guard: 'beloved' vs 'obsessed' (e.g. Beloved by My In-Laws vs My In-Laws Are Obsessed With Me)
+        // Distinct series guard: 'beloved' vs 'obsessed'
         if ((qLower.contains("beloved") && cLower.contains("obsessed")) || (qLower.contains("obsessed") && cLower.contains("beloved"))) {
             return false
         }
 
-        if (qLower == cLower) return true
-        if (cLower.contains(qLower) || qLower.contains(cLower)) {
+        val qNorm = qLower.replace(Regex("[^a-z0-9]"), "")
+        val cNorm = cLower.replace(Regex("[^a-z0-9]"), "")
+        if (qNorm.isBlank() || cNorm.isBlank()) return false
+        if (qLower == cLower || qNorm == cNorm) return true
+
+        val minLen = Math.min(qNorm.length, cNorm.length)
+        val maxLen = Math.max(qNorm.length, cNorm.length)
+        if (minLen >= 8 && (cNorm.contains(qNorm) || qNorm.contains(cNorm)) && (minLen.toDouble() / maxLen) >= 0.65) {
             if ((qLower.contains("beloved") && !cLower.contains("beloved")) || (cLower.contains("beloved") && !qLower.contains("beloved"))) {
                 return false
             }
@@ -442,10 +465,17 @@ class MangaRepository(context: Context) {
         val qTokens = qLower.replace(Regex("[^a-z0-9\\s]"), " ")
             .split(Regex("\\s+"))
             .filter { it.isNotBlank() && it.length > 1 && it !in stopWords }
-        if (qTokens.isEmpty()) return false
+        val cTokens = cLower.replace(Regex("[^a-z0-9\\s]"), " ")
+            .split(Regex("\\s+"))
+            .filter { it.isNotBlank() && it.length > 1 && it !in stopWords }
+        if (qTokens.isEmpty() || cTokens.isEmpty()) return false
 
-        val matchedTokens = qTokens.count { token -> cLower.contains(token) }
-        val threshold = if (qTokens.size <= 2) 1 else Math.min(2, qTokens.size)
+        val cTokenSet = cTokens.toSet()
+        val matchedTokens = qTokens.count { token -> token in cTokenSet }
+        if (qTokens.size <= 2) {
+            return matchedTokens == qTokens.size && cTokens.size <= qTokens.size + 2
+        }
+        val threshold = Math.max(2, Math.ceil(qTokens.size * 0.7).toInt())
         return matchedTokens >= threshold
     }
 
@@ -514,16 +544,19 @@ class MangaRepository(context: Context) {
         }
     }
 
-    private fun fetchAniListSynonyms(mangaId: String, title: String): List<String> {
+    private data class AniListMeta(val isAdult: Boolean, val titles: List<String>)
+
+    private fun fetchAniListMeta(mangaId: String, title: String): AniListMeta {
         val results = mutableListOf<String>()
+        var isAdult = false
         try {
             val cleanId = mangaId.replace(Regex("^anilist:"), "").toIntOrNull()
             val query = if (cleanId != null) {
-                "query { Media(id: $cleanId, type: MANGA) { title { romaji english native userPreferred } synonyms } }"
+                "query { Media(id: $cleanId, type: MANGA) { isAdult title { romaji english native userPreferred } synonyms } }"
             } else if (title.isNotBlank()) {
                 val safeT = JSONObject.quote(title)
-                "query { Media(search: $safeT, type: MANGA) { title { romaji english native userPreferred } synonyms } }"
-            } else return emptyList()
+                "query { Media(search: $safeT, type: MANGA) { isAdult title { romaji english native userPreferred } synonyms } }"
+            } else return AniListMeta(false, emptyList())
 
             val bodyObj = JSONObject().apply { put("query", query) }
             val reqBody = bodyObj.toString().toRequestBody("application/json; charset=utf-8".toMediaTypeOrNull())
@@ -536,6 +569,7 @@ class MangaRepository(context: Context) {
                     val json = JSONObject(resp.body?.string().orEmpty())
                     val media = json.optJSONObject("data")?.optJSONObject("Media")
                     if (media != null) {
+                        isAdult = media.optBoolean("isAdult", false)
                         val tObj = media.optJSONObject("title")
                         tObj?.optString("romaji")?.takeIf { it.isNotBlank() }?.let { results.add(it) }
                         tObj?.optString("english")?.takeIf { it.isNotBlank() }?.let { results.add(it) }
@@ -551,37 +585,42 @@ class MangaRepository(context: Context) {
                 }
             }
         } catch (_: Exception) {}
-        return results.distinct().take(3)
+        return AniListMeta(isAdult, results.distinct().take(4))
     }
 
+    private fun fetchAniListSynonyms(mangaId: String, title: String): List<String> =
+        fetchAniListMeta(mangaId, title).titles.take(3)
+
     private fun resolveWeebCentralSeries(mangaId: String, requestedTitle: String): String? {
+        if (mangaId.startsWith("m18:") || mangaId.startsWith("manga18:") || mangaId.startsWith("ext:") || mangaId.startsWith("md:") || mangaId.startsWith("anilist:")) {
+            return null
+        }
         val cleanMid = mangaId.replace(Regex("^(wc:|wc_)"), "").trim()
         if (cleanMid.matches(Regex("^[0-9A-Za-z]{26}$"))) return cleanMid
 
         val direct = wcSeriesMap[mangaId] ?: wcSeriesMap[cleanMid]
-            ?: wcSeriesMap.entries.find { mangaId.contains(it.key, ignoreCase = true) }?.value
         if (direct != null) return direct
 
         val t = requestedTitle.lowercase().trim()
         val m = mangaId.lowercase().trim()
         return when {
-            t.contains("obsessed with me") || m.contains("obsessed-with-me") -> "01J76XYFAESZTJT5AQ1SPFKYXR"
+            t == "my in-laws are obsessed with me" || m.contains("obsessed-with-me") -> "01J76XYFAESZTJT5AQ1SPFKYXR"
             t.contains("hole is open") || t.contains("seitokai") -> "01J76XYHGCQ2A1VG5KYTNHEHKF"
             t.contains("strongest troll") || m.contains("strongest-troll") -> "01J76XYGVNHEER7G6M90C6YCTW"
-            t.contains("solo leveling") || m.contains("solo-leveling") || m.contains("solo") -> "01J76XYCPSY3C4BNPBRY8JMCBE"
-            t.contains("omniscient reader") || m.contains("omniscient-reader") || m.contains("orv") -> "01J76XYDMWWJX3T4BFWR84FQQK"
-            t.contains("nano machine") || m.contains("nano-machine") -> "01J76XYDT7H7ANER8KJG5R9SJV"
-            t.contains("estate developer") || m.contains("estate-developer") -> "01J76XYF6V9BDFSRRTY2C65SBS"
+            t == "solo leveling" || t == "only i level up" || m == "webtoon:solo-leveling" || m.contains("solo-leveling") -> "01J76XYCPSY3C4BNPBRY8JMCBE"
+            t.contains("omniscient reader") || m.contains("omniscient-reader") -> "01J76XYDMWWJX3T4BFWR84FQQK"
+            t == "nano machine" || m.contains("nano-machine") -> "01J76XYDT7H7ANER8KJG5R9SJV"
+            t.contains("greatest estate developer") || m.contains("estate-developer") -> "01J76XYF6V9BDFSRRTY2C65SBS"
             t.contains("mount hua") || t.contains("blossoming blade") -> "01J76XYEVCSS5ANBCJZ4ZF9P65"
             t.contains("doom breaker") || t.contains("suicidal battle god") -> "01J76XYEZ1BQJM22H3RREE1XMG"
-            t.contains("barbarian") -> "01J76XYG976314R2DM2DKQRBGS"
+            t.contains("surviving the game as a barbarian") || m.contains("surviving-game-barbarian") -> "01J76XYG976314R2DM2DKQRBGS"
             t.contains("damn reincarnation") || t.contains("blasted reincarnated") -> "01J76XYG12YTB3J27FVBM256V8"
-            t.contains("stepmother") || t.contains("fairy tale") -> "01J76XYDQ9JTWW4THBJWPXNJ9H"
-            t.contains("lookism") || m.contains("lookism") -> "01J76XYBD282Y3XKX0KRGD64Q5"
-            t.contains("tower of god") || m.contains("tower-of-god") -> "01J76XY7M0W9WWJ55VJYYB2J1S"
-            t.contains("wind breaker") || m.contains("wind-breaker") -> "01J76XYA1TQYKV6W4BCMR2WD5M"
-            t.contains("one piece") || m.contains("one-piece") -> "01J76XY7E9FNDZ1DBBM6PBJPFK"
-            t.contains("berserk") || m.contains("berserk") -> "01J76XY7EF75DJNQCV04HTPDZK"
+            t.contains("stepmother's fairy tale") || t.contains("fantasie of a stepmother") || m.contains("a-stepmothers-fairy-tale") -> "01J76XYDQ9JTWW4THBJWPXNJ9H"
+            t == "lookism" || m.contains("lookism") -> "01J76XYBD282Y3XKX0KRGD64Q5"
+            t == "tower of god" || m.contains("tower-of-god") -> "01J76XY7M0W9WWJ55VJYYB2J1S"
+            t == "wind breaker" || m.contains("wind-breaker") -> "01J76XYA1TQYKV6W4BCMR2WD5M"
+            t == "one piece" || m.contains("one-piece") -> "01J76XY7E9FNDZ1DBBM6PBJPFK"
+            t == "berserk" || m.contains("berserk") -> "01J76XY7EF75DJNQCV04HTPDZK"
             else -> null
         }
     }
@@ -638,51 +677,53 @@ class MangaRepository(context: Context) {
     }
 
     private fun resolveKatanaSlug(mangaId: String, requestedTitle: String): String? {
+        if (mangaId.startsWith("m18:") || mangaId.startsWith("manga18:") || mangaId.startsWith("ext:") || mangaId.startsWith("md:") || mangaId.startsWith("anilist:")) {
+            return null
+        }
         val direct = slugMap[mangaId]
-            ?: slugMap.entries.find { mangaId.contains(it.key, ignoreCase = true) }?.value
         if (direct != null) return direct
 
         val t = requestedTitle.lowercase().trim()
         val m = mangaId.lowercase().trim()
         return when {
-            t.contains("one piece") || m.contains("one-piece") -> "one-piece.49"
-            t.contains("one-punch") || t.contains("one punch") || m.contains("one-punch") -> "one-punch-man.163"
-            t.contains("blue lock") || m.contains("blue-lock") -> "blue-lock.20912"
-            t.contains("sakamoto") || m.contains("sakamoto") -> "sakamoto-days.25555"
-            t.contains("beginning after") || m.contains("beginning-after") -> "the-beginning-after-the-end.20235"
-            t.contains("stepmother") || t.contains("fairy tale") || m.contains("stepmother") -> "a-stepmothers-fairy-tale.23902"
-            t.contains("solo leveling") || m.contains("solo-leveling") -> "solo-leveling.20815"
-            t.contains("dandadan") || m.contains("dandadan") -> "dandadan.25883"
-            t.contains("gachiakuta") || m.contains("gachiakuta") -> "gachiakuta.26574"
-            t.contains("chained soldier") || t.contains("mato seihei") -> "mato-seihei-no-slave.22152"
-            t.contains("spy x family") || m.contains("spy-x-family") -> "spy-x-family.21980"
-            t.contains("fragrant flower") -> "the-fragrant-flower-blooms-with-dignity.26462"
-            t.contains("berserk") || m.contains("berserk") -> "berserk.1087"
-            t.contains("lookism") || m.contains("lookism") -> "lookism.693"
-            t.contains("tower of god") || m.contains("tower-of-god") -> "tower-of-god.465"
+            t == "one piece" || m.contains("one-piece") -> "one-piece.49"
+            t == "one-punch man" || t == "one punch man" || m.contains("one-punch") -> "one-punch-man.163"
+            t == "blue lock" || m.contains("blue-lock") -> "blue-lock.20912"
+            t == "sakamoto days" || m.contains("sakamoto-days") -> "sakamoto-days.25555"
+            t == "the beginning after the end" || m.contains("beginning-after-the-end") -> "the-beginning-after-the-end.20235"
+            t.contains("stepmother's fairy tale") || t.contains("fantasie of a stepmother") || m.contains("a-stepmothers-fairy-tale") -> "a-stepmothers-fairy-tale.23902"
+            t == "solo leveling" || t == "only i level up" || m.contains("solo-leveling") -> "solo-leveling.20815"
+            t == "dandadan" || m.contains("dandadan") -> "dandadan.25883"
+            t == "gachiakuta" || m.contains("gachiakuta") -> "gachiakuta.26574"
+            t == "chained soldier" || t.contains("mato seihei no slave") -> "mato-seihei-no-slave.22152"
+            t == "spy x family" || m.contains("spy-x-family") -> "spy-x-family.21980"
+            t.contains("fragrant flower blooms") -> "the-fragrant-flower-blooms-with-dignity.26462"
+            t == "berserk" || m.contains("berserk") -> "berserk.1087"
+            t == "lookism" || m.contains("lookism") -> "lookism.693"
+            t == "tower of god" || m.contains("tower-of-god") -> "tower-of-god.465"
             t.contains("strongest troll") || m.contains("strongest-troll") -> "worlds-strongest-troll.26644"
-            t.contains("death note") || m.contains("death-note") -> "death-note.235"
-            t.contains("chainsaw") || m.contains("chainsaw") -> "chainsaw-man.21890"
-            t.contains("jujutsu") || m.contains("jujutsu") -> "jujutsu-kaisen.20224"
-            t.contains("wind breaker") || m.contains("wind-breaker") -> "wind-breaker.467"
-            t.contains("eleceed") || m.contains("eleceed") -> "eleceed.115"
-            t.contains("naruto") || m.contains("naruto") -> "naruto.1205"
-            t.contains("bleach") || m.contains("bleach") -> "bleach.47"
+            t == "death note" || m.contains("death-note") -> "death-note.235"
+            t == "chainsaw man" || m.contains("chainsaw-man") -> "chainsaw-man.21890"
+            t == "jujutsu kaisen" || m.contains("jujutsu-kaisen") -> "jujutsu-kaisen.20224"
+            t == "wind breaker" || m.contains("wind-breaker") -> "wind-breaker.467"
+            t == "eleceed" || m.contains("eleceed") -> "eleceed.115"
+            t == "naruto" || m.contains("naruto") -> "naruto.1205"
+            t == "bleach" || m.contains("bleach") -> "bleach.47"
             t.contains("demon slayer") || m.contains("demon-slayer") -> "demon-slayer-kimetsu-no-yaiba.1293"
-            t.contains("hunter x hunter") || m.contains("hunter-x-hunter") -> "hunter-x-hunter.102"
-            t.contains("vinland") || m.contains("vinland-saga") -> "vinland-saga.81"
-            t.contains("kingdom") || m.contains("kingdom") -> "kingdom.92"
-            t.contains("vagabond") || m.contains("vagabond") -> "vagabond.84"
+            t == "hunter x hunter" || m.contains("hunter-x-hunter") -> "hunter-x-hunter.102"
+            t == "vinland saga" || m.contains("vinland-saga") -> "vinland-saga.81"
+            t == "kingdom" || m.contains("kingdom") -> "kingdom.92"
+            t == "vagabond" || m.contains("vagabond") -> "vagabond.84"
             t.contains("kaiju no") || m.contains("kaiju-no-8") -> "kaiju-no-8.25203"
-            t.contains("black clover") || m.contains("black-clover") -> "black-clover.15582"
-            t.contains("my hero academia") || m.contains("boku-no-hero-academia") -> "boku-no-hero-academia.1325"
+            t == "black clover" || m.contains("black-clover") -> "black-clover.15582"
+            t == "my hero academia" || m.contains("boku-no-hero-academia") -> "boku-no-hero-academia.1325"
             t.contains("omniscient reader") || m.contains("omniscient-reader") -> "omniscient-readers-viewpoint.24837"
-            t.contains("nano machine") || m.contains("nano-machine") -> "nano-machine.25193"
-            t.contains("estate developer") || m.contains("greatest-estate-developer") -> "the-greatest-estate-developer.26244"
-            t.contains("magic emperor") || m.contains("magic-emperor") -> "magic-emperor.23439"
+            t == "nano machine" || m.contains("nano-machine") -> "nano-machine.25193"
+            t.contains("greatest estate developer") || m.contains("greatest-estate-developer") -> "the-greatest-estate-developer.26244"
+            t == "magic emperor" || m.contains("magic-emperor") -> "magic-emperor.23439"
             t.contains("mount hua") || t.contains("blossoming blade") -> "return-of-the-blossoming-blade.25807"
             t.contains("doom breaker") || t.contains("suicidal battle god") -> "reincarnation-of-the-suicidal-battle-god.25816"
-            t.contains("barbarian") -> "surviving-the-game-as-a-barbarian.27138"
+            t.contains("surviving the game as a barbarian") || m.contains("surviving-game-barbarian") -> "surviving-the-game-as-a-barbarian.27138"
             t.contains("damn reincarnation") || t.contains("blasted reincarnated") -> "damn-reincarnation.26360"
             else -> null
         }
@@ -700,6 +741,58 @@ class MangaRepository(context: Context) {
             Regex("(?:chapter-|:c|:ch|:ep|:)([0-9.]+)").find(chapterId)?.groupValues?.get(1)
                 ?: Regex("([0-9.]+)").findAll(chapterId).lastOrNull()?.value
                 ?: "1"
+        }
+
+        val isExplicitNsfw = mangaId.startsWith("m18:") || mangaId.startsWith("manga18:") ||
+            mangaId.startsWith("ext:") || chapterId.startsWith("m18_ch:") ||
+            chapterId.startsWith("ext_ch:")
+
+        // 0. Manga18fx direct adult chapter resolution (handled before any SFW fallback)
+        if (chapterId.startsWith("m18_ch:") || chapterId.startsWith("m18:") || mangaId.startsWith("m18:") || mangaId.startsWith("manga18:")) {
+            try {
+                val parts = chapterId.replace(Regex("^(m18_ch:|m18:)"), "").split(":")
+                val m18Slug = parts.getOrNull(0)?.takeIf { it.isNotBlank() }
+                    ?: mangaId.replace(Regex("^(m18:|manga18:|manga18fx:)"), "").trimEnd('/')
+                val chSlug = if (parts.size > 1 && parts[1].isNotBlank()) parts[1] else "chapter-$num"
+                if (m18Slug.isNotBlank()) {
+                    val url = "https://manga18fx.com/manga/$m18Slug/$chSlug"
+                    val request = Request.Builder()
+                        .url(url)
+                        .header("User-Agent", MODERN_USER_AGENT)
+                        .header("Referer", "https://manga18fx.com/")
+                        .build()
+                    httpClient.newCall(request).execute().use { resp ->
+                        if (resp.isSuccessful) {
+                            val html = resp.body?.string().orEmpty()
+                            val containerMatch = Pattern.compile("<div[^>]+class=[\"'][^\"']*(?:reading-content|read-content|chapter-content|wp-manga-chapter)[^\"']*[\"'][^>]*>([\\s\\S]{0,120000})", Pattern.CASE_INSENSITIVE).matcher(html)
+                            val scanHtml = if (containerMatch.find()) containerMatch.group(1).orEmpty() else html
+                            val hasContainer = scanHtml != html
+                            val p = Pattern.compile("<img\\b[^>]+(?:data-src|data-lazy-src|data-original|src)=[\"']([^\"']+)[\"']", Pattern.CASE_INSENSITIVE)
+                            val m = p.matcher(scanHtml)
+                            val pageList = mutableListOf<ReaderPage>()
+                            val seenUrls = mutableSetOf<String>()
+                            while (m.find()) {
+                                var imgUrl = m.group(1).orEmpty().trim()
+                                if (imgUrl.isBlank() || imgUrl.startsWith("data:")) continue
+                                if (imgUrl.startsWith("//")) imgUrl = "https:$imgUrl"
+                                val lower = imgUrl.lowercase()
+                                if (lower.contains("logo") || lower.contains("favicon") || lower.contains("avatar") || lower.contains("banner") || lower.contains("spinner") || lower.contains("1x1")) continue
+                                val looksLikePage = hasContainer || lower.contains("/online/") || lower.contains("/webtoon/") || lower.contains("/wp-manga/") || Regex("\\.(jpg|jpeg|png|webp|avif)").containsMatchIn(lower)
+                                if (looksLikePage && seenUrls.add(imgUrl)) {
+                                    pageList.add(ReaderPage(pageNumber = pageList.size + 1, imageUrl = imgUrl))
+                                }
+                            }
+                            if (pageList.isNotEmpty()) {
+                                return@withContext pageList
+                            }
+                        }
+                    }
+                }
+            } catch (_: Exception) {}
+        }
+
+        if (isExplicitNsfw) {
+            return@withContext emptyList()
         }
 
         // 1. Direct MangaPill Scraper (One Piece, Berserk, Death Note, Bleach, Naruto, Chainsaw Man, Jujutsu Kaisen, etc.)
@@ -927,44 +1020,59 @@ class MangaRepository(context: Context) {
         }
 
         // 4. A Fortune-Telling Princess direct CDN
-        if (mangaId.contains("fortune-telling") || chapterId.contains("ftp") || chapterId.contains("fortune-telling") || requestedTitle.contains("fortune-telling", true)) {
+        if (!mangaId.startsWith("anilist:") && (mangaId.contains("fortune-telling") || chapterId.contains("ftp") || requestedTitle.contains("fortune-telling princess", true))) {
             val pageList = (1..28).map { p ->
                 ReaderPage(pageNumber = p, imageUrl = "https://afortunetellingprincess.com/wp-content/uploads/manga/a-fortune-telling-princess-manhwa/chapter-$num/$p.jpg")
             }
             return@withContext pageList
         }
 
-        // Manga18fx chapter resolution
-        if (chapterId.startsWith("m18_ch:") || chapterId.startsWith("m18:") || mangaId.startsWith("m18:")) {
-            try {
-                val parts = chapterId.replace(Regex("^(m18_ch:|m18:)"), "").split(":")
-                val m18Slug = parts.getOrNull(0) ?: mangaId.replace(Regex("^m18:"), "")
-                val chSlug = if (parts.size > 1) parts[1] else "chapter-$num"
-                val url = "https://manga18fx.com/manga/$m18Slug/$chSlug"
-                val request = Request.Builder()
-                    .url(url)
-                    .header("User-Agent", "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/124.0.0.0 Safari/537.36")
-                    .header("Referer", "https://manga18fx.com/")
-                    .build()
-                httpClient.newCall(request).execute().use { resp ->
-                    if (resp.isSuccessful) {
-                        val html = resp.body?.string().orEmpty()
-                        val p = Pattern.compile("<img[^>]+(?:src|data-src)=\"([^\"]+)\"", Pattern.CASE_INSENSITIVE)
-                        val m = p.matcher(html)
-                        val pageList = mutableListOf<ReaderPage>()
-                        var pageIdx = 1
-                        while (m.find()) {
-                            val imgUrl = m.group(1).orEmpty()
-                            if (imgUrl.contains("/online/") || imgUrl.contains("/webtoon/") || imgUrl.contains("/manga/")) {
-                                pageList.add(ReaderPage(pageNumber = pageIdx++, imageUrl = imgUrl))
+        // 4b. AniList 18+ Adult search on Manga18fx before MangaDex fallback
+        if ((mangaId.startsWith("anilist:") || chapterId.startsWith("anilist_ch:")) && requestedTitle.isNotBlank()) {
+            val aniMeta = fetchAniListMeta(mangaId, requestedTitle)
+            if (aniMeta.isAdult) {
+                for (candTitle in aniMeta.titles.take(2)) {
+                    try {
+                        val searchUrl = "https://manga18fx.com/search?q=${URLEncoder.encode(candTitle, "UTF-8")}"
+                        val sReq = Request.Builder()
+                            .url(searchUrl)
+                            .header("User-Agent", MODERN_USER_AGENT)
+                            .header("Referer", "https://manga18fx.com/")
+                            .build()
+                        httpClient.newCall(sReq).execute().use { sResp ->
+                            if (sResp.isSuccessful) {
+                                val sHtml = sResp.body?.string().orEmpty()
+                                val cardPat = Pattern.compile("<a[^>]+href=\"(?:https?://manga18fx\\.com)?/manga/([^\"#?/]+)/?\"[^>]*?(?:title=\"([^\"]+)\")?", Pattern.CASE_INSENSITIVE)
+                                val cardM = cardPat.matcher(sHtml)
+                                while (cardM.find()) {
+                                    val slugFound = cardM.group(1).orEmpty()
+                                    val titleFound = cardM.group(2).orEmpty().ifBlank { slugFound.replace("-", " ") }
+                                    if (!isAuthenticSeriesMatch(candTitle, titleFound) && !isAuthenticSeriesMatch(requestedTitle, titleFound)) continue
+                                    val chUrl = "https://manga18fx.com/manga/$slugFound/chapter-$num"
+                                    val chReq = Request.Builder().url(chUrl).header("User-Agent", MODERN_USER_AGENT).header("Referer", "https://manga18fx.com/").build()
+                                    httpClient.newCall(chReq).execute().use { chResp ->
+                                        if (chResp.isSuccessful) {
+                                            val chHtml = chResp.body?.string().orEmpty()
+                                            val imgPat = Pattern.compile("<img\\b[^>]+(?:data-src|data-lazy-src|src)=[\"']([^\"']+)[\"']", Pattern.CASE_INSENSITIVE)
+                                            val imgM = imgPat.matcher(chHtml)
+                                            val pagesOut = mutableListOf<ReaderPage>()
+                                            while (imgM.find()) {
+                                                var u = imgM.group(1).orEmpty().trim()
+                                                if (u.startsWith("//")) u = "https:$u"
+                                                val lower = u.lowercase()
+                                                if (!lower.contains("logo") && !lower.contains("favicon") && !lower.contains("avatar") && (lower.contains("/online/") || lower.contains("/webtoon/") || lower.contains("/wp-manga/"))) {
+                                                    pagesOut.add(ReaderPage(pageNumber = pagesOut.size + 1, imageUrl = u))
+                                                }
+                                            }
+                                            if (pagesOut.isNotEmpty()) return@withContext pagesOut
+                                        }
+                                    }
+                                }
                             }
                         }
-                        if (pageList.isNotEmpty()) {
-                            return@withContext pageList
-                        }
-                    }
+                    } catch (_: Exception) {}
                 }
-            } catch (_: Exception) {}
+            }
         }
 
         // 3. MangaDex fallback
@@ -972,7 +1080,7 @@ class MangaRepository(context: Context) {
             val mdId = chapterId.replace(Regex("^(md_ch:|md:)"), "")
             try {
                 val url = "https://api.mangadex.org/at-home/server/$mdId"
-                val request = Request.Builder().url(url).build()
+                val request = Request.Builder().url(url).header("User-Agent", "KuroNekoMobile/1.0").build()
                 httpClient.newCall(request).execute().use { resp ->
                     if (resp.isSuccessful) {
                         val body = resp.body?.string().orEmpty()
@@ -1089,14 +1197,18 @@ class MangaRepository(context: Context) {
      * extracts all new chapters, and returns the updated chapter list!
      */
     fun getLiveMangaDetails(mangaId: String, requestedTitle: String): String {
+        if (mangaId.startsWith("ext:") || mangaId.startsWith("md:") || mangaId.startsWith("mangadex:")) {
+            return ""
+        }
+
         // 0. Manga18fx direct adult details
         if (mangaId.startsWith("m18:") || mangaId.startsWith("manga18:")) {
-            val slug = mangaId.replace(Regex("^(m18:|manga18:|manga18fx:)"), "").trim()
+            val slug = mangaId.replace(Regex("^(m18:|manga18:|manga18fx:)"), "").trimEnd('/').trim()
             try {
                 val url = "https://manga18fx.com/manga/$slug"
                 val request = Request.Builder()
                     .url(url)
-                    .header("User-Agent", "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/124.0.0.0 Safari/537.36")
+                    .header("User-Agent", MODERN_USER_AGENT)
                     .header("Referer", "https://manga18fx.com/")
                     .build()
                 httpClient.newCall(request).execute().use { resp ->
@@ -1105,18 +1217,23 @@ class MangaRepository(context: Context) {
                         val titleMatcher = Pattern.compile("<h1[^>]*>([\\s\\S]*?)</h1>", Pattern.CASE_INSENSITIVE).matcher(html)
                         val title = if (titleMatcher.find()) titleMatcher.group(1)?.replace(Regex("<[^>]+>"), "")?.trim().orEmpty() else slug
 
-                        val coverMatcher = Pattern.compile("<img [^>]*(?:data-src|src)=\"([^\"]*manga18fx\\.com/webtoon/[^\"]+)\"", Pattern.CASE_INSENSITIVE).matcher(html)
-                        val coverUrl = if (coverMatcher.find()) coverMatcher.group(1).orEmpty() else "https://manga18fx.com/webtoon/${slug}m.jpg"
+                        val coverMatcher = Pattern.compile("<div class=\"(?:manga-poster|summary_image)\"[^>]*>[\\s\\S]*?<img [^>]*(?:data-src|data-lazy-src|src)=\"([^\"]+)\"", Pattern.CASE_INSENSITIVE).matcher(html)
+                        var coverUrl = if (coverMatcher.find()) coverMatcher.group(1).orEmpty() else "https://manga18fx.com/webtoon/${slug}m.jpg"
+                        if (coverUrl.startsWith("//")) coverUrl = "https:$coverUrl"
 
-                        val chPattern = Pattern.compile("<a[^>]+href=\"/manga/[^/]+/(chapter-[0-9.]+)\"[^>]*>([\\s\\S]*?)</a>", Pattern.CASE_INSENSITIVE)
-                        val chMatcher = chPattern.matcher(html)
+                        val chContainerMatcher = Pattern.compile("<(?:ul|div)[^>]+class=[\"'][^\"']*(?:row-content-chapter|listing-chapters_wrap|version-chap)[^\"']*[\"'][^>]*>([\\s\\S]*?)</(?:ul|div)>", Pattern.CASE_INSENSITIVE).matcher(html)
+                        val chScanHtml = if (chContainerMatcher.find()) chContainerMatcher.group(1).orEmpty() else html
+                        val quotedSlug = Pattern.quote(slug)
+                        val chPattern = Pattern.compile("<a[^>]+href=\"(?:https?://manga18fx\\.com)?/manga/$quotedSlug/([^\"#?/]+)/?\"[^>]*>([\\s\\S]{0,300}?)</a>", Pattern.CASE_INSENSITIVE)
+                        val chMatcher = chPattern.matcher(chScanHtml)
                         val chaptersArr = JSONArray()
                         val seen = mutableSetOf<String>()
                         while (chMatcher.find()) {
                             val chSlug = chMatcher.group(1).orEmpty()
+                            if (!Regex("(?:chapter|ch|ep)", RegexOption.IGNORE_CASE).containsMatchIn(chSlug)) continue
                             if (!seen.add(chSlug)) continue
-                            val rawText = chMatcher.group(2)?.replace(Regex("<[^>]+>"), "")?.trim().orEmpty()
-                            val cNum = chSlug.replace("chapter-", "")
+                            val rawText = chMatcher.group(2)?.replace(Regex("<[^>]+>"), " ")?.replace(Regex("\\s+"), " ")?.trim().orEmpty()
+                            val cNum = Regex("([0-9]+(?:\\.[0-9]+)?)").find(chSlug)?.groupValues?.get(1) ?: (chaptersArr.length() + 1).toString()
                             val cObj = JSONObject()
                             cObj.put("id", "m18_ch:$slug:$chSlug")
                             cObj.put("chapter", cNum)
@@ -1131,11 +1248,21 @@ class MangaRepository(context: Context) {
                             resObj.put("chapters", chaptersArr)
                             resObj.put("totalChapters", chaptersArr.length())
                             resObj.put("latestChapter", chaptersArr.getJSONObject(0).optString("chapter"))
+                            resObj.put("contentWarning", "CONTENT_WARNING_NSFW")
+                            resObj.put("isNsfw", true)
                             return resObj.toString()
                         }
                     }
                 }
             } catch (_: Exception) {}
+            return ""
+        }
+
+        if (mangaId.startsWith("anilist:") && requestedTitle.isBlank()) {
+            val aniMeta = fetchAniListMeta(mangaId, "")
+            if (aniMeta.isAdult) {
+                return ""
+            }
         }
         // 1. Try WeebCentral series full-chapter-list (direct ULID or mapped series)
         var wcSeriesId = resolveWeebCentralSeries(mangaId, requestedTitle)
@@ -1369,9 +1496,16 @@ class MangaRepository(context: Context) {
             url.contains("nhentai", ignoreCase = true) -> "https://nhentai.net/"
             url.contains("toonily", ignoreCase = true) -> "https://toonily.com/"
             url.contains("hiperdex", ignoreCase = true) -> "https://hiperdex.com/"
+            url.contains("manhwa18.cc", ignoreCase = true) -> "https://manhwa18.cc/"
             url.contains("manhwa18.net", ignoreCase = true) -> "https://manhwa18.net/"
             url.contains("manhwa18", ignoreCase = true) -> "https://manhwa18.com/"
             url.contains("doujindesu", ignoreCase = true) -> "https://doujindesu.tv/"
+            url.contains("manytoon", ignoreCase = true) -> "https://manytoon.com/"
+            url.contains("hentairead", ignoreCase = true) -> "https://hentairead.com/"
+            url.contains("asmhentai", ignoreCase = true) -> "https://asmhentai.com/"
+            url.contains("hentaifox", ignoreCase = true) -> "https://hentaifox.com/"
+            url.contains("imhentai", ignoreCase = true) -> "https://imhentai.xxx/"
+            url.contains("allporncomic", ignoreCase = true) -> "https://allporncomic.com/"
             url.contains("e-hentai", ignoreCase = true) ||
                 url.contains("ehgt.org", ignoreCase = true) ||
                 url.contains("hath.network", ignoreCase = true) -> "https://e-hentai.org/"
