@@ -1512,6 +1512,7 @@ export async function fetchAniListDetails(id) {
     const q = `query ($id: Int) {
       Media(id: $id, type: MANGA) {
         id
+        isAdult
         title { romaji english userPreferred }
         coverImage { extraLarge large medium }
         bannerImage
@@ -1537,11 +1538,12 @@ export async function fetchAniListDetails(id) {
     const m = json?.data?.Media;
     if (!m) return null;
 
+    const isAdult = Boolean(m.isAdult);
     const t = m.title?.english || m.title?.romaji || m.title?.userPreferred || 'Manga';
 
-    // Check catalog first with exact normalized title match (prevent "secret" matching "secretary")
+    // Check catalog first with exact normalized title match (never match SFW catalog entries for 18+ adult works)
     const normT = t.toLowerCase().replace(/[^a-z0-9]/g, '');
-    const catalogMatch = FALLBACK_MANGA_CATALOG.find((cat) => {
+    const catalogMatch = isAdult ? null : FALLBACK_MANGA_CATALOG.find((cat) => {
       const normCat = cat.title.toLowerCase().replace(/[^a-z0-9]/g, '');
       const normEng = (cat.englishTitle || '').toLowerCase().replace(/[^a-z0-9]/g, '');
       return (normT && normCat === normT) || (normT && normEng === normT);
@@ -1555,8 +1557,8 @@ export async function fetchAniListDetails(id) {
       };
     }
 
-    const knownCount = getKnownChapterCount(t);
-    const totalCh = m.chapters || knownCount || 120;
+    const knownCount = isAdult ? null : getKnownChapterCount(t);
+    const totalCh = m.chapters || knownCount || (isAdult ? 24 : 120);
     const chList = Array.from({ length: totalCh }, (_, idx) => {
       const num = totalCh - idx;
       return {
@@ -1577,8 +1579,10 @@ export async function fetchAniListDetails(id) {
       year: m.startDate?.year ? String(m.startDate.year) : '2023',
       author: authors,
       description: m.description ? decodeHtml(m.description) : '',
-      tags: m.genres || ['Action', 'Fantasy'],
-      sourceName: 'AniList',
+      tags: isAdult ? ['18+ Adult', ...(m.genres || []).slice(0, 4)] : (m.genres || ['Action', 'Fantasy']),
+      sourceName: isAdult ? 'AniList (18+)' : 'AniList',
+      contentWarning: isAdult ? 'CONTENT_WARNING_NSFW' : 'CONTENT_WARNING_SAFE',
+      isNsfw: isAdult,
       totalChapters: totalCh,
       latestChapter: String(totalCh),
       chapters: chList
@@ -1821,27 +1825,39 @@ export function isAuthenticSeriesMatch(query, candidateTitle) {
   const qLower = String(query).toLowerCase().trim();
   const cLower = String(candidateTitle).toLowerCase().trim();
 
-  // Distinct series guard: 'beloved' vs 'obsessed' (e.g. Beloved by My In-Laws vs My In-Laws Are Obsessed With Me)
+  // Distinct series guard: 'beloved' vs 'obsessed'
   if ((qLower.includes('beloved') && cLower.includes('obsessed')) || (qLower.includes('obsessed') && cLower.includes('beloved'))) {
     return false;
   }
 
-  if (qLower === cLower) return true;
-  if (cLower.includes(qLower) || qLower.includes(cLower)) {
-    if ((qLower.includes('beloved') && !cLower.includes('beloved')) || (cLower.includes('beloved') && !qLower.includes('beloved'))) {
-      return false;
+  const normAlphaNum = (s) => s.replace(/[^a-z0-9]/g, '');
+  const qNorm = normAlphaNum(qLower);
+  const cNorm = normAlphaNum(cLower);
+  if (!qNorm || !cNorm) return false;
+  if (qLower === cLower || qNorm === cNorm) return true;
+
+  if (Math.min(qNorm.length, cNorm.length) >= 8 && (cNorm.includes(qNorm) || qNorm.includes(cNorm))) {
+    const lenRatio = Math.min(qNorm.length, cNorm.length) / Math.max(qNorm.length, cNorm.length);
+    if (lenRatio >= 0.65) {
+      if ((qLower.includes('beloved') && !cLower.includes('beloved')) || (cLower.includes('beloved') && !qLower.includes('beloved'))) {
+        return false;
+      }
+      return true;
     }
-    return true;
   }
 
-  const stopWords = new Set(['the', 'a', 'an', 'and', 'or', 'of', 'in', 'to', 'for', 'with', 'are', 'is', 'my', 'her', 'his', 'manga', 'series']);
-  const cleanQ = qLower.replace(/[^a-z0-9\s]/g, ' ');
-  const qTokens = cleanQ.split(/\s+/).filter(t => t.length > 1 && !stopWords.has(t));
-  if (qTokens.length === 0) return false;
+  const stopWords = new Set(['the', 'a', 'an', 'and', 'or', 'of', 'in', 'to', 'for', 'with', 'are', 'is', 'my', 'her', 'his', 'manga', 'series', 'official', 'colored', 'color', 'full', 'raw', 'uncensored', 'english', 'webtoon', 'manhwa', 'manhua', 'comic']);
+  const qTokens = qLower.replace(/[^a-z0-9\s]/g, ' ').split(/\s+/).filter(t => t.length > 1 && !stopWords.has(t));
+  const cTokens = cLower.replace(/[^a-z0-9\s]/g, ' ').split(/\s+/).filter(t => t.length > 1 && !stopWords.has(t));
+  if (qTokens.length === 0 || cTokens.length === 0) return false;
 
-  const cClean = cLower.replace(/[^a-z0-9\s]/g, ' ');
-  const matchedTokens = qTokens.filter(t => cClean.includes(t));
-  const threshold = qTokens.length <= 2 ? 1 : Math.min(2, qTokens.length);
+  const cTokenSet = new Set(cTokens);
+  const matchedTokens = qTokens.filter(t => cTokenSet.has(t));
+  if (qTokens.length <= 2) {
+    return matchedTokens.length === qTokens.length && cTokens.length === qTokens.length;
+  }
+  const denom = Math.max(qTokens.length, cTokens.length);
+  const threshold = Math.max(2, Math.ceil(denom * 0.7));
   return matchedTokens.length >= threshold;
 }
 
@@ -2092,47 +2108,85 @@ export async function fetchGenericExtensionDetails(mangaId) {
       targetHost = new URL(targetUrl).hostname.replace(/^www\./, '');
     } catch {}
 
-    const rawChapters = [];
-    const seenUrls = new Set();
-    const linkRegex = /<a\b[^>]*href=["']([^"']+)["'][^>]*>([\s\S]{0,400}?)<\/a>/gi;
+    const extractChLinks = (sourceHtml, isFragment = false) => {
+      const found = [];
+      const seenUrls = new Set();
+      const targetSeriesMatch = targetUrl.match(/\/(?:manga|series|comic|webtoon|manhwa|title)\/([^/?#]+)/i);
+      const targetSeriesSlug = targetSeriesMatch ? targetSeriesMatch[1].toLowerCase() : '';
 
-    for (const m of html.matchAll(linkRegex)) {
-      const href = m[1];
-      const text = decodeHtml(m[2].replace(/<[^>]+>/g, ' ').replace(/\s+/g, ' ').trim());
-      const chUrl = resolveExtUrl(href, targetUrl);
-      if (!chUrl || seenUrls.has(chUrl)) continue;
-
-      try {
-        const uHost = new URL(chUrl).hostname.replace(/^www\./, '');
-        if (targetHost && !uHost.endsWith(targetHost)) continue;
-      } catch {
-        continue;
+      let scanScope = sourceHtml;
+      if (!isFragment) {
+        const containerMatch = sourceHtml.match(/<ul[^>]+class=["'][^"']*row-content-chapter[^"']*["'][^>]*>([\s\S]*?)<\/ul>/i)
+          || sourceHtml.match(/<div[^>]+class=["'][^"']*(?:listing-chapters_wrap|version-chap|eplister|chapter-list|chapters-list)[^"']*["'][^>]*>([\s\S]*?)<\/div>/i)
+          || sourceHtml.match(/<div[^>]+id=["']chapterlist["'][^>]*>([\s\S]*?)<\/div>/i);
+        if (containerMatch && /<a\b/i.test(containerMatch[1])) {
+          scanScope = containerMatch[1];
+        }
       }
 
-      if (chUrl.replace(/\/+$/, '') === targetUrl.replace(/\/+$/, '')) continue;
-      if (/\/(genre|tag|author|artist|login|register|wp-admin|wp-login|user|comment)/i.test(chUrl)) continue;
+      const linkRegex = /<a\b[^>]*href=["']([^"']+)["'][^>]*>([\s\S]{0,400}?)<\/a>/gi;
 
-      const looksLikeChapter = /(?:chapter|ch[-_/]|\/c[0-9]|ep[-_]|\/read\/|\/view\/)/i.test(chUrl)
-        || /\b(?:chapter|ch\.?|ep\.?|episode)\s*[0-9]+/i.test(text);
-      if (!looksLikeChapter) continue;
+      for (const m of scanScope.matchAll(linkRegex)) {
+        const href = m[1];
+        const text = decodeHtml(m[2].replace(/<[^>]+>/g, ' ').replace(/\s+/g, ' ').trim());
+        const chUrl = resolveExtUrl(href, targetUrl);
+        if (!chUrl || seenUrls.has(chUrl)) continue;
 
-      seenUrls.add(chUrl);
-      const numMatch = text.match(/(?:chapter|ch\.?|ep\.?|episode)\s*([0-9]+(?:\.[0-9]+)?)/i)
-        || chUrl.match(/(?:chapter|ch|ep)[-_]?([0-9]+(?:\.[0-9]+)?)/i)
-        || chUrl.match(/\/c([0-9]+(?:\.[0-9]+)?)/i);
-      const chNum = numMatch ? numMatch[1] : String(rawChapters.length + 1);
+        try {
+          const uHost = new URL(chUrl).hostname.replace(/^www\./, '');
+          if (targetHost && !uHost.endsWith(targetHost)) continue;
+        } catch {
+          continue;
+        }
 
-      rawChapters.push({
-        id: `ext_ch:${toBase64Url(homeUrl || targetUrl)}:${toBase64Url(chUrl)}`,
-        chapter: chNum,
-        title: isRedundantChapterTitle(text, chNum) ? '' : text,
-      });
+        if (chUrl.replace(/\/+$/, '') === targetUrl.replace(/\/+$/, '')) continue;
+        if (/\/(genre|tag|author|artist|login|register|wp-admin|wp-login|user|comment)/i.test(chUrl)) continue;
+        if (targetSeriesSlug) {
+          const chSeriesMatch = chUrl.match(/\/(?:manga|series|comic|webtoon|manhwa|title)\/([^/?#]+)\//i);
+          if (chSeriesMatch && chSeriesMatch[1].toLowerCase() !== targetSeriesSlug) continue;
+        }
+
+        const looksLikeChapter = /(?:chapter|ch[-_/]|\/c[0-9]|ep[-_]|\/read\/|\/view\/|\/g\/\d+\/\d+)/i.test(chUrl)
+          || /\b(?:chapter|ch\.?|ep\.?|episode)\s*[0-9]+/i.test(text);
+        if (!looksLikeChapter) continue;
+
+        seenUrls.add(chUrl);
+        const numMatch = text.match(/(?:chapter|ch\.?|ep\.?|episode)\s*([0-9]+(?:\.[0-9]+)?)/i)
+          || chUrl.match(/(?:chapter|ch|ep)[-_]?([0-9]+(?:\.[0-9]+)?)/i)
+          || chUrl.match(/\/c([0-9]+(?:\.[0-9]+)?)/i);
+        const chNum = numMatch ? numMatch[1] : String(found.length + 1);
+
+        found.push({
+          id: `ext_ch:${toBase64Url(homeUrl || targetUrl)}:${toBase64Url(chUrl)}`,
+          chapter: chNum,
+          title: isRedundantChapterTitle(text, chNum) ? '' : text,
+        });
+      }
+      return found;
+    };
+
+    let rawChapters = extractChLinks(html, false);
+
+    // Fallback for WordPress Madara sites that load chapter lists via POST ajax/chapters/
+    if (rawChapters.length === 0) {
+      try {
+        const ajaxUrl = `${targetUrl.replace(/\/+$/, '')}/ajax/chapters/`;
+        const ajaxRes = await fetch(ajaxUrl, {
+          method: 'POST',
+          headers: { 'X-Requested-With': 'XMLHttpRequest' },
+          signal: AbortSignal.timeout(4500),
+        });
+        if (ajaxRes.ok) {
+          const ajaxHtml = await ajaxRes.text();
+          rawChapters = extractChLinks(ajaxHtml, true);
+        }
+      } catch {}
     }
 
-    // Single-gallery fallback (e.g. NHentai HTML page without chapter links)
-    if (rawChapters.length === 0 && /nhentai\.net\/g\/\d+/i.test(targetUrl)) {
+    // Single-gallery fallback (e.g. NHentai / HentaiFox / IMHentai / AsmHentai galleries)
+    if (rawChapters.length === 0 && /(?:nhentai\.net\/g\/\d+|hentaifox\.com\/gallery\/\d+|imhentai\.xxx\/gallery\/\d+|asmhentai\.com\/g\/\d+)/i.test(targetUrl)) {
       rawChapters.push({
-        id: `ext_ch:${toBase64Url(homeUrl || 'https://nhentai.net')}:${toBase64Url(targetUrl)}`,
+        id: `ext_ch:${toBase64Url(homeUrl || targetUrl)}:${toBase64Url(targetUrl)}`,
         chapter: '1',
         title: 'Full Gallery',
       });
@@ -2178,36 +2232,77 @@ export async function fetchMangaDetails(mangaId, refresh = false) {
 
   if (String(mangaId || '').startsWith('ext:')) {
     const extDetails = await fetchGenericExtensionDetails(mangaId);
-    if (extDetails) {
-      if (Array.isArray(extDetails.chapters) && extDetails.chapters.length > 0) {
-        setClientCached(cacheKey, extDetails);
-      }
+    if (extDetails && Array.isArray(extDetails.chapters) && extDetails.chapters.length > 0) {
+      setClientCached(cacheKey, extDetails);
       return extDetails;
     }
+    try {
+      const apiBase = getApiBaseUrl();
+      const url = apiBase
+        ? `${apiBase}/api/manga/details?id=${encodeURIComponent(mangaId)}${refresh ? '&refresh=true' : ''}`
+        : `/api/manga/details?id=${encodeURIComponent(mangaId)}${refresh ? '&refresh=true' : ''}`;
+      const res = await fetch(url, { signal: AbortSignal.timeout(7000) });
+      if (res.ok) {
+        const srv = await res.json();
+        if (srv && (srv.chapters?.length > 0 || !extDetails)) {
+          if (srv.chapters?.length) setClientCached(cacheKey, srv);
+          return srv;
+        }
+      }
+    } catch {}
+    if (extDetails) return extDetails;
   }
 
   if (String(mangaId || '').startsWith('m18:') || String(mangaId || '').startsWith('manga18:')) {
     const m18Item = await fetchManga18fxDetailsClient(mangaId);
-    if (m18Item) {
-      if (Array.isArray(m18Item.chapters) && m18Item.chapters.length > 0) {
-        setClientCached(cacheKey, m18Item);
-      }
+    if (m18Item && Array.isArray(m18Item.chapters) && m18Item.chapters.length > 0) {
+      setClientCached(cacheKey, m18Item);
       return m18Item;
     }
+    if (typeof window !== 'undefined' && window.AndroidBridge && typeof window.AndroidBridge.getLiveMangaDetails === 'function') {
+      try {
+        const liveJson = window.AndroidBridge.getLiveMangaDetails(mangaId, m18Item?.title || '');
+        if (liveJson) {
+          const parsed = typeof liveJson === 'string' ? JSON.parse(liveJson) : liveJson;
+          if (parsed && Array.isArray(parsed.chapters) && parsed.chapters.length > 0) {
+            const merged = { ...(m18Item || {}), ...parsed, id: mangaId, contentWarning: 'CONTENT_WARNING_NSFW', isNsfw: true };
+            setClientCached(cacheKey, merged);
+            return merged;
+          }
+        }
+      } catch {}
+    }
+    try {
+      const apiBase = getApiBaseUrl();
+      const url = apiBase
+        ? `${apiBase}/api/manga/details?id=${encodeURIComponent(mangaId)}${refresh ? '&refresh=true' : ''}`
+        : `/api/manga/details?id=${encodeURIComponent(mangaId)}${refresh ? '&refresh=true' : ''}`;
+      const res = await fetch(url, { signal: AbortSignal.timeout(7000) });
+      if (res.ok) {
+        const srv = await res.json();
+        if (srv && (srv.chapters?.length > 0 || !m18Item)) {
+          if (srv.chapters?.length) setClientCached(cacheKey, srv);
+          return srv;
+        }
+      }
+    } catch {}
+    if (m18Item) return m18Item;
   }
 
   const rawId = String(mangaId || '').replace(/^wc:|^wc_/i, '');
   const wcPrefixed = `wc:${rawId}`;
+  const isExternalTypedId = /^(anilist|m18|manga18|manga18fx|ext|md|mangadex|kat|wc):/i.test(String(mangaId || ''));
 
   const fallbackItem = FALLBACK_MANGA_CATALOG.find(
     (m) => m.id === mangaId || m.id === rawId || m.id === wcPrefixed ||
            m.aliases?.includes(mangaId) || m.aliases?.includes(rawId) || m.aliases?.includes(wcPrefixed)
-  ) || FALLBACK_MANGA_CATALOG.find((m) => {
-    const q = String(mangaId || '').toLowerCase().replace(/^wc:|^webtoon:|^md:|^asura:|^vortex:|^thunder:|^flame:|^mk:|^kat:/, '').replace(/[-_:]/g, ' ');
-    if (isMachineId(q)) return false;
-    const titleQ = m.title.toLowerCase().replace(/[-_:]/g, ' ');
-    return q.includes(titleQ) || titleQ.includes(q);
-  });
+  ) || (!isExternalTypedId ? FALLBACK_MANGA_CATALOG.find((m) => {
+    const q = String(mangaId || '').toLowerCase().replace(/^wc:|^webtoon:|^md:|^asura:|^vortex:|^thunder:|^flame:|^mk:|^kat:/, '').replace(/[-_:]/g, ' ').trim();
+    if (!q || isMachineId(q) || q.length < 4) return false;
+    const titleQ = m.title.toLowerCase().replace(/[-_:]/g, ' ').trim();
+    const engQ = (m.englishTitle || '').toLowerCase().replace(/[-_:]/g, ' ').trim();
+    return q === titleQ || (engQ && q === engQ);
+  }) : null);
 
   const queryTitle = fallbackItem?.title || fallbackItem?.englishTitle || '';
 
@@ -2405,7 +2500,7 @@ export async function fetchMangaDetails(mangaId, refresh = false) {
  * Client-side Manga18fx Details and Chapter List Fetcher
  */
 export async function fetchManga18fxDetailsClient(mangaId) {
-  const slug = String(mangaId).replace(/^m18:|^manga18:|^manga18fx:/, '').trim();
+  const slug = String(mangaId).replace(/^m18:|^manga18:|^manga18fx:/i, '').replace(/\/+$/, '').trim();
   try {
     const url = `https://manga18fx.com/manga/${slug}`;
     const html = await fetchClientHtml(url, 6000);
@@ -2414,8 +2509,8 @@ export async function fetchManga18fxDetailsClient(mangaId) {
     const titleMatch = html.match(/<h1[^>]*>([\s\S]*?)<\/h1>/i);
     const title = cleanTitle(decodeHtml(titleMatch ? titleMatch[1].replace(/<[^>]+>/g, '').trim() : slug));
 
-    const coverMatch = html.match(/<div class="manga-poster"[^>]*>[\s\S]*?<img [^>]*(?:data-src|src)="([^"]+)"/i) 
-      || html.match(/<img [^>]*(?:data-src|src)="([^"]+)"[^>]*alt="[^"]*poster/i)
+    const coverMatch = html.match(/<div class="manga-poster"[^>]*>[\s\S]*?<img [^>]*(?:data-src|data-lazy-src|src)="([^"]+)"/i)
+      || html.match(/<div class="summary_image"[^>]*>[\s\S]*?<img [^>]*(?:data-src|data-lazy-src|src)="([^"]+)"/i)
       || html.match(/<img [^>]*(?:data-src|src)="([^"]*manga18fx\.com\/webtoon\/[^"]+)"/i);
     let coverUrl = coverMatch ? coverMatch[1] : `https://manga18fx.com/webtoon/${slug}m.jpg`;
     if (coverUrl.startsWith('//')) coverUrl = `https:${coverUrl}`;
@@ -2424,15 +2519,19 @@ export async function fetchManga18fxDetailsClient(mangaId) {
       || html.match(/<div class="panel-story-info-description"[^>]*>([\s\S]*?)<\/div>/i);
     const description = descMatch ? decodeHtml(descMatch[1].replace(/<[^>]+>/g, '').trim()) : '18+ Adult Webtoon / Manhwa series from Manga18fx.';
 
-    const chRegex = /<a[^>]+href="\/manga\/[^/]+\/(chapter-[0-9.]+)"[^>]*>([\s\S]*?)<\/a>/gi;
+    const escapedSlug = slug.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+    const chContainer = html.match(/<(?:ul|div)[^>]+class=["'][^"']*(?:row-content-chapter|listing-chapters_wrap|version-chap)[^"']*["'][^>]*>([\s\S]*?)<\/(?:ul|div)>/i);
+    const chScanHtml = chContainer ? chContainer[1] : html;
+    const chRegex = new RegExp(`<a[^>]+href="(?:https?:\\/\\/manga18fx\\.com)?\\/manga\\/${escapedSlug}\\/([^"#?/]+)\\/?"[^>]*>([\\s\\S]{0,300}?)<\\/a>`, 'gi');
     const chapters = [];
     const seenCh = new Set();
-    for (const m of html.matchAll(chRegex)) {
+    for (const m of chScanHtml.matchAll(chRegex)) {
       const chSlug = m[1];
-      if (seenCh.has(chSlug)) continue;
+      if (!/(?:chapter|ch|ep)/i.test(chSlug) || seenCh.has(chSlug)) continue;
       seenCh.add(chSlug);
-      const rawText = m[2].replace(/<[^>]+>/g, '').trim();
-      const num = chSlug.replace(/^chapter-/, '');
+      const rawText = decodeHtml(m[2].replace(/<[^>]+>/g, ' ').replace(/\s+/g, ' ').trim());
+      const numMatch = chSlug.match(/([0-9]+(?:\.[0-9]+)?)/) || rawText.match(/([0-9]+(?:\.[0-9]+)?)/);
+      const num = numMatch ? numMatch[1] : String(chapters.length + 1);
       chapters.push({
         id: `m18_ch:${slug}:${chSlug}`,
         chapter: num,
@@ -2668,31 +2767,13 @@ export function getChapterSourceUrl(mangaId, chapterId, chapterNumber, mangaTitl
   const cid = String(chapterId || '').toLowerCase();
   const title = String(mangaTitle || '').toLowerCase();
 
-  if (mid.includes('fortune-telling') || cid.includes('ftp') || cid.includes('fortune-telling') || title.includes('fortune-telling')) {
-    return `https://afortunetellingprincess.com/a-fortune-telling-princess-manhwa-chapter-${num}/`;
+  if (cid.startsWith('http://') || cid.startsWith('https://')) {
+    return chapterId;
   }
-  if (mid.includes('despised-stepmother') || title.includes('despised stepmother') || (title.includes('stepmother') && title.includes('second life'))) {
-    return `https://kingofshojo.com/the-despised-stepmother-begins-her-second-life-chapter-${num}/`;
+  if (cid.startsWith('ext_ch:') || mid.startsWith('ext:')) {
+    const { targetUrl } = parseExtId(cid.startsWith('ext_ch:') ? chapterId : mangaId);
+    if (targetUrl) return targetUrl;
   }
-  if (mid.includes('a-stepmothers-fairy-tale') || mid.includes('01j76xydq9jtww4thbjwpxnj9h') || title.includes('fairy tale') || title.includes('stepmother has left') || title.includes('fantasie of a stepmother')) {
-    return `https://mangakatana.com/manga/a-stepmothers-fairy-tale.23902/c${num}`;
-  }
-  if (mid.includes('solo') || cid.includes('solo') || title.includes('solo leveling')) {
-    return `https://ww4.readsololeveling.org/chapter/solo-leveling-chapter-${num}/`;
-  }
-  if (mid.includes('omniscient') || cid.includes('orv') || title.includes('omniscient reader')) {
-    return `https://w1.omniscientreadersviewpoint.com/manga/omniscient-readers-viewpoint-chapter-${num}/`;
-  }
-  if (mid.includes('damn-reincarnation') || title.includes('damn reincarnation')) {
-    return `https://asurascans.com/comics/damn-reincarnation-3ebcc5a9/chapter/${num}`;
-  }
-  if (mid.includes('barbarian') || title.includes('barbarian')) {
-    return `https://asurascans.com/comics/surviving-the-game-as-a-barbarian-ab39de10/chapter/${num}`;
-  }
-  if (mid.includes('estate') || title.includes('greatest estate')) {
-    return `https://asurascans.com/comics/the-greatest-estate-developer-ab39de10/chapter/${num}`;
-  }
-
   if (cid.startsWith('m18_ch:')) {
     const parts = cid.replace('m18_ch:', '').split(':');
     return `https://manga18fx.com/manga/${parts[0]}/${parts[1] || `chapter-${num}`}`;
@@ -2720,20 +2801,40 @@ export function getChapterSourceUrl(mangaId, chapterId, chapterNumber, mangaTitl
     return `https://mangakatana.com/manga/${mid.replace('kat:', '')}`;
   }
 
-  if (mid.includes('one-piece') || cid.includes('one-piece') || title.includes('one piece')) {
-    return `https://mangapill.com/chapters/2-${10000000 + (parseInt(num) * 1000)}/one-piece-chapter-${num}`;
-  }
-  if (mid.includes('berserk') || cid.includes('berserk') || title.includes('berserk')) {
-    return `https://mangapill.com/chapters/1-${10000000 + (parseInt(num) * 1000)}/berserk-chapter-${num}`;
+  const isExternalSfwSkip = mid.startsWith('anilist:') || mid.startsWith('md:');
+  if (!isExternalSfwSkip) {
+    if (mid.includes('fortune-telling') || cid.includes('ftp') || title.includes('fortune-telling princess')) {
+      return `https://afortunetellingprincess.com/a-fortune-telling-princess-manhwa-chapter-${num}/`;
+    }
+    if (mid.includes('despised-stepmother') || (title.includes('despised stepmother') && title.includes('second life'))) {
+      return `https://kingofshojo.com/the-despised-stepmother-begins-her-second-life-chapter-${num}/`;
+    }
+    if (mid.includes('a-stepmothers-fairy-tale') || mid.includes('01j76xydq9jtww4thbjwpxnj9h') || title.includes("stepmother's fairy tale") || title.includes('fantasie of a stepmother')) {
+      return `https://mangakatana.com/manga/a-stepmothers-fairy-tale.23902/c${num}`;
+    }
+    if (mid === 'solo-leveling' || mid === 'webtoon:solo-leveling' || title === 'solo leveling' || title === 'only i level up') {
+      return `https://ww4.readsololeveling.org/chapter/solo-leveling-chapter-${num}/`;
+    }
+    if (mid.includes('omniscient-reader') || cid.includes('orv') || title.includes('omniscient reader')) {
+      return `https://w1.omniscientreadersviewpoint.com/manga/omniscient-readers-viewpoint-chapter-${num}/`;
+    }
+    if (mid.includes('damn-reincarnation') || title.includes('damn reincarnation')) {
+      return `https://asurascans.com/comics/damn-reincarnation-3ebcc5a9/chapter/${num}`;
+    }
+    if (mid.includes('surviving-the-game-as-a-barbarian') || mid.includes('surviving-game-barbarian') || title.includes('surviving the game as a barbarian')) {
+      return `https://asurascans.com/comics/surviving-the-game-as-a-barbarian-ab39de10/chapter/${num}`;
+    }
+    if (mid.includes('greatest-estate') || title.includes('greatest estate developer')) {
+      return `https://asurascans.com/comics/the-greatest-estate-developer-ab39de10/chapter/${num}`;
+    }
+    if (mid.includes('one-piece') || title === 'one piece') {
+      return `https://mangapill.com/chapters/2-${10000000 + (parseInt(num) * 1000)}/one-piece-chapter-${num}`;
+    }
+    if (mid.includes('berserk') || title === 'berserk') {
+      return `https://mangapill.com/chapters/1-${10000000 + (parseInt(num) * 1000)}/berserk-chapter-${num}`;
+    }
   }
 
-  if (cid.startsWith('http://') || cid.startsWith('https://')) {
-    return chapterId;
-  }
-  if (cid.startsWith('ext_ch:') || mid.startsWith('ext:')) {
-    const { targetUrl } = parseExtId(cid.startsWith('ext_ch:') ? chapterId : mangaId);
-    if (targetUrl) return targetUrl;
-  }
   return `https://www.google.com/search?q=${encodeURIComponent(cleanTitle(title) + ' chapter ' + num + ' read online')}`;
 }
 
@@ -2910,12 +3011,34 @@ export async function fetchChapterPages(chapterId, mangaId = null, chapterNumber
 
   const baseUrl = getApiBaseUrl();
 
-  // 0b. Generic Extension Chapter HTML / API Resolution (falls through to title search if empty)
-  if (String(chapterId || '').startsWith('ext_ch:')) {
+  // 0b. Generic Extension Chapter HTML / API Resolution
+  if (String(chapterId || '').startsWith('ext_ch:') || String(chapterId || '').startsWith('ext:')) {
     const extPages = await fetchGenericExtensionChapterPages(chapterId, baseUrl);
     if (extPages && Array.isArray(extPages.pages) && extPages.pages.length > 0) {
       return extPages;
     }
+    try {
+      const apiUrl = baseUrl
+        ? `${baseUrl}/api/manga/read?chapterId=${encodeURIComponent(chapterId)}&mangaId=${encodeURIComponent(mangaId || '')}`
+        : `/api/manga/read?chapterId=${encodeURIComponent(chapterId)}&mangaId=${encodeURIComponent(mangaId || '')}`;
+      const res = await fetch(apiUrl, { signal: AbortSignal.timeout(7000) });
+      if (res.ok) {
+        const data = await res.json();
+        if (data && Array.isArray(data.pages) && data.pages.length > 0) {
+          if (baseUrl) {
+            data.pages = data.pages.map(p => ({ ...p, url: p.url && p.url.startsWith('/api/') ? `${baseUrl}${p.url}` : p.url }));
+          }
+          return data;
+        }
+      }
+    } catch {}
+    return {
+      chapterId,
+      totalPages: 0,
+      pages: [],
+      sourceUrl: getChapterSourceUrl(mangaId, chapterId, chapterNumber, mangaTitle),
+      warning: 'Could not load chapter pages from this external extension source.'
+    };
   }
 
   // 0c. High-Priority Android Native Bridge (Zero CORS, native OkHttp)
@@ -3056,7 +3179,10 @@ export async function fetchChapterPages(chapterId, mangaId = null, chapterNumber
     }
   }
 
-  if (!wcChapId) {
+  const isExplicitNsfw = mid.startsWith('m18:') || mid.startsWith('manga18:') || mid.startsWith('ext:') ||
+    cid.startsWith('m18_ch:') || cid.startsWith('ext_ch:');
+
+  if (!isExplicitNsfw && !mid.startsWith('anilist:') && !mid.startsWith('md:') && !wcChapId) {
     let targetSeriesId = null;
     let targetSeriesChNum = chNum;
     if (wcTarget.includes(':')) {
@@ -3068,7 +3194,8 @@ export async function fetchChapterPages(chapterId, mangaId = null, chapterNumber
     }
     if (!targetSeriesId) {
       for (const [k, v] of Object.entries(WC_SERIES_MAP)) {
-        if (mid.includes(k) || title.includes(k.replace(/-/g, ' ')) || cid.includes(k)) {
+        const keyPhrase = k.replace(/-/g, ' ');
+        if (mid === k || mid === `wc:${k}` || mid === `webtoon:${k}` || title === keyPhrase) {
           targetSeriesId = v;
           break;
         }
@@ -3120,79 +3247,81 @@ export async function fetchChapterPages(chapterId, mangaId = null, chapterNumber
     }
   }
 
-  // 3. Client-side MangaKatana resolution
+  // 3. Client-side MangaKatana resolution (never match unrelated external/NSFW IDs via fuzzy substrings)
   let katSlug = null;
   let specificChSlug = null;
   if (cid.startsWith('kat_ch:')) {
     const parts = cid.replace('kat_ch:', '').split(':');
     katSlug = parts[0];
     specificChSlug = parts.length > 1 ? parts[1] : `c${chNum}`;
-  } else if (title.includes('one piece') || mid.includes('one-piece')) {
-    katSlug = 'one-piece.49';
-  } else if (title.includes('one-punch') || title.includes('one punch') || mid.includes('one-punch')) {
-    katSlug = 'one-punch-man.163';
-  } else if (title.includes('berserk') || mid.includes('berserk')) {
-    katSlug = 'berserk.1087';
-  } else if (title.includes('chainsaw') || mid.includes('chainsaw')) {
-    katSlug = 'chainsaw-man.21890';
-  } else if (title.includes('jujutsu') || mid.includes('jujutsu')) {
-    katSlug = 'jujutsu-kaisen.20224';
-  } else if (title.includes('blue lock') || mid.includes('blue-lock')) {
-    katSlug = 'blue-lock.20912';
-  } else if (title.includes('sakamoto') || mid.includes('sakamoto')) {
-    katSlug = 'sakamoto-days.25555';
-  } else if (title.includes('dandadan') || mid.includes('dandadan')) {
-    katSlug = 'dandadan.25883';
-  } else if (title.includes('gachiakuta') || mid.includes('gachiakuta')) {
-    katSlug = 'gachiakuta.26574';
-  } else if (title.includes('lookism') || mid.includes('lookism')) {
-    katSlug = 'lookism.693';
-  } else if (title.includes('fairy tale') || title.includes('stepmother has left') || mid.includes('a-stepmothers-fairy-tale')) {
-    katSlug = 'a-stepmothers-fairy-tale.23902';
-  } else if (title.includes('tower of god') || mid.includes('tower-of-god')) {
-    katSlug = 'tower-of-god.465';
-  } else if (title.includes('strongest troll') || mid.includes('worlds-strongest-troll')) {
-    katSlug = 'worlds-strongest-troll.26644';
-  } else if (title.includes('solo leveling') || mid.includes('solo-leveling') || mid.includes('solo')) {
-    katSlug = 'solo-leveling.20815';
-  } else if (title.includes('naruto') || mid.includes('naruto')) {
-    katSlug = 'naruto.1205';
-  } else if (title.includes('bleach') || mid.includes('bleach')) {
-    katSlug = 'bleach.47';
-  } else if (title.includes('demon slayer') || mid.includes('demon-slayer')) {
-    katSlug = 'demon-slayer-kimetsu-no-yaiba.1293';
-  } else if (title.includes('hunter x hunter') || mid.includes('hunter-x-hunter')) {
-    katSlug = 'hunter-x-hunter.102';
-  } else if (title.includes('vinland saga') || mid.includes('vinland-saga')) {
-    katSlug = 'vinland-saga.81';
-  } else if (title.includes('kingdom') || mid.includes('kingdom')) {
-    katSlug = 'kingdom.92';
-  } else if (title.includes('vagabond') || mid.includes('vagabond')) {
-    katSlug = 'vagabond.84';
-  } else if (title.includes('death note') || mid.includes('death-note')) {
-    katSlug = 'death-note.235';
-  } else if (title.includes('spy x family') || mid.includes('spy-x-family')) {
-    katSlug = 'spy-x-family.21980';
-  } else if (title.includes('kaiju no') || mid.includes('kaiju-no-8')) {
-    katSlug = 'kaiju-no-8.25203';
-  } else if (title.includes('black clover') || mid.includes('black-clover')) {
-    katSlug = 'black-clover.15582';
-  } else if (title.includes('my hero academia') || mid.includes('boku-no-hero-academia')) {
-    katSlug = 'boku-no-hero-academia.1325';
-  } else if (title.includes('omniscient reader') || mid.includes('omniscient-reader')) {
-    katSlug = 'omniscient-readers-viewpoint.24837';
-  } else if (title.includes('nano machine') || mid.includes('nano-machine')) {
-    katSlug = 'nano-machine.25193';
-  } else if (title.includes('estate developer') || mid.includes('greatest-estate-developer')) {
-    katSlug = 'the-greatest-estate-developer.26244';
-  } else if (title.includes('magic emperor') || mid.includes('magic-emperor')) {
-    katSlug = 'magic-emperor.23439';
-  } else if (title.includes('mount hua') || title.includes('blossoming blade')) {
-    katSlug = 'return-of-the-blossoming-blade.25807';
-  } else if (title.includes('wind breaker') || mid.includes('wind-breaker')) {
-    katSlug = 'wind-breaker.467';
-  } else if (title.includes('eleceed') || mid.includes('eleceed')) {
-    katSlug = 'eleceed.115';
+  } else if (!isExplicitNsfw && !mid.startsWith('anilist:') && !mid.startsWith('md:')) {
+    if (title === 'one piece' || mid.includes('one-piece')) {
+      katSlug = 'one-piece.49';
+    } else if (title === 'one punch man' || title === 'one-punch man' || mid.includes('one-punch')) {
+      katSlug = 'one-punch-man.163';
+    } else if (title === 'berserk' || mid.includes('berserk')) {
+      katSlug = 'berserk.1087';
+    } else if (title === 'chainsaw man' || mid.includes('chainsaw-man')) {
+      katSlug = 'chainsaw-man.21890';
+    } else if (title === 'jujutsu kaisen' || mid.includes('jujutsu-kaisen')) {
+      katSlug = 'jujutsu-kaisen.20224';
+    } else if (title === 'blue lock' || mid.includes('blue-lock')) {
+      katSlug = 'blue-lock.20912';
+    } else if (title === 'sakamoto days' || mid.includes('sakamoto-days')) {
+      katSlug = 'sakamoto-days.25555';
+    } else if (title === 'dandadan' || mid.includes('dandadan')) {
+      katSlug = 'dandadan.25883';
+    } else if (title === 'gachiakuta' || mid.includes('gachiakuta')) {
+      katSlug = 'gachiakuta.26574';
+    } else if (title === 'lookism' || mid.includes('lookism')) {
+      katSlug = 'lookism.693';
+    } else if (title === "a stepmother's fairy tale" || title === 'the fantasie of a stepmother' || mid.includes('a-stepmothers-fairy-tale')) {
+      katSlug = 'a-stepmothers-fairy-tale.23902';
+    } else if (title === 'tower of god' || mid.includes('tower-of-god')) {
+      katSlug = 'tower-of-god.465';
+    } else if (title === "world's strongest troll" || mid.includes('worlds-strongest-troll')) {
+      katSlug = 'worlds-strongest-troll.26644';
+    } else if (title === 'solo leveling' || title === 'only i level up' || mid === 'webtoon:solo-leveling' || mid.includes('solo-leveling')) {
+      katSlug = 'solo-leveling.20815';
+    } else if (title === 'naruto' || mid.includes('naruto')) {
+      katSlug = 'naruto.1205';
+    } else if (title === 'bleach' || mid.includes('bleach')) {
+      katSlug = 'bleach.47';
+    } else if (title === 'demon slayer' || mid.includes('demon-slayer')) {
+      katSlug = 'demon-slayer-kimetsu-no-yaiba.1293';
+    } else if (title === 'hunter x hunter' || mid.includes('hunter-x-hunter')) {
+      katSlug = 'hunter-x-hunter.102';
+    } else if (title === 'vinland saga' || mid.includes('vinland-saga')) {
+      katSlug = 'vinland-saga.81';
+    } else if (title === 'kingdom' || mid.includes('kingdom')) {
+      katSlug = 'kingdom.92';
+    } else if (title === 'vagabond' || mid.includes('vagabond')) {
+      katSlug = 'vagabond.84';
+    } else if (title === 'death note' || mid.includes('death-note')) {
+      katSlug = 'death-note.235';
+    } else if (title === 'spy x family' || mid.includes('spy-x-family')) {
+      katSlug = 'spy-x-family.21980';
+    } else if (title === 'kaiju no. 8' || title === 'kaiju no 8' || mid.includes('kaiju-no-8')) {
+      katSlug = 'kaiju-no-8.25203';
+    } else if (title === 'black clover' || mid.includes('black-clover')) {
+      katSlug = 'black-clover.15582';
+    } else if (title === 'my hero academia' || mid.includes('boku-no-hero-academia')) {
+      katSlug = 'boku-no-hero-academia.1325';
+    } else if (title.includes('omniscient reader') || mid.includes('omniscient-reader')) {
+      katSlug = 'omniscient-readers-viewpoint.24837';
+    } else if (title === 'nano machine' || mid.includes('nano-machine')) {
+      katSlug = 'nano-machine.25193';
+    } else if (title.includes('greatest estate developer') || mid.includes('greatest-estate-developer')) {
+      katSlug = 'the-greatest-estate-developer.26244';
+    } else if (title === 'magic emperor' || mid.includes('magic-emperor')) {
+      katSlug = 'magic-emperor.23439';
+    } else if (title.includes('mount hua') || title.includes('blossoming blade')) {
+      katSlug = 'return-of-the-blossoming-blade.25807';
+    } else if (title === 'wind breaker' || mid.includes('wind-breaker')) {
+      katSlug = 'wind-breaker.467';
+    } else if (title === 'eleceed' || mid.includes('eleceed')) {
+      katSlug = 'eleceed.115';
+    }
   }
 
   if (katSlug) {
@@ -3231,7 +3360,7 @@ export async function fetchChapterPages(chapterId, mangaId = null, chapterNumber
     }
   }
 
-  if (mid.includes('fortune-telling') || cid.includes('ftp') || cid.includes('fortune-telling') || title.includes('fortune-telling')) {
+  if (!isExplicitNsfw && !mid.startsWith('anilist:') && (mid.includes('fortune-telling') || cid.includes('ftp') || title.includes('fortune-telling princess'))) {
     const totalPages = 28;
     const pages = Array.from({ length: totalPages }, (_, idx) => {
       const p = idx + 1;
@@ -3277,46 +3406,66 @@ export async function fetchChapterPages(chapterId, mangaId = null, chapterNumber
     } catch {}
   }
 
-  // Client-side fallback for Manga18fx
-  if ((chapterId && (chapterId.startsWith('m18_ch:') || chapterId.startsWith('m18:'))) || (mangaId && mangaId.startsWith('m18:'))) {
-    try {
-      let m18Slug = '';
-      let chSlug = '';
+  // Client-side fallback for Manga18fx (never leak into SFW fallback search)
+  if (isExplicitNsfw) {
+    if (cid.startsWith('m18_ch:') || cid.startsWith('m18:') || mid.startsWith('m18:') || mid.startsWith('manga18:')) {
+      try {
+        let m18Slug = '';
+        let chSlug = '';
 
-      if (chapterId && chapterId.startsWith('m18_ch:')) {
-        const parts = chapterId.replace('m18_ch:', '').split(':');
-        m18Slug = parts[0];
-        chSlug = parts[1] || `chapter-${chNum || '1'}`;
-      } else {
-        m18Slug = String(mangaId || '').replace(/^m18:|^manga18:|^manga18fx:/, '').trim();
-        chSlug = String(chapterId || '').startsWith('chapter-') 
-          ? chapterId 
-          : `chapter-${chNum || '1'}`;
-      }
+        if (chapterId && chapterId.startsWith('m18_ch:')) {
+          const parts = chapterId.replace('m18_ch:', '').split(':');
+          m18Slug = parts[0];
+          chSlug = parts[1] || `chapter-${chNum || '1'}`;
+        } else {
+          m18Slug = String(mangaId || '').replace(/^m18:|^manga18:|^manga18fx:/i, '').replace(/\/+$/, '').trim();
+          chSlug = String(chapterId || '').startsWith('chapter-')
+            ? chapterId
+            : `chapter-${chNum || '1'}`;
+        }
 
-      if (m18Slug) {
-        const targetUrl = `https://manga18fx.com/manga/${m18Slug}/${chSlug}`;
-        const html = await fetchClientHtml(targetUrl, 6000);
-        if (html) {
-          const pageImgs = [...html.matchAll(/<img[^>]+(?:src|data-src)="([^"]+)"/gi)]
-            .map(m => m[1])
-            .filter(u => u && !u.includes('logo') && !u.includes('favicon') && !u.includes('banner') && (u.includes('/online/') || u.includes('/webtoon/') || u.includes('/manga/') || /\.(jpg|jpeg|png|webp)/i.test(u)));
-          if (pageImgs.length > 0) {
-            const pages = pageImgs.map((imgUrl, idx) => {
-              const normalizedUrl = imgUrl.startsWith('//') ? `https:${imgUrl}` : imgUrl;
-              return {
+        if (m18Slug) {
+          const targetUrl = `https://manga18fx.com/manga/${m18Slug}/${chSlug}`;
+          const html = await fetchClientHtml(targetUrl, 6000);
+          if (html) {
+            const containerMatch = html.match(/<div[^>]+class=["'][^"']*(?:reading-content|read-content|chapter-content|wp-manga-chapter)[^"']*["'][^>]*>([\s\S]{0,120000})/i);
+            const scanHtml = containerMatch ? containerMatch[1] : html;
+            const seenImgs = new Set();
+            const pageImgs = [];
+            for (const m of scanHtml.matchAll(/<img\b[^>]+(?:data-src|data-lazy-src|data-original|src)=["']([^"']+)["']/gi)) {
+              let u = m[1].trim();
+              if (!u || u.startsWith('data:')) continue;
+              if (u.startsWith('//')) u = `https:${u}`;
+              const lower = u.toLowerCase();
+              if (lower.includes('logo') || lower.includes('favicon') || lower.includes('avatar') || lower.includes('banner') || lower.includes('spinner') || lower.includes('1x1')) continue;
+              if (containerMatch || lower.includes('/online/') || lower.includes('/webtoon/') || lower.includes('/wp-manga/') || /\.(jpg|jpeg|png|webp|avif)/i.test(lower)) {
+                if (!seenImgs.has(u)) {
+                  seenImgs.add(u);
+                  pageImgs.push(u);
+                }
+              }
+            }
+            if (pageImgs.length > 0) {
+              const pages = pageImgs.map((imgUrl, idx) => ({
                 pageNumber: idx + 1,
-                url: baseUrl ? `${baseUrl}/api/image-proxy?url=${encodeURIComponent(normalizedUrl)}` : normalizedUrl,
-                originalUrl: normalizedUrl
-              };
-            });
-            return { chapterId, totalPages: pages.length, pages, sourceUrl: targetUrl };
+                url: baseUrl ? `${baseUrl}/api/image-proxy?url=${encodeURIComponent(imgUrl)}` : imgUrl,
+                originalUrl: imgUrl
+              }));
+              return { chapterId, totalPages: pages.length, pages, sourceUrl: targetUrl };
+            }
           }
         }
+      } catch (err) {
+        console.warn('Direct Manga18fx chapter resolution error:', err);
       }
-    } catch (err) {
-      console.warn('Direct Manga18fx chapter resolution error:', err);
     }
+    return {
+      chapterId,
+      totalPages: 0,
+      pages: [],
+      sourceUrl,
+      warning: `Chapter ${chNum} could not be loaded from this adult source. Please try another chapter or adult mirror.`
+    };
   }
 
   // 4. Dynamic Multi-Source Search & Scraping Fallback
@@ -3339,7 +3488,8 @@ export async function fetchChapterPages(chapterId, mangaId = null, chapterNumber
       if (simplified && simplified !== t) candidateTitles.add(simplified);
     }
 
-    // If mangaId starts with anilist:, retrieve AniList synonyms to cross-match English & Romaji titles
+    let isAdultAniList = false;
+    // If mangaId starts with anilist:, retrieve AniList synonyms & adult flag to cross-match accurately
     if (mid.startsWith('anilist:') || cid.startsWith('anilist_ch:')) {
       const aniIdMatch = mid.match(/anilist:([0-9]+)/) || cid.match(/anilist_ch:([0-9]+)/);
       const anilistId = aniIdMatch ? parseInt(aniIdMatch[1], 10) : null;
@@ -3350,7 +3500,7 @@ export async function fetchChapterPages(chapterId, mangaId = null, chapterNumber
             headers: { 'Content-Type': 'application/json' },
             signal: AbortSignal.timeout(4000),
             body: JSON.stringify({
-              query: `query ($id: Int) { Media(id: $id, type: MANGA) { title { romaji english userPreferred native } synonyms } }`,
+              query: `query ($id: Int) { Media(id: $id, type: MANGA) { isAdult title { romaji english userPreferred native } synonyms } }`,
               variables: { id: anilistId }
             })
           });
@@ -3358,6 +3508,7 @@ export async function fetchChapterPages(chapterId, mangaId = null, chapterNumber
             const aniJson = await aniRes.json();
             const media = aniJson?.data?.Media;
             if (media) {
+              isAdultAniList = Boolean(media.isAdult);
               if (media.title?.romaji) candidateTitles.add(cleanTitle(media.title.romaji));
               if (media.title?.english) candidateTitles.add(cleanTitle(media.title.english));
               if (media.title?.userPreferred) candidateTitles.add(cleanTitle(media.title.userPreferred));
@@ -3373,7 +3524,42 @@ export async function fetchChapterPages(chapterId, mangaId = null, chapterNumber
     const cleanTargetCh = String(chNum !== undefined && chNum !== null ? chNum : '1').replace(/[^0-9.]/g, '') || '1';
     const finalCandidates = [...candidateTitles].filter(c => c && c.length >= 2).slice(0, 3);
 
-    // Step 4A: Try WeebCentral dynamic search
+    // Step 4-Adult: If AniList entry is 18+ Adult, search Manga18fx directly with authentic title match first
+    if (isAdultAniList) {
+      for (const cTitle of finalCandidates) {
+        try {
+          const m18SearchHtml = await fetchClientHtml(`https://manga18fx.com/search?q=${encodeURIComponent(cTitle)}`, 5500);
+          if (m18SearchHtml) {
+            const cardRegex = /<div class="(?:bsx-item|page-item-detail|bixbox)[\s\S]{0,1800}?<a[^>]+href="(?:https?:\/\/manga18fx\.com)?\/manga\/([^"#?/]+)\/?"[^>]*?(?:title="([^"]+)")?/gi;
+            for (const cm of m18SearchHtml.matchAll(cardRegex)) {
+              const foundSlug = cm[1];
+              const foundTitle = cleanTitle(decodeHtml(cm[2] || foundSlug.replace(/-/g, ' ')));
+              if (!isAuthenticSeriesMatch(cTitle, foundTitle) && !isAuthenticSeriesMatch(cTitle, foundSlug.replace(/-/g, ' '))) {
+                continue;
+              }
+              const chHtml = await fetchClientHtml(`https://manga18fx.com/manga/${foundSlug}/chapter-${cleanTargetCh}`, 5500);
+              if (chHtml) {
+                const containerMatch = chHtml.match(/<div[^>]+class=["'][^"']*(?:reading-content|read-content|chapter-content|wp-manga-chapter)[^"']*["'][^>]*>([\s\S]{0,120000})/i);
+                const scanHtml = containerMatch ? containerMatch[1] : chHtml;
+                const imgs = [...scanHtml.matchAll(/<img\b[^>]+(?:data-src|data-lazy-src|data-original|src)=["']([^"']+)["']/gi)]
+                  .map(m => m[1].startsWith('//') ? `https:${m[1]}` : m[1])
+                  .filter(u => u && !u.startsWith('data:') && !/logo|favicon|avatar|banner|spinner|1x1/i.test(u));
+                if (imgs.length > 0) {
+                  const pages = imgs.map((imgUrl, idx) => ({
+                    pageNumber: idx + 1,
+                    url: baseUrl ? `${baseUrl}/api/image-proxy?url=${encodeURIComponent(imgUrl)}` : imgUrl,
+                    originalUrl: imgUrl,
+                  }));
+                  return { chapterId, totalPages: pages.length, pages, sourceUrl: `https://manga18fx.com/manga/${foundSlug}/chapter-${cleanTargetCh}` };
+                }
+              }
+            }
+          }
+        } catch {}
+      }
+    }
+
+    // Step 4A: Try WeebCentral dynamic search (skip SFW-only fallback if adult AniList unless authentic)
     for (const cTitle of finalCandidates) {
       try {
         const searchUrl = `https://weebcentral.com/search/data?text=${encodeURIComponent(cTitle)}`;
